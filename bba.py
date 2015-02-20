@@ -12,11 +12,13 @@ from pkg_resources import require
 require('cothread')
 require('fa-archiver')
 require('scipy')
+require('numpy')
 
 import scipy.io
 from cothread.catools import caget, caput
 import cothread
 import falib
+import pml
 
 
 CORR_STEPS = 5
@@ -74,10 +76,12 @@ def step_corrector(corr_pv, fa_server):
 
 if __name__ == '__main__':
     fa_server = falib.Server()
-    QUAD_PV = 'ASDF'
+    QUAD_PV = 'SR01A-PC-Q1D-01'
     start_oscillation(QUAD_PV)
     s = {}
     for axis in ('X', 'Y'):
-        s[axis] = step_corrector('TEST_PV' + ':' + axis, fa_server)
+        corr_id, corr = pml.effective_corrector(QUAD_PV, getattr(pml, axis))
+        print 'Using corrector %s for quad %s in %s.' % (corr_id, QUAD_PV, axis)
+        s[axis] = step_corrector(corr.pv()[1], fa_server)
     stop_oscillation(QUAD_PV)
     scipy.io.savemat('quaddata', s)
