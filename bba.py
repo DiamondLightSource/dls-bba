@@ -29,6 +29,8 @@ EXTRA_DELAY = 0.1 # s
 OSC_STEP = 60
 WF_BANK = 10
 
+AXIS_NAMES = {pml.X: 'X', pml.Y: 'Y'}
+
 
 # for testing purposes
 def caget(pv):
@@ -54,8 +56,6 @@ def stop_oscillation(quad_pv):
 
 def step_corrector(corr_pv, fa_server):
 
-    sub = fa_server.subscription(range(1, 173), decimated=True)
-    cothread.Sleep(EXTRA_DELAY)
     start = caget(corr_pv)
     setpoint = 0
     step = (2.0 * CORR_CHANGE) / (CORR_STEPS - 1)
@@ -67,21 +67,24 @@ def step_corrector(corr_pv, fa_server):
         cothread.Sleep(CORR_PERIOD)
 
     caput(corr_pv, start)
-    cothread.Sleep(EXTRA_DELAY)
 
-    data = sub.read(int(CORR_PERIOD * CORR_STEPS * 1000 + 200))
-    sub.close()
-    return data
 
+def quad_bba(quad_pv):
+    start_oscillation(quad_pv)
+    s = {}
+    for axis in (pml.X, pml.Y):
+        corr_id, corr = pml.effective_corrector(quad_pv, axis)
+        sub = fa_server.subscription(range(1, 173), decimated=True)
+        cothread.Sleep(EXTRA_DELAY)
+        print 'Using corrector %s for quad %s in %s.' % (corr_id, quad_pv, AXIS_NAMES[axis])
+        step_corrector(corr.pv()[1], fa_server)
+        cothread.Sleep(EXTRA_DELAY)
+        s[AXIS_NAMES[axis]] = sub.read(int(CORR_PERIOD * CORR_STEPS * 1000 + 200))
+        sub.close()
+    stop_oscillation(quad_pv)
+    scipy.io.savemat('data/bbadata-%s' % quad_pv, s)
 
 if __name__ == '__main__':
     fa_server = falib.Server()
     QUAD_PV = 'SR01A-PC-Q1D-01'
-    start_oscillation(QUAD_PV)
-    s = {}
-    for axis in ('X', 'Y'):
-        corr_id, corr = pml.effective_corrector(QUAD_PV, getattr(pml, axis))
-        print 'Using corrector %s for quad %s in %s.' % (corr_id, QUAD_PV, axis)
-        s[axis] = step_corrector(corr.pv()[1], fa_server)
-    stop_oscillation(QUAD_PV)
-    scipy.io.savemat('quaddata', s)
+    quad_bba(QUAD_PV)
