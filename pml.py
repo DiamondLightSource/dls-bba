@@ -23,14 +23,17 @@ Y = 1
 BPM_FAMILY = {X: 'HSTR', Y: 'VSTR'}
 
 DATAROOT = "/home/diamond/common/matlab/middlelayer/2-0/machine/diamondopsdata"
-ringmode = caget("SR-CS-RING-01:MODE", datatype = DBR_STRING)
-RM_FILE = os.path.join(DATAROOT, ringmode, "GoldenBPMResp.mat")
-print RM_FILE
+
+def get_rm_file():
+    ringmode = caget("SR-CS-RING-01:MODE", datatype = DBR_STRING)
+    rm_file = os.path.join(DATAROOT, ringmode, "GoldenBPMResp.mat")
+    return rm_file
 
 
 def enabled_bpms():
     good_bpms = numpy.array(caget(BPM_ENABLED) == 0, dtype=numpy.bool)
     return good_bpms
+
 
 def quad_to_bpm(quad_pv):
     """
@@ -62,7 +65,7 @@ def quad_to_bpm(quad_pv):
 def effective_corrector(quad_pv, plane):
     # Note that ids are 1-indexed but arrays are 0-indexed.
     id, bpm = quad_to_bpm(quad_pv)
-    data = scipy.io.loadmat(RM_FILE, appendmat=False, struct_as_record=False)
+    data = scipy.io.loadmat(get_rm_file(), appendmat=False, struct_as_record=False)
     rm = data["Rmat"][plane, plane].Data
     row = rm[id-1,:]
     corr_id = numpy.argmax(abs(row)) + 1
