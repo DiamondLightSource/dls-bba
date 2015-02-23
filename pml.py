@@ -15,6 +15,7 @@ import numpy
 
 from cothread.catools import caget, DBR_STRING
 
+BPM_ENABLED = 'SR-DI-EBPM-01:ENABLED'
 
 # Planes
 X = 0
@@ -26,6 +27,10 @@ ringmode = caget("SR-CS-RING-01:MODE", datatype = DBR_STRING)
 RM_FILE = os.path.join(DATAROOT, ringmode, "GoldenBPMResp.mat")
 print RM_FILE
 
+
+def enabled_bpms():
+    good_bpms = numpy.array(caget(BPM_ENABLED) == 0, dtype=numpy.bool)
+    return good_bpms
 
 def quad_to_bpm(quad_pv):
     """
@@ -44,6 +49,8 @@ def quad_to_bpm(quad_pv):
     closest_bpm_index = None
     bpm_dist = 1000
     for i, bpm in enumerate(bpms):
+        if not enabled_bpms()[i]:
+            continue
         if abs(bpm.sb - qs) < bpm_dist:
             closest_bpm = bpm
             closest_bpm_index = i + 1
