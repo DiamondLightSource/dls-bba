@@ -36,18 +36,14 @@ CORR_AMP = 1 # A
 EXTRA_DELAY = 0.1 # s
 
 OSC_STEP = 80
-WF_BANK = 10
+WF_BANK = 4
 
 AXIS_NAMES = {pml.X: 'X', pml.Y: 'Y'}
 
 
 # for testing purposes
-def caget(pv):
-    print 'caget %s' % pv
-    return 10
-
 def caput(pv, value):
-    print 'caput %s:%s' % (pv, value)
+    print 'caput %s  %s' % (pv, value)
 
 
 def start_oscillation(quad_pv):
@@ -93,4 +89,4 @@ def quad_bba(quad_pv, ramp_quad=True):
 if __name__ == '__main__':
     fa_server = falib.Server()
     QUAD_PV = 'SR01A-PC-Q1D-01'
-    quad_bba(QUAD_PV, False)
+    quad_bba(QUAD_PV, True)

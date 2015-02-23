@@ -10,12 +10,8 @@ CORR_STEPS = 5
 CORR_PERIOD = 0.5 # s
 
 # for testing purposes
-def caget(pv):
-    print 'caget %s' % pv
-    return 10
-
 def caput(pv, value):
-    print 'caput %s:%s' % (pv, value)
+    print 'caput %s  %s' % (pv, value)
 
 
 def move_corrector(corr_id, corr_pv, corr_amp):
