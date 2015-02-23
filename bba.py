@@ -15,18 +15,27 @@ require('scipy')
 require('numpy')
 
 import scipy.io
+import numpy
 from cothread.catools import caget, caput
 import cothread
 import falib
 import pml
+import ramp
+import step
 
 
-CORR_STEPS = 5
-CORR_CHANGE = 1 # A
-CORR_PERIOD = 0.5 # s
+# For now, import helper functions from ploco
+import sys
+sys.path.append('/dls_sw/prod/R3.14.12.3/support/ploco/0-4')
+
+from excite import get_fa_data
+from opi.corrector import Corrector, IOCS
+
+
+CORR_AMP = 1 # A
 EXTRA_DELAY = 0.1 # s
 
-OSC_STEP = 60
+OSC_STEP = 80
 WF_BANK = 10
 
 AXIS_NAMES = {pml.X: 'X', pml.Y: 'Y'}
@@ -44,8 +53,9 @@ def caput(pv, value):
 def start_oscillation(quad_pv):
     selected_bank = caget(quad_pv + ':SETWFSEL')
     assert selected_bank == WF_BANK
+    step_size = caget(quad_pv + ':SETWFSTEP')
+    #assert step_size == OSC_STEP
     caput(quad_pv + ':SETWTRIG', 1)
-    caput(quad_pv + ':SETWFSTEP', OSC_STEP)
     caput(quad_pv + ':SETWFENA', 1)
 
 
@@ -54,37 +64,33 @@ def stop_oscillation(quad_pv):
     caput(quad_pv + ':SETWTRIG', 0)
 
 
-def step_corrector(corr_pv, fa_server):
-
-    start = caget(corr_pv)
-    setpoint = 0
-    step = (2.0 * CORR_CHANGE) / (CORR_STEPS - 1)
-    setpoint = start - CORR_CHANGE - step
-    caput(corr_pv, setpoint)
-    for i in range(CORR_STEPS):
-        setpoint += step
-        caput(corr_pv, setpoint)
-        cothread.Sleep(CORR_PERIOD)
-
-    caput(corr_pv, start)
-
-
-def quad_bba(quad_pv):
+def quad_bba(quad_pv, ramp_quad=True):
+    if ramp_quad:
+        module = ramp
+    else:
+        module = step
     start_oscillation(quad_pv)
     s = {}
     for axis in (pml.X, pml.Y):
         corr_id, corr = pml.effective_corrector(quad_pv, axis)
-        sub = fa_server.subscription(range(1, 173), decimated=True)
         cothread.Sleep(EXTRA_DELAY)
         print 'Using corrector %s for quad %s in %s.' % (corr_id, quad_pv, AXIS_NAMES[axis])
-        step_corrector(corr.pv()[1], fa_server)
+        start_time, ticks_taken = module.move_corrector(corr_id, corr.pv()[1], CORR_AMP)
         cothread.Sleep(EXTRA_DELAY)
-        s[AXIS_NAMES[axis]] = sub.read(int(CORR_PERIOD * CORR_STEPS * 1000 + 200))
-        sub.close()
+        # Note that DECIMATED is True in this call
+        data = get_fa_data((int(ticks_taken + 200)))
+        print data.shape
+        good_bpms = pml.enabled_bpms()
+        good_bpms = numpy.concatenate((numpy.ones(1, dtype=numpy.bool), good_bpms))
+        clean_data = data[:,good_bpms,:]
+        print clean_data.shape
+        clean_data = module.crop_data(clean_data)
+        s[AXIS_NAMES[axis]] = clean_data
     stop_oscillation(quad_pv)
     scipy.io.savemat('data/bbadata-%s' % quad_pv, s)
+
 
 if __name__ == '__main__':
     fa_server = falib.Server()
     QUAD_PV = 'SR01A-PC-Q1D-01'
-    quad_bba(QUAD_PV)
+    quad_bba(QUAD_PV, False)
