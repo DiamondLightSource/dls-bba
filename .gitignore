@@ -1,5 +1,8 @@
 
 # compiled python
 *.pyc
+# vim temporary files
+*.swp
 # generated matlab
 *.mat
+
