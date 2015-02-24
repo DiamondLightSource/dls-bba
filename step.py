@@ -17,17 +17,20 @@ def caput(pv, value):
 def move_corrector(corr_id, corr_pv, corr_amp):
 
     start = caget(corr_pv)
-    setpoint = 0
-    step = (2.0 * corr_amp) / (CORR_STEPS - 1)
-    setpoint = start - corr_amp - step
-    start_tick = get_timestamp_fa()
-    caput(corr_pv, setpoint)
-    for i in range(CORR_STEPS):
-        setpoint += step
+    print('Initial corrector setpoint is %s.' % start)
+    try:
+        setpoint = 0
+        step = (2.0 * corr_amp) / (CORR_STEPS - 1)
+        setpoint = start - corr_amp - step
+        start_tick = get_timestamp_fa()
         caput(corr_pv, setpoint)
-        cothread.Sleep(CORR_PERIOD)
+        for i in range(CORR_STEPS):
+            setpoint += step
+            caput(corr_pv, setpoint)
+            cothread.Sleep(CORR_PERIOD)
 
-    caput(corr_pv, start)
+    finally:
+        caput(corr_pv, start)
 
     return start_tick, CORR_STEPS * CORR_PERIOD * 10072
 
