@@ -1,4 +1,7 @@
 
+import scipy.io
+import numpy
+from cothread.catools import caget, DBR_STRING
 import sys
 import os
 sys.path.append('/dls_sw/work/common/python/hla')
@@ -10,11 +13,8 @@ except ImportError:
     print('We need APHLA!')
     sys.exit()
 
-import scipy.io
-import numpy
 
-from cothread.catools import caget, DBR_STRING
-
+DATAROOT = "/home/diamond/common/matlab/middlelayer/2-0/machine/diamondopsdata"
 BPM_ENABLED = 'SR-DI-EBPM-01:ENABLED'
 
 # Planes
@@ -22,7 +22,6 @@ X = 0
 Y = 1
 BPM_FAMILY = {X: 'HSTR', Y: 'VSTR'}
 
-DATAROOT = "/home/diamond/common/matlab/middlelayer/2-0/machine/diamondopsdata"
 
 def get_rm_file():
     ringmode = caget("SR-CS-RING-01:MODE", datatype = DBR_STRING)
