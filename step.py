@@ -29,21 +29,36 @@ def move_corrector(corr_id, corr_pv, corr_amp):
             caput(corr_pv, setpoint)
             cothread.Sleep(CORR_PERIOD)
 
+        end_tick = get_timestamp_fa()
     finally:
         caput(corr_pv, start)
 
-    return start_tick, CORR_STEPS * CORR_PERIOD * 10072
+    print 'calc duration:', CORR_STEPS * CORR_PERIOD * 10072
+    print 'meas duration:', end_tick - start_tick
+    return start_tick, end_tick - start_tick
 
-def crop_data(data):
+
+def crop_data(start_time, data):
     # We want data definitely within each timestep.
+    # Assume that the data is decimated.
+    print data.shape
+    timestamps = data[:,0,0]
+    assert timestamps[0] < start_time < timestamps[-1]
+    print 'extra data:', start_time - timestamps[0]
+    print 'relevant data:', timestamps[-1] - start_time
     length = data.shape[0]
     samples_per_step = CORR_PERIOD * 1000
     edge = samples_per_step * 0.2
     samples = samples_per_step * 0.6
     # 0.1 + n * CORR_PERIOD + 0.1
-    sample_start = 0.1 * 1000 + edge
+    for i, item in enumerate(timestamps):
+        if item > start_time:
+            sample_start = i + edge
+            print 'started at sample', i
+            break
     data_slices = []
     for i in range(CORR_STEPS):
+        print 'selecting %s to %s' % (sample_start, sample_start+samples)
         data_slices.append(data[sample_start:sample_start+samples,:,:])
         sample_start += samples_per_step
 
