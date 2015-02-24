@@ -6,6 +6,9 @@ except that it will nominally use quadrupole oscillation
 rather than manual EPICS settings.
 
 Assume that the waveform is loaded into the quadrupole before starting.
+
+You can find some of the configuration for matlab BBA by 
+running quadcenterinit(family, element, plane).
 """
 
 from pkg_resources import require
@@ -31,12 +34,11 @@ sys.path.append('/dls_sw/prod/R3.14.12.3/support/ploco/0-4')
 from excite import get_fa_data
 from opi.corrector import Corrector, IOCS
 
-
-CORR_AMP = 1 # A
+# From quadcenterinit
+CORR_AMP = 1.5e-5 # A
 EXTRA_DELAY = 0.1 # s
-
-OSC_STEP = 80
-WF_BANK = 4
+# By default, the first bank.
+WF_BANK = 14
 
 AXIS_NAMES = {pml.X: 'X', pml.Y: 'Y'}
 
@@ -50,14 +52,16 @@ def start_oscillation(quad_pv):
     selected_bank = caget(quad_pv + ':SETWFSEL')
     assert selected_bank == WF_BANK
     step_size = caget(quad_pv + ':SETWFSTEP')
-    #assert step_size == OSC_STEP
-    caput(quad_pv + ':SETWTRIG', 1)
+    print 'step size:', step_size
+    amplitude = caget(quad_pv + ':SETWFSCA')
+    print 'scale factor:', amplitude
+    caput(quad_pv + ':SETWFTRIG', 1)
     caput(quad_pv + ':SETWFENA', 1)
 
 
 def stop_oscillation(quad_pv):
     caput(quad_pv + ':SETWFENA', 0)
-    caput(quad_pv + ':SETWTRIG', 0)
+    caput(quad_pv + ':SETWFTRIG', 0)
 
 
 def quad_bba(quad_pv, ramp_quad=True):
@@ -71,7 +75,7 @@ def quad_bba(quad_pv, ramp_quad=True):
         corr_id, corr = pml.effective_corrector(quad_pv, axis)
         cothread.Sleep(EXTRA_DELAY)
         print 'Using corrector %s for quad %s in %s.' % (corr_id, quad_pv, AXIS_NAMES[axis])
-        start_time, ticks_taken = module.move_corrector(corr_id, corr.pv()[1], CORR_AMP)
+        start_time, ticks_taken = module.move_corrector(corr_id, sorted(corr.pv())[1], CORR_AMP)
         cothread.Sleep(EXTRA_DELAY)
         # Note that DECIMATED is True in this call
         data = get_fa_data((int(ticks_taken + 200)))
