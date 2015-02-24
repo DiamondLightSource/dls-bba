@@ -26,14 +26,7 @@ import falib
 import pml
 import ramp
 import step
-
-
-# For now, import helper functions from ploco
 import sys
-sys.path.append('/dls_sw/prod/R3.14.12.3/support/ploco/0-4')
-
-from excite import get_fa_data
-from opi.corrector import Corrector, IOCS
 
 # From quadcenterinit
 CORR_AMP = 1.5e-5 # A
@@ -74,18 +67,18 @@ def quad_bba(quad_pv, ramp_quad=True):
     s = {}
     for axis in (pml.X, pml.Y):
         corr_id, corr = pml.effective_corrector(quad_pv, axis)
-        cothread.Sleep(EXTRA_DELAY)
+        # start the subscription
+        sub = falib.subscription(range(173), decimated=True)
         print 'Using corrector %s for quad %s in %s.' % (corr_id, quad_pv, AXIS_NAMES[axis])
         start_time, ticks_taken = module.move_corrector(corr_id, sorted(corr.pv())[1], CORR_AMP)
-        cothread.Sleep(EXTRA_DELAY)
-        # Note that DECIMATED is True in this call
-        data = get_fa_data((int(ticks_taken + 200)))
+        data = sub.read((int(ticks_taken + 2000)) / 10)
+        sub.close()
         print data.shape
         good_bpms = pml.enabled_bpms()
         good_bpms = numpy.concatenate((numpy.ones(1, dtype=numpy.bool), good_bpms))
         clean_data = data[:,good_bpms,:]
         print clean_data.shape
-        clean_data = module.crop_data(clean_data)
+        clean_data = module.crop_data(start_time, clean_data)
         s[AXIS_NAMES[axis]] = clean_data
     stop_oscillation(quad_pv)
     now = datetime.datetime.now()
