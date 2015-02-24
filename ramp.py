@@ -22,7 +22,7 @@ def get_ramp_waveform(length):
     # Half sine wave exit
     intro_length = length / 10
     ramp_length = length - 2 * intro_length
-    intro_scale = numpy.arange(100) * numpy.pi / 100
+    intro_scale = numpy.arange(intro_length) * numpy.pi / intro_length
     intro = (1.0/2) * (numpy.cos(intro_scale) - 1)
     exit = (1.0/2) * (numpy.cos(intro_scale) + 1)
     ramp = numpy.arange(-1.0, 1.0, 2.0/ramp_length)
