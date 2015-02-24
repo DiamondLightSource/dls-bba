@@ -39,9 +39,11 @@ def get_ramp_waveform(length):
 
 def move_corrector(corr_id, corr_pv, corr_amp):
 
-    STEPS = 10
+    STEPS = 1
     c = Corrector(corr_id)
-    length = 1000
+    # Override!
+    #c.ioc = 'TS-CS-FOFB-02'
+    length = 10072
     waveform = get_ramp_waveform(length)
     caput('%s:WAVEFORM:WAVEFORM' % c.ioc, waveform)
     caput('%s:WAVEFORM:LENGTH' % c.ioc, len(waveform))
@@ -56,19 +58,32 @@ def move_corrector(corr_id, corr_pv, corr_amp):
     start_times[c.corr-1] = start_tick
     caput('%s:WAVEFORM:START_TIMES' % c.ioc, start_times)
     total_ticks = len(waveform) * STEPS
-    print('Length of waveform is %ss' % total_ticks)
+    print('Length of waveform is %s ticks' % total_ticks)
     caput('%s:WAVEFORM:PRIME' % c.ioc, 1)
-    return start_tick, total_ticks
+    return start_tick, total_ticks + network_lag
 
 
-def crop_data(data):
+def crop_data(start_time, data):
     # We want data that is definitely within the ramp.
+    timestamps = data[:,0,0]
+    assert timestamps[0] < start_time < timestamps[-1]
+    print 'extra data:', start_time - timestamps[0]
+    print 'relevant data:', timestamps[-1] - start_time
+    print 'data shape:', data.shape
+    print 'start time:', start_time
+    for i, item in enumerate(timestamps):
+        if item > start_time:
+            print 'started at sample', i
+            start = i
+            break
+    data = data[start:,:,:]
     length = data.shape[0]
     print 'length of data is', length
     chop = numpy.floor(length * 0.15)
     left = length - 2 * chop
     mask = numpy.concatenate((numpy.zeros(chop), numpy.ones(left), numpy.ones(chop)))
     mask = numpy.array(mask, dtype=bool)
-    print mask.shape
+    print 'mask:', mask.shape
     data = data[mask,:,:]
+    print 'final data:', data.shape
     return data
