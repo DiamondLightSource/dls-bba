@@ -1,6 +1,5 @@
 
 import cothread
-from cothread.catools import caput
 import numpy
 # For now, import helper functions from ploco
 import sys
@@ -11,12 +10,9 @@ from opi.corrector import Corrector
 
 
 # for testing purposes
-def caget(pv):
-    print 'caget %s' % pv
-    return 10
-
 def caput(pv, value):
     print 'caput %s:%s' % (pv, value)
+    cothread.catools.caput(pv, value)
 
 
 def get_ramp_waveform(length):
