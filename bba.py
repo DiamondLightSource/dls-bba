@@ -19,6 +19,7 @@ require('numpy')
 
 import scipy.io
 import numpy
+import datetime
 from cothread.catools import caget, caput
 import cothread
 import falib
@@ -87,10 +88,27 @@ def quad_bba(quad_pv, ramp_quad=True):
         clean_data = module.crop_data(clean_data)
         s[AXIS_NAMES[axis]] = clean_data
     stop_oscillation(quad_pv)
-    scipy.io.savemat('data/bbadata-%s' % quad_pv, s)
+    now = datetime.datetime.now()
+    datestring = now.strftime('%Y-%m-%dT%H-%M-%S')
+    filename = 'data/bba-%s-%s-%s' % (module.__name__, quad_pv, datestring)
+    scipy.io.savemat(filename, s, oned_as='row')
+    print('Saved to %s' % filename)
 
 
 if __name__ == '__main__':
     fa_server = falib.Server()
     QUAD_PV = 'SR01A-PC-Q1D-01'
-    quad_bba(QUAD_PV, True)
+    try:
+        method = sys.argv[1]
+        if method == 'ramp':
+            ramp_quad = True
+        elif method == 'step':
+            ramp_quad = False
+        else:
+            print 'Method %s not understood' % method
+            sys.exit()
+    except IndexError:
+        print 'Usage: %s [ramp|step]' % sys.argv[0]
+        sys.exit()
+
+    quad_bba(QUAD_PV, ramp_quad)
