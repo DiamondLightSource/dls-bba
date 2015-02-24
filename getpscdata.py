@@ -9,30 +9,6 @@ import matplotlib.pyplot as pp
 from cothread.catools import *
 import cothread
 
-def get_stop_flag():
-    nan_string = struct.pack('HHHH', 65535, 65535, 65535, 65535)
-    psc_nan = struct.unpack('d', nan_string)
-    return psc_nan[0]
-
-
-def get_stop_flag2():
-    flag_file = "/dls_sw/work/common/matlab/mml/machine/diamond/stopflag"
-    with open(flag_file) as f:
-        stop_flag = f.read()
-    print stop_flag
-    stop_flag = struct.unpack('d', stop_flag)
-    return stop_flag[0]
-
-def get_sine_wave(length):
-    a = numpy.arange(length)
-    s = numpy.sin(2 * numpy.pi * a / length)
-    return s
-
-
-def print_nan(double):
-    n = struct.pack('d', double)
-    print [hex(ord(x)) for x in n]
-
 IOC = "SR25A-PC-TEST-03"
 
 DLLEN = "%s:SETDLLEN" % IOC
@@ -48,7 +24,35 @@ CONTROL = ['%s:DATA%s.PROC' % (IOC, i) for i in range(8)]
 SETDATA = ['%s:SETDATA%s' % (IOC, i) for i in range(8)]
 
 
+def get_stop_flag():
+    nan_string = struct.pack('HHHH', 65535, 65535, 65535, 65535)
+    psc_nan = struct.unpack('d', nan_string)
+    return psc_nan[0]
+
+
+def get_stop_flag2():
+    flag_file = "/dls_sw/work/common/matlab/mml/machine/diamond/stopflag"
+    with open(flag_file) as f:
+        stop_flag = f.read()
+    print stop_flag
+    stop_flag = struct.unpack('d', stop_flag)
+    return stop_flag[0]
+
+
+def get_sine_wave(length):
+    a = numpy.arange(length)
+    s = numpy.sin(2 * numpy.pi * a / length)
+    return s
+
+
+def print_nan(double):
+    n = struct.pack('d', double)
+    print [hex(ord(x)) for x in n]
+
+
 def set_up(bank=14):
+    # There are two ways of naming banks.  The default
+    # is bank 1 on the gui, which is bank 14 in the PV.
     caput(DLDEST, bank)
     caput(ULDEST, bank)
     caput(STARTUL, 1)
@@ -63,6 +67,7 @@ def plot(data):
 
 
 def download():
+    # This download is fetch data FROM the power supply.
     length = caget(DLLEN)
     print("Length is %s" % length)
     bank = caget(DLDEST)
@@ -88,6 +93,7 @@ def download():
     return n
 
 def upload(pscnan):
+    # This upload is send data TO the power supply.
     caput(DLLEN, 2000)
 
     print 'waiting to start upload'
@@ -110,13 +116,14 @@ def upload(pscnan):
         cothread.Sleep(1)
 
 
-if sys.argv[1] == 'u':
-    set_up(14)
-    n = download()
-    set_up(13)
-    upload(n)
-else:
-    set_up(14)
-    download()
-print "Done"
+if __name__ == '__main__':
+    if sys.argv[1] == 'upload':
+        set_up(14)
+        n = download()
+        set_up(13)
+        upload(n)
+    elif sys.argv[1] == 'download':
+        set_up(14)
+        download()
+    print "Done"
 
