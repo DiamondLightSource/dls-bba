@@ -28,7 +28,7 @@ import ramp
 import step
 import sys
 
-# From quadcenterinit
+# Default value from quadcenterinit
 CORR_AMP = 1.5e-5 # A
 EXTRA_DELAY = 0.1 # s
 # By default, the first bank.
@@ -58,50 +58,56 @@ def stop_oscillation(quad_pv):
     caput(quad_pv + ':SETWFTRIG', 0)
 
 
-def quad_bba(quad_pv, ramp_quad=True):
-    if ramp_quad:
-        module = ramp
-    else:
-        module = step
+def filter_bpms(data):
+    good_bpms = pml.enabled_bpms()
+    # Prepend a one to allow timestamp data through.
+    good_bpms = numpy.concatenate((numpy.ones(1, dtype=numpy.bool), good_bpms))
+    clean_data = data[:,good_bpms,:]
+    return clean_data
+
+
+def save_data(datadict, quad_pv, bba_type):
+    now = datetime.datetime.now()
+    datestring = now.strftime('%Y-%m-%dT%H-%M-%S')
+    filename = 'data/bba-%s-%s-%s' % (module.__name__, quad_pv, datestring)
+    scipy.io.savemat(filename, datadict, oned_as='row')
+    print('Saved to %s' % filename)
+
+
+def quad_bba(quad_pv, method):
     start_oscillation(quad_pv)
-    s = {}
+    datadict = {}
     for axis in (pml.X, pml.Y):
         corr_id, corr = pml.effective_corrector(quad_pv, axis)
         # start the subscription
         sub = falib.subscription(range(173), decimated=True)
-        print 'Using corrector %s for quad %s in %s.' % (corr_id, quad_pv, AXIS_NAMES[axis])
-        start_time, ticks_taken = module.move_corrector(corr_id, sorted(corr.pv())[1], CORR_AMP)
+        print 'Using corrector %s for quad %s in %s.' %\
+            (corr_id, quad_pv, AXIS_NAMES[axis])
+        # I don't understand this interface.
+        seti_pv = sorted(corr.pv())[1]
+        start_time, ticks_taken = method.move_corrector(corr_id, seti_pv, CORR_AMP)
         data = sub.read((int(ticks_taken + 2000)) / 10)
         sub.close()
-        print data.shape
-        good_bpms = pml.enabled_bpms()
-        good_bpms = numpy.concatenate((numpy.ones(1, dtype=numpy.bool), good_bpms))
-        clean_data = data[:,good_bpms,:]
-        print clean_data.shape
-        clean_data = module.crop_data(start_time, clean_data)
-        s[AXIS_NAMES[axis]] = clean_data
+        clean_data = filter_bpms(data)
+        cropped_data = method.crop_data(start_time, clean_data)
+        datadict[AXIS_NAMES[axis]] = cropped_data
     stop_oscillation(quad_pv)
-    now = datetime.datetime.now()
-    datestring = now.strftime('%Y-%m-%dT%H-%M-%S')
-    filename = 'data/bba-%s-%s-%s' % (module.__name__, quad_pv, datestring)
-    scipy.io.savemat(filename, s, oned_as='row')
-    print('Saved to %s' % filename)
+    save_data(datadict, quad_pv, method.__name__)
 
 
 if __name__ == '__main__':
-    fa_server = falib.Server()
     QUAD_PV = 'SR01A-PC-Q1D-01'
     try:
-        method = sys.argv[1]
-        if method == 'ramp':
-            ramp_quad = True
-        elif method == 'step':
-            ramp_quad = False
+        method_name = sys.argv[1]
+        if method_name == 'ramp':
+            module = ramp
+        elif method_name == 'step':
+            module = step
         else:
-            print 'Method %s not understood' % method
+            print 'Method %s not understood' % method_name
             sys.exit()
     except IndexError:
         print 'Usage: %s [ramp|step]' % sys.argv[0]
         sys.exit()
 
-    quad_bba(QUAD_PV, ramp_quad)
+    quad_bba(QUAD_PV, module)
