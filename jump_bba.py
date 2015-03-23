@@ -15,7 +15,6 @@ import falib
 sys.path.append('/dls_sw/prod/R3.14.12.3/support/ploco/0-4')
 import excite
 from opi.corrector import Corrector
-import bba
 import pml
 
 
@@ -36,9 +35,12 @@ NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
 SAFETY_NET = SAFETY_NET_S * TICKS_PER_SECOND
 DECIMATED = True
 
+BPM_IDS = range(174)  # 173 plus 0 for timestamps
+
 
 def test_caput(pvs, val):
     print('caput: {}  {}'.format(pvs, val))
+
 
 def test_Sleep(val):
     print('cothread: Sleeping for {:.1f}s'.format(val))
@@ -59,11 +61,10 @@ def select_data(data, exc_high, exc_low):
     # get relevant timestamps
     # select relevant duration
     print('Selecting data')
-    print(data.shape)
+    print('Raw data: {}'.format(data.shape))
     good_bpms = pml.enabled_bpms()
     data = data[:,good_bpms,:]
-
-    print(data.shape)
+    print('Good bpm data: {}'.format(data.shape))
     times = data[:,0,0]
     i = 0
     while times[i] < exc_high.time:
@@ -82,11 +83,10 @@ def get_excitation(corr, plane):
     return exc
 
 
-
 def jump_bba(quad, planes):
-    """
+    '''
     Do we need undecimated data?
-    """
+    '''
     # set quad value
     quad_pv = quad.pv(handle='setpoint')[0]
     quad_sp = caget(quad_pv)
@@ -104,10 +104,10 @@ def jump_bba(quad, planes):
         corr = Corrector(corr_id)
         caput(quad_pv, quad_high)
         now = excite.get_timestamp_fa()
-        sub = falib.subscription(range(173), decimated=DECIMATED)
+        sub = falib.subscription(BPM_IDS, decimated=DECIMATED)
         high_start = now + NETWORK_LAG
-        print("High start time: {}.".format(high_start))
-        print("Now: {}.".format(now))
+        print('Time now: {}.'.format(now))
+        print('High start time: {}.'.format(high_start))
         exc_high = get_excitation(corr, plane)
         exc_low = get_excitation(corr, plane)
         excite.excite_storage_ring_(high_start, (exc_high, exc_low), QUAD_LAG)
@@ -124,6 +124,7 @@ def jump_bba(quad, planes):
         fa_data = sub.read(duration)
         sub.close()
         print('FA data size: {}'.format(fa_data.shape))
+        print('Final timestamp in data: {}'.format(fa_data[-1,0,0]))
         high_data, low_data = select_data(fa_data, exc_high, exc_low)
         print(high_data.shape, low_data.shape)
         data[pml.AXIS_NAMES[plane] + 'high'] = high_data
@@ -132,7 +133,7 @@ def jump_bba(quad, planes):
     # restore setpoint
     caput(quad_pv, quad_sp)
 
-    bba.save_data(data, quad, 'jump')
+    save_data(data, quad, 'jump')
 
 
 if __name__ == '__main__':

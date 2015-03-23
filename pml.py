@@ -1,4 +1,3 @@
-
 import scipy.io
 import numpy
 from cothread.catools import caget, DBR_STRING
@@ -31,8 +30,9 @@ def quad_from_pv(quad_pv):
         if q.pv()[0].split(':')[0] == prefix:
             return q
 
+
 def get_rm_file():
-    ringmode = caget("SR-CS-RING-01:MODE", datatype = DBR_STRING)
+    ringmode = caget("SR-CS-RING-01:MODE", datatype=DBR_STRING)
     rm_file = os.path.join(DATAROOT, ringmode, "GoldenBPMResp.mat")
     return rm_file
 
@@ -64,11 +64,17 @@ def quad_to_bpm(quad):
 
 
 def effective_corrector(quad, plane):
-    # Note that ids are 1-indexed but arrays are 0-indexed.
+    """
+    Given an hlapa quad element, find the corrector magnet
+    that will have the most effect at that quad.
+    Return (id, corrector element)
+    """
     bpm_id, bpm = quad_to_bpm(quad)
-    data = scipy.io.loadmat(get_rm_file(), appendmat=False, struct_as_record=False)
+    data = scipy.io.loadmat(get_rm_file(), appendmat=False,
+                            struct_as_record=False)
     rm = data["Rmat"][plane, plane].Data
     row = rm[bpm_id-1,:]
+    # Note that ids are 1-indexed but arrays are 0-indexed.
     corr_id = numpy.argmax(abs(row)) + 1
     corrs = ap.getElements(BPM_FAMILY[plane])
     return corr_id, corrs[corr_id]
