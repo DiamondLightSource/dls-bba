@@ -7,7 +7,7 @@ import os
 sys.path.append('/dls_sw/work/common/python/hla')
 try:
     import aphla as ap
-    ap.machines.load('dls')
+    ap.machines.load('SRI0913')
     ap.machines.use('SR')
 except ImportError:
     print('We need APHLA!')
@@ -20,8 +20,16 @@ BPM_ENABLED = 'SR-DI-EBPM-01:ENABLED'
 # Planes
 X = 0
 Y = 1
+AXIS_NAMES = {X: 'X', Y: 'Y'}
 BPM_FAMILY = {X: 'HSTR', Y: 'VSTR'}
 
+
+def quad_from_pv(quad_pv):
+    prefix = quad_pv.split(':')[0]
+    quads = ap.getElements('QUAD')
+    for q in quads:
+        if q.pv()[0].split(':')[0] == prefix:
+            return q
 
 def get_rm_file():
     ringmode = caget("SR-CS-RING-01:MODE", datatype = DBR_STRING)
@@ -34,17 +42,11 @@ def enabled_bpms():
     return good_bpms
 
 
-def quad_to_bpm(quad_pv):
+def quad_to_bpm(quad):
     """
     Simply find the BPM closest to the quad.
     """
     bpms = ap.getBpms()
-    quads = ap.getElements('QUAD')
-    quad = None
-    for q in quads:
-        if q.pv()[0].split(':')[0] == quad_pv:
-            quad = q
-    assert quad is not None
     # Find centre of quad.
     qs = quad.sb + quad.length / 2
     closest_bpm = None
@@ -61,12 +63,12 @@ def quad_to_bpm(quad_pv):
     return closest_bpm_index, closest_bpm
 
 
-def effective_corrector(quad_pv, plane):
+def effective_corrector(quad, plane):
     # Note that ids are 1-indexed but arrays are 0-indexed.
-    id, bpm = quad_to_bpm(quad_pv)
+    bpm_id, bpm = quad_to_bpm(quad)
     data = scipy.io.loadmat(get_rm_file(), appendmat=False, struct_as_record=False)
     rm = data["Rmat"][plane, plane].Data
-    row = rm[id-1,:]
+    row = rm[bpm_id-1,:]
     corr_id = numpy.argmax(abs(row)) + 1
     corrs = ap.getElements(BPM_FAMILY[plane])
     return corr_id, corrs[corr_id]
