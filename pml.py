@@ -23,11 +23,16 @@ AXIS_NAMES = {X: 'X', Y: 'Y'}
 BPM_FAMILY = {X: 'HSTR', Y: 'VSTR'}
 
 
+def prefix_from_element(element):
+    pv = element.pv()[0]
+    return pv.split(':')[0]
+
+
 def quad_from_pv(quad_pv):
     prefix = quad_pv.split(':')[0]
     quads = ap.getElements('QUAD')
     for q in quads:
-        if q.pv()[0].split(':')[0] == prefix:
+        if prefix_from_element(q) == prefix:
             return q
 
 
