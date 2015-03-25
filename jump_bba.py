@@ -62,7 +62,8 @@ def select_data(data, plane, exc_high, exc_low):
     # get relevant timestamps
     # select relevant duration
     # select correct plane
-    print('Selecting data')
+    print('Selecting data; size: {}'.format(data.shape))
+    print('Final timestamp in data: {}'.format(data[-1,0,0]))
     print('Raw data: {}'.format(data.shape))
     times = data[:,0,0]
     i = 0
@@ -73,6 +74,7 @@ def select_data(data, plane, exc_high, exc_low):
     while times[i] < exc_low.time:
         i += 1
     low_data = numpy.squeeze(data[i:i+length,:,plane])
+    print('Selected data size: {} {}'.format(high_data.shape, low_data.shape))
     return high_data, low_data
 
 
@@ -95,7 +97,6 @@ def jump_bba(quad, plane, quad_step, osc):
     quad_low = quad_sp - quad_step / 2
     quad_lag_s = quad_step * QUAD_SLEW_RATE
     quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
-    print('Quad lag is {}'.format(quad_lag))
 
     corr_id, ap_corr = pml.effective_corrector(quad, plane)
     corr = Corrector(corr_id)
@@ -105,9 +106,8 @@ def jump_bba(quad, plane, quad_step, osc):
     now = excite.get_timestamp_fa()
     exc_high = get_excitation(corr, plane)
     exc_low = get_excitation(corr, plane)
-    duration = (NETWORK_LAG + exc_high.count + quad_lag + SAFETY_NET +
+    duration = (NETWORK_LAG + exc_high.count + SAFETY_NET + quad_lag +
                 exc_low.count)
-    print('Duration is {}'.format(duration))
     # Set off the data collection
     fa_buffer = fa.Buffer(BPM_IDS, duration, DECIMATED)
     high_start = now + NETWORK_LAG
@@ -118,15 +118,12 @@ def jump_bba(quad, plane, quad_step, osc):
     # Sleep for first excitation. SAFETY_NET ensures that we don't start
     # moving the quad before the excitation has finished.
     cothread.Sleep((NETWORK_LAG + exc_high.count + SAFETY_NET) /
-                    TICKS_PER_SECOND)
+                   TICKS_PER_SECOND)
     # Move quad from high to low
     caput(quad_pv, quad_low)
     # This will block until all data has been retrieved.
     fa_data = fa_buffer.get_data()
-    print('FA data size: {}'.format(fa_data.shape))
-    print('Final timestamp in data: {}'.format(fa_data[-1,0,0]))
     high_data, low_data = select_data(fa_data, plane, exc_high, exc_low)
-    print(high_data.shape, low_data.shape)
     save_data(high_data, low_data, quad, plane, osc)
 
     # Restore setpoint.  We don't need SAFETY_NET here because we've saved
