@@ -4,9 +4,11 @@ from pkg_resources import require
 require('cothread')
 require('fa-archiver')
 require('scipy')
+require('numpy')
 
 import sys
 import datetime
+import numpy
 import scipy.io
 from cothread.catools import caget, caput
 import cothread
@@ -58,10 +60,10 @@ def save_data(datadict, quad, plane, bba_type):
     print('Saved to %s' % filename)
 
 
-def select_data(data, exc_high, exc_low):
-    # remove bogus data
+def select_data(data, plane, exc_high, exc_low):
     # get relevant timestamps
     # select relevant duration
+    # select correct plane
     print('Selecting data')
     print('Raw data: {}'.format(data.shape))
     times = data[:,0,0]
@@ -69,10 +71,10 @@ def select_data(data, exc_high, exc_low):
     while times[i] < exc_high.time:
         i += 1
     length = int(exc_high.count // 10) if DECIMATED else exc_high.count
-    high_data = data[i:i+length,:,:]
+    high_data = numpy.squeeze(data[i:i+length,:,plane])
     while times[i] < exc_low.time:
         i += 1
-    low_data = data[i:i+length,:,:]
+    low_data = numpy.squeeze(data[i:i+length,:,plane])
     return high_data, low_data
 
 
@@ -127,7 +129,7 @@ def jump_bba(quad, planes):
         fa_data = fa_buffer.get_data()
         print('FA data size: {}'.format(fa_data.shape))
         print('Final timestamp in data: {}'.format(fa_data[-1,0,0]))
-        high_data, low_data = select_data(fa_data, exc_high, exc_low)
+        high_data, low_data = select_data(fa_data, plane, exc_high, exc_low)
         print(high_data.shape, low_data.shape)
         data['high'] = high_data
         data['low'] = low_data
