@@ -57,8 +57,9 @@ def quad_to_bpm(quad):
     closest_bpm = None
     closest_bpm_index = None
     bpm_dist = 1000
+    enabled = enabled_bpms()
     for i, bpm in enumerate(bpms):
-        if not enabled_bpms()[i]:
+        if not enabled[i]:
             continue
         if abs(bpm.sb - qs) < bpm_dist:
             closest_bpm = bpm
