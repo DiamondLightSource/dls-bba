@@ -43,7 +43,7 @@ def get_rm_file():
 
 
 def enabled_bpms():
-    good_bpms = numpy.array(caget(BPM_ENABLED) == 0, dtype=numpy.bool)
+    good_bpms = numpy.equal(caget(BPM_ENABLED), 0)
     return good_bpms
 
 

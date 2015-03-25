@@ -103,7 +103,7 @@ def jump_bba(quad, planes):
         data['plane'] = pml.AXIS_NAMES[plane]
         data['quad'] = pml.prefix_from_element(quad)
         data['bpm'] = pml.quad_to_bpm(quad)[0]
-        data['enabled_bpms'] = pml.enabled_bpms()
+        data['enabled_bpms'] = pml.enabled_bpms().astype(numpy.int)
         corr_id, ap_corr = pml.effective_corrector(quad, plane)
         corr = Corrector(corr_id)
         caput(quad_pv, quad_high)

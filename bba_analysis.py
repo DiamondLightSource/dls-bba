@@ -34,7 +34,7 @@ def extract_freq_excite(data, freq):
 
 def analyse(data, use_fft=False, plot_output=False):
     bpm = data['bpm'] - 1  # Zero Index
-    enabled_bpms = np.equal(data['enabled_bpms'], 0)  # Zero is enabled
+    enabled_bpms = np.equal(data['enabled_bpms'], 1)
     freq = TICKS_PER_SECOND / data['period']
     bin_size = TICKS_PER_SECOND / freq
 
