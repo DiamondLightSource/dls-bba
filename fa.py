@@ -1,4 +1,4 @@
-
+from __future__ import division
 import numpy
 import cothread
 from falib import falib
@@ -7,10 +7,13 @@ from falib import falib
 class Buffer(object):
     SIZE = 1000
 
-    def __init__(self, ids, datapoints, decimated):
+    def __init__(self, ids, length, decimated):
         self.ids = ids
         self.cache = []
-        self.datapoints = datapoints
+        if decimated:
+            self.datapoints = int(length // 10)
+        else:
+            self.datapoints = length
         self.dec = decimated
         self.server = falib.Server()
         self.complete = False
