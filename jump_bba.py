@@ -33,7 +33,7 @@ SAFETY_NET_S = 0.1
 TICKS_PER_SECOND = 10072
 QUAD_SLEW_RATE = 1  # A/s
 NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
-SAFETY_NET = SAFETY_NET_S * TICKS_PER_SECOND
+SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
 DECIMATED = False
 
 BPM_IDS = range(174)  # 173 plus 0 for timestamps
@@ -94,7 +94,8 @@ def jump_bba(quad, plane, quad_step, osc):
     quad_high = quad_sp + quad_step / 2
     quad_low = quad_sp - quad_step / 2
     quad_lag_s = quad_step * QUAD_SLEW_RATE
-    quad_lag = quad_lag_s * TICKS_PER_SECOND
+    quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
+    print('Quad lag is {}'.format(quad_lag))
 
     corr_id, ap_corr = pml.effective_corrector(quad, plane)
     corr = Corrector(corr_id)
@@ -128,7 +129,8 @@ def jump_bba(quad, plane, quad_step, osc):
     print(high_data.shape, low_data.shape)
     save_data(high_data, low_data, quad, plane, osc)
 
-    # Restore setpoint
+    # Restore setpoint.  We don't need SAFETY_NET here because we've saved
+    # all the data before we request the move.
     caput(quad_pv, quad_sp)
     cothread.Sleep(quad_lag_s / 2)
 
