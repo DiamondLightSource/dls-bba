@@ -43,13 +43,13 @@ def save_data(high_data, low_data, quad, plane, osc):
     quad_pv = pml.prefix_from_element(quad)
     plane_name = pml.AXIS_NAMES[plane]
     amp, period, cycles = osc
-    datadict = {'period': period,
-                'amp': amp,
-                'cycles': cycles}
+    datadict = {'period': period, 'amp': amp, 'cycles': cycles}
     datadict['quad'] = quad_pv
     datadict['plane'] = plane_name
     datadict['bpm'] = pml.quad_to_bpm(quad)[0]
     datadict['enabled_bpms'] = pml.enabled_bpms().astype(numpy.int)
+    datadict['high'] = high_data
+    datadict['low'] = low_data
     now = datetime.datetime.now()
     datestring = now.strftime('%Y-%m-%dT%H-%M-%S')
     filename = 'data/bba-%s-%s-%s-%s' % ('jump', quad_pv,
