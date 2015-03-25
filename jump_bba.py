@@ -49,7 +49,7 @@ def save_data(high_data, low_data, quad, plane, osc):
     datadict['quad'] = quad_pv
     datadict['plane'] = plane_name
     datadict['bpm'] = pml.quad_to_bpm(quad)[0]
-    datadict['enabled_bpms'] = pml.enabled_bpms()
+    datadict['enabled_bpms'] = pml.enabled_bpms().astype(numpy.int)
     now = datetime.datetime.now()
     datestring = now.strftime('%Y-%m-%dT%H-%M-%S')
     filename = 'data/bba-%s-%s-%s-%s' % ('jump', quad_pv,

@@ -8,10 +8,6 @@ import matplotlib.pyplot as plt
 import time
 
 
-# BENCHMARKING
-tic = time.time()
-
-
 TICKS_PER_SECOND = 10072
 
 
@@ -36,41 +32,45 @@ def extract_freq_excite(data, freq):
     return 2 * np.real(reverse_osc * data_es)
 
 
-# Setup parameters, we should load these from file
-raw_data = io.loadmat('/home/gr58/fast_bba.mat')
+def analyse(data, use_fft=False, plot_output=False):
+    bpm = data['bpm'] - 1  # Zero Index
+    enabled_bpms = np.equal(data['enabled_bpms'], 1)
+    freq = TICKS_PER_SECOND / data['period']
+    bin_size = TICKS_PER_SECOND / freq
 
-bpm = 1
-freq = 8
-bin_size = TICKS_PER_SECOND / freq
+    # Remove bad BPMs and change units to um
+    q_low = data['low'][:, enabled_bpms] * 1E-3
+    q_high = data['high'][:, enabled_bpms] * 1E-3
 
-# Extract data from file and change units
-q_low = raw_data['q_low'][1:] * 1E-3
-q_high = raw_data['q_high'][1:] * 1E-3
+    # Extract the DC componenet of the orbit, and add it to the 8Hz excitation
+    q_high_dc = q_high.mean(0)
+    q_low_dc = q_low.mean(0)
+    if use_fft:
+        q_high_clean = np.add(extract_freq_fft(q_high, freq), q_high_dc)
+        q_low_clean = np.add(extract_freq_fft(q_low, freq), q_low_dc)
+    else:
+        q_high_clean = np.add(extract_freq_excite(q_high, freq), q_high_dc)
+        q_low_clean = np.add(extract_freq_excite(q_low, freq), q_low_dc)
+
+    # Take the difference between fits
+    q_diff = q_high_clean - q_low_clean
+    good = q_diff.std(0) > q_diff.std(0).max()/2
+    q_diff_good = q_diff[:, good]
+
+    # Use a single fit operation, then transform with the straight line equation
+    fit = np.polynomial.polynomial.polyfit(q_high[:, bpm], q_diff_good, 1)
+    p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
+
+    # Check output
+    if plot_output:
+        plt.plot(q_diff_good[:, 0], q_diff_good);
+        plt.show()
+
+    return (p[:, 1].mean(), p[:, 1].std())
 
 
-# Extract the DC componenet of the orbit, and add it to the 8Hz excitation
-q_high_dc = q_high.mean(0)
-q_low_dc = q_low.mean(0)
+if __name__ == '__main__':
+    tic = time.time()  # BENCHMARKING
+    print analyse(io.loadmat('data/gr_data.mat', squeeze_me=True))
+    print 'Took', time.time() - tic, 'seconds'  # BENCHMARKING
 
-if sys.argv[1:]:  # Use FFT when given any argument
-    q_high_clean = np.add(extract_freq_fft(q_high, freq), q_high_dc)
-    q_low_clean = np.add(extract_freq_fft(q_low, freq), q_low_dc)
-else:
-    q_high_clean = np.add(extract_freq_excite(q_high, freq), q_high_dc)
-    q_low_clean = np.add(extract_freq_excite(q_low, freq), q_low_dc)
-
-# Take the difference between fits
-q_diff = q_high_clean - q_low_clean
-good = q_diff.std(0) > q_diff.std(0).max()/2
-q_diff_good = q_diff[:, good]
-
-# Use a single fit operation, then transform with the straight line equation
-fit = np.polynomial.polynomial.polyfit(q_high[:, bpm - 1], q_diff_good, 1)
-p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
-
-# Check output
-#plt.plot(q_diff[:, 0], q_diff); plt.show()
-#plt.plot(q_diff_good[:, 0], q_diff_good); plt.show()
-print p[:, 1].mean(), p[:, 1].std()
-
-print 'Took', time.time() - tic, 'seconds'  # BENCHMARKING
