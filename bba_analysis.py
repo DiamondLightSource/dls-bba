@@ -5,6 +5,7 @@ import dls_packages; sys.stderr = err  # Suppress stderr
 import numpy as np
 import scipy.io as io
 import matplotlib.pyplot as plt
+import argparse
 import time
 
 
@@ -69,8 +70,19 @@ def analyse(data, use_fft=False, plot_output=False):
     return (p[:, 1].mean(), p[:, 1].std())
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='Run BBA analysis')
+    parser.add_argument('filename', type=str, help='path to data file')
+    parser.add_argument(
+            '-p', '--plot', dest='plot', action='store_true',
+            default=False, help='plot BPM fit data')
+    return parser.parse_args()
+
+
 if __name__ == '__main__':
+    args = parse_args()
     tic = time.time()  # BENCHMARKING
-    print analyse(io.loadmat('data/gr_data.mat', squeeze_me=True))
+    print analyse(
+            io.loadmat(args.filename, squeeze_me=True), plot_output=args.plot)
     print 'Took', time.time() - tic, 'seconds'  # BENCHMARKING
 
