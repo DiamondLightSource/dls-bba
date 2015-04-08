@@ -64,10 +64,11 @@ def select_data(data, plane, exc_high, exc_low):
     # get relevant timestamps
     # select relevant duration
     # select correct plane
-    print('Selecting data; size: {}'.format(data.shape))
     print('Final timestamp in data: {}'.format(data[-1,0,0]))
     print('Raw data: {}'.format(data.shape))
+    # Extract timestamps from data
     times = data[:,0,0]
+    data = data[:,1:,:]
     i = 0
     while times[i] < exc_high.time:
         i += 1
@@ -101,6 +102,7 @@ def jump_bba(quad, plane, quad_step, osc):
     quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
 
     corr_id, ap_corr = pml.effective_corrector(quad, plane)
+    print('Using corrector {}'.format(corr_id))
     corr = Corrector(corr_id)
     # Move quad high
     caput(quad_pv, quad_high)
@@ -115,6 +117,8 @@ def jump_bba(quad, plane, quad_step, osc):
     high_start = now + NETWORK_LAG
     print('Time now: {}.'.format(now))
     print('High start time: {}.'.format(high_start))
+    low_start = high_start + exc_high.count + SAFETY_NET + quad_lag
+    print('Low start time: {}.'.format(low_start))
     excite.excite_storage_ring_(high_start, (exc_high, exc_low),
                                 quad_lag + SAFETY_NET)
     # Sleep for first excitation. SAFETY_NET ensures that we don't start
