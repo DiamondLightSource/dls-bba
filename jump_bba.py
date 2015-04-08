@@ -22,6 +22,8 @@ import pml
 
 ##########
 # Config
+PLANE = pml.X
+QUAD_PV = 'SR01A-PC-Q1D-01'
 QUAD_STEP = 1.0  # A
 CORR_PERIOD = 1259  # FA network ticks
 CORR_AMP = 0.1  # A
@@ -133,7 +135,6 @@ def jump_bba(quad, plane, quad_step, osc):
 
 
 if __name__ == '__main__':
-    QUAD_PV = 'SR01A-PC-Q1D-01'
     ap_quad = pml.quad_from_pv(QUAD_PV)
     osc = (CORR_AMP, CORR_PERIOD, CYCLES)
-    jump_bba(ap_quad, pml.X, QUAD_STEP, osc)
+    jump_bba(ap_quad, PLANE, QUAD_STEP, osc)
