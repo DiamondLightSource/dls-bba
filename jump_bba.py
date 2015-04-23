@@ -7,6 +7,7 @@ require('scipy')
 require('numpy')
 
 import sys
+import collections
 import datetime
 import numpy
 import scipy.io
@@ -19,6 +20,9 @@ import excite
 from opi.corrector import Corrector
 import pml
 
+
+# Struct representing one oscillation
+Oscillation = collections.namedtuple('Oscillation', ['amp', 'period', 'cycles'])
 
 
 NETWORK_LAG_S = 1.0
@@ -35,8 +39,7 @@ BPM_IDS = range(174)  # 173 plus 0 for timestamps
 def save_data(high_data, low_data, quad, plane, osc):
     quad_pv = pml.prefix_from_element(quad)
     plane_name = pml.AXIS_NAMES[plane]
-    amp, period, cycles = osc
-    datadict = {'period': period, 'amp': amp, 'cycles': cycles}
+    datadict = {'period': osc.period, 'amp': osc.amp, 'cycles': osc.cycles}
     datadict['quad'] = quad_pv
     datadict['plane'] = plane_name
     datadict['bpm'] = pml.quad_to_bpm(quad)[0]
@@ -72,11 +75,10 @@ def select_data(data, plane, exc_high, exc_low):
     return high_data, low_data
 
 
-def get_excitation(corr, plane):
-    amp, period, cycles = osc
-    f = 10072 / period
+def get_excitation(corr, plane, osc):
+    f = 10072 / osc.period
     exc = excite.Excitation(corr.ioc, corr.corr, plane,
-                            amp, f, cycles)
+                            osc.amp, f, osc.cycles)
     return exc
 
 
@@ -84,8 +86,6 @@ def jump_bba(quad, plane, quad_step, osc):
     '''
     Do we need undecimated data?
     '''
-    amp, period, cycles = osc
-    # set quad value
     quad_pv = quad.pv(handle='setpoint')[0]
     quad_sp = caget(quad_pv)
     quad_high = quad_sp + quad_step / 2
@@ -142,5 +142,5 @@ if __name__ == '__main__':
     ##########
 
     ap_quad = pml.quad_from_pv(QUAD_PV)
-    osc = (CORR_AMP, CORR_PERIOD, CYCLES)
+    osc = Oscillation(CORR_AMP, CORR_PERIOD, CYCLES)
     jump_bba(ap_quad, PLANE, QUAD_STEP, osc)
