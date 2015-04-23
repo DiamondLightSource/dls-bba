@@ -20,15 +20,6 @@ from opi.corrector import Corrector
 import pml
 
 
-##########
-# Config
-PLANE = pml.X
-QUAD_PV = 'SR01A-PC-Q1D-01'
-QUAD_STEP = 1.0  # A
-CORR_PERIOD = 1259  # FA network ticks
-CORR_AMP = 0.1  # A
-CYCLES = 6
-##########
 
 NETWORK_LAG_S = 1.0
 SAFETY_NET_S = 0.1
@@ -82,9 +73,10 @@ def select_data(data, plane, exc_high, exc_low):
 
 
 def get_excitation(corr, plane):
-    f = 10072 / CORR_PERIOD
+    amp, period, cycles = osc
+    f = 10072 / period
     exc = excite.Excitation(corr.ioc, corr.corr, plane,
-                            CORR_AMP, f, CYCLES)
+                            amp, f, cycles)
     return exc
 
 
@@ -108,8 +100,8 @@ def jump_bba(quad, plane, quad_step, osc):
     caput(quad_pv, quad_high)
     cothread.Sleep(quad_lag_s / 2)
     now = excite.get_timestamp_fa()
-    exc_high = get_excitation(corr, plane)
-    exc_low = get_excitation(corr, plane)
+    exc_high = get_excitation(corr, plane, osc)
+    exc_low = get_excitation(corr, plane, osc)
     duration = (NETWORK_LAG + exc_high.count + SAFETY_NET + quad_lag +
                 exc_low.count)
     # Set off the data collection
@@ -139,6 +131,16 @@ def jump_bba(quad, plane, quad_step, osc):
 
 
 if __name__ == '__main__':
+    ##########
+    # Config
+    PLANE = pml.X
+    QUAD_PV = 'SR01A-PC-Q1D-01'
+    QUAD_STEP = 1.0  # A
+    CORR_PERIOD = 1259  # FA network ticks
+    CORR_AMP = 0.1  # A
+    CYCLES = 6
+    ##########
+
     ap_quad = pml.quad_from_pv(QUAD_PV)
     osc = (CORR_AMP, CORR_PERIOD, CYCLES)
     jump_bba(ap_quad, PLANE, QUAD_STEP, osc)
