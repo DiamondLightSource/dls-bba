@@ -4,6 +4,9 @@ import cothread
 from falib import falib
 
 
+TICKS_PER_SECOND = 10072
+
+
 class Buffer(object):
     SIZE = 1000
 

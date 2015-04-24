@@ -27,10 +27,9 @@ Oscillation = collections.namedtuple('Oscillation', ['amp', 'period', 'cycles'])
 
 NETWORK_LAG_S = 1.0
 SAFETY_NET_S = 0.1
-TICKS_PER_SECOND = 10072
 QUAD_SLEW_RATE = 1  # A/s
-NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
-SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
+NETWORK_LAG = int(NETWORK_LAG_S * fa.TICKS_PER_SECOND)
+SAFETY_NET = int(SAFETY_NET_S * fa.TICKS_PER_SECOND)
 DECIMATED = False
 
 BPM_IDS = range(174)  # 173 plus 0 for timestamps
@@ -91,7 +90,7 @@ def jump_bba(quad, plane, quad_step, osc):
     quad_high = quad_sp + quad_step / 2
     quad_low = quad_sp - quad_step / 2
     quad_lag_s = quad_step * QUAD_SLEW_RATE
-    quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
+    quad_lag = int(quad_lag_s * fa.TICKS_PER_SECOND)
 
     corr_id, ap_corr = pml.effective_corrector(quad, plane)
     print('Using corrector {}'.format(corr_id))
@@ -116,7 +115,7 @@ def jump_bba(quad, plane, quad_step, osc):
     # Sleep for first excitation. SAFETY_NET ensures that we don't start
     # moving the quad before the excitation has finished.
     cothread.Sleep((NETWORK_LAG + exc_high.count + SAFETY_NET) /
-                   TICKS_PER_SECOND)
+                   fa.TICKS_PER_SECOND)
     # Move quad from high to low
     caput(quad_pv, quad_low)
     # This will block until all data has been retrieved.
