@@ -1,3 +1,8 @@
+from pkg_resources import require
+require('cothread')
+require('fa-archiver')
+require('scipy')
+require('numpy')
 
 
 import unittest
