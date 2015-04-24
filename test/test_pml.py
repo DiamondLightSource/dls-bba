@@ -32,6 +32,14 @@ class TestPML(unittest.TestCase):
             bpm_index, bpm = pml.quad_to_bpm(quad)
             self.assertEqual(bpm_index, bpm_id)
 
+    def test_prefix_from_pv_handles_prefix(self):
+        prefix = 'DUMMY'
+        self.assertEqual(prefix, pml.prefix_from_pv(prefix))
+
+    def test_prefix_from_pv_handles_pv(self):
+        pv = 'DUMMY:SOMETHING'
+        expected = 'DUMMY'
+        self.assertEqual(expected, pml.prefix_from_pv(pv))
 
 if __name__ == '__main__':
     unittest.main()
