@@ -13,23 +13,25 @@ import pml
 class TestPML(unittest.TestCase):
 
     def test_effective_corrector(self):
-        # Most effective BPM is 1
-        corr_index, corr = pml.effective_corrector('SR01A-PC-Q1D-01', pml.X)
-        self.assertEqual(corr_index, 11)
-        corr_index, corr = pml.effective_corrector('SR24A-PC-Q1D-10', pml.X)
-        self.assertEqual(corr_index, 162)
-        bpm_index, bpm = pml.effective_corrector('SR07A-PC-Q1B-01', pml.X)
-        self.assertEqual(bpm_index, 162)
-        bpm_index, bpm = pml.effective_corrector('SR21A-PC-Q1D-01', pml.X)
-        self.assertEqual(bpm_index, 141)
+        quad_corr_map = {'SR01A-PC-Q1D-01': 11,
+                         'SR24A-PC-Q1D-10': 113,
+                         'SR07A-PC-Q1B-01': 162,
+                         'SR21A-PC-Q1D-01': 141}  #? I got 141 from MML.
+        for quad_pv, corr_id in quad_corr_map.iteritems():
+            quad = pml.quad_from_pv(quad_pv)
+            corr_index, corr = pml.effective_corrector(quad, pml.X)
+            self.assertEqual(corr_index, corr_id)
 
     def test_quad_to_bpm(self):
-        bpm_index, bpm = pml.quad_to_bpm('SR01A-PC-Q1D-01')
-        self.assertEqual(bpm_index, 1)
-        corr_index, corr = pml.quad_to_bpm('SR07A-PC-Q1B-01')
-        self.assertEqual(corr_index, 43)
-        bpm_index, bpm = pml.quad_to_bpm('SR24A-PC-Q1D-10')
-        self.assertEqual(bpm_index, 172)
+        quad_bpm_map = {'SR01A-PC-Q1D-01': 1,
+                        'SR07A-PC-Q1B-01': 43,
+                        'SR24A-PC-Q1D-10': 172}
+
+        for quad_pv, bpm_id in quad_bpm_map.iteritems():
+            quad = pml.quad_from_pv(quad_pv)
+            bpm_index, bpm = pml.quad_to_bpm(quad)
+            self.assertEqual(bpm_index, bpm_id)
+
 
 if __name__ == '__main__':
     unittest.main()
