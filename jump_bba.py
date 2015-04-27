@@ -48,8 +48,7 @@ def save_data(high_data, low_data, quad, plane, osc):
     datadict['low'] = low_data
     now = datetime.datetime.now()
     datestring = now.strftime('%Y-%m-%dT%H-%M-%S')
-    filename = 'data/bba-%s-%s-%s-%s' % ('jump', quad_pv,
-                                         plane_name, datestring)
+    filename = 'data/bba-%s-%s-%s' % (datestring, quad_pv, plane_name)
     scipy.io.savemat(filename, datadict, oned_as='row')
     log.info('Saved data to %s' % filename)
 
