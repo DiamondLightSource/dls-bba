@@ -30,7 +30,7 @@ SAFETY_NET_S = 0.1
 QUAD_SLEW_RATE = 1  # A/s
 NETWORK_LAG = int(NETWORK_LAG_S * fa.TICKS_PER_SECOND)
 SAFETY_NET = int(SAFETY_NET_S * fa.TICKS_PER_SECOND)
-DECIMATED = False
+DECIMATED = True
 
 BPM_IDS = range(174)  # 173 plus 0 for timestamps
 
