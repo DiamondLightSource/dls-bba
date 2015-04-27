@@ -88,3 +88,18 @@ def effective_corrector(quad, plane):
     corr_id = numpy.argmax(abs(row)) + 1
     corrs = ap.getElements(BPM_FAMILY[plane])
     return corr_id, corrs[corr_id]
+
+
+def quads_from_cell(cell):
+    '''
+    This a work-around method until we get the cell number properly imported
+    into hla.
+    '''
+    quads = ap.getElements('QUAD')
+    cell_quads = []
+    for quad in quads:
+        pv = prefix_from_element(quad)
+        cell_from_pv = int(pv[2:4])
+        if cell_from_pv == cell:
+            cell_quads.append(quad)
+    return cell_quads
