@@ -5,4 +5,6 @@
 *.swp
 # generated matlab
 *.mat
+# log files
+*.log
 
