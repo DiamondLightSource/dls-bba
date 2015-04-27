@@ -9,6 +9,7 @@ require('numpy')
 import sys
 import collections
 import datetime
+import logging as log
 import numpy
 import scipy.io
 from cothread.catools import caget, caput
@@ -50,15 +51,15 @@ def save_data(high_data, low_data, quad, plane, osc):
     filename = 'data/bba-%s-%s-%s-%s' % ('jump', quad_pv,
                                          plane_name, datestring)
     scipy.io.savemat(filename, datadict, oned_as='row')
-    print('Saved to %s' % filename)
+    log.info('Saved data to %s' % filename)
 
 
 def select_data(data, plane, exc_high, exc_low):
     # get relevant timestamps
     # select relevant duration
     # select correct plane
-    print('Final timestamp in data: {}'.format(data[-1,0,0]))
-    print('Raw data: {}'.format(data.shape))
+    log.info('Final timestamp in data: {}'.format(data[-1,0,0]))
+    log.debug('Raw data: {}'.format(data.shape))
     # Extract timestamps from data
     times = data[:,0,0]
     data = data[:,1:,:]
@@ -70,7 +71,7 @@ def select_data(data, plane, exc_high, exc_low):
     while times[i] < exc_low.time:
         i += 1
     low_data = numpy.squeeze(data[i:i+length,:,plane])
-    print('Selected data size: {} {}'.format(high_data.shape, low_data.shape))
+    log.info('Selected data size: {} {}'.format(high_data.shape, low_data.shape))
     return high_data, low_data
 
 
@@ -93,7 +94,7 @@ def jump_bba(quad, plane, quad_step, osc):
     quad_lag = int(quad_lag_s * fa.TICKS_PER_SECOND)
 
     corr_id, ap_corr = pml.effective_corrector(quad, plane)
-    print('Using corrector {}'.format(corr_id))
+    log.info('Using corrector {}'.format(corr_id))
     corr = Corrector(corr_id)
     # Move quad high
     caput(quad_pv, quad_high)
@@ -106,10 +107,10 @@ def jump_bba(quad, plane, quad_step, osc):
     # Set off the data collection
     fa_buffer = fa.Buffer(BPM_IDS, duration, DECIMATED)
     high_start = now + NETWORK_LAG
-    print('Time now: {}.'.format(now))
-    print('High start time: {}.'.format(high_start))
+    log.info('Time now: {}.'.format(now))
+    log.info('High start time: {}.'.format(high_start))
     low_start = high_start + exc_high.count + SAFETY_NET + quad_lag
-    print('Low start time: {}.'.format(low_start))
+    log.info('Low start time: {}.'.format(low_start))
     excite.excite_storage_ring_(high_start, (exc_high, exc_low),
                                 quad_lag + SAFETY_NET)
     # Sleep for first excitation. SAFETY_NET ensures that we don't start
