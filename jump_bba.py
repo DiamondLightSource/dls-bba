@@ -127,19 +127,3 @@ def jump_bba(quad, plane, quad_step, osc):
     # all the data before we request the move.
     caput(quad_pv, quad_sp)
     cothread.Sleep(quad_lag_s / 2)
-
-
-if __name__ == '__main__':
-    ##########
-    # Config
-    PLANE = pml.X
-    QUAD_PV = 'SR01A-PC-Q1D-01'
-    QUAD_STEP = 1.0  # A
-    CORR_PERIOD = 1259  # FA network ticks
-    CORR_AMP = 0.1  # A
-    CYCLES = 6
-    ##########
-
-    ap_quad = pml.quad_from_pv(QUAD_PV)
-    osc = Oscillation(CORR_AMP, CORR_PERIOD, CYCLES)
-    jump_bba(ap_quad, PLANE, QUAD_STEP, osc)
