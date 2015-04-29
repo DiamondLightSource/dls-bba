@@ -8,6 +8,13 @@ from falib import falib
 TICKS_PER_SECOND = 10072
 
 
+def get_timestamp():
+    s = falib.subscription([0], decimated=False)
+    x = s.read(1)
+    s.close()
+    return x[0][0][0]
+
+
 class FaException(Exception):
     pass
 
