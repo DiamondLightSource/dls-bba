@@ -54,23 +54,27 @@ def save_data(high_data, low_data, quad, plane, osc):
 
 
 def select_data(data, plane, exc_high, exc_low):
-    # get relevant timestamps
-    # select relevant duration
-    # select correct plane
-    log.info('Final timestamp in data: {}'.format(data[-1,0,0]))
-    log.debug('Raw data: {}'.format(data.shape))
+    '''
+    Array data must include the timestamps.
+    '''
+    log.debug('Raw data shape: {}'.format(data.shape))
+    log.info('Timestamp range in raw data: {}-{}'.format(data[0,0,0],
+                                                         data[-1,0,0]))
+    log.debug('Excitation length: {}'.format(exc_high.count))
+    log.debug('Trailing data to crop: {}.'.format(data[-1,0,0] -
+                                               (exc_low.time + exc_low.count)))
+    assert exc_high.count == exc_low.count, 'Excitations different lengths'
     # Extract timestamps from data
     times = data[:,0,0]
     data = data[:,1:,:]
-    i = 0
-    while times[i] < exc_high.time:
-        i += 1
+    high_start = numpy.searchsorted(times, exc_high.time)
+    low_start = numpy.searchsorted(times, exc_low.time)
     length = int(exc_high.count // 10) if DECIMATED else exc_high.count
-    high_data = numpy.squeeze(data[i:i+length,:,plane])
-    while times[i] < exc_low.time:
-        i += 1
-    low_data = numpy.squeeze(data[i:i+length,:,plane])
-    log.info('Selected data size: {} {}'.format(high_data.shape, low_data.shape))
+    high_data = data[high_start:high_start+length,:,plane]
+    low_data = data[low_start:low_start+length,:,plane]
+    log.info('Selected data shape: {} {}'.format(high_data.shape,
+                                                 low_data.shape))
+    assert high_data.shape == low_data.shape
     return high_data, low_data
 
 
