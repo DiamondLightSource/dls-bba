@@ -89,6 +89,7 @@ def jump_bba(quad, plane, quad_step, osc):
     '''
     Do we need undecimated data?
     '''
+    log.info('Quad step is {}'.format(quad_step))
     quad_pv = quad.pv(handle='setpoint')[0]
     quad_sp = caget(quad_pv)
     quad_high = quad_sp + quad_step / 2
@@ -102,18 +103,18 @@ def jump_bba(quad, plane, quad_step, osc):
     # Move quad high
     caput(quad_pv, quad_high)
     cothread.Sleep(quad_lag_s / 2)
-    now = excite.get_timestamp_fa()
+    now = fa.get_timestamp()
     exc_high = get_excitation(corr, plane, osc)
     exc_low = get_excitation(corr, plane, osc)
-    duration = (NETWORK_LAG + exc_high.count + SAFETY_NET + quad_lag +
-                exc_low.count)
     # Set off the data collection
-    fa_buffer = fa.Buffer(BPM_IDS, duration, DECIMATED)
     high_start = now + NETWORK_LAG
-    log.info('Time now: {}.'.format(now))
-    log.info('High start time: {}.'.format(high_start))
+    duration = exc_high.count + SAFETY_NET + quad_lag + exc_low.count
+    fa_buffer = fa.Buffer(BPM_IDS, high_start, duration, DECIMATED)
     low_start = high_start + exc_high.count + SAFETY_NET + quad_lag
-    log.info('Low start time: {}.'.format(low_start))
+    log.debug('Safety net: {}; quad_lag: {}'.format(SAFETY_NET, quad_lag))
+    log.info('Time now: {}.'.format(now))
+    log.info('High start time: {}.'.format(high_start - now))
+    log.info('Low start time: {}.'.format(low_start - now))
     excite.excite_storage_ring_(high_start, (exc_high, exc_low),
                                 quad_lag + SAFETY_NET)
     # Sleep for first excitation. SAFETY_NET ensures that we don't start
