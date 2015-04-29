@@ -20,27 +20,39 @@ class FaException(Exception):
 
 
 class Buffer(object):
+    # Number of datapoints to read at once.
     SIZE = 1000
+    # Timestamps of extra data to ensure desired data is fetched.
+    EXTRA = 1000
 
-    def __init__(self, ids, length, decimated):
+    def __init__(self, ids, start_time, length, decimated):
+        '''
+        Note that length is in FA archiver timestamps, even if the data
+        is decimated.
+        '''
+        self.length = length
+        self.start = start_time
+        # We need the timestamps for selecting the correct data
+        if not ids[0] == 0:
+            ids.insert(0, 0)
+            self.timestamps = False
+        else:
+            self.timestamps = True
         self.ids = ids
         self.cache = []
-        if decimated:
-            self.datapoints = int(length // 10)
-        else:
-            self.datapoints = length
+        self.datapoints = int(length // 10) if decimated else length
         self.dec = decimated
         self.server = falib.Server()
         self.complete = False
         cothread.Spawn(self._fetch_data)
 
     def _fetch_data(self):
-        count = 0
         try:
             sub = self.server.subscription(self.ids, decimated=self.dec)
-            while count < self.datapoints:
+            self.cache.append(sub.read(Buffer.SIZE))
+            while self.cache[-1][-1,0,0] < (self.start + self.length
+                                                       + Buffer.EXTRA):
                 self.cache.append(sub.read(Buffer.SIZE))
-                count += Buffer.SIZE
             self.complete = True
             sub.close()
         except Exception as e:  # The EOF exception is hidden from me.
@@ -52,7 +64,13 @@ class Buffer(object):
             cothread.Sleep(0.1)
         try:
             data = numpy.concatenate(self.cache)
-            data = data[:self.datapoints,:,:]
+            data_start = numpy.searchsorted(data[:,0,0], self.start)
+            log.debug('Raw data size: {}'.format(data.shape))
+            data = data[data_start:data_start + self.datapoints,:,:]
+            log.debug('Data timestamps: {}'.format(data[:,0,0]))
+            log.debug('Final data size: {}'.format(data.shape))
+            if not self.timestamps:
+                data = data[:,1:,:]
         except IndexError:
             raise FaException('Insufficient data received from FA archiver.')
         return data
