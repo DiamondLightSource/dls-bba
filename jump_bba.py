@@ -36,6 +36,12 @@ DECIMATED = True
 BPM_IDS = range(174)  # 173 plus 0 for timestamps
 
 
+def get_filename_prefix():
+    now = datetime.datetime.now()
+    datestring = now.strftime('%Y-%m-%dT%H-%M-%S')
+    return 'bba-{}'.format(datestring)
+
+
 def save_data(high_data, low_data, quad, plane, osc):
     quad_pv = pml.prefix_from_element(quad)
     plane_name = pml.AXIS_NAMES[plane]
@@ -46,9 +52,7 @@ def save_data(high_data, low_data, quad, plane, osc):
     datadict['enabled_bpms'] = pml.enabled_bpms().astype(numpy.int)
     datadict['high'] = high_data
     datadict['low'] = low_data
-    now = datetime.datetime.now()
-    datestring = now.strftime('%Y-%m-%dT%H-%M-%S')
-    filename = 'data/bba-%s-%s-%s' % (datestring, quad_pv, plane_name)
+    filename = 'data/{}-{}-{}'.format(get_filename_prefix(), quad_pv, plane_name)
     scipy.io.savemat(filename, datadict, oned_as='row')
     log.info('Saved data to %s' % filename)
 
