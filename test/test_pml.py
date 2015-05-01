@@ -13,19 +13,24 @@ import pml
 class TestPML(unittest.TestCase):
 
     def test_effective_corrector(self):
-        quad_corr_map = {'SR01A-PC-Q1D-01': 11,
-                         'SR24A-PC-Q1D-10': 113,
-                         'SR07A-PC-Q1B-01': 162,
-                         'SR21A-PC-Q1D-01': 141}  #? I got 141 from MML.
-        for quad_pv, corr_id in quad_corr_map.iteritems():
-            quad = pml.quad_from_pv(quad_pv)
-            corr_index, corr = pml.effective_corrector(quad, pml.X)
-            self.assertEqual(corr_index, corr_id)
+        # The correct answers were fetched from MML.
+        quad_corr_map = [{'SR24A-PC-Q1D-10': 113,
+                          'SR07A-PC-Q1B-01': 162,
+                          'SR21A-PC-Q1D-01': 141},
+                         {'SR21A-PC-Q1D-01': 30,
+                          'SR13A-PC-Q1D-01': 101,
+                          'SR24A-PC-Q1D-10': 115}]
+        for plane in (pml.X, pml.Y):
+            for quad_pv, corr_id in quad_corr_map[plane].iteritems():
+                quad = pml.quad_from_pv(quad_pv)
+                corr_index, corr = pml.effective_corrector(quad, plane)
+                self.assertEqual(corr_index, corr_id)
 
     def test_quad_to_bpm(self):
+        # The correct answers were fetched from MML.
         quad_bpm_map = {'SR01A-PC-Q1D-01': 1,
-                        'SR07A-PC-Q1B-01': 43,
-                        'SR24A-PC-Q1D-10': 172}
+                        'SR20A-PC-Q1D-10': 145,
+                        'SR24A-PC-Q1D-10': 173}
 
         for quad_pv, bpm_id in quad_bpm_map.iteritems():
             quad = pml.quad_from_pv(quad_pv)
