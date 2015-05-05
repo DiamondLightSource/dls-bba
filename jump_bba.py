@@ -108,7 +108,7 @@ def jump_bba(quad, plane, quad_step, osc):
     quad_sp = caget(quad_pv)
     quad_high = quad_sp + quad_step / 2
     quad_low = quad_sp - quad_step / 2
-    quad_lag_s = quad_step * QUAD_SLEW_RATE
+    quad_lag_s = quad_step / QUAD_SLEW_RATE
     quad_lag = int(quad_lag_s * fa.TICKS_PER_SECOND)
 
     corr_id, ap_corr = pml.effective_corrector(quad, plane)
