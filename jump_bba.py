@@ -28,7 +28,7 @@ Oscillation = collections.namedtuple('Oscillation', ['amp', 'period', 'cycles'])
 
 NETWORK_LAG_S = 1.0
 SAFETY_NET_S = 0.1
-QUAD_SLEW_RATE = 1  # A/s
+QUAD_SLEW_RATE = 1.0  # A/s
 NETWORK_LAG = int(NETWORK_LAG_S * fa.TICKS_PER_SECOND)
 SAFETY_NET = int(SAFETY_NET_S * fa.TICKS_PER_SECOND)
 DECIMATED = True
@@ -54,7 +54,7 @@ def save_data(high_data, low_data, quad, plane, osc):
     datadict['low'] = low_data
     filename = 'data/{}-{}-{}'.format(get_filename_prefix(), quad_pv, plane_name)
     scipy.io.savemat(filename, datadict, oned_as='row')
-    log.info('Saved data to %s' % filename)
+    log.info('Saved data to {}\n'.format(filename))
 
 
 def select_data(data, plane, exc_high, exc_low):
@@ -89,11 +89,21 @@ def get_excitation(corr, plane, osc):
     return exc
 
 
+def summarise_bba(quad, plane, quad_step, osc):
+    prefix = pml.prefix_from_element(quad)
+    plane = pml.AXIS_NAMES[plane]
+    log.info('BBA of quad {} in plane {}'.format(prefix, plane))
+    log.info('Quad step is {}'.format(quad_step))
+    log.info('Oscillation amplitude {}; period {}; cycles {}'.format(osc.amp,
+                                                                     osc.period,
+                                                                     osc.cycles))
+
+
 def jump_bba(quad, plane, quad_step, osc):
     '''
     Do we need undecimated data?
     '''
-    log.info('Quad step is {}'.format(quad_step))
+    summarise_bba(quad, plane, quad_step, osc)
     quad_pv = quad.pv(handle='setpoint')[0]
     quad_sp = caget(quad_pv)
     quad_high = quad_sp + quad_step / 2
