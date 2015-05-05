@@ -117,6 +117,22 @@ def scan_cell(cell):
             jump_bba.jump_bba(quad, plane, quad_step, osc)
 
 
+def scan_amplitudes(quad, plane, scale_quad=True, scale_corr=True):
+    log.warn('Beginning scaling test: quad? {}; corr? {}.'.format(scale_quad,
+                                                                  scale_corr))
+    amps = load_amps()[plane]
+    quad_step, corr_amp = amps[pml.prefix_from_element(quad)]
+    osc = jump_bba.Oscillation(corr_amp, PERIOD, CYCLES)
+    scales = [0.5, 1.0, 2.0, 5.0]
+    for s in scales:
+        if scale_quad:
+            qs = quad_step * s
+        if scale_corr:
+            ca = corr_amp * s
+            osc = jump_bba.Oscillation(ca, PERIOD, CYCLES)
+        jump_bba.jump_bba(quad, plane, qs, osc)
+
+
 if __name__ == '__main__':
     h, v = load_amps()
     pv = 'SR01A-PC-Q1D-01'
