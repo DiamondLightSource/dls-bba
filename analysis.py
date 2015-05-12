@@ -48,11 +48,11 @@ def analyse(data, use_fft=False, plot_output=False):
     q_high_dc = q_high.mean(0)
     q_low_dc = q_low.mean(0)
     if use_fft:
-        q_high_clean = np.add(extract_freq_fft(q_high, freq), q_high_dc)
-        q_low_clean = np.add(extract_freq_fft(q_low, freq), q_low_dc)
+        q_high_clean = np.add(extract_freq_fft(q_high - q_high_dc, freq), q_high_dc)
+        q_low_clean = np.add(extract_freq_fft(q_low - q_low_dc, freq), q_low_dc)
     else:
-        q_high_clean = np.add(extract_freq_excite(q_high, freq), q_high_dc)
-        q_low_clean = np.add(extract_freq_excite(q_low, freq), q_low_dc)
+        q_high_clean = np.add(extract_freq_excite(q_high - q_high_dc, freq), q_high_dc)
+        q_low_clean = np.add(extract_freq_excite(q_low - q_low_dc, freq), q_low_dc)
 
     # Take the difference between fits
     q_diff = q_high_clean - q_low_clean
