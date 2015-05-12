@@ -10,6 +10,7 @@ import time
 
 
 TICKS_PER_SECOND = 10072
+DECIMATED = True
 
 
 def extract_freq_fft(data, freq):
@@ -22,7 +23,8 @@ def extract_freq_fft(data, freq):
 
 def extract_freq_excite(data, freq):
     data_length = data.shape[0]
-    num_oscs = data_length * freq / TICKS_PER_SECOND
+    num_oscs = 1.0 * data_length * freq / TICKS_PER_SECOND
+    num_oscs = num_oscs * 10 if DECIMATED else num_oscs
 
     osc = np.exp(np.linspace(0, 2j*np.pi*num_oscs, data_length))
     osc = np.tile(osc, (data.shape[1], 1)).T
@@ -37,7 +39,6 @@ def analyse(data, use_fft=False, plot_output=False):
     bpm = data['bpm'] - 1  # Zero Index
     enabled_bpms = np.equal(data['enabled_bpms'], 1)
     freq = TICKS_PER_SECOND / data['period']
-    bin_size = TICKS_PER_SECOND / freq
 
     # Remove bad BPMs and change units to um
     q_low = data['low'][:, enabled_bpms] * 1E-3

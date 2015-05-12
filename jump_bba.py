@@ -73,7 +73,7 @@ def select_data(data, plane, exc_high, exc_low):
     data = data[:,1:,:]
     high_start = numpy.searchsorted(times, exc_high.time)
     low_start = numpy.searchsorted(times, exc_low.time)
-    length = int(exc_high.count // 10) if DECIMATED else exc_high.count
+    length = int(exc_high.count // 10) + 1 if DECIMATED else exc_high.count
     high_data = data[high_start:high_start+length,:,plane]
     low_data = data[low_start:low_start+length,:,plane]
     log.info('Selected data shape: {} {}'.format(high_data.shape,
@@ -122,7 +122,7 @@ def jump_bba(quad, plane, quad_step, osc):
     exc_low = get_excitation(corr, plane, osc)
     # Set off the data collection
     high_start = now + NETWORK_LAG
-    duration = exc_high.count + SAFETY_NET + quad_lag + exc_low.count
+    duration = exc_high.count + SAFETY_NET + quad_lag + exc_low.count + 100
     fa_buffer = fa.Buffer(BPM_IDS, high_start, duration, DECIMATED)
     low_start = high_start + exc_high.count + SAFETY_NET + quad_lag
     log.debug('Safety net: {}; quad_lag: {}'.format(SAFETY_NET, quad_lag))
