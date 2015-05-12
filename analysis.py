@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import argparse
 import time
+from fa import TICKS_PER_SECOND
 
 
-TICKS_PER_SECOND = 10072
 DECIMATED = True
 
 
