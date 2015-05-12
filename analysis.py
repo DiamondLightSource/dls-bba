@@ -32,7 +32,8 @@ def extract_freq_excite(data, freq):
 
     reverse_osc = np.exp(np.linspace(0, -2j*np.pi*num_oscs, data_length))
     reverse_osc = np.tile(reverse_osc, (data.shape[1], 1)).T
-    return 2 * np.real(reverse_osc * data_es)
+    # Force the phase to zero by using only the imaginary part of the mean
+    return 2 * np.real(reverse_osc * 1j*np.imag(data_es))
 
 
 def analyse(data, use_fft=False, plot_output=False):
