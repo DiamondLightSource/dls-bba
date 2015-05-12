@@ -102,8 +102,7 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    tic = time.time()  # BENCHMARKING
-    print analyse(
-            io.loadmat(args.filename, squeeze_me=True), plot_output=args.plot)
-    print 'Took', time.time() - tic, 'seconds'  # BENCHMARKING
+    analyse(
+            io.loadmat(args.filename, squeeze_me=True),
+            plot_output=args.plot, use_fft=False)
 
