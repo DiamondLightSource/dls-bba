@@ -90,6 +90,16 @@ def cycle_scan(quad, plane):
         jump_bba.jump_bba(quad, plane, quad_step, osc)
 
 
+def repeatability_scan(quad, plane, counts):
+    log.warn('Beginning test of different numbers of corrector cycles.')
+    amps = load_amps()[plane]
+    quad_step, corr_amp = amps[pml.prefix_from_element(quad)]
+    for count in counts:  # Just run ten times at 8 Hz
+        log.info('Trying scan {} of {}.'.format(count, counts))
+        osc = jump_bba.Oscillation(corr_amp, PERIOD, CYCLES)
+        jump_bba.jump_bba(quad, plane, quad_step, osc)
+
+
 def compare_decimated_data(quad, plane):
     log.warn('Beginning test between raw and decimated data.')
     amps = load_amps()[plane]
@@ -139,6 +149,7 @@ if __name__ == '__main__':
     get_new_logger()
     quad = pml.quad_from_pv(pv)
     one_bba(quad, pml.X)
+    repeatability_scan(quad, pml.X, 10)
     frequency_scan(quad, pml.X)
     compare_decimated_data(quad, pml.X)
     scan_cell(1)
