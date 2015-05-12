@@ -5,6 +5,7 @@ import dls_packages; sys.stderr = err  # Suppress stderr
 import numpy as np
 import scipy.io as io
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 import argparse
 import time
 
@@ -64,9 +65,27 @@ def analyse(data, use_fft=False, plot_output=False):
     fit = np.polynomial.polynomial.polyfit(q_high_clean[:, bpm], q_diff_good, 1)
     p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
 
-    # Check output
+    # Produce a large graph
     if plot_output:
-        plt.plot(q_diff_good[:, 0], q_diff_good);
+        to_plot = [q_high_clean, q_low_clean, q_diff, q_diff_good, p]
+        plot_labels = [
+                'quad high clean', 'quad low clean,', 'quad diff,',
+                'quad diff good,', 'fit coefficients']
+        # Make a grid three wide and N high
+        # Fill with 1D plot, image plot, and colourbar
+        gs = GridSpec(
+                len(to_plot) + 1, 3, width_ratios=(20,20,1),
+                height_ratios=([1]*len(to_plot) + [3]))
+        for i in range(len(to_plot)):
+            plt.subplot(gs[i, 0]).plot(to_plot[i])
+            plt.ylabel(plot_labels[i])
+            im = plt.subplot(gs[i, 1]).imshow(
+                    to_plot[i], aspect='auto', interpolation='nearest')
+            plt.colorbar(im, cax=plt.subplot(gs[i, 2]))
+        # Add a large 1D plot to show end result
+        plt.subplot(gs[-1, :]).plot(q_high_clean[:, bpm], q_diff_good)
+        plt.ylabel('BPM %d aginst BPMs' % bpm)
+        plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
         plt.show()
 
     return (p[:, 1].mean(), p[:, 1].std())
