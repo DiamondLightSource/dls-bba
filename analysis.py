@@ -61,7 +61,7 @@ def analyse(data, use_fft=False, plot_output=False):
     q_diff_good = q_diff[:, good]
 
     # Use a single fit operation, then transform with the straight line equation
-    fit = np.polynomial.polynomial.polyfit(q_high[:, bpm], q_diff_good, 1)
+    fit = np.polynomial.polynomial.polyfit(q_high_clean[:, bpm], q_diff_good, 1)
     p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
 
     # Check output
