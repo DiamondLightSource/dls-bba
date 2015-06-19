@@ -1,3 +1,5 @@
+#!/bin/env dls-python
+
 '''
 Various ways of testing BBA:
 
@@ -12,7 +14,7 @@ require('fa-archiver')
 require('scipy')
 require('numpy')
 import logging as log
-import sys
+import argparse
 
 import pml
 import jump_bba
@@ -47,19 +49,20 @@ def get_new_logger():
     logger.setLevel(log.DEBUG)
 
 
-def load_amps_file(filename):
+def load_amps_file(filename, quad_scale=1.0, corr_scale=1.0):
     amps = {}
     with open(filename) as f:
         for line in f:
             bpm_pv, quad_pv, quad_amps, _, corr_pv, corr_amps, _ = line.split()
-            amps[pml.prefix_from_pv(quad_pv)] = (float(quad_amps),
-                                                 float(corr_amps))
+            amps[pml.prefix_from_pv(quad_pv)] = (
+                    quad_scale * float(quad_amps),
+                    corr_scale * float(corr_amps))
     return amps
 
 
-def load_amps():
-    h_amps = load_amps_file(H_AMPS_FILE)
-    v_amps = load_amps_file(V_AMPS_FILE)
+def load_amps(quad_scale=1.0, corr_scale=1.0):
+    h_amps = load_amps_file(H_AMPS_FILE, quad_scale, corr_scale)
+    v_amps = load_amps_file(V_AMPS_FILE, quad_scale, corr_scale)
     return h_amps, v_amps
 
 
@@ -147,11 +150,32 @@ def scan_amplitudes(quad, plane, scale_quad=True, scale_corr=True):
         jump_bba.jump_bba(quad, plane, qs, osc)
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='Take BBA measurements')
+    parser.add_argument(
+            '-p', '--plane', dest='plane', action='store',
+            default=0, help='Which plane to measure')
+    parser.add_argument(
+            '-q', '--quad-scale', dest='quad_scale', action='store',
+            default=1.0, help='Quadrupole amplitude scaler')
+    parser.add_argument(
+            '-c', '--corrector-scale', dest='corr_scale', action='store',
+            default=1.0, help='Corrector amplitude scaler')
+    return parser.parse_args()
+
+
 if __name__ == '__main__':
-    plane = int(sys.argv[1])
-    h, v = load_amps()
+    args = parse_args()
+    plane = int(args.plane)
+    quad_scale = float(args.quad_scale)
+    corr_scale = float(args.corr_scale)
+
+    h, v = load_amps(quad_scale, corr_scale)
     pv = 'SR01A-PC-Q1D-01'
     get_new_logger()
+    log.warn('Plane: {}, Quad scale: {}, Corr scale: {}\n'.format(
+        plane, quad_scale, corr_scale))
+
     quad = pml.quad_from_pv(pv)
     one_bba(quad, plane)
     repeatability_scan(quad, plane, 10)
