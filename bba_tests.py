@@ -12,6 +12,7 @@ require('fa-archiver')
 require('scipy')
 require('numpy')
 import logging as log
+import sys
 
 import pml
 import jump_bba
@@ -147,13 +148,14 @@ def scan_amplitudes(quad, plane, scale_quad=True, scale_corr=True):
 
 
 if __name__ == '__main__':
+    plane = int(sys.argv[1])
     h, v = load_amps()
     pv = 'SR01A-PC-Q1D-01'
     get_new_logger()
     quad = pml.quad_from_pv(pv)
-    one_bba(quad, pml.X)
-    repeatability_scan(quad, pml.X, 10)
-    frequency_scan(quad, pml.X)
-    compare_decimated_data(quad, pml.X)
+    one_bba(quad, plane)
+    repeatability_scan(quad, plane, 10)
+    frequency_scan(quad, plane)
+    compare_decimated_data(quad, plane)
     scan_cell(1)
-    cycle_scan(quad, pml.X)
+    cycle_scan(quad, plane)
