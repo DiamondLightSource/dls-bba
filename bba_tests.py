@@ -23,7 +23,6 @@ H_AMPS_FILE = 'config/horizontal_bba_mmlvals.txt'
 V_AMPS_FILE = 'config/vertical_bba_mmlvals.txt'
 # Defaults
 CYCLES = 1
-FREQ = 8
 PERIOD = 1259
 ###############
 
