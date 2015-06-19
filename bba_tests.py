@@ -30,6 +30,10 @@ PERIOD = 1259
 LOG_FORMAT = '%(levelname)-7s: %(message)s'
 
 
+# Force all BBAs to use full data, max aquisition length ~1 second
+jump_bba.DECIMATED = False
+
+
 def get_new_logger():
     logger = log.getLogger()
     filename = 'data/{}.log'.format(jump_bba.get_filename_prefix())
