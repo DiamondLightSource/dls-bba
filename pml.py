@@ -3,15 +3,9 @@ import numpy
 from cothread.catools import caget, DBR_STRING
 import sys
 import os
-sys.path.append('/dls_sw/work/common/python/hla')
-try:
-    import aphla as ap
-    ap.machines.load('SRI0913')
-    ap.machines.use('SR')
-except ImportError:
-    print('We need APHLA!')
-    sys.exit()
-
+import aphla as ap
+ap.machines.load('SRI21')
+ap.machines.use('SR')
 
 DATAROOT = "/home/diamond/common/matlab/middlelayer/2-0/machine/diamondopsdata"
 BPM_ENABLED = 'SR-DI-EBPM-01:ENABLED'
@@ -75,7 +69,7 @@ def quad_to_bpm(quad):
 
 def effective_corrector(quad, plane):
     """
-    Given an hlapa quad element, find the corrector magnet
+    Given an aphla quad element, find the corrector magnet
     that will have the most effect at that quad.
     Return (id, corrector element)
     """

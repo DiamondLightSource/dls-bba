@@ -11,6 +11,7 @@ require('cothread')
 require('fa-archiver')
 require('scipy')
 require('numpy')
+require('aphla')
 import logging as log
 
 import pml

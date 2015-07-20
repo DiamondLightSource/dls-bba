@@ -3,6 +3,7 @@ pkg_resources.require('numpy')
 pkg_resources.require('scipy')
 pkg_resources.require('cothread')
 pkg_resources.require('mock')
+pkg_resources.require('aphla')
 import numpy
 import unittest
 import jump_bba

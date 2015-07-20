@@ -16,7 +16,7 @@ from cothread.catools import caget, caput
 import cothread
 import fa
 # For now, import helper functions from ploco
-sys.path.append('/dls_sw/prod/R3.14.12.3/support/ploco/0-4')
+sys.path.append('/dls_sw/prod/R3.14.12.3/support/ploco/0-7')
 import excite
 from opi.corrector import Corrector
 import pml
