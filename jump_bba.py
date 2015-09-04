@@ -100,7 +100,7 @@ def jump_bba(quad, quad_step, osc):
     osc_length = math.ceil(excite.TICKS_PER_SECOND // osc.freq) * osc.cycles
     # Set off the data collection
     high_start = now + NETWORK_LAG
-    duration = osc_length + SAFETY_NET + quad_lag + osc_length + 100
+    duration = NETWORK_LAG + osc_length + SAFETY_NET + quad_lag + osc_length
     fa_buffer = fa.Buffer(BPM_IDS, high_start, duration, DECIMATED)
     low_start = high_start + osc_length + SAFETY_NET + quad_lag
     log.debug('Safety net: {}; quad_lag: {}'.format(SAFETY_NET, quad_lag))
@@ -116,7 +116,7 @@ def jump_bba(quad, quad_step, osc):
                    fa.TICKS_PER_SECOND)
     # Move quad from high to low
     caput(quad_pv, quad_low)
-    cothread.Sleep(quad_lag_s + SAFETY_NET / fa.TICKS_PER_SECOND)
+    # Set up second excitation
     excite.excite((exc_low, ))
     # This will block until all data has been retrieved.
     fa_data = fa_buffer.get_data()
