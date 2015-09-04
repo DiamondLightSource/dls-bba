@@ -28,9 +28,9 @@ def get_filename_prefix():
     return 'bba-{}'.format(datestring)
 
 
-def save_data(high_data, low_data, quad, plane, osc):
+def save_data(high_data, low_data, quad, osc):
     quad_pv = pml.prefix_from_element(quad)
-    plane_name = pml.AXIS_NAMES[plane]
+    plane_name = pml.AXIS_NAMES[osc.plane]
     period = fa.TICKS_PER_SECOND // osc.freq
     datadict = {'period': period, 'amp': osc.amp, 'cycles': osc.cycles}
     datadict['quad'] = quad_pv
@@ -69,14 +69,9 @@ def select_data(data, plane, exc_high, exc_low):
     return high_data, low_data
 
 
-def get_excitation(corr, plane, osc, start_time):
-    exc = excite.Excitation(corr, osc, start_time)
-    return exc
-
-
-def summarise_bba(quad, plane, quad_step, osc):
+def summarise_bba(quad, quad_step, osc):
     prefix = pml.prefix_from_element(quad)
-    plane = pml.AXIS_NAMES[plane]
+    plane = pml.AXIS_NAMES[osc.plane]
     log.info('BBA of quad {} in plane {}'.format(prefix, plane))
     log.info('Quad step is {}'.format(quad_step))
     log.info('Oscillation amplitude {}; frequency {}; cycles {}'.format(osc.amp,
@@ -84,11 +79,11 @@ def summarise_bba(quad, plane, quad_step, osc):
                                                                         osc.cycles))
 
 
-def jump_bba(quad, plane, quad_step, osc):
+def jump_bba(quad, quad_step, osc):
     '''
     Do we need undecimated data?
     '''
-    summarise_bba(quad, plane, quad_step, osc)
+    summarise_bba(quad, quad_step, osc)
     quad_pv = quad.pv(handle='setpoint')[0]
     quad_sp = caget(quad_pv)
     quad_high = quad_sp + quad_step
@@ -96,11 +91,10 @@ def jump_bba(quad, plane, quad_step, osc):
     quad_lag_s = quad_step / QUAD_SLEW_RATE
     quad_lag = int(quad_lag_s * fa.TICKS_PER_SECOND)
 
-    corr_id, ap_corr = pml.effective_corrector(quad, plane)
+    corr_id, ap_corr = pml.effective_corrector(quad, osc.plane)
     log.info('Using corrector {}'.format(corr_id))
     # Move quad high
     caput(quad_pv, quad_high)
-    print('Sleep 1')
     cothread.Sleep(quad_lag_s / 2)
     now = fa.get_timestamp()
     osc_length = math.ceil(excite.TICKS_PER_SECOND // osc.freq) * osc.cycles
@@ -113,12 +107,11 @@ def jump_bba(quad, plane, quad_step, osc):
     log.info('Time now: {}.'.format(now))
     log.info('High start time: {}.'.format(high_start - now))
     log.info('Low start time: {}.'.format(low_start - now))
-    exc_high = get_excitation(ap_corr, plane, osc, high_start)
-    exc_low = get_excitation(ap_corr, plane, osc, low_start)
+    exc_high = excite.Excitation(ap_corr, osc, high_start)
+    exc_low = excite.Excitation(ap_corr, osc, low_start)
     excite.excite((exc_high, ))
     # Sleep for first excitation. SAFETY_NET ensures that we don't start
     # moving the quad before the excitation has finished.
-    print('Sleep 2')
     cothread.Sleep((NETWORK_LAG + exc_high.count + SAFETY_NET) /
                    fa.TICKS_PER_SECOND)
     # Move quad from high to low
@@ -127,8 +120,8 @@ def jump_bba(quad, plane, quad_step, osc):
     excite.excite((exc_low, ))
     # This will block until all data has been retrieved.
     fa_data = fa_buffer.get_data()
-    high_data, low_data = select_data(fa_data, plane, exc_high, exc_low)
-    save_data(high_data, low_data, quad, plane, osc)
+    high_data, low_data = select_data(fa_data, osc.plane, exc_high, exc_low)
+    save_data(high_data, low_data, quad, osc)
 
     # Restore setpoint.  We don't need SAFETY_NET here because we've saved
     # all the data before we request the move.
