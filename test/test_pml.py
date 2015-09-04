@@ -4,10 +4,11 @@ require('fa-archiver')
 require('scipy')
 require('numpy')
 require('aphla')
+require('pml')
 
 
 import unittest
-import pml
+from pml import pml
 
 
 class TestPML(unittest.TestCase):

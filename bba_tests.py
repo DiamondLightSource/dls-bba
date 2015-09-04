@@ -13,10 +13,11 @@ require('cothread')
 require('fa-archiver')
 require('scipy')
 require('aphla')
+require('pml')
 import logging as log
 import argparse
 
-import pml
+from pml import pml
 import jump_bba
 import fa
 

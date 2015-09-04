@@ -5,10 +5,12 @@ pkg_resources.require('cothread')
 pkg_resources.require('mock')
 pkg_resources.require('aphla')
 pkg_resources.require('fa-archiver')
+pkg_resources.require('pml')
+
 import numpy
 import unittest
 import jump_bba
-import pml
+from pml import pml
 import mock
 
 class SelectDataTest(unittest.TestCase):
