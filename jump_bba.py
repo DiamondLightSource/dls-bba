@@ -1,11 +1,5 @@
 from __future__ import division
 
-from pkg_resources import require
-require('cothread')
-require('fa-archiver')
-require('scipy')
-require('numpy')
-
 import sys
 import collections
 import datetime
