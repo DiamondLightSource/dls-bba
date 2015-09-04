@@ -21,8 +21,8 @@ class SelectDataTest(unittest.TestCase):
         self.data[:,0,1] = numpy.arange(2000)
         self.data[100,1,0] = 3
         self.data[1100,1,1] = 4
-        self.exc_high = mock.MagicMock(count=1000, time=100)
-        self.exc_low = mock.MagicMock(count=1000, time=1100)
+        self.exc_high = mock.MagicMock(count=1000, start_time=100)
+        self.exc_low = mock.MagicMock(count=1000, start_time=1100)
 
     def test_select_data_throws_AssertionError_if_exc_high_low_different_counts(self):
         self.exc_low.count = 101
