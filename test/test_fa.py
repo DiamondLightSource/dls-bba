@@ -56,9 +56,25 @@ class FaBufferTest(unittest.TestCase):
         b = fa.Buffer([0,1], self.now + 1000, 1000, False)
         d = b.get_data()
         self.assertEqual(d.shape, (1000,2,2))
+        # The first timestamp should be the one requested.
+        self.assertEqual(self.now + 1000, d[0,0,0])
+        # The timestamps should be sequential starting from the first
         timecounts = d[:,0,0] - d[0,0,0]
         numpy.testing.assert_array_equal(timecounts, numpy.arange(1000))
 
+    def test_Buffer_collects_timestamps_decimated(self):
+        start_time = self.now + 1000
+        log.debug('Requesting a start time of %s', start_time)
+        b = fa.Buffer([0,1], start_time, 1000, True)
+        d = b.get_data()
+        self.assertEqual(d.shape, (100,2,2))
+        # The first timestamp should be less than 10 ticks greater than the
+        # one requested.
+        self.assertIn(d[0,0,0] - start_time, range(10))
+        # The timestamps should be sequential in steps of 10
+        # starting from the first
+        timecounts = d[:,0,0] - d[0,0,0]
+        numpy.testing.assert_array_equal(timecounts, numpy.arange(0, 1000, 10))
 
 if __name__ == '__main__':
     unittest.main()

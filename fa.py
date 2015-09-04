@@ -28,7 +28,8 @@ class Buffer(object):
     def __init__(self, ids, start_time, length, decimated):
         '''
         Note that length is in FA archiver timestamps, even if the data
-        is decimated.
+        is decimated, so if decimated is true the dimension of the data
+        will be 1/10 the value of length.
         '''
         self.length = length
         self.start = start_time
