@@ -18,6 +18,7 @@ import logging as log
 import argparse
 
 from pml import pml
+from pml import excite
 import jump_bba
 import fa
 
@@ -28,6 +29,7 @@ V_AMPS_FILE = 'config/vertical_bba_mmlvals.txt'
 # Defaults
 CYCLES = 1
 PERIOD = 1259
+FREQUENCY = fa.TICKS_PER_SECOND // PERIOD
 ###############
 
 
@@ -73,7 +75,7 @@ def one_bba(quad, plane):
                                                  pml.AXIS_NAMES[plane]))
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[quad_prefix]
-    osc = jump_bba.Oscillation(corr_amp, PERIOD, CYCLES)
+    osc = excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
     jump_bba.jump_bba(quad, plane, quad_step, osc)
 
 
@@ -84,7 +86,7 @@ def frequency_scan(quad, plane):
     for i in range(1, 8):
         period = fa.TICKS_PER_SECOND // i
         log.info('The calculated period is {}.'.format(period))
-        osc = jump_bba.Oscillation(corr_amp, period, CYCLES)
+        osc = excite.Oscillation(corr_amp, plane, i, CYCLES)
         jump_bba.jump_bba(quad, plane, quad_step, osc)
 
 
@@ -94,7 +96,7 @@ def cycle_scan(quad, plane):
     quad_step, corr_amp = amps[pml.prefix_from_element(quad)]
     for cycles in range(1, 5):
         log.info('Trying {} cycles.'.format(cycles))
-        osc = jump_bba.Oscillation(corr_amp, PERIOD, cycles)
+        osc = excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
         jump_bba.jump_bba(quad, plane, quad_step, osc)
 
 
@@ -104,7 +106,7 @@ def repeatability_scan(quad, plane, counts):
     quad_step, corr_amp = amps[pml.prefix_from_element(quad)]
     for count in counts:  # Just run ten times at 8 Hz
         log.info('Trying scan {} of {}.'.format(count, counts))
-        osc = jump_bba.Oscillation(corr_amp, PERIOD, CYCLES)
+        osc = excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
         jump_bba.jump_bba(quad, plane, quad_step, osc)
 
 
@@ -112,7 +114,8 @@ def compare_decimated_data(quad, plane):
     log.warn('Beginning test between raw and decimated data.')
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[pml.prefix_from_element(quad)]
-    osc = jump_bba.Oscillation(corr_amp, PERIOD, CYCLES)
+
+    osc = excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
     jump_bba.jump_bba(quad, plane, quad_step, osc)
     # Now do the full one.  Change a constant!
     jump_bba.DECIMATED = False
@@ -131,7 +134,7 @@ def scan_cell(cell):
     for quad in quads:
         for plane in (pml.X, pml.Y):
             quad_step, corr_amp = amps[plane][pml.prefix_from_element(quad)]
-            osc = jump_bba.Oscillation(corr_amp, PERIOD, CYCLES)
+            osc = excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
             jump_bba.jump_bba(quad, plane, quad_step, osc)
 
 
@@ -140,14 +143,14 @@ def scan_amplitudes(quad, plane, scale_quad=True, scale_corr=True):
                                                                   scale_corr))
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[pml.prefix_from_element(quad)]
-    osc = jump_bba.Oscillation(corr_amp, PERIOD, CYCLES)
+    osc = excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
     scales = [0.5, 1.0, 2.0, 5.0]
     for s in scales:
         if scale_quad:
             qs = quad_step * s
         if scale_corr:
             ca = corr_amp * s
-            osc = jump_bba.Oscillation(ca, PERIOD, CYCLES)
+            osc = excite.Oscillation(ca, plane, FREQUENCY, CYCLES)
         jump_bba.jump_bba(quad, plane, qs, osc)
 
 
@@ -179,7 +182,7 @@ if __name__ == '__main__':
 
     quad = pml.quad_from_pv(pv)
     one_bba(quad, plane)
-    repeatability_scan(quad, plane, 10)
+    repeatability_scan(quad, plane, range(10))
     frequency_scan(quad, plane)
     compare_decimated_data(quad, plane)
     scan_cell(1)

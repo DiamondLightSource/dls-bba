@@ -1,7 +1,5 @@
 from __future__ import division
 
-import sys
-import collections
 import datetime
 import logging as log
 import numpy
@@ -9,15 +7,9 @@ import scipy.io
 from cothread.catools import caget, caput
 import cothread
 import fa
-# For now, import helper functions from ploco
-sys.path.append('/dls_sw/prod/R3.14.12.3/support/ploco/0-7')
-import excite
-from opi.corrector import Corrector
+import math
+from pml import excite
 from pml import pml
-
-
-# Struct representing one oscillation
-Oscillation = collections.namedtuple('Oscillation', ['amp', 'period', 'cycles'])
 
 
 NETWORK_LAG_S = 1.0
@@ -39,7 +31,8 @@ def get_filename_prefix():
 def save_data(high_data, low_data, quad, plane, osc):
     quad_pv = pml.prefix_from_element(quad)
     plane_name = pml.AXIS_NAMES[plane]
-    datadict = {'period': osc.period, 'amp': osc.amp, 'cycles': osc.cycles}
+    period = fa.TICKS_PER_SECOND // osc.freq
+    datadict = {'period': period, 'amp': osc.amp, 'cycles': osc.cycles}
     datadict['quad'] = quad_pv
     datadict['plane'] = plane_name
     datadict['bpm'] = pml.quad_to_bpm(quad)[0]
@@ -60,13 +53,13 @@ def select_data(data, plane, exc_high, exc_low):
                                                          data[-1,0,0]))
     log.debug('Excitation length: {}'.format(exc_high.count))
     log.debug('Trailing data to crop: {}.'.format(data[-1,0,0] -
-                                               (exc_low.time + exc_low.count)))
+                                               (exc_low.start_time + exc_low.count)))
     assert exc_high.count == exc_low.count, 'Excitations different lengths'
     # Extract timestamps from data
     times = data[:,0,0]
     data = data[:,1:,:]
-    high_start = numpy.searchsorted(times, exc_high.time)
-    low_start = numpy.searchsorted(times, exc_low.time)
+    high_start = numpy.searchsorted(times, exc_high.start_time)
+    low_start = numpy.searchsorted(times, exc_low.start_time)
     length = int(exc_high.count // 10) + 1 if DECIMATED else exc_high.count
     high_data = data[high_start:high_start+length,:,plane]
     low_data = data[low_start:low_start+length,:,plane]
@@ -76,10 +69,8 @@ def select_data(data, plane, exc_high, exc_low):
     return high_data, low_data
 
 
-def get_excitation(corr, plane, osc):
-    f = 10072 / osc.period
-    exc = excite.Excitation(corr.ioc, corr.corr, plane,
-                            osc.amp, f, osc.cycles)
+def get_excitation(corr, plane, osc, start_time):
+    exc = excite.Excitation(corr, osc, start_time)
     return exc
 
 
@@ -88,9 +79,9 @@ def summarise_bba(quad, plane, quad_step, osc):
     plane = pml.AXIS_NAMES[plane]
     log.info('BBA of quad {} in plane {}'.format(prefix, plane))
     log.info('Quad step is {}'.format(quad_step))
-    log.info('Oscillation amplitude {}; period {}; cycles {}'.format(osc.amp,
-                                                                     osc.period,
-                                                                     osc.cycles))
+    log.info('Oscillation amplitude {}; frequency {}; cycles {}'.format(osc.amp,
+                                                                        osc.freq,
+                                                                        osc.cycles))
 
 
 def jump_bba(quad, plane, quad_step, osc):
@@ -107,30 +98,33 @@ def jump_bba(quad, plane, quad_step, osc):
 
     corr_id, ap_corr = pml.effective_corrector(quad, plane)
     log.info('Using corrector {}'.format(corr_id))
-    corr = Corrector(corr_id)
     # Move quad high
     caput(quad_pv, quad_high)
+    print('Sleep 1')
     cothread.Sleep(quad_lag_s / 2)
     now = fa.get_timestamp()
-    exc_high = get_excitation(corr, plane, osc)
-    exc_low = get_excitation(corr, plane, osc)
+    osc_length = math.ceil(excite.TICKS_PER_SECOND // osc.freq) * osc.cycles
     # Set off the data collection
     high_start = now + NETWORK_LAG
-    duration = exc_high.count + SAFETY_NET + quad_lag + exc_low.count + 100
+    duration = osc_length + SAFETY_NET + quad_lag + osc_length + 100
     fa_buffer = fa.Buffer(BPM_IDS, high_start, duration, DECIMATED)
-    low_start = high_start + exc_high.count + SAFETY_NET + quad_lag
+    low_start = high_start + osc_length + SAFETY_NET + quad_lag
     log.debug('Safety net: {}; quad_lag: {}'.format(SAFETY_NET, quad_lag))
     log.info('Time now: {}.'.format(now))
     log.info('High start time: {}.'.format(high_start - now))
     log.info('Low start time: {}.'.format(low_start - now))
-    excite.excite_storage_ring_(high_start, (exc_high, exc_low),
-                                quad_lag + SAFETY_NET)
+    exc_high = get_excitation(ap_corr, plane, osc, high_start)
+    exc_low = get_excitation(ap_corr, plane, osc, low_start)
+    excite.excite((exc_high, ))
     # Sleep for first excitation. SAFETY_NET ensures that we don't start
     # moving the quad before the excitation has finished.
+    print('Sleep 2')
     cothread.Sleep((NETWORK_LAG + exc_high.count + SAFETY_NET) /
                    fa.TICKS_PER_SECOND)
     # Move quad from high to low
     caput(quad_pv, quad_low)
+    cothread.Sleep(quad_lag_s + SAFETY_NET / fa.TICKS_PER_SECOND)
+    excite.excite((exc_low, ))
     # This will block until all data has been retrieved.
     fa_data = fa_buffer.get_data()
     high_data, low_data = select_data(fa_data, plane, exc_high, exc_low)
