@@ -6,6 +6,7 @@ pkg_resources.require('fa-archiver')
 import numpy
 import unittest
 import fa
+import logging as log
 
 
 class FaBufferTest(unittest.TestCase):
