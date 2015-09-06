@@ -3,15 +3,19 @@ require('cothread')
 require('fa-archiver')
 require('scipy')
 require('numpy')
-require('aphla')
 require('pml')
 
 
 import unittest
 from pml import pml
+import aphla as ap
 
 
 class TestPML(unittest.TestCase):
+
+    def setUp(self):
+        ap.machines.load('SRI0913')
+        ap.machines.use('SR')
 
     def test_effective_corrector(self):
         # The correct answers were fetched from MML.
