@@ -76,7 +76,7 @@ def one_bba(quad, plane):
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[quad_prefix]
     osc = excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
-    jump_bba.jump_bba(quad, plane, quad_step, osc)
+    jump_bba.jump_bba(quad, quad_step, osc)
 
 
 def frequency_scan(quad, plane):
@@ -182,8 +182,8 @@ if __name__ == '__main__':
 
     quad = pml.quad_from_pv(pv)
     one_bba(quad, plane)
-    repeatability_scan(quad, plane, range(10))
-    frequency_scan(quad, plane)
-    compare_decimated_data(quad, plane)
-    scan_cell(1)
-    cycle_scan(quad, plane)
+    #repeatability_scan(quad, plane, range(10))
+    #frequency_scan(quad, plane)
+    #compare_decimated_data(quad, plane)
+    #scan_cell(1)
+    #cycle_scan(quad, plane)
