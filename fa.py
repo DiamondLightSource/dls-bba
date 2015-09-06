@@ -42,6 +42,7 @@ class Buffer(object):
         self.ids = ids
         self.cache = []
         self.datapoints = int(length // 10) if decimated else length
+        log.debug('FA buffer: length %s; datapoints %s', length, self.datapoints)
         self.dec = decimated
         self.server = falib.Server()
         self.complete = False
