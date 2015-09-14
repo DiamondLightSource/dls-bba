@@ -8,8 +8,8 @@ from cothread.catools import caget, caput
 import cothread
 import fa
 import math
+import pml
 from pml import excite
-from pml import pml
 
 
 NETWORK_LAG_S = 1.0

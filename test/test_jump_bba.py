@@ -1,9 +1,5 @@
 import pkg_resources
-pkg_resources.require('numpy')
-pkg_resources.require('scipy')
-pkg_resources.require('cothread')
 pkg_resources.require('mock')
-pkg_resources.require('aphla')
 pkg_resources.require('fa-archiver')
 pkg_resources.require('pml')
 
@@ -13,6 +9,7 @@ import jump_bba
 import pml
 import aphla as ap
 import mock
+
 
 class SelectDataTest(unittest.TestCase):
 
@@ -28,26 +25,28 @@ class SelectDataTest(unittest.TestCase):
     def test_select_data_throws_AssertionError_if_exc_high_low_different_counts(self):
         self.exc_low.count = 101
         self.assertRaises(AssertionError, jump_bba.select_data, self.data,
-                          pml.pml.X, self.exc_high, self.exc_low)
+                          pml.X, self.exc_high, self.exc_low)
 
     def test_select_data_returns_correct_shape(self):
-        high_data, low_data = jump_bba.select_data(self.data, pml.pml.X,
+        high_data, low_data = jump_bba.select_data(self.data, pml.X,
                                                    self.exc_high, self.exc_low)
         expected_shape = (100, 1)
         self.assertEqual(high_data.shape, expected_shape)
         self.assertEqual(low_data.shape, expected_shape)
 
     def test_select_data_selects_first_timestamp(self):
-        high_data_x, _ = jump_bba.select_data(self.data, pml.pml.X,
+        high_data_x, _ = jump_bba.select_data(self.data, pml.X,
                                                    self.exc_high, self.exc_low)
-        _, low_data_y = jump_bba.select_data(self.data, pml.pml.Y,
+        _, low_data_y = jump_bba.select_data(self.data, pml.Y,
                                                    self.exc_high, self.exc_low)
         self.assertEqual(high_data_x[0,0], 3)
         self.assertEqual(low_data_y[0,0], 4)
 
 
-
 class TestJumpBba(unittest.TestCase):
+
+    def setUp(self):
+        pml.initialise()
 
     @mock.patch('pml.excite.caput')
     @mock.patch('jump_bba.caget')
