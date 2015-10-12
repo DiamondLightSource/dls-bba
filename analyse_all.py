@@ -8,6 +8,7 @@ import scipy.io
 import numpy
 import os
 import sys
+import glob
 
 
 try:
@@ -16,12 +17,15 @@ except IndexError:
     print('Usage: {} <datadir>'.format(sys.argv[0]))
     sys.exit()
 
+
+files = glob.glob(os.path.join(datadir, '*.mat'))
+
+print('Analysing {} files.'.format(len(files)))
+
 results = []
 for f in files:
-    if f.endswith('mat'):
-        f = os.path.join(datadir, f)
-        data = scipy.io.loadmat(f, squeeze_me=True)
-        results.append(simple_analysis.analyse(data))
+    data = scipy.io.loadmat(f, squeeze_me=True)
+    results.append(simple_analysis.analyse(data))
 
 a = numpy.array(results)
 
