@@ -88,7 +88,7 @@ def analyse(data, use_fft=False, plot_output=False):
         plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
         plt.show()
 
-    return (p[:, 1].mean(), p[:, 1].std())
+    return p[:, 1].mean()
 
 
 def parse_args():

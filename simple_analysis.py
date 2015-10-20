@@ -10,7 +10,7 @@ def analyse(data):
     # Actual calculation
     q_diff = q_high - q_low
     fit = np.polynomial.polynomial.polyfit(q_high[:, bpm], q_diff, 1)
-    p = np.array(-fit[0] / fit[1]).T
-    return (p.mean(), p.std())
+    intersections = np.array(-fit[0] / fit[1])
+    return intersections.mean()
 
 
