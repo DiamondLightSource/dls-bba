@@ -40,6 +40,7 @@ def extract_freq_excite(data, freq):
 def analyse(data, use_fft=False, plot_output=False):
     bpm = data['bpm'] - 1  # Zero Index
     enabled_bpms = np.equal(data['enabled_bpms'], 1)
+    bpm_index = bpm - np.sum(enabled_bpms[:bpm] == False)
     freq = TICKS_PER_SECOND / data['period']
 
     # Remove bad BPMs and change units to um
@@ -62,7 +63,7 @@ def analyse(data, use_fft=False, plot_output=False):
     q_diff_good = q_diff[:, good]
 
     # Use a single fit operation, then transform with the straight line equation
-    fit = np.polynomial.polynomial.polyfit(q_high_clean[:, bpm], q_diff_good, 1)
+    fit = np.polynomial.polynomial.polyfit(q_high_clean[:, bpm_index], q_diff_good, 1)
     p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
 
     # Produce a large graph
@@ -83,7 +84,7 @@ def analyse(data, use_fft=False, plot_output=False):
                     to_plot[i], aspect='auto', interpolation='nearest')
             plt.colorbar(im, cax=plt.subplot(gs[i, 2]))
         # Add a large 1D plot to show end result
-        plt.subplot(gs[-1, :]).plot(q_high_clean[:, bpm], q_diff_good)
+        plt.subplot(gs[-1, :]).plot(q_high_clean[:, bpm_index], q_diff_good)
         plt.ylabel('BPM %d aginst BPMs' % bpm)
         plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
         plt.show()
