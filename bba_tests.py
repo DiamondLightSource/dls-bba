@@ -99,6 +99,7 @@ def repeatability_scan(quad, plane, counts):
     log.warn('Beginning test of different numbers of corrector cycles.')
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[pml.prefix_from_element(quad)]
+    log.info('Quad_step %s, corr_amp %s', quad_step, corr_amp)
     for count in counts:  # Just run ten times at 8 Hz
         log.info('Trying scan {} of {}.'.format(count, counts))
         osc = pml.excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
