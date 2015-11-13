@@ -86,8 +86,8 @@ def jump_bba(quad, quad_step, osc):
     summarise_bba(quad, quad_step, osc)
     quad_pv = quad.pv(handle='setpoint')[0]
     quad_sp = caget(quad_pv)
-    quad_high = quad_sp + quad_step / 2
-    quad_low = quad_sp - quad_step / 2
+    quad_high = quad_sp + quad_step
+    quad_low = quad_sp - quad_step
     quad_lag_s = quad_step / QUAD_SLEW_RATE
     quad_lag = int(quad_lag_s * fa.TICKS_PER_SECOND)
 
