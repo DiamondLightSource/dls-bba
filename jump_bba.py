@@ -12,7 +12,7 @@ import pml
 from pml import excite
 
 
-NETWORK_LAG_S = 1.0
+NETWORK_LAG_S = 0.5
 SAFETY_NET_S = 0.1
 QUAD_SLEW_RATE = 0.5 # A/s
 NETWORK_LAG = int(NETWORK_LAG_S * fa.TICKS_PER_SECOND)
