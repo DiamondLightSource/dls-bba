@@ -60,6 +60,7 @@ def select_data(data, plane, exc_high, exc_low):
     data = data[:,1:,:]
     high_start = numpy.searchsorted(times, exc_high.start_time)
     low_start = numpy.searchsorted(times, exc_low.start_time)
+    log.debug('Searched start times: %s, %s', high_start, low_start)
     length = int(exc_high.count // 10) + 1 if DECIMATED else exc_high.count
     high_data = data[high_start:high_start+length,:,plane]
     low_data = data[low_start:low_start+length,:,plane]
@@ -92,7 +93,7 @@ def jump_bba(quad, quad_step, osc):
     quad_lag = int(quad_lag_s * fa.TICKS_PER_SECOND)
 
     corr_id, ap_corr = pml.effective_corrector(quad, osc.plane)
-    log.info('Using corrector {}'.format(corr_id))
+    log.info('Using corrector {}: {}'.format(corr_id, pml.prefix_from_element(ap_corr)))
     # Move quad high
     caput(quad_pv, quad_high)
     cothread.Sleep(quad_lag_s / 2)
@@ -107,7 +108,9 @@ def jump_bba(quad, quad_step, osc):
     log.info('Time now: {}.'.format(now))
     log.info('High start time: {}.'.format(high_start - now))
     log.info('Low start time: {}.'.format(low_start - now))
+    log.debug('The oscillation: {}'.format(osc))
     exc_high = excite.Excitation(ap_corr, osc, high_start)
+    log debug('The excitation: dwell {} count {}'.format(exc_high.dwell, exc_high.count))
     exc_low = excite.Excitation(ap_corr, osc, low_start)
     excite.excite((exc_high, ))
     # Sleep for first excitation. SAFETY_NET ensures that we don't start
