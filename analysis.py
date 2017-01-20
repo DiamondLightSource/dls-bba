@@ -47,19 +47,30 @@ def analyse(data, use_fft=False, plot_output=False):
     q_low = data['low'][:, enabled_bpms] * 1E-3
     q_high = data['high'][:, enabled_bpms] * 1E-3
 
-    q_diff = q_high - q_low
+    # Extract the DC componenet of the orbit, and add it to the 8Hz excitation
+    q_high_dc = q_high.mean(0)
+    q_low_dc = q_low.mean(0)
+    if use_fft:
+        q_high_clean = np.add(extract_freq_fft(q_high - q_high_dc, freq), q_high_dc)
+        q_low_clean = np.add(extract_freq_fft(q_low - q_low_dc, freq), q_low_dc)
+    else:
+        q_high_clean = np.add(extract_freq_excite(q_high - q_high_dc, freq), q_high_dc)
+        q_low_clean = np.add(extract_freq_excite(q_low - q_low_dc, freq), q_low_dc)
+
+    # Take the difference between fits
+    q_diff = q_high_clean - q_low_clean
     good = q_diff.std(0) > q_diff.std(0).max()/2
     q_diff_good = q_diff[:, good]
 
     # Use a single fit operation, then transform with the straight line equation
-    fit = np.polynomial.polynomial.polyfit(q_high[:, bpm_index], q_diff_good, 1)
+    fit = np.polynomial.polynomial.polyfit(q_high_clean[:, bpm_index], q_diff_good, 1)
     p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
 
     # Produce a large graph
     if plot_output:
-        to_plot = [q_high, q_low, q_diff, q_diff_good, p]
+        to_plot = [q_high_clean, q_low_clean, q_diff, q_diff_good, p]
         plot_labels = [
-                'quad high', 'quad low,', 'quad diff,',
+                'quad high clean', 'quad low clean,', 'quad diff,',
                 'quad diff good,', 'fit coefficients']
         # Make a grid three wide and N high
         # Fill with 1D plot, image plot, and colourbar
@@ -73,7 +84,7 @@ def analyse(data, use_fft=False, plot_output=False):
                     to_plot[i], aspect='auto', interpolation='nearest')
             plt.colorbar(im, cax=plt.subplot(gs[i, 2]))
         # Add a large 1D plot to show end result
-        plt.subplot(gs[-1, :]).plot(q_high[:, bpm_index], q_diff_good)
+        plt.subplot(gs[-1, :]).plot(q_high_clean[:, bpm_index], q_diff_good)
         plt.ylabel('BPM %d aginst BPMs' % bpm)
         plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
         plt.show()
