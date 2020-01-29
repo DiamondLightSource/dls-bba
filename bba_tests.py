@@ -15,6 +15,7 @@ import logging as log
 import argparse
 
 import pml
+pml.utils.DATAROOT = '/dls_sw/work/common/matlab/mml/machine/diamondopsdata'
 import jump_bba
 import fa
 
@@ -70,6 +71,7 @@ def one_bba(quad, plane):
                                                  pml.AXIS_NAMES[plane]))
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[quad_prefix]
+    corr_amp = corr_amp / 8
     osc = pml.excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
     jump_bba.jump_bba(quad, quad_step, osc)
 
@@ -171,15 +173,18 @@ if __name__ == '__main__':
     quad_scale = float(args.quad_scale)
     corr_scale = float(args.corr_scale)
 
+    quad_scale = 1
+    corr_scale = 0.5
+
     h, v = load_amps(quad_scale, corr_scale)
-    pv = 'SR01A-PC-Q1D-01'
+    pv = 'SR01A-PC-Q2B-09'
     get_new_logger()
     log.warn('Plane: {}, Quad scale: {}, Corr scale: {}\n'.format(
         plane, quad_scale, corr_scale))
 
     quad = pml.quad_from_pv(pv)
-    one_bba(quad, plane)
-    #repeatability_scan(quad, plane, range(10))
+    one_bba(quad, pml.Y)
+    #repeatability_scan(quad, pml.Y, range(10))
     #frequency_scan(quad, plane)
     #compare_decimated_data(quad, plane)
     #scan_cell(1)

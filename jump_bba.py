@@ -110,7 +110,7 @@ def jump_bba(quad, quad_step, osc):
     log.info('Low start time: {}.'.format(low_start - now))
     log.debug('The oscillation: {}'.format(osc))
     exc_high = excite.Excitation(ap_corr, osc, high_start)
-    log debug('The excitation: dwell {} count {}'.format(exc_high.dwell, exc_high.count))
+    log.debug('The excitation: dwell {} count {}'.format(exc_high.dwell, exc_high.count))
     exc_low = excite.Excitation(ap_corr, osc, low_start)
     excite.excite((exc_high, ))
     # Sleep for first excitation. SAFETY_NET ensures that we don't start
