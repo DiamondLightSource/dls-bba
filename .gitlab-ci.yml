@@ -15,7 +15,7 @@ Unit tests and coverage:
   extends:
     - .template_py3_pytest_and_coverage
   variables:
-    COVERAGE_ARGS: --cov=burt --cov-report term-missing --cov-fail-under 90
+    COVERAGE_ARGS: --cov=bba --cov-report term-missing --cov-fail-under 90
     TEST_DIR: test
   artifacts:
     paths:
@@ -30,12 +30,13 @@ Static code checks:
     - rhel7
   stage: static code checks
   variables:
-    FLAKE8_MODULES: burt test
-    BLACK_MODULES: burt test
+    FLAKE8_MODULES: bba test
+    BLACK_MODULES: bba test
+    MYPY_MODUKES: bba
   extends:
     - .flake8_and_black
   script:
-    - pipenv run mypy burt
+    - pipenv run mypy bba
 
 # Publish coverage html report to common location
 Publish coverage:
