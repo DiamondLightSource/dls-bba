@@ -6,4 +6,29 @@
 *.mat
 # log files
 *.log
+# IDE files
+/.idea/
+/.vscode/
 
+# Build files
+*/_build/
+/pyburt.egg-info/
+/build/
+/dist/
+
+# Pipenv cache
+/.cache/
+
+# Python backup files
+*.pyc
+
+# Testing files
+/.pytest_cache/
+/.coverage
+/htmlcov/
+
+# Virtualenvs
+/venv*/
+
+# mypy cache
+/.mypy_cache/
