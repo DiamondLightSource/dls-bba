@@ -1,5 +1,5 @@
 import sys
-import StringIO
+from io import StringIO
 
 err = sys.stderr
 sys.stderr = StringIO.StringIO()

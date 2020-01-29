@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "dba76918fbc1a74ac9863cc7023cee1376596ca65cb567095fe050cb5d8f3ca4"
+            "sha256": "3a58d510f49bfcc270fa117b1354d4b4fbb4858c6c3821e3dcac734ceab77650"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -22,6 +22,25 @@
             "index": "pypi",
             "version": "==2.16+dls1"
         },
+        "cycler": {
+            "hashes": [
+                "sha256:1d8a5ae1ff6c5cf9b93e8811e581232ad8920aeec647c37316ceac982b08cb2d"
+            ],
+            "version": "==0.10.0"
+        },
+        "kiwisolver": {
+            "hashes": [
+                "sha256:a0c0a9f06872330d0dd31b45607197caab3c22777600e88031bfe66799e70bb0"
+            ],
+            "version": "==1.1.0"
+        },
+        "matplotlib": {
+            "hashes": [
+                "sha256:1c6c999f2212858021329537f8e0f98f3f29086ec3683511dd1ecec84409f51d"
+            ],
+            "index": "pypi",
+            "version": "==2.2.3"
+        },
         "numpy": {
             "hashes": [
                 "sha256:3d52298d0be333583739f1aec9026f3b09fdfe3ddf7c7028cb16d9d2af1cca7e"
@@ -36,12 +55,36 @@
             "index": "pypi",
             "version": "==0.3.5"
         },
+        "pyparsing": {
+            "hashes": [
+                "sha256:9b6323ef4ab914af344ba97510e966d64ba91055d6b9afa6b30799340e89cc03"
+            ],
+            "version": "==2.4.0"
+        },
+        "python-dateutil": {
+            "hashes": [
+                "sha256:7e6584c74aeed623791615e26efd690f29817a27c73085b78e4bad02493df2fb"
+            ],
+            "version": "==2.8.0"
+        },
+        "pytz": {
+            "hashes": [
+                "sha256:303879e36b721603cc54604edcac9d20401bdbe31e1e4fdee5b9f98d5d31dfda"
+            ],
+            "version": "==2019.1"
+        },
         "scipy": {
             "hashes": [
                 "sha256:00af72998a46c25bdb5824d2b729e7dabec0c765f9deb0b504f928591f5ff9d4"
             ],
             "index": "pypi",
             "version": "==1.4.1"
+        },
+        "six": {
+            "hashes": [
+                "sha256:3350809f0555b11f552448330d0b52d5f24c91a322ea4a15ef22629740f3761c"
+            ],
+            "version": "==1.12.0"
         }
     },
     "develop": {
