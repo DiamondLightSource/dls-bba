@@ -1,18 +1,10 @@
-import sys
-from io import StringIO
-
-err = sys.stderr
-sys.stderr = StringIO.StringIO()
-import dls_packages
-
-sys.stderr = err  # Suppress stderr
 import numpy as np
 import scipy.io as io
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import argparse
 import time
-from fa import TICKS_PER_SECOND
+from faa import TICKS_PER_SECOND
 
 
 DECIMATED = True

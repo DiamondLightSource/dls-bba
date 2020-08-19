@@ -1,22 +1,19 @@
-from __future__ import division
-
 import datetime
 import logging as log
 import numpy
 import scipy.io
 from cothread.catools import caget, caput
 import cothread
-import fa
 import math
-import pml
-from pml import excite
+from bba import faa, pml
+from bba.pml import excite
 
 
 NETWORK_LAG_S = 0.5
 SAFETY_NET_S = 0.1
 QUAD_SLEW_RATE = 0.5  # A/s
-NETWORK_LAG = int(NETWORK_LAG_S * fa.TICKS_PER_SECOND)
-SAFETY_NET = int(SAFETY_NET_S * fa.TICKS_PER_SECOND)
+NETWORK_LAG = int(NETWORK_LAG_S * faa.TICKS_PER_SECOND)
+SAFETY_NET = int(SAFETY_NET_S * faa.TICKS_PER_SECOND)
 DECIMATED = True
 
 BPM_IDS = range(174)  # 173 plus 0 for timestamps
@@ -29,17 +26,17 @@ def get_filename_prefix():
 
 
 def save_data(high_data, low_data, quad, osc):
-    quad_pv = pml.prefix_from_element(quad)
+    quad_prefix = quad.get_device().name
     plane_name = pml.AXIS_NAMES[osc.plane]
-    period = fa.TICKS_PER_SECOND // osc.freq
+    period = faa.TICKS_PER_SECOND // osc.freq
     datadict = {"period": period, "amp": osc.amp, "cycles": osc.cycles}
-    datadict["quad"] = quad_pv
+    datadict["quad"] = quad_prefix
     datadict["plane"] = plane_name
     datadict["bpm"] = pml.quad_to_bpm(quad)[0]
     datadict["enabled_bpms"] = pml.enabled_bpms().astype(numpy.int)
     datadict["high"] = high_data
     datadict["low"] = low_data
-    filename = "data/{}-{}-{}".format(get_filename_prefix(), quad_pv, plane_name)
+    filename = "data/{}-{}-{}".format(get_filename_prefix(), quad_prefix, plane_name)
     scipy.io.savemat(filename, datadict, oned_as="row")
     log.info("Saved data to {}\n".format(filename))
 
@@ -72,7 +69,7 @@ def select_data(data, plane, exc_high, exc_low):
 
 
 def summarise_bba(quad, quad_step, osc):
-    prefix = pml.prefix_from_element(quad)
+    prefix = quad.get_device('b1').name
     plane = pml.AXIS_NAMES[osc.plane]
     log.info("BBA of quad {} in plane {}".format(prefix, plane))
     log.info("Quad step is {}".format(quad_step))
@@ -83,36 +80,37 @@ def summarise_bba(quad, quad_step, osc):
     )
 
 
-def jump_bba(quad, quad_step, osc):
+def jump_bba(quad, quad_step, osc, lattice):
     """
     Do we need undecimated data?
     """
     summarise_bba(quad, quad_step, osc)
-    quad_pv = quad.pv(handle="setpoint")[0]
+    quad_pv = quad.get_pv_name(field='b1', handle="setpoint")
     quad_sp = caget(quad_pv)
     quad_high = quad_sp + quad_step
     quad_low = quad_sp - quad_step
     quad_lag_s = quad_step / QUAD_SLEW_RATE
-    quad_lag = int(quad_lag_s * fa.TICKS_PER_SECOND)
+    quad_lag = int(quad_lag_s * faa.TICKS_PER_SECOND)
 
-    corr_id, ap_corr = pml.effective_corrector(quad, osc.plane)
-    log.info("Using corrector {}: {}".format(corr_id, pml.prefix_from_element(ap_corr)))
+    corr_id, ap_corr = pml.utils.effective_corrector(quad, osc.plane, lattice)
+    field = 'x_kick' if osc.plane == pml.definitions.X else 'y_kick'
+    log.info("Using corrector {}: {}".format(corr_id, ap_corr.get_device(field).name))
     # Move quad high
     caput(quad_pv, quad_high)
     cothread.Sleep(quad_lag_s / 2)
-    now = fa.get_timestamp()
+    now = faa.get_timestamp()
     osc_length = math.ceil(excite.TICKS_PER_SECOND // osc.freq) * osc.cycles
     # Set off the data collection
     high_start = now + NETWORK_LAG
     duration = NETWORK_LAG + osc_length + SAFETY_NET + quad_lag + osc_length
-    fa_buffer = fa.Buffer(BPM_IDS, high_start, duration, DECIMATED)
+    fa_buffer = faa.Buffer(BPM_IDS, high_start, duration, DECIMATED)
     low_start = high_start + osc_length + SAFETY_NET + quad_lag
     log.debug("Safety net: {}; quad_lag: {}".format(SAFETY_NET, quad_lag))
     log.info("Time now: {}.".format(now))
     log.info("High start time: {}.".format(high_start - now))
     log.info("Low start time: {}.".format(low_start - now))
     log.debug("The oscillation: {}".format(osc))
-    exc_high = excite.Excitation(ap_corr, osc, high_start)
+    exc_high = excite.Excitation(ap_corr, osc, high_start, lattice)
     log.debug(
         "The excitation: dwell {} count {}".format(exc_high.dwell, exc_high.count)
     )
@@ -120,7 +118,7 @@ def jump_bba(quad, quad_step, osc):
     excite.excite((exc_high,))
     # Sleep for first excitation. SAFETY_NET ensures that we don't start
     # moving the quad before the excitation has finished.
-    cothread.Sleep((NETWORK_LAG + exc_high.count + SAFETY_NET) / fa.TICKS_PER_SECOND)
+    cothread.Sleep((NETWORK_LAG + exc_high.count + SAFETY_NET) / faa.TICKS_PER_SECOND)
     # Move quad from high to low
     caput(quad_pv, quad_low)
     # Set up second excitation

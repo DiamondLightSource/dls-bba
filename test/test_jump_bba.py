@@ -1,14 +1,16 @@
-import pkg_resources
-pkg_resources.require('mock')
-pkg_resources.require('fa-archiver')
-pkg_resources.require('pml')
+import mock
+import unittest
 
 import numpy
-import unittest
-import jump_bba
-import pml
-import aphla as ap
-import mock
+import pytac
+import pytest
+
+from bba import jump_bba, pml
+
+
+@pytest.fixture
+def lattice():
+    return pytac.load_csv.load("DIAD")
 
 
 class SelectDataTest(unittest.TestCase):
@@ -43,29 +45,20 @@ class SelectDataTest(unittest.TestCase):
         self.assertEqual(low_data_y[0,0], 4)
 
 
-class TestJumpBba(unittest.TestCase):
+@mock.patch('bba.pml.excite.caput')
+@mock.patch('bba.jump_bba.caget')
+@mock.patch('bba.jump_bba.caput')
+def test_jump_bba_sets_expected_pvs(jump_caput, jump_caget, excite_caput, lattice):
+    jump_caget.return_value = 10
+    quad = lattice.get_elements('QUAD')[0]
+    print(quad.get_device('b1'))
+    # one 1Hz cycle
+    osc = pml.excite.Oscillation(1, 0, 1, 1)
+    jump_bba.jump_bba(quad, 1, osc, lattice)
 
-    def setUp(self):
-        pml.initialise()
+    jump_caput.assert_has_calls([mock.call('SR01A-PC-Q1D-01:SETI', 10.5),
+                                    mock.call('SR01A-PC-Q1D-01:SETI', 9.5),
+                                    mock.call('SR01A-PC-Q1D-01:SETI', 10)])
 
-    @mock.patch('pml.excite.caput')
-    @mock.patch('jump_bba.caget')
-    @mock.patch('jump_bba.caput')
-    def test_jump_bba_sets_expected_pvs(self, jump_caput, jump_caget, excite_caput):
-        jump_caget.return_value = 10
-        quad = ap.getElements('QUAD')[0]
-        print(quad.pv())
-        # one 1Hz cycle
-        osc = pml.excite.Oscillation(1, 0, 1, 1)
-        jump_bba.jump_bba(quad, 1, osc)
-
-        jump_caput.assert_has_calls([mock.call('SR01A-PC-Q1D-01:SETI', 10.5),
-                                     mock.call('SR01A-PC-Q1D-01:SETI', 9.5),
-                                     mock.call('SR01A-PC-Q1D-01:SETI', 10)])
-
-        # Note you can assert excite_caput's calls to be [] and it will tell
-        # what they actually were.
-
-
-if __name__ == '__main__':
-    unittest.main()
+    # Note you can assert excite_caput's calls to be [] and it will tell
+    # what they actually were.

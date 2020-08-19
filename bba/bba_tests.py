@@ -7,19 +7,14 @@ Various ways of testing BBA:
     - change number of corrector cycles
     - scan whole cell
 """
-from __future__ import division
-from pkg_resources import require
-
-require("fa-archiver")
-require("pml")
 import logging as log
 import argparse
 
-import pml
+from bba import pml
 
 pml.utils.DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata"
 import jump_bba
-import fa
+from . import faa
 
 ###############
 # Global config
@@ -83,7 +78,7 @@ def frequency_scan(quad, plane):
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[pml.prefix_from_element(quad)]
     for i in range(1, 8):
-        period = fa.TICKS_PER_SECOND // i
+        period = faa.TICKS_PER_SECOND // i
         log.info("The calculated period is {}.".format(period))
         osc = pml.excite.Oscillation(corr_amp, plane, i, CYCLES)
         jump_bba.jump_bba(quad, plane, quad_step, osc)

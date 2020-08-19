@@ -20,3 +20,5 @@ numpy = "*"
 pygelf = "*"
 scipy = "*"
 matplotlib = "*"
+pytac = "*"
+fa = {editable = true, path = "/home/hgs15624/code/python/fa-archiver"}

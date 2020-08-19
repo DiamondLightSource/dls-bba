@@ -2,7 +2,7 @@ from __future__ import division
 import logging as log
 import numpy
 import cothread
-from falib import falib
+from fa.falib import falib
 
 
 TICKS_PER_SECOND = 10072
@@ -35,7 +35,7 @@ class Buffer(object):
         self.start = start_time
         # We need the timestamps for selecting the correct data
         if not ids[0] == 0:
-            ids.insert(0, 0)
+            ids = [0] + list(ids)
             self.timestamps = False
         else:
             self.timestamps = True

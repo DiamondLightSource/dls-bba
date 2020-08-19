@@ -1,11 +1,6 @@
-import pkg_resources
-pkg_resources.require('numpy')
-pkg_resources.require('scipy')
-pkg_resources.require('cothread')
-pkg_resources.require('fa-archiver')
 import numpy
 import unittest
-import fa
+from bba import faa
 import logging as log
 
 
@@ -14,20 +9,20 @@ class FaBufferTest(unittest.TestCase):
     These are not unit tests since they interact with the real FA server.
     '''
     def setUp(self):
-        self.now = fa.get_timestamp()
+        self.now = faa.get_timestamp()
 
     def test_Buffer_collects_1000_pts(self):
-        b = fa.Buffer([1], self.now + 1000, 1000, False)
+        b = faa.Buffer([1], self.now + 1000, 1000, False)
         d = b.get_data()
         self.assertEqual(d.shape, (1000,1,2))
 
     def test_Buffer_collects_1000_pts_decimated(self):
-        b = fa.Buffer([1], self.now + 1000, 10000, True)
+        b = faa.Buffer([1], self.now + 1000, 10000, True)
         d = b.get_data()
         self.assertEqual(d.shape, (1000,1,2))
 
     def test_Buffer_collects_10000_pts(self):
-        b = fa.Buffer([1], self.now + 1000, 10000, False)
+        b = faa.Buffer([1], self.now + 1000, 10000, False)
         d = b.get_data()
         self.assertEqual(d.shape, (10000,1,2))
 
@@ -36,7 +31,7 @@ class FaBufferTest(unittest.TestCase):
         '''
         This test takes 10 seconds.
         '''
-        b = fa.Buffer([1], self.now + 1000, 100000, False)
+        b = faa.Buffer([1], self.now + 1000, 100000, False)
         d = b.get_data()
         self.assertEqual(d.shape, (100000,1,2))
 
@@ -44,17 +39,17 @@ class FaBufferTest(unittest.TestCase):
         '''
         This test takes 3 seconds.
         '''
-        b = fa.Buffer(range(1,174), self.now + 1000, 30000, False)
+        b = faa.Buffer(range(1,174), self.now + 1000, 30000, False)
         d = b.get_data()
         self.assertEqual(d.shape, (30000,173,2))
 
     def test_Buffer_collects_10000_pts_for_all_BPMs(self):
-        b = fa.Buffer(range(1,174), self.now + 1000, 10000, False)
+        b = faa.Buffer(range(1,174), self.now + 1000, 10000, False)
         d = b.get_data()
         self.assertEqual(d.shape, (10000,173,2))
 
     def test_Buffer_collects_timestamps(self):
-        b = fa.Buffer([0,1], self.now + 1000, 1000, False)
+        b = faa.Buffer([0,1], self.now + 1000, 1000, False)
         d = b.get_data()
         self.assertEqual(d.shape, (1000,2,2))
         # The first timestamp should be the one requested.
@@ -66,7 +61,7 @@ class FaBufferTest(unittest.TestCase):
     def test_Buffer_collects_timestamps_decimated(self):
         start_time = self.now + 1000
         log.debug('Requesting a start time of %s', start_time)
-        b = fa.Buffer([0,1], start_time, 1000, True)
+        b = faa.Buffer([0,1], start_time, 1000, True)
         d = b.get_data()
         self.assertEqual(d.shape, (100,2,2))
         # The first timestamp should be less than 10 ticks greater than the
