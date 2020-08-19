@@ -1,9 +1,11 @@
 from __future__ import division
-import logging as log
-import numpy
-import cothread
-from fa.falib import falib
 
+import logging as log
+
+import cothread
+import numpy
+
+from fa.falib import falib
 
 TICKS_PER_SECOND = 10072
 
@@ -26,10 +28,12 @@ class Buffer(object):
     EXTRA = 1000
 
     def __init__(self, ids, start_time, length, decimated):
-        """
+        """Create buffer.
+
         Note that length is in FA archiver timestamps, even if the data
         is decimated, so if decimated is true the dimension of the data
         will be 1/10 the value of length.
+
         """
         self.length = length
         self.start = start_time

@@ -1,11 +1,12 @@
 import collections
 import ctypes
 import os
-from fa import falib
-import numpy
+
 import cothread
+import numpy
 from cothread.catools import caput
 
+from fa import falib
 
 RINGMODE_PV = "SR-CS-RING-01:MODE"
 
@@ -38,10 +39,7 @@ def get_fofb_corrector(pytac_element, lattice):
 
 
 class Excitation(object):
-
-    """
-    An excitation performed on a corrector.
-    """
+    """An excitation performed on a corrector."""
 
     def __init__(self, corrector, oscillation, start_time, lattice):
         self.corrector = corrector
@@ -63,7 +61,7 @@ class Excitation(object):
 
 
 def excite(excitations):
-    """Completes caputs which will start the excitation"""
+    """Completes caputs which will start the excitation."""
     pvs = {}
     PLANES = 2
     MAX_CORRECTORS = 9
@@ -97,7 +95,7 @@ def excite(excitations):
 
 
 def get_timestamp():
-    """Current fast aquisition timestamp"""
+    """Get current fast aquisition timestamp."""
     s = falib.subscription([0], decimated=False)
     x = s.read(1)
     s.close()

@@ -1,20 +1,19 @@
-#!/bin/env dls-python
-
 """
-Various ways of testing BBA:
+Various ways of testing BBA.
 
     - change frequency of corrector oscillations
     - change number of corrector cycles
     - scan whole cell
 """
-import logging as log
 import argparse
+import logging as log
 
+import jump_bba
 from bba import pml
 
-pml.utils.DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata"
-import jump_bba
 from . import faa
+
+pml.utils.DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata"
 
 ###############
 # Global config

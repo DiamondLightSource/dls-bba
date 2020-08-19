@@ -9,10 +9,10 @@ pytest-cov = "*"
 mock = "*"
 flake8 = "*"
 flake8-docstrings = "*"
-flake8-import-order = "*"
 black = "==19.3b0"
 sphinx = "*"
 mypy = "*"
+flake8-isort = "*"
 
 [packages]
 cothread = ">=2.15"

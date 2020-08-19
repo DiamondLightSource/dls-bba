@@ -1,13 +1,14 @@
 import datetime
 import logging as log
+import math
+
+import cothread
 import numpy
 import scipy.io
 from cothread.catools import caget, caput
-import cothread
-import math
+
 from bba import faa, pml
 from bba.pml import excite
-
 
 NETWORK_LAG_S = 0.5
 SAFETY_NET_S = 0.1
@@ -42,9 +43,7 @@ def save_data(high_data, low_data, quad, osc):
 
 
 def select_data(data, plane, exc_high, exc_low):
-    """
-    Array data must include the timestamps.
-    """
+    # Note: array data must include the timestamps.
     log.debug("Raw data shape: {}".format(data.shape))
     log.info("Timestamp range in raw data: {}-{}".format(data[0, 0, 0], data[-1, 0, 0]))
     log.debug("Excitation length: {}".format(exc_high.count))
@@ -81,9 +80,7 @@ def summarise_bba(quad, quad_step, osc):
 
 
 def jump_bba(quad, quad_step, osc, lattice):
-    """
-    Do we need undecimated data?
-    """
+    # Do we need undecimated data?
     summarise_bba(quad, quad_step, osc)
     quad_pv = quad.get_pv_name(field="b1", handle="setpoint")
     quad_sp = caget(quad_pv)

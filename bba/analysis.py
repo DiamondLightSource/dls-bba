@@ -1,11 +1,11 @@
+import argparse
+
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io as io
-import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
-import argparse
-import time
-from faa import TICKS_PER_SECOND
 
+from faa import TICKS_PER_SECOND
 
 DECIMATED = True
 
@@ -36,7 +36,7 @@ def extract_freq_excite(data, freq):
 def analyse(data, use_fft=False, plot_output=False):
     bpm = data["bpm"] - 1  # Zero Index
     enabled_bpms = np.equal(data["enabled_bpms"], 1)
-    bpm_index = bpm - np.sum(enabled_bpms[:bpm] == False)
+    bpm_index = bpm - np.sum(enabled_bpms[:bpm] == False)  # noqa false positive
     freq = TICKS_PER_SECOND / data["period"]
 
     # Remove bad BPMs and change units to um

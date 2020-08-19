@@ -1,14 +1,11 @@
-from cothread.catools import caget, DBR_STRING
-import numpy
-import scipy.io
-import numpy
 import os
-from cothread.catools import caget
+
+import numpy
 import pytac
-from pytac import load_csv
+import scipy.io
+from cothread.catools import DBR_STRING, caget
 
-from . import definitions
-
+from bba import pml
 
 DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
 BPM_ENABLED = "SR-DI-EBPM-01:ENABLED"
@@ -64,9 +61,7 @@ def enabled_bpms():
 
 
 def quad_to_bpm(quad, lattice):
-    """
-    Simply find the BPM closest to the quad.
-    """
+    """Simply find the BPM closest to the quad."""
     bpms = lattice.get_elements("BPM")
     # Find centre of quad.
     qs = quad.s + quad.length / 2
@@ -87,10 +82,12 @@ def quad_to_bpm(quad, lattice):
 
 
 def effective_corrector(quad, plane, lattice):
-    """
+    """Find most effective corrector for a quadrupole.
+
     Given an pytac quad element, find the corrector magnet
     that will have the most effect at that quad.
     Return (id, corrector element)
+
     """
     bpm_id, bpm = quad_to_bpm(quad, lattice)
     data = scipy.io.loadmat(get_rm_file(), appendmat=False, struct_as_record=False)
@@ -98,15 +95,12 @@ def effective_corrector(quad, plane, lattice):
     row = rm[bpm_id - 1, :]
     # Note that ids are 1-indexed but arrays are 0-indexed.
     zero_indexed_corr_id = numpy.argmax(abs(row))
-    corrs = lattice.get_elements(definitions.CORRECTOR_FAMILIES[plane])
+    corrs = lattice.get_elements(pml.CORRECTOR_FAMILIES[plane])
     return zero_indexed_corr_id + 1, corrs[zero_indexed_corr_id]
 
 
 def quads_from_cell(cell, lattice):
-    """
-    This a work-around method until we get the cell number properly imported
-    into hla.
-    """
+    # Can we get this from pytac?
     quads = lattice.get_elements("QUAD")
     cell_quads = []
     for quad in quads:
