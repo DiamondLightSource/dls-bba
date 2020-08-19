@@ -11,7 +11,7 @@ from . import definitions
 
 
 DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
-BPM_ENABLED = 'SR-DI-EBPM-01:ENABLED'
+BPM_ENABLED = "SR-DI-EBPM-01:ENABLED"
 
 
 # Lazy load current lattice
@@ -24,8 +24,7 @@ def get_ring_mode():
 
 
 def get_structured_orbit_response_matrix():
-    data = scipy.io.loadmat(
-            get_rm_file(), appendmat=False, struct_as_record=False)
+    data = scipy.io.loadmat(get_rm_file(), appendmat=False, struct_as_record=False)
     rms = (data["Rmat"][0, 0].Data, data["Rmat"][1, 1].Data)
     return rms
 
@@ -37,7 +36,7 @@ def get_inverse_orbit_response_matrix():  # We should use SVD for this
 
 
 def prefix_from_pv(pv):
-    return pv.split(':')[0]
+    return pv.split(":")[0]
 
 
 def prefix_from_element(element, device):
@@ -47,9 +46,9 @@ def prefix_from_element(element, device):
 
 def quad_from_pv(quad_pv, lattice):
     prefix = prefix_from_pv(quad_pv)
-    quads = lattice.get_elements('QUAD')
+    quads = lattice.get_elements("QUAD")
     for q in quads:
-        if prefix_from_element(q, 'b1') == prefix:
+        if prefix_from_element(q, "b1") == prefix:
             return q
 
 
@@ -68,7 +67,7 @@ def quad_to_bpm(quad, lattice):
     """
     Simply find the BPM closest to the quad.
     """
-    bpms = lattice.get_elements('BPM')
+    bpms = lattice.get_elements("BPM")
     # Find centre of quad.
     qs = quad.s + quad.length / 2
     closest_bpm = None
@@ -83,7 +82,7 @@ def quad_to_bpm(quad, lattice):
             closest_bpm_index = i + 1
             bpm_dist = abs(bpm.s - qs)
 
-    print('ID {}, dist {}'.format(closest_bpm_index, bpm_dist))
+    print("ID {}, dist {}".format(closest_bpm_index, bpm_dist))
     return closest_bpm_index, closest_bpm
 
 
@@ -94,10 +93,9 @@ def effective_corrector(quad, plane, lattice):
     Return (id, corrector element)
     """
     bpm_id, bpm = quad_to_bpm(quad, lattice)
-    data = scipy.io.loadmat(get_rm_file(), appendmat=False,
-                            struct_as_record=False)
+    data = scipy.io.loadmat(get_rm_file(), appendmat=False, struct_as_record=False)
     rm = data["Rmat"][plane, plane].Data
-    row = rm[bpm_id-1,:]
+    row = rm[bpm_id - 1, :]
     # Note that ids are 1-indexed but arrays are 0-indexed.
     zero_indexed_corr_id = numpy.argmax(abs(row))
     corrs = lattice.get_elements(definitions.CORRECTOR_FAMILIES[plane])
@@ -105,14 +103,14 @@ def effective_corrector(quad, plane, lattice):
 
 
 def quads_from_cell(cell, lattice):
-    '''
+    """
     This a work-around method until we get the cell number properly imported
     into hla.
-    '''
-    quads = lattice.get_elements('QUAD')
+    """
+    quads = lattice.get_elements("QUAD")
     cell_quads = []
     for quad in quads:
-        pv = prefix_from_element(quad, 'b1')
+        pv = prefix_from_element(quad, "b1")
         cell_from_pv = int(pv[2:4])
         if cell_from_pv == cell:
             cell_quads.append(quad)

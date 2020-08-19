@@ -69,7 +69,7 @@ def select_data(data, plane, exc_high, exc_low):
 
 
 def summarise_bba(quad, quad_step, osc):
-    prefix = quad.get_device('b1').name
+    prefix = quad.get_device("b1").name
     plane = pml.AXIS_NAMES[osc.plane]
     log.info("BBA of quad {} in plane {}".format(prefix, plane))
     log.info("Quad step is {}".format(quad_step))
@@ -85,7 +85,7 @@ def jump_bba(quad, quad_step, osc, lattice):
     Do we need undecimated data?
     """
     summarise_bba(quad, quad_step, osc)
-    quad_pv = quad.get_pv_name(field='b1', handle="setpoint")
+    quad_pv = quad.get_pv_name(field="b1", handle="setpoint")
     quad_sp = caget(quad_pv)
     quad_high = quad_sp + quad_step
     quad_low = quad_sp - quad_step
@@ -93,7 +93,7 @@ def jump_bba(quad, quad_step, osc, lattice):
     quad_lag = int(quad_lag_s * faa.TICKS_PER_SECOND)
 
     corr_id, ap_corr = pml.utils.effective_corrector(quad, osc.plane, lattice)
-    field = 'x_kick' if osc.plane == pml.definitions.X else 'y_kick'
+    field = "x_kick" if osc.plane == pml.definitions.X else "y_kick"
     log.info("Using corrector {}: {}".format(corr_id, ap_corr.get_device(field).name))
     # Move quad high
     caput(quad_pv, quad_high)
