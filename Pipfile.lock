@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "28ee82c39a73da7287fd1df95d7c1d24e5af84ed064b7494fe0d0c6ad225c53a"
+            "sha256": "eff3c3d02de2a5da77d8a9df58858321524f31bba06a0fdb8887ce9f4ef293b8"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -28,9 +28,10 @@
             ],
             "version": "==0.10.0"
         },
-        "fa": {
+        "fa-archiver": {
             "editable": true,
-            "path": "/home/hgs15624/code/python/fa-archiver"
+            "git": "ssh://git@gitlab.diamond.ac.uk/controls/python3/fa-archiver",
+            "ref": "6e918fd2e807b9df55518cc1cbd226f654b04cb7"
         },
         "kiwisolver": {
             "hashes": [
