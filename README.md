@@ -21,9 +21,9 @@ $ pipenv install bba
 $ git clone git@gitlab.diamond.ac.uk:controls/python3/bba.git
 $ cd bba
 $ pipenv install -d
-$ python setup.py install
+$ pipenv install -e .
 ```
 
 ## License
 
-See [LICENSE](). 
+See [LICENSE]().

@@ -4,7 +4,6 @@ import logging as log
 
 import cothread
 import numpy
-
 from fa.falib import falib
 
 TICKS_PER_SECOND = 10072

@@ -5,7 +5,6 @@ import os
 import cothread
 import numpy
 from cothread.catools import caput
-
 from fa import falib
 
 RINGMODE_PV = "SR-CS-RING-01:MODE"
