@@ -1,6 +1,6 @@
 include:
   - project: 'controls/reports/ci_templates'
-    ref: pypiserver
+    ref: master
     file: 'all_templates.yml'
 
 stages:
