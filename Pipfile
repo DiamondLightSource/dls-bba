@@ -21,4 +21,4 @@ pygelf = "*"
 scipy = "*"
 matplotlib = "*"
 pytac = "*"
-fa-archiver = {editable = true, git = "ssh://git@gitlab.diamond.ac.uk/controls/python3/fa-archiver"}
+fa-archiver = "*"

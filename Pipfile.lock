@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "eff3c3d02de2a5da77d8a9df58858321524f31bba06a0fdb8887ce9f4ef293b8"
+            "sha256": "872984760ca7f316f43c06a1621ed3631daeecb2e17245e0897e3b4e4cf69fcc"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -29,9 +29,25 @@
             "version": "==0.10.0"
         },
         "fa-archiver": {
-            "editable": true,
-            "git": "ssh://git@gitlab.diamond.ac.uk/controls/python3/fa-archiver",
-            "ref": "6e918fd2e807b9df55518cc1cbd226f654b04cb7"
+            "hashes": [
+                "sha256:0d641f1494f37103940fe5eb11adbea412dbc914560f9b08c35b06474736b975",
+                "sha256:778460d222f121e19765c52fba5de4fe984136375f380ae20011fa24541a9098"
+            ],
+            "index": "pypi",
+            "version": "==0.0.1"
+        },
+        "guidata": {
+            "hashes": [
+                "sha256:3dcb9b26e077c4c91c3f3fb5093a971ffee569e9b580f0ff0e87f6a9ff24a2ba",
+                "sha256:5514196cce1739c11d95ab918a13c9cbe1b5dc23dd6d6ee93a1e18c4b05552dd"
+            ],
+            "version": "==1.7.9"
+        },
+        "guiqwt": {
+            "hashes": [
+                "sha256:dc028ea502426f90f53ae172743b1f17646a6b7b7f2e66d0cb9a2c31ee1304e1"
+            ],
+            "version": "==3.0.5"
         },
         "kiwisolver": {
             "hashes": [
@@ -73,6 +89,12 @@
             "index": "pypi",
             "version": "==1.18.4"
         },
+        "pillow": {
+            "hashes": [
+                "sha256:0e2a3bceb0fd4e0cb17192ae506d5f082b309ffe5fc370a5667959c9b2f85fa3"
+            ],
+            "version": "==7.1.2"
+        },
         "pygelf": {
             "hashes": [
                 "sha256:e2df467b215b8d114130aa4b48e609ec4d8d7d6b1a99d71749c8a72dc5c64a84"
@@ -113,6 +135,13 @@
                 "sha256:806d109a0f163ee37259516b498f9b2a711682efbb0dd60dff3c31f25007cbef"
             ],
             "version": "==0.5.5"
+        },
+        "qtpy": {
+            "hashes": [
+                "sha256:2db72c44b55d0fe1407be8fba35c838ad0d6d3bb81f23007886dc1fc0f459c8d",
+                "sha256:fa0b8363b363e89b2a6f49eddc162a04c0699ae95e109a6be3bb145a913190ea"
+            ],
+            "version": "==1.9.0"
         },
         "scipy": {
             "hashes": [
