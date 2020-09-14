@@ -8,8 +8,7 @@ Various ways of testing BBA.
 import argparse
 import logging as log
 
-import jump_bba
-from bba import pml
+from bba import pml, jump_bba
 
 from . import faa
 
@@ -48,11 +47,13 @@ def load_amps_file(filename, quad_scale=1.0, corr_scale=1.0):
     amps = {}
     with open(filename) as f:
         for line in f:
-            bpm_pv, quad_pv, quad_amps, _, corr_pv, corr_amps, _ = line.split()
-            amps[pml.prefix_from_pv(quad_pv)] = (
-                quad_scale * float(quad_amps),
-                corr_scale * float(corr_amps),
-            )
+            print(f"line |{line}|")
+            if line.strip():
+                bpm_pv, quad_pv, quad_amps, _, corr_pv, corr_amps, _ = line.split()
+                amps[quad_pv.split(':')[0]] = (
+                    quad_scale * float(quad_amps),
+                    corr_scale * float(corr_amps),
+                )
     return amps
 
 
@@ -179,7 +180,8 @@ def parse_args():
 
 
 if __name__ == "__main__":
-    pml.initialise()
+    print("running")
+    #pml.initialise()
     args = parse_args()
     plane = int(args.plane)
     quad_scale = float(args.quad_scale)
@@ -189,6 +191,7 @@ if __name__ == "__main__":
     corr_scale = 0.5
 
     h, v = load_amps(quad_scale, corr_scale)
+    """
     pv = "SR01A-PC-Q2B-09"
     get_new_logger()
     log.warn(
@@ -204,3 +207,4 @@ if __name__ == "__main__":
     # compare_decimated_data(quad, plane)
     # scan_cell(1)
     # cycle_scan(quad, plane)
+    """
