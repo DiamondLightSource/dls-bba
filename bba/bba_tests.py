@@ -158,7 +158,7 @@ def parse_args():
         "--plane",
         dest="plane",
         action="store",
-        default=0,
+        default=1,
         help="Which plane to measure",
     )
     parser.add_argument(

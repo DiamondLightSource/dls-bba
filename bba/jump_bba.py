@@ -8,7 +8,7 @@ import scipy.io
 from cothread.catools import caget, caput
 
 from bba import faa, pml
-from bba.pml import excite
+from bba.pml import excite, utils
 
 NETWORK_LAG_S = 0.5
 SAFETY_NET_S = 0.1
@@ -26,15 +26,15 @@ def get_filename_prefix():
     return "bba-{}".format(datestring)
 
 
-def save_data(high_data, low_data, quad, osc):
-    quad_prefix = quad.get_device().name
+def save_data(high_data, low_data, quad, osc,lattice):
+    quad_prefix = quad.get_device("b1").name
     plane_name = pml.AXIS_NAMES[osc.plane]
     period = faa.TICKS_PER_SECOND // osc.freq
     datadict = {"period": period, "amp": osc.amp, "cycles": osc.cycles}
     datadict["quad"] = quad_prefix
     datadict["plane"] = plane_name
-    datadict["bpm"] = pml.quad_to_bpm(quad)[0]
-    datadict["enabled_bpms"] = pml.enabled_bpms().astype(numpy.int)
+    datadict["bpm"] = utils.quad_to_bpm(quad,lattice)[0]
+    datadict["enabled_bpms"] = utils.enabled_bpms().astype(numpy.int)
     datadict["high"] = high_data
     datadict["low"] = low_data
     filename = "data/{}-{}-{}".format(get_filename_prefix(), quad_prefix, plane_name)
@@ -111,7 +111,7 @@ def jump_bba(quad, quad_step, osc, lattice):
     log.debug(
         "The excitation: dwell {} count {}".format(exc_high.dwell, exc_high.count)
     )
-    exc_low = excite.Excitation(ap_corr, osc, low_start)
+    exc_low = excite.Excitation(ap_corr, osc, low_start, lattice)
     excite.excite((exc_high,))
     # Sleep for first excitation. SAFETY_NET ensures that we don't start
     # moving the quad before the excitation has finished.
@@ -123,7 +123,7 @@ def jump_bba(quad, quad_step, osc, lattice):
     # This will block until all data has been retrieved.
     fa_data = fa_buffer.get_data()
     high_data, low_data = select_data(fa_data, osc.plane, exc_high, exc_low)
-    save_data(high_data, low_data, quad, osc)
+    save_data(high_data, low_data, quad, osc,lattice)
 
     # Restore setpoint.  We don't need SAFETY_NET here because we've saved
     # all the data before we request the move.

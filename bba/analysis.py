@@ -5,7 +5,7 @@ import numpy as np
 import scipy.io as io
 from matplotlib.gridspec import GridSpec
 
-from faa import TICKS_PER_SECOND
+from bba.faa import TICKS_PER_SECOND
 
 DECIMATED = True
 

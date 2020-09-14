@@ -75,18 +75,18 @@ def excite(excitations):
 
         # If start times has already been filled in this corrector is
         # specified twice. The IOC can't deal with this so raise an exception
-        if pvs.setdefault(e.ioc + ":EXCITE:START_TIMES", [0] * N)[index] != 0:
+        if pvs.setdefault(e.ioc.decode('UTF-8') + ":EXCITE:START_TIMES", [0] * N)[index] != 0:
             raise ValueError(
                 "Corrector %s:%02d cannot be specified "
-                "twice in the same plane" % (e.ioc, e.fofb_index)
+                "twice in the same plane" % (e.ioc.decode('UTF-8'), e.fofb_index)
             )
-        pvs.setdefault(e.ioc + ":EXCITE:START_TIMES", [0] * N)[index] = e.start_time
-        pvs.setdefault(e.ioc + ":EXCITE:AMPS", [0] * N)[index] = e.oscillation.amp
-        pvs.setdefault(e.ioc + ":EXCITE:DELTAS", [0] * N)[index] = e.delta
-        pvs.setdefault(e.ioc + ":EXCITE:TICKS", [0] * N)[index] = e.count
+        pvs.setdefault(e.ioc.decode('UTF-8') + ":EXCITE:START_TIMES", [0] * N)[index] = e.start_time
+        pvs.setdefault(e.ioc.decode('UTF-8') + ":EXCITE:AMPS", [0] * N)[index] = e.oscillation.amp
+        pvs.setdefault(e.ioc.decode('UTF-8') + ":EXCITE:DELTAS", [0] * N)[index] = e.delta
+        pvs.setdefault(e.ioc.decode('UTF-8') + ":EXCITE:TICKS", [0] * N)[index] = e.count
 
     # caput the values
-    for key, values in pvs.iteritems():
+    for key, values in pvs.items():
         caput(key, values)
     # Ensure all values are put, then reset the reset the IOCs
     cothread.Yield()
