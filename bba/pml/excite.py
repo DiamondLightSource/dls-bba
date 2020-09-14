@@ -28,7 +28,7 @@ def get_corrector_table():
 def get_fofb_corrector(pytac_element, lattice):
     table = get_corrector_table()
     name = pytac_element.get_device("x_kick").name
-    index = int(table["epics"].tolist().index(name))
+    index = int(table["epics"].tolist().index(name.encode()))
     return FofbCorrector(
         lattice.get_elements("HSTR").index(pytac_element) + 1,
         table["ioc"][index],

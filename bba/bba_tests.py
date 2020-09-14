@@ -9,6 +9,8 @@ import argparse
 import logging as log
 
 from bba import pml, jump_bba
+from bba.pml import utils
+
 
 from . import faa
 
@@ -47,7 +49,6 @@ def load_amps_file(filename, quad_scale=1.0, corr_scale=1.0):
     amps = {}
     with open(filename) as f:
         for line in f:
-            print(f"line |{line}|")
             if line.strip():
                 bpm_pv, quad_pv, quad_amps, _, corr_pv, corr_amps, _ = line.split()
                 amps[quad_pv.split(':')[0]] = (
@@ -63,14 +64,14 @@ def load_amps(quad_scale=1.0, corr_scale=1.0):
     return h_amps, v_amps
 
 
-def one_bba(quad, plane):
-    quad_prefix = pml.prefix_from_element(quad)
+def one_bba(quad, plane, lattice):
+    quad_prefix = utils.prefix_from_element(quad, 'b1')
     log.warn("BBA on quad {} in plane {}".format(quad_prefix, pml.AXIS_NAMES[plane]))
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[quad_prefix]
     corr_amp = corr_amp / 8
     osc = pml.excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
-    jump_bba.jump_bba(quad, quad_step, osc)
+    jump_bba.jump_bba(quad, quad_step, osc, lattice)
 
 
 def frequency_scan(quad, plane):
@@ -191,7 +192,6 @@ if __name__ == "__main__":
     corr_scale = 0.5
 
     h, v = load_amps(quad_scale, corr_scale)
-    """
     pv = "SR01A-PC-Q2B-09"
     get_new_logger()
     log.warn(
@@ -200,8 +200,10 @@ if __name__ == "__main__":
         )
     )
 
-    quad = pml.quad_from_pv(pv)
-    one_bba(quad, pml.Y)
+    lattice = utils.get_lattice()
+    quad = utils.quad_from_pv(pv, lattice)
+    one_bba(quad, pml.Y, lattice)
+    """
     # repeatability_scan(quad, pml.Y, range(10))
     # frequency_scan(quad, plane)
     # compare_decimated_data(quad, plane)
