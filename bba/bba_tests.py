@@ -8,13 +8,9 @@ Various ways of testing BBA.
 import argparse
 import logging as log
 
-from bba import pml, jump_bba
+from bba import faa, jump_bba, pml
 from bba.pml import utils
 
-
-from . import faa
-
-pml.utils.DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata"
 
 ###############
 # Global config
@@ -182,7 +178,6 @@ def parse_args():
 
 if __name__ == "__main__":
     print("running")
-    #pml.initialise()
     args = parse_args()
     plane = int(args.plane)
     quad_scale = float(args.quad_scale)
