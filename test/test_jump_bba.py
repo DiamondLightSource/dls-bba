@@ -62,12 +62,13 @@ def test_jump_bba_sets_expected_pvs(jump_caput, jump_caget, excite_caput, lattic
     print(quad.get_device("b1"))
     # one 1Hz cycle
     osc = pml.excite.Oscillation(1, 0, 1, 1)
+    # Jump BBA: plus/minus one amp.
     jump_bba.jump_bba(quad, 1, osc, lattice)
 
     jump_caput.assert_has_calls(
         [
-            mock.call("SR01A-PC-Q1D-01:SETI", 10.5),
-            mock.call("SR01A-PC-Q1D-01:SETI", 9.5),
+            mock.call("SR01A-PC-Q1D-01:SETI", 11),
+            mock.call("SR01A-PC-Q1D-01:SETI", 9),
             mock.call("SR01A-PC-Q1D-01:SETI", 10),
         ]
     )
