@@ -47,7 +47,7 @@ def load_amps_file(filename, quad_scale=1.0, corr_scale=1.0):
         for line in f:
             if line.strip():
                 bpm_pv, quad_pv, quad_amps, _, corr_pv, corr_amps, _ = line.split()
-                amps[quad_pv.split(':')[0]] = (
+                amps[quad_pv.split(":")[0]] = (
                     quad_scale * float(quad_amps),
                     corr_scale * float(corr_amps),
                 )
@@ -61,7 +61,7 @@ def load_amps(quad_scale=1.0, corr_scale=1.0):
 
 
 def one_bba(quad, plane, lattice):
-    quad_prefix = utils.prefix_from_element(quad, 'b1')
+    quad_prefix = utils.prefix_from_element(quad, "b1")
     log.warn("BBA on quad {} in plane {}".format(quad_prefix, pml.AXIS_NAMES[plane]))
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[quad_prefix]

@@ -26,14 +26,14 @@ def get_filename_prefix():
     return "bba-{}".format(datestring)
 
 
-def save_data(high_data, low_data, quad, osc,lattice):
+def save_data(high_data, low_data, quad, osc, lattice):
     quad_prefix = quad.get_device("b1").name
     plane_name = pml.AXIS_NAMES[osc.plane]
     period = faa.TICKS_PER_SECOND // osc.freq
     datadict = {"period": period, "amp": osc.amp, "cycles": osc.cycles}
     datadict["quad"] = quad_prefix
     datadict["plane"] = plane_name
-    datadict["bpm"] = utils.quad_to_bpm(quad,lattice)[0]
+    datadict["bpm"] = utils.quad_to_bpm(quad, lattice)[0]
     datadict["enabled_bpms"] = utils.enabled_bpms().astype(numpy.int)
     datadict["high"] = high_data
     datadict["low"] = low_data
@@ -50,13 +50,15 @@ def select_data(data, plane, exc_high, exc_low):
     """
     # Note: array data must include the timestamps.
     log.debug("Raw data shape: {}".format(data.shape))
-    log.info("Timestamp range in raw data: {} - {}".format(
-        data[0, 0, 0], data[-1, 0, 0])
+    log.info(
+        "Timestamp range in raw data: {} - {}".format(data[0, 0, 0], data[-1, 0, 0])
     )
     log.debug("Excitation length: {}".format(exc_high.count))
-    log.debug("Trailing data to crop: {}.".format(
+    log.debug(
+        "Trailing data to crop: {}.".format(
             data[-1, 0, 0] - (exc_low.start_time + exc_low.count)
-    ))
+        )
+    )
     assert exc_high.count == exc_low.count, "Excitations different lengths"
     # Extract timestamps from data
     times = data[:, 0, 0]
@@ -66,8 +68,8 @@ def select_data(data, plane, exc_high, exc_low):
     log.debug("Searched start times: %s, %s", high_start, low_start)
     # Ensure we include the entire oscillation if using decimated data.
     length = math.ceil(exc_high.count / 10) if DECIMATED else exc_high.count
-    high_data = data[high_start: high_start + length, :, plane]
-    low_data = data[low_start: low_start + length, :, plane]
+    high_data = data[high_start : high_start + length, :, plane]
+    low_data = data[low_start : low_start + length, :, plane]
     log.info("Selected data shape: {} {}".format(high_data.shape, low_data.shape))
     assert high_data.shape == low_data.shape
     return high_data, low_data
@@ -130,7 +132,7 @@ def jump_bba(quad, quad_step, osc, lattice):
     # This will block until all data has been retrieved.
     fa_data = fa_buffer.get_data()
     high_data, low_data = select_data(fa_data, osc.plane, exc_high, exc_low)
-    save_data(high_data, low_data, quad, osc,lattice)
+    save_data(high_data, low_data, quad, osc, lattice)
 
     # Restore setpoint.  We don't need SAFETY_NET here because we've saved
     # all the data before we request the move.
