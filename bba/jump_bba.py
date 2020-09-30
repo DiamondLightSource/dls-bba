@@ -43,15 +43,20 @@ def save_data(high_data, low_data, quad, osc,lattice):
 
 
 def select_data(data, plane, exc_high, exc_low):
+    """Extract FA data that covers the excitations exc_high and exc_low.
+
+    The input data array should cover the full length of both excitations.
+
+    """
     # Note: array data must include the timestamps.
     log.debug("Raw data shape: {}".format(data.shape))
-    log.info("Timestamp range in raw data: {}-{}".format(data[0, 0, 0], data[-1, 0, 0]))
-    log.debug("Excitation length: {}".format(exc_high.count))
-    log.debug(
-        "Trailing data to crop: {}.".format(
-            data[-1, 0, 0] - (exc_low.start_time + exc_low.count)
-        )
+    log.info("Timestamp range in raw data: {} - {}".format(
+        data[0, 0, 0], data[-1, 0, 0])
     )
+    log.debug("Excitation length: {}".format(exc_high.count))
+    log.debug("Trailing data to crop: {}.".format(
+            data[-1, 0, 0] - (exc_low.start_time + exc_low.count)
+    ))
     assert exc_high.count == exc_low.count, "Excitations different lengths"
     # Extract timestamps from data
     times = data[:, 0, 0]
@@ -59,15 +64,17 @@ def select_data(data, plane, exc_high, exc_low):
     high_start = numpy.searchsorted(times, exc_high.start_time)
     low_start = numpy.searchsorted(times, exc_low.start_time)
     log.debug("Searched start times: %s, %s", high_start, low_start)
-    length = int(exc_high.count // 10) + 1 if DECIMATED else exc_high.count
-    high_data = data[high_start : high_start + length, :, plane]
-    low_data = data[low_start : low_start + length, :, plane]
+    # Ensure we include the entire oscillation if using decimated data.
+    length = math.ceil(exc_high.count / 10) if DECIMATED else exc_high.count
+    high_data = data[high_start: high_start + length, :, plane]
+    low_data = data[low_start: low_start + length, :, plane]
     log.info("Selected data shape: {} {}".format(high_data.shape, low_data.shape))
     assert high_data.shape == low_data.shape
     return high_data, low_data
 
 
 def summarise_bba(quad, quad_step, osc):
+    """Log information about one BBA instance."""
     prefix = quad.get_device("b1").name
     plane = pml.AXIS_NAMES[osc.plane]
     log.info("BBA of quad {} in plane {}".format(prefix, plane))
@@ -96,7 +103,7 @@ def jump_bba(quad, quad_step, osc, lattice):
     caput(quad_pv, quad_high)
     cothread.Sleep(quad_lag_s / 2)
     now = faa.get_timestamp()
-    osc_length = math.ceil(excite.TICKS_PER_SECOND // osc.freq) * osc.cycles
+    osc_length = math.ceil(excite.TICKS_PER_SECOND / osc.freq) * osc.cycles
     # Set off the data collection
     high_start = now + NETWORK_LAG
     duration = NETWORK_LAG + osc_length + SAFETY_NET + quad_lag + osc_length
