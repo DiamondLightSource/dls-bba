@@ -69,40 +69,30 @@ def excite(excitations):
     N = MAX_CORRECTORS * PLANES
 
     # Zero all timestamps
-    caput([ioc + ":EXCITE:START_TIMES" for ioc in IOCS], [[0] * N] * len(IOCS))
+    caput([f"{ioc}:EXCITE:START_TIMES" for ioc in IOCS], [[0] * N] * len(IOCS))
 
     # Create dict of PVs to put
     for e in excitations:
+        ioc_prefix = e.ioc.decode("UTF-8")
         index = e.fofb_index + e.oscillation.plane * MAX_CORRECTORS
 
         # If start times has already been filled in this corrector is
         # specified twice. The IOC can't deal with this so raise an exception
-        if (
-            pvs.setdefault(e.ioc.decode("UTF-8") + ":EXCITE:START_TIMES", [0] * N)[
-                index
-            ]
-            != 0
-        ):
+        if pvs.setdefault(f"{ioc_prefix}:EXCITE:START_TIMES", [0] * N)[index] != 0:
             raise ValueError(
-                "Corrector %s:%02d cannot be specified "
-                "twice in the same plane" % (e.ioc.decode("UTF-8"), e.fofb_index)
+                f"Corrector {ioc_prefix}:{e.fofb_index:02d} cannot be "
+                "specified twice in the same plane"
             )
-        pvs.setdefault(e.ioc.decode("UTF-8") + ":EXCITE:START_TIMES", [0] * N)[
+        pvs.setdefault(f"{ioc_prefix}:EXCITE:START_TIMES", [0] * N)[
             index
         ] = e.start_time
-        pvs.setdefault(e.ioc.decode("UTF-8") + ":EXCITE:AMPS", [0] * N)[
-            index
-        ] = e.oscillation.amp
-        pvs.setdefault(e.ioc.decode("UTF-8") + ":EXCITE:DELTAS", [0] * N)[
-            index
-        ] = e.delta
-        pvs.setdefault(e.ioc.decode("UTF-8") + ":EXCITE:TICKS", [0] * N)[
-            index
-        ] = e.count
+        pvs.setdefault(f"{ioc_prefix}:EXCITE:AMPS", [0] * N)[index] = e.oscillation.amp
+        pvs.setdefault(f"{ioc_prefix}:EXCITE:DELTAS", [0] * N)[index] = e.delta
+        pvs.setdefault(f"{ioc_prefix}:EXCITE:TICKS", [0] * N)[index] = e.count
 
     # caput the values
     for key, values in pvs.items():
         caput(key, values)
     # Ensure all values are put, then reset the reset the IOCs
     cothread.Yield()
-    caput([ioc + ":EXCITE:PRIME" for ioc in IOCS], [1] * len(IOCS))
+    caput([f"{ioc}:EXCITE:PRIME" for ioc in IOCS], [1] * len(IOCS))
