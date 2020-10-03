@@ -5,7 +5,7 @@ import cothread
 import numpy
 from cothread.catools import caput
 
-from bba.pml.definitions import X
+from bba import X
 
 RINGMODE_PV = "SR-CS-RING-01:MODE"
 

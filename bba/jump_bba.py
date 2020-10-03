@@ -7,8 +7,9 @@ import numpy
 import scipy.io
 from cothread.catools import caget, caput
 
-from bba import faa, pml
-from bba.pml import excite, utils
+import bba
+from bba import excite, faa, utils
+
 
 NETWORK_LAG_S = 0.5
 SAFETY_NET_S = 0.1
@@ -29,7 +30,7 @@ def get_filename_prefix():
 def save_data(high_data, low_data, quad, osc, lattice):
     """Save the provided arrays into a .mat file with additional metadata."""
     quad_prefix = quad.get_device("b1").name
-    plane_name = pml.AXIS_NAMES[osc.plane]
+    plane_name = bba.AXIS_NAMES[osc.plane]
     period = faa.TICKS_PER_SECOND // osc.freq
     datadict = {"period": period, "amp": osc.amp, "cycles": osc.cycles}
     datadict["quad"] = quad_prefix
@@ -79,7 +80,7 @@ def select_data(data, plane, exc_high, exc_low):
 def summarise_bba(quad, quad_step, osc):
     """Log information about one BBA instance."""
     prefix = quad.get_device("b1").name
-    plane = pml.AXIS_NAMES[osc.plane]
+    plane = bba.AXIS_NAMES[osc.plane]
     log.info("BBA of quad {} in plane {}".format(prefix, plane))
     log.info("Quad step is {}".format(quad_step))
     log.info(
@@ -100,8 +101,8 @@ def jump_bba(quad, quad_step, osc, lattice):
     quad_lag_s = quad_step / QUAD_SLEW_RATE
     quad_lag = int(quad_lag_s * faa.TICKS_PER_SECOND)
 
-    corr_id, ap_corr = pml.utils.effective_corrector(quad, osc.plane, lattice)
-    field = "x_kick" if osc.plane == pml.definitions.X else "y_kick"
+    corr_id, ap_corr = utils.effective_corrector(quad, osc.plane, lattice)
+    field = "x_kick" if osc.plane == bba.X else "y_kick"
     log.info("Using corrector {}: {}".format(corr_id, ap_corr.get_device(field).name))
     # Move quad high
     caput(quad_pv, quad_high)

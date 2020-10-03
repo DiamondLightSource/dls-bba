@@ -1,8 +1,7 @@
 import pytac
 import pytest
 
-from bba.pml import excite
-from bba.pml.definitions import X, Y
+from bba import excite, X, Y
 
 
 @pytest.fixture
