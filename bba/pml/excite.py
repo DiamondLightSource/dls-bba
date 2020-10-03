@@ -7,6 +7,8 @@ import numpy
 from cothread.catools import caput
 from fa import falib
 
+from bba.pml.definitions import X
+
 RINGMODE_PV = "SR-CS-RING-01:MODE"
 
 IOCS = ["SR%02dA-CS-FOFB-01" % i for i in range(1, 25)]
@@ -25,12 +27,14 @@ def get_corrector_table():
     return numpy.genfromtxt(filepath, names=True, dtype=None)
 
 
-def get_fofb_corrector(pytac_element, lattice):
+def get_fofb_corrector(pytac_element, plane):
+    """Create FofbCorrector tuple from pytac element."""
     table = get_corrector_table()
-    name = pytac_element.get_device("x_kick").name
+    kick_field = "x_kick" if plane == X else "y_kick"
+    name = pytac_element.get_device(kick_field).name
     index = int(table["epics"].tolist().index(name.encode()))
     return FofbCorrector(
-        lattice.get_elements("HSTR").index(pytac_element) + 1,
+        pytac_element.index + 1,
         table["ioc"][index],
         int(table["farow"][index]),
         int(table["slow"][index]),
@@ -40,7 +44,7 @@ def get_fofb_corrector(pytac_element, lattice):
 class Excitation(object):
     """An excitation performed on a corrector."""
 
-    def __init__(self, corrector, oscillation, start_time, lattice):
+    def __init__(self, corrector, oscillation, start_time):
         self.corrector = corrector
         self.oscillation = oscillation
         self.start_time = start_time
@@ -54,7 +58,7 @@ class Excitation(object):
             numpy.floor(self.oscillation.freq * 2 ** 32 / TICKS_PER_SECOND)
         )
 
-        fofb_corrector = get_fofb_corrector(self.corrector, lattice)
+        fofb_corrector = get_fofb_corrector(self.corrector, oscillation.plane)
         self.ioc = fofb_corrector.ioc
         self.fofb_index = fofb_corrector.corr
 
