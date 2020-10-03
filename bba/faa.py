@@ -68,7 +68,7 @@ class Buffer(object):
             data = numpy.concatenate(self.cache)
             data_start = numpy.searchsorted(data[:, 0, 0], self.start)
             log.debug("Raw data size: {}".format(data.shape))
-            data = data[data_start : data_start + self.datapoints, :, :]
+            data = data[data_start: data_start + self.datapoints, :, :]
             log.debug("Data timestamps: {}".format(data[:, 0, 0]))
             log.debug("Final data size: {}".format(data.shape))
             if not self.timestamps:

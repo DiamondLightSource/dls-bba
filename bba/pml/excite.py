@@ -1,11 +1,9 @@
 import collections
-import ctypes
 import os
 
 import cothread
 import numpy
 from cothread.catools import caput
-from fa import falib
 
 from bba.pml.definitions import X
 
@@ -108,11 +106,3 @@ def excite(excitations):
     # Ensure all values are put, then reset the reset the IOCs
     cothread.Yield()
     caput([ioc + ":EXCITE:PRIME" for ioc in IOCS], [1] * len(IOCS))
-
-
-def get_timestamp():
-    """Get current fast aquisition timestamp."""
-    s = falib.subscription([0], decimated=False)
-    x = s.read(1)
-    s.close()
-    return ctypes.c_uint32(x[0][0][0]).value  # Value is uint32
