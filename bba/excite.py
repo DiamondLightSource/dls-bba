@@ -22,7 +22,7 @@ FofbCorrector = collections.namedtuple(
 def get_corrector_table():
     basepath = os.path.dirname(__file__)
     filepath = os.path.join(basepath, "data", "correctors.txt")
-    return numpy.genfromtxt(filepath, names=True, dtype=None)
+    return numpy.genfromtxt(filepath, names=True, dtype=None, encoding="UTF-8")
 
 
 def get_fofb_corrector(pytac_element, plane):
@@ -30,7 +30,7 @@ def get_fofb_corrector(pytac_element, plane):
     table = get_corrector_table()
     kick_field = "x_kick" if plane == X else "y_kick"
     name = pytac_element.get_device(kick_field).name
-    index = int(table["epics"].tolist().index(name.encode()))
+    index = int(table["epics"].tolist().index(name))
     return FofbCorrector(
         pytac_element.index + 1,
         table["ioc"][index],
@@ -73,22 +73,19 @@ def excite(excitations):
 
     # Create dict of PVs to put
     for e in excitations:
-        ioc_prefix = e.ioc.decode("UTF-8")
         index = e.fofb_index + e.oscillation.plane * MAX_CORRECTORS
 
         # If start times has already been filled in this corrector is
         # specified twice. The IOC can't deal with this so raise an exception
-        if pvs.setdefault(f"{ioc_prefix}:EXCITE:START_TIMES", [0] * N)[index] != 0:
+        if pvs.setdefault(f"{e.ioc}:EXCITE:START_TIMES", [0] * N)[index] != 0:
             raise ValueError(
-                f"Corrector {ioc_prefix}:{e.fofb_index:02d} cannot be "
+                f"Corrector {e.ioc}:{e.fofb_index:02d} cannot be "
                 "specified twice in the same plane"
             )
-        pvs.setdefault(f"{ioc_prefix}:EXCITE:START_TIMES", [0] * N)[
-            index
-        ] = e.start_time
-        pvs.setdefault(f"{ioc_prefix}:EXCITE:AMPS", [0] * N)[index] = e.oscillation.amp
-        pvs.setdefault(f"{ioc_prefix}:EXCITE:DELTAS", [0] * N)[index] = e.delta
-        pvs.setdefault(f"{ioc_prefix}:EXCITE:TICKS", [0] * N)[index] = e.count
+        pvs.setdefault(f"{e.ioc}:EXCITE:START_TIMES", [0] * N)[index] = e.start_time
+        pvs.setdefault(f"{e.ioc}:EXCITE:AMPS", [0] * N)[index] = e.oscillation.amp
+        pvs.setdefault(f"{e.ioc}:EXCITE:DELTAS", [0] * N)[index] = e.delta
+        pvs.setdefault(f"{e.ioc}:EXCITE:TICKS", [0] * N)[index] = e.count
 
     # caput the values
     for key, values in pvs.items():
