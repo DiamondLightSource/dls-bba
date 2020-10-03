@@ -27,6 +27,7 @@ def get_filename_prefix():
 
 
 def save_data(high_data, low_data, quad, osc, lattice):
+    """Save the provided arrays into a .mat file with additional metadata."""
     quad_prefix = quad.get_device("b1").name
     plane_name = pml.AXIS_NAMES[osc.plane]
     period = faa.TICKS_PER_SECOND // osc.freq
@@ -68,8 +69,8 @@ def select_data(data, plane, exc_high, exc_low):
     log.debug("Searched start times: %s, %s", high_start, low_start)
     # Ensure we include the entire oscillation if using decimated data.
     length = math.ceil(exc_high.count / 10) if DECIMATED else exc_high.count
-    high_data = data[high_start : high_start + length, :, plane]
-    low_data = data[low_start : low_start + length, :, plane]
+    high_data = data[high_start: high_start + length, :, plane]
+    low_data = data[low_start: low_start + length, :, plane]
     log.info("Selected data shape: {} {}".format(high_data.shape, low_data.shape))
     assert high_data.shape == low_data.shape
     return high_data, low_data
@@ -89,6 +90,7 @@ def summarise_bba(quad, quad_step, osc):
 
 
 def jump_bba(quad, quad_step, osc, lattice):
+    """Execute 'jump BBA' for one quad and save the data."""
     # Do we need undecimated data?
     summarise_bba(quad, quad_step, osc)
     quad_pv = quad.get_pv_name(field="b1", handle="setpoint")
