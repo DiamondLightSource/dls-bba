@@ -2,16 +2,9 @@ import unittest
 
 import mock
 import numpy
-import pytac
-import pytest
 
 import bba
 from bba import excite, jump_bba
-
-
-@pytest.fixture
-def lattice():
-    return pytac.load_csv.load("DIAD")
 
 
 class SelectDataTest(unittest.TestCase):

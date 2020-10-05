@@ -1,12 +1,4 @@
-import pytac
-import pytest
-
 from bba import excite, X, Y
-
-
-@pytest.fixture
-def lattice():
-    return pytac.load_csv.load("DIAD")
 
 
 def test_get_fofb_corrector(lattice):
