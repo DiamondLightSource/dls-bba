@@ -2,15 +2,9 @@ import unittest
 
 import mock
 import numpy
-import pytac
-import pytest
 
-from bba import jump_bba, pml
-
-
-@pytest.fixture
-def lattice():
-    return pytac.load_csv.load("DIAD")
+import bba
+from bba import excite, jump_bba
 
 
 class SelectDataTest(unittest.TestCase):
@@ -29,14 +23,14 @@ class SelectDataTest(unittest.TestCase):
             AssertionError,
             jump_bba.select_data,
             self.data,
-            pml.X,
+            bba.X,
             self.exc_high,
             self.exc_low,
         )
 
     def test_select_data_returns_correct_shape(self):
         high_data, low_data = jump_bba.select_data(
-            self.data, pml.X, self.exc_high, self.exc_low
+            self.data, bba.X, self.exc_high, self.exc_low
         )
         expected_shape = (100, 1)
         self.assertEqual(high_data.shape, expected_shape)
@@ -44,16 +38,16 @@ class SelectDataTest(unittest.TestCase):
 
     def test_select_data_selects_first_timestamp(self):
         high_data_x, _ = jump_bba.select_data(
-            self.data, pml.X, self.exc_high, self.exc_low
+            self.data, bba.X, self.exc_high, self.exc_low
         )
         _, low_data_y = jump_bba.select_data(
-            self.data, pml.Y, self.exc_high, self.exc_low
+            self.data, bba.Y, self.exc_high, self.exc_low
         )
         self.assertEqual(high_data_x[0, 0], 3)
         self.assertEqual(low_data_y[0, 0], 4)
 
 
-@mock.patch("bba.pml.excite.caput")
+@mock.patch("bba.excite.caput")
 @mock.patch("bba.jump_bba.caget")
 @mock.patch("bba.jump_bba.caput")
 def test_jump_bba_sets_expected_pvs(jump_caput, jump_caget, excite_caput, lattice):
@@ -61,13 +55,14 @@ def test_jump_bba_sets_expected_pvs(jump_caput, jump_caget, excite_caput, lattic
     quad = lattice.get_elements("QUAD")[0]
     print(quad.get_device("b1"))
     # one 1Hz cycle
-    osc = pml.excite.Oscillation(1, 0, 1, 1)
+    osc = excite.Oscillation(1, 0, 1, 1)
+    # Jump BBA: plus/minus one amp.
     jump_bba.jump_bba(quad, 1, osc, lattice)
 
     jump_caput.assert_has_calls(
         [
-            mock.call("SR01A-PC-Q1D-01:SETI", 10.5),
-            mock.call("SR01A-PC-Q1D-01:SETI", 9.5),
+            mock.call("SR01A-PC-Q1D-01:SETI", 11),
+            mock.call("SR01A-PC-Q1D-01:SETI", 9),
             mock.call("SR01A-PC-Q1D-01:SETI", 10),
         ]
     )

@@ -15,7 +15,7 @@ Unit tests and coverage:
   extends:
     - .template_py3_pytest_and_coverage
   variables:
-    COVERAGE_ARGS: --cov=bba --cov-report term-missing --cov-fail-under 90
+    COVERAGE_ARGS: --cov=bba --cov-report term-missing --cov-fail-under 50
     TEST_DIR: test
   artifacts:
     paths:

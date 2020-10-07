@@ -5,7 +5,8 @@ import pytac
 import scipy.io
 from cothread.catools import DBR_STRING, caget
 
-from bba import pml
+import bba
+
 
 DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
 BPM_ENABLED = "SR-DI-EBPM-01:ENABLED"
@@ -95,7 +96,7 @@ def effective_corrector(quad, plane, lattice):
     row = rm[bpm_id - 1, :]
     # Note that ids are 1-indexed but arrays are 0-indexed.
     zero_indexed_corr_id = numpy.argmax(abs(row))
-    corrs = lattice.get_elements(pml.CORRECTOR_FAMILIES[plane])
+    corrs = lattice.get_elements(bba.CORRECTOR_FAMILIES[plane])
     return zero_indexed_corr_id + 1, corrs[zero_indexed_corr_id]
 
 
