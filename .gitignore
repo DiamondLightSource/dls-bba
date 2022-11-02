@@ -29,6 +29,10 @@
 
 # Virtualenvs
 /venv*/
+.venv/
 
 # mypy cache
 /.mypy_cache/
+
+# other stuff
+/claire_data/
