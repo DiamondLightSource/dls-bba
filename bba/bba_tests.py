@@ -62,16 +62,16 @@ def load_amps(quad_scale=1.0, corr_scale=1.0):
 
 def one_bba(quad, plane, lattice):
     quad_prefix = utils.prefix_from_element(quad, "b1")
-    log.warn("BBA on quad {} in plane {}".format(quad_prefix, bba.AXIS_NAMES[plane]))
+    log.warning("BBA on quad {} in plane {}".format(quad_prefix, bba.AXIS_NAMES[plane]))
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[quad_prefix]
-    corr_amp = corr_amp / 8
+    corr_amp = corr_amp
     osc = excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
     jump_bba.jump_bba(quad, quad_step, osc, lattice)
 
 
 def frequency_scan(quad, plane):
-    log.warn("Beginning test of different corrector oscillation frequencies.")
+    log.warning("Beginning test of different corrector oscillation frequencies.")
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[utils.prefix_from_element(quad)]
     for i in range(1, 8):
@@ -82,7 +82,7 @@ def frequency_scan(quad, plane):
 
 
 def cycle_scan(quad, plane):
-    log.warn("Beginning test of different numbers of corrector cycles.")
+    log.warning("Beginning test of different numbers of corrector cycles.")
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[utils.prefix_from_element(quad)]
     for cycles in range(1, 5):
@@ -92,7 +92,7 @@ def cycle_scan(quad, plane):
 
 
 def repeatability_scan(quad, plane, counts):
-    log.warn("Beginning test of different numbers of corrector cycles.")
+    log.warning("Beginning test of different numbers of corrector cycles.")
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[utils.prefix_from_element(quad)]
     log.info("Quad_step %s, corr_amp %s", quad_step, corr_amp)
@@ -103,7 +103,7 @@ def repeatability_scan(quad, plane, counts):
 
 
 def compare_decimated_data(quad, plane):
-    log.warn("Beginning test between raw and decimated data.")
+    log.warning("Beginning test between raw and decimated data.")
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[utils.prefix_from_element(quad)]
 
@@ -120,7 +120,7 @@ def compare_decimated_data(quad, plane):
 
 
 def scan_cell(cell):
-    log.warn("Beginning scan of cell {}.".format(cell))
+    log.warning("Beginning scan of cell {}.".format(cell))
     quads = utils.quads_from_cell(cell)
     amps = load_amps()
     for quad in quads:
@@ -131,7 +131,7 @@ def scan_cell(cell):
 
 
 def scan_amplitudes(quad, plane, scale_quad=True, scale_corr=True):
-    log.warn(
+    log.warning(
         "Beginning scaling test: quad? {}; corr? {}.".format(scale_quad, scale_corr)
     )
     amps = load_amps()[plane]
@@ -189,7 +189,7 @@ if __name__ == "__main__":
     h, v = load_amps(quad_scale, corr_scale)
     pv = "SR01A-PC-Q2B-09"
     get_new_logger()
-    log.warn(
+    log.warning(
         "Plane: {}, Quad scale: {}, Corr scale: {}\n".format(
             plane, quad_scale, corr_scale
         )
