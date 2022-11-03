@@ -56,9 +56,12 @@ def get_rm_file():
     return rm_file
 
 
-def enabled_bpms():
-    good_bpms = numpy.equal(caget(BPM_ENABLED), 0)
+def enabled_bpms(lattice):
+    #good_bpms = numpy.equal(caget(BPM_ENABLED), 0)
+    #return good_bpms
+    good_bpms = lattice.get_element_values("BPM", "enabled")
     return good_bpms
+
 
 
 def quad_to_bpm(quad, lattice):
@@ -69,7 +72,7 @@ def quad_to_bpm(quad, lattice):
     closest_bpm = None
     closest_bpm_index = None
     bpm_dist = 1000
-    enabled = enabled_bpms()
+    enabled = enabled_bpms(lattice)
     for i, bpm in enumerate(bpms):
         if not enabled[i]:
             continue

@@ -36,7 +36,7 @@ def save_data(high_data, low_data, quad, osc, lattice):
     datadict["quad"] = quad_prefix
     datadict["plane"] = plane_name
     datadict["bpm"] = utils.quad_to_bpm(quad, lattice)[0]
-    datadict["enabled_bpms"] = utils.enabled_bpms().astype(numpy.int)
+    datadict["enabled_bpms"] = utils.enabled_bpms(lattice).astype(numpy.int)
     datadict["high"] = high_data
     datadict["low"] = low_data
     filename = "data/{}-{}-{}".format(get_filename_prefix(), quad_prefix, plane_name)
