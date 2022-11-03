@@ -18,11 +18,14 @@ FofbCorrector = collections.namedtuple(
     "FofbCorrector", ["num", "ioc", "corr", "is_slow"]
 )
 
+# CORRECTORS_TXT = "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/correctors.txt"
+CORRECTORS_TXT = "config/correctors.csv"
 
 def get_corrector_table():
-    basepath = os.path.dirname(__file__)
-    filepath = os.path.join(basepath, "data", "correctors.txt")
-    return numpy.genfromtxt(filepath, names=True, dtype=None, encoding="UTF-8")
+    #basepath = os.path.dirname(__file__)
+    #filepath = os.path.join(basepath, "data", CORRECTORS_TXT)
+    #return numpy.genfromtxt(filepath, names=True, dtype=None, encoding="UTF-8")
+    return numpy.genfromtxt(CORRECTORS_TXT, names=True, dtype=None, delimiter=",", encoding="UTF-8")
 
 
 def get_fofb_corrector(pytac_element, plane):

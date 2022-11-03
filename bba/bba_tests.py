@@ -14,8 +14,8 @@ from bba import excite, faa, jump_bba, utils
 
 ###############
 # Global config
-H_AMPS_FILE = "config/horizontal_bba_mmlvals.txt"
-V_AMPS_FILE = "config/vertical_bba_mmlvals.txt"
+H_AMPS_FILE = "config/horizontal_bba.csv"
+V_AMPS_FILE = "config/vertical_bba.csv"
 # Defaults
 CYCLES = 1
 FREQUENCY = 8
@@ -46,7 +46,7 @@ def load_amps_file(filename, quad_scale=1.0, corr_scale=1.0):
     with open(filename) as f:
         for line in f:
             if line.strip():
-                bpm_pv, quad_pv, quad_amps, _, corr_pv, corr_amps, _ = line.split()
+                bpm_pv, quad_pv, quad_amps, _, corr_pv, corr_amps, _ = line.split(",")
                 amps[quad_pv.split(":")[0]] = (
                     quad_scale * float(quad_amps),
                     corr_scale * float(corr_amps),
