@@ -176,7 +176,7 @@ def parse_args():
     return parser.parse_args()
 
 
-if __name__ == "__main__":
+def main():
     print("running")
     args = parse_args()
     plane = int(args.plane)
@@ -206,3 +206,7 @@ if __name__ == "__main__":
     # scan_cell(1)
     # cycle_scan(quad, plane)
     """
+
+
+if __name__ == "__main__":
+    main()
