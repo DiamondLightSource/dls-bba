@@ -154,7 +154,7 @@ def parse_args():
         "--plane",
         dest="plane",
         action="store",
-        default=1,
+        default=0,
         help="Which plane to measure",
     )
     parser.add_argument(
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     corr_scale = float(args.corr_scale)
 
     quad_scale = 1
-    corr_scale = 0.5
+    corr_scale = 1
 
     h, v = load_amps(quad_scale, corr_scale)
     pv = "SR01A-PC-Q2B-09"
@@ -197,7 +197,8 @@ if __name__ == "__main__":
 
     lattice = utils.get_lattice()
     quad = utils.quad_from_pv(pv, lattice)
-    one_bba(quad, bba.Y, lattice)
+    one_bba(quad, plane, lattice)
+    # one_bba(quad, bba.Y, lattice)
     """
     # repeatability_scan(quad, bba.Y, range(10))
     # frequency_scan(quad, plane)

@@ -44,7 +44,7 @@ def prefix_from_element(element, device):
 
 def quad_from_pv(quad_pv, lattice):
     prefix = prefix_from_pv(quad_pv)
-    quads = lattice.get_elements("QUAD")
+    quads = lattice.get_elements("quadrupole")
     for q in quads:
         if prefix_from_element(q, "b1") == prefix:
             return q
