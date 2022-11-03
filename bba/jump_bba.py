@@ -7,18 +7,10 @@ import numpy
 import scipy.io
 from cothread.catools import caget, caput
 
-import bba
-from bba import excite, faa, utils
+from bba import excite, faa, utils, constants
 
 
-NETWORK_LAG_S = 0.5
-SAFETY_NET_S = 0.1
-QUAD_SLEW_RATE = 0.5  # A/s
-NETWORK_LAG = int(NETWORK_LAG_S * faa.TICKS_PER_SECOND)
-SAFETY_NET = int(SAFETY_NET_S * faa.TICKS_PER_SECOND)
-DECIMATED = True
-
-BPM_IDS = range(174)  # 173 plus 0 for timestamps
+DECIMATED = False
 
 
 def get_filename_prefix():
@@ -30,7 +22,7 @@ def get_filename_prefix():
 def save_data(high_data, low_data, quad, osc, lattice):
     """Save the provided arrays into a .mat file with additional metadata."""
     quad_prefix = quad.get_device("b1").name
-    plane_name = bba.AXIS_NAMES[osc.plane]
+    plane_name = constants.AXIS_NAMES[osc.plane]
     period = faa.TICKS_PER_SECOND // osc.freq
     datadict = {"period": period, "amp": osc.amp, "cycles": osc.cycles}
     datadict["quad"] = quad_prefix
@@ -80,7 +72,7 @@ def select_data(data, plane, exc_high, exc_low):
 def summarise_bba(quad, quad_step, osc):
     """Log information about one BBA instance."""
     prefix = quad.get_device("b1").name
-    plane = bba.AXIS_NAMES[osc.plane]
+    plane = constants.AXIS_NAMES[osc.plane]
     log.info("BBA of quad {} in plane {}".format(prefix, plane))
     log.info("Quad step is {}".format(quad_step))
     log.info(
@@ -98,23 +90,23 @@ def jump_bba(quad, quad_step, osc, lattice):
     quad_sp = caget(quad_pv)
     quad_high = quad_sp + quad_step
     quad_low = quad_sp - quad_step
-    quad_lag_s = quad_step / QUAD_SLEW_RATE
+    quad_lag_s = quad_step / constants.QUAD_SLEW_RATE
     quad_lag = int(quad_lag_s * faa.TICKS_PER_SECOND)
 
     corr_id, ap_corr = utils.effective_corrector(quad, osc.plane, lattice)
-    field = "x_kick" if osc.plane == bba.X else "y_kick"
+    field = "x_kick" if osc.plane == constants.X else "y_kick"
     log.info("Using corrector {}: {}".format(corr_id, ap_corr.get_device(field).name))
     # Move quad high
     caput(quad_pv, quad_high)
     cothread.Sleep(quad_lag_s / 2)
     now = faa.get_timestamp()
-    osc_length = math.ceil(excite.TICKS_PER_SECOND / osc.freq) * osc.cycles
+    osc_length = math.ceil(faa.TICKS_PER_SECOND / osc.freq) * osc.cycles
     # Set off the data collection
-    high_start = now + NETWORK_LAG
-    duration = NETWORK_LAG + osc_length + SAFETY_NET + quad_lag + osc_length
-    fa_buffer = faa.Buffer(BPM_IDS, high_start, duration, DECIMATED)
-    low_start = high_start + osc_length + SAFETY_NET + quad_lag
-    log.debug("Safety net: {}; quad_lag: {}".format(SAFETY_NET, quad_lag))
+    high_start = now + constants.NETWORK_LAG
+    duration = constants.NETWORK_LAG + osc_length + constants.SAFETY_NET + quad_lag + osc_length
+    fa_buffer = faa.Buffer(constants.BPM_IDS, high_start, duration, DECIMATED)
+    low_start = high_start + osc_length + constants.SAFETY_NET + quad_lag
+    log.debug("Safety net: {}; quad_lag: {}".format(constants.SAFETY_NET, quad_lag))
     log.info("Time now: {}.".format(now))
     log.info("High start time: {}.".format(high_start - now))
     log.info("Low start time: {}.".format(low_start - now))
@@ -127,7 +119,7 @@ def jump_bba(quad, quad_step, osc, lattice):
     excite.excite((exc_high,))
     # Sleep for first excitation. SAFETY_NET ensures that we don't start
     # moving the quad before the excitation has finished.
-    cothread.Sleep((NETWORK_LAG + exc_high.count + SAFETY_NET) / faa.TICKS_PER_SECOND)
+    cothread.Sleep((constants.NETWORK_LAG + exc_high.count + constants.SAFETY_NET) / faa.TICKS_PER_SECOND)
     # Move quad from high to low
     caput(quad_pv, quad_low)
     # Set up second excitation

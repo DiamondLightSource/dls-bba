@@ -5,15 +5,7 @@ import pytac
 import scipy.io
 from cothread.catools import DBR_STRING, caget
 
-import bba
-
-
-DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
-BPM_ENABLED = "SR-DI-EBPM-01:ENABLED"
-
-
-# Lazy load current lattice
-_lattice = None
+from bba import constants
 
 
 def get_ring_mode():
@@ -52,7 +44,7 @@ def quad_from_pv(quad_pv, lattice):
 
 def get_rm_file():
     ringmode = get_ring_mode()
-    rm_file = os.path.join(DATAROOT, ringmode, "GoldenBPMResp.mat")
+    rm_file = os.path.join(constants.DATAROOT, ringmode, "GoldenBPMResp.mat")
     return rm_file
 
 
@@ -99,7 +91,7 @@ def effective_corrector(quad, plane, lattice):
     row = rm[bpm_id - 1, :]
     # Note that ids are 1-indexed but arrays are 0-indexed.
     zero_indexed_corr_id = numpy.argmax(abs(row))
-    corrs = lattice.get_elements(bba.CORRECTOR_FAMILIES[plane])
+    corrs = lattice.get_elements(constants.CORRECTOR_FAMILIES[plane])
     return zero_indexed_corr_id + 1, corrs[zero_indexed_corr_id]
 
 

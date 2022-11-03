@@ -3,6 +3,7 @@ import logging as log
 import cothread
 import numpy
 from fa.falib import falib
+#from bba import constants
 
 TICKS_PER_SECOND = 10072
 

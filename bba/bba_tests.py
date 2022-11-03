@@ -8,25 +8,7 @@ Various ways of testing BBA.
 import argparse
 import logging as log
 
-import bba
-from bba import excite, faa, jump_bba, utils
-
-
-###############
-# Global config
-H_AMPS_FILE = "config/horizontal_bba.csv"
-V_AMPS_FILE = "config/vertical_bba.csv"
-# Defaults
-CYCLES = 1
-FREQUENCY = 8
-###############
-
-
-LOG_FORMAT = "%(levelname)-7s: %(message)s"
-
-
-# Note that it is possible to use full data here by setting
-# jump_bba.DECIMATED = False
+from bba import excite, faa, jump_bba, utils, constants
 
 
 def get_new_logger():
@@ -34,7 +16,7 @@ def get_new_logger():
     filename = "data/{}.log".format(jump_bba.get_filename_prefix())
     file_handler = log.FileHandler(filename)
     file_handler.setLevel(log.DEBUG)
-    formatter = log.Formatter(LOG_FORMAT)
+    formatter = log.Formatter(constants.LOG_FORMAT)
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
     logger.addHandler(log.StreamHandler())
@@ -55,18 +37,18 @@ def load_amps_file(filename, quad_scale=1.0, corr_scale=1.0):
 
 
 def load_amps(quad_scale=1.0, corr_scale=1.0):
-    h_amps = load_amps_file(H_AMPS_FILE, quad_scale, corr_scale)
-    v_amps = load_amps_file(V_AMPS_FILE, quad_scale, corr_scale)
+    h_amps = load_amps_file(constants.H_AMPS_FILE, quad_scale, corr_scale)
+    v_amps = load_amps_file(constants.V_AMPS_FILE, quad_scale, corr_scale)
     return h_amps, v_amps
 
 
 def one_bba(quad, plane, lattice):
     quad_prefix = utils.prefix_from_element(quad, "b1")
-    log.warning("BBA on quad {} in plane {}".format(quad_prefix, bba.AXIS_NAMES[plane]))
+    log.warning("BBA on quad {} in plane {}".format(quad_prefix, constants.AXIS_NAMES[plane]))
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[quad_prefix]
-    corr_amp = corr_amp
-    osc = excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
+    # corr_amp = corr_amp
+    osc = excite.Oscillation(corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
     jump_bba.jump_bba(quad, quad_step, osc, lattice)
 
 
@@ -77,7 +59,7 @@ def frequency_scan(quad, plane):
     for i in range(1, 8):
         period = faa.TICKS_PER_SECOND // i
         log.info("The calculated period is {}.".format(period))
-        osc = excite.Oscillation(corr_amp, plane, i, CYCLES)
+        osc = excite.Oscillation(corr_amp, plane, i, constants.CYCLES)
         jump_bba.jump_bba(quad, plane, quad_step, osc)
 
 
@@ -87,7 +69,7 @@ def cycle_scan(quad, plane):
     quad_step, corr_amp = amps[utils.prefix_from_element(quad)]
     for cycles in range(1, 5):
         log.info("Trying {} cycles.".format(cycles))
-        osc = excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
+        osc = excite.Oscillation(corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
         jump_bba.jump_bba(quad, plane, quad_step, osc)
 
 
@@ -98,7 +80,7 @@ def repeatability_scan(quad, plane, counts):
     log.info("Quad_step %s, corr_amp %s", quad_step, corr_amp)
     for count in counts:  # Just run ten times at 8 Hz
         log.info("Trying scan {} of {}.".format(count, counts))
-        osc = excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
+        osc = excite.Oscillation(corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
         jump_bba.jump_bba(quad, quad_step, osc)
 
 
@@ -107,7 +89,7 @@ def compare_decimated_data(quad, plane):
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[utils.prefix_from_element(quad)]
 
-    osc = excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
+    osc = excite.Oscillation(corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
     jump_bba.jump_bba(quad, plane, quad_step, osc)
     # Now do the full one.  Change a constant!
     jump_bba.DECIMATED = False
@@ -124,9 +106,9 @@ def scan_cell(cell):
     quads = utils.quads_from_cell(cell)
     amps = load_amps()
     for quad in quads:
-        for plane in (bba.X, bba.Y):
+        for plane in (constants.X, constants.Y):
             quad_step, corr_amp = amps[plane][utils.prefix_from_element(quad)]
-            osc = excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
+            osc = excite.Oscillation(corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
             jump_bba.jump_bba(quad, plane, quad_step, osc)
 
 
@@ -136,14 +118,14 @@ def scan_amplitudes(quad, plane, scale_quad=True, scale_corr=True):
     )
     amps = load_amps()[plane]
     quad_step, corr_amp = amps[utils.prefix_from_element(quad)]
-    osc = excite.Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
+    osc = excite.Oscillation(corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
     scales = [0.5, 1.0, 2.0, 5.0]
     for s in scales:
         if scale_quad:
             qs = quad_step * s
         if scale_corr:
             ca = corr_amp * s
-            osc = excite.Oscillation(ca, plane, FREQUENCY, CYCLES)
+            osc = excite.Oscillation(ca, plane, constants.FREQUENCY, constants.CYCLES)
         jump_bba.jump_bba(quad, plane, qs, osc)
 
 
@@ -183,7 +165,7 @@ def main():
     quad_scale = float(args.quad_scale)
     corr_scale = float(args.corr_scale)
 
-    h, v = load_amps(quad_scale, corr_scale)
+    #h, v = load_amps(quad_scale, corr_scale)
     pv = "SR01A-PC-Q2B-09"
     get_new_logger()
     log.warning(
