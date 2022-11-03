@@ -7,7 +7,7 @@ from cothread.catools import caput
 
 from bba import X
 
-RINGMODE_PV = "SR-CS-RING-01:MODE"
+#RINGMODE_PV = "SR-CS-RING-01:MODE"
 
 IOCS = ["SR%02dA-CS-FOFB-01" % i for i in range(1, 25)]
 TICKS_PER_SECOND = 10072

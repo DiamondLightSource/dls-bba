@@ -183,9 +183,6 @@ def main():
     quad_scale = float(args.quad_scale)
     corr_scale = float(args.corr_scale)
 
-    quad_scale = 1
-    corr_scale = 1
-
     h, v = load_amps(quad_scale, corr_scale)
     pv = "SR01A-PC-Q2B-09"
     get_new_logger()

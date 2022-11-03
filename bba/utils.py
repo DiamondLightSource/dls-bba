@@ -102,7 +102,7 @@ def effective_corrector(quad, plane, lattice):
 
 def quads_from_cell(cell, lattice):
     # Can we get this from pytac?
-    quads = lattice.get_elements("QUAD")
+    quads = lattice.get_elements("quadrupole")
     cell_quads = []
     for quad in quads:
         pv = prefix_from_element(quad, "b1")
