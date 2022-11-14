@@ -1,4 +1,4 @@
 """Beam Based Alignment
 
-This module contains the functions to carry out Fast BBA or slow BBA alongside analysis functions.
+This module contains the functions to carry out fast BBA or slow BBA alongside analysis functions.
 """

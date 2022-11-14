@@ -1,4 +1,4 @@
-"""A file that contains all constants and filepaths."""
+"""A temporary file that contains some constants and filepaths during refactoring."""
 
 from bba import faa
 from typing import NamedTuple
@@ -9,7 +9,7 @@ CYCLES = 1
 FREQUENCY = 8
 
 # Plane constants.
-PlaneValues = NamedTuple("PlaneValues", [("int", int), ("axis", str), ("corrector", str), ("kick", str)])
+PlaneValues = NamedTuple("PlaneValues", [("index", int), ("axis", str), ("corrector", str), ("kick", str)])
 PLANE_VALUES = {
     "HORIZONTAL": PlaneValues(0, "X", "HSTR", "x_kick"),
     "VERTICAL": PlaneValues(1, "Y", "VSTR", "y_kick")
@@ -17,6 +17,7 @@ PLANE_VALUES = {
 
 # Formatting constants
 LOG_FORMAT = "%(levelname)-7s: %(message)s"
+
 #TICKS_PER_SECOND = 10072
 NETWORK_LAG_S = 0.5
 SAFETY_NET_S = 0.1
@@ -24,8 +25,7 @@ QUAD_SLEW_RATE = 0.5  # A/s
 NETWORK_LAG = int(NETWORK_LAG_S * faa.TICKS_PER_SECOND)
 SAFETY_NET = int(SAFETY_NET_S * faa.TICKS_PER_SECOND)
 
-#BPM_IDS = range(174)
-IOCS = ["SR%02dA-CS-FOFB-01" % i for i in range(1, 25)]
+IOCS = ["SR%02dA-CS-FOFB-01" % i for i in range(1, 25)] #Number of cells - ie one IOC per cell.
 
 # Config filepaths
 

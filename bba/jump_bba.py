@@ -20,16 +20,16 @@ def get_filename_prefix():
     return "bba-{}".format(datestring)
 
 
-def save_data(high_data, low_data, quad, osc, lattice):
+def save_data(high_data, low_data, quad, osc, accelerator):
     """Save the provided arrays into a .mat file with additional metadata."""
-    quad_prefix = lattice.quad_2_pv(quad)
+    quad_prefix = accelerator.quad_2_pv(quad)
     plane_name = osc.plane.axis
     period = faa.TICKS_PER_SECOND // osc.freq
     datadict = {"period": period, "amp": osc.amp, "cycles": osc.cycles}
     datadict["quad"] = quad_prefix
     datadict["plane"] = plane_name
-    datadict["bpm"] = utils.quad_to_bpm(quad, lattice)[0]
-    datadict["enabled_bpms"] = lattice.enabled_bpms().astype(numpy.int)
+    datadict["bpm"] = utils.quad_to_bpm(quad, accelerator)[0]
+    datadict["enabled_bpms"] = accelerator.enabled_bpms().astype(numpy.int)
     datadict["high"] = high_data
     datadict["low"] = low_data
     filename = "data/{}-{}-{}".format(get_filename_prefix(), quad_prefix, plane_name)
@@ -70,11 +70,11 @@ def select_data(data, plane, exc_high, exc_low):
     return high_data, low_data
 
 
-def jump_bba(quad, quad_step, osc, lattice):
+def jump_bba(quad, quad_step, osc, accelerator):
     """Execute 'jump BBA' for one quad and save the data."""
     # Do we need undecimated data?
 
-    prefix = lattice.quad_2_pv(quad)
+    prefix = accelerator.quad_2_pv(quad)
     plane = [osc.plane.axis]
     log.info("BBA of quad {} in plane {}".format(prefix, plane))
     log.info("Quad step is {}".format(quad_step))
@@ -82,24 +82,24 @@ def jump_bba(quad, quad_step, osc, lattice):
         "Oscillation amplitude {}; frequency {}; cycles {}".format(
             osc.amp, osc.freq, osc.cycles))
 
-    quad_sp = lattice.measure_quad(quad)
+    quad_sp = accelerator.measure_quad(quad)
     quad_high = quad_sp + quad_step
     quad_low = quad_sp - quad_step
     quad_lag_s = quad_step / constants.QUAD_SLEW_RATE
     quad_lag = int(quad_lag_s * faa.TICKS_PER_SECOND)
 
-    corr_id, ap_corr = utils.effective_corrector(quad, osc.plane, lattice)
+    corr_id, ap_corr = utils.effective_corrector(quad, osc.plane, accelerator)
     field = osc.plane.kick
     log.info("Using corrector {}: {}".format(corr_id, ap_corr.get_device(field).name))
     # Move quad high
-    lattice.set_quad(quad, quad_high)
+    accelerator.set_quad(quad, quad_high)
     cothread.Sleep(quad_lag_s / 2)
     now = faa.get_timestamp()
     osc_length = math.ceil(faa.TICKS_PER_SECOND / osc.freq) * osc.cycles
     # Set off the data collection
     high_start = now + constants.NETWORK_LAG
     duration = constants.NETWORK_LAG + osc_length + constants.SAFETY_NET + quad_lag + osc_length
-    fa_buffer = faa.Buffer([lattice.bpms.index(bpm) for bpm in lattice.bpms], high_start, duration, DECIMATED)
+    fa_buffer = faa.Buffer([accelerator.bpms.index(bpm) for bpm in accelerator.bpms], high_start, duration, DECIMATED)
     low_start = high_start + osc_length + constants.SAFETY_NET + quad_lag
     log.debug("Safety net: {}; quad_lag: {}".format(constants.SAFETY_NET, quad_lag))
     log.info("Time now: {}.".format(now))
@@ -116,15 +116,15 @@ def jump_bba(quad, quad_step, osc, lattice):
     # moving the quad before the excitation has finished.
     cothread.Sleep((constants.NETWORK_LAG + exc_high.count + constants.SAFETY_NET) / faa.TICKS_PER_SECOND)
     # Move quad from high to low
-    lattice.set_quad(quad, quad_low)
+    accelerator.set_quad(quad, quad_low)
     # Set up second excitation
     excite.excite((exc_low,))
     # This will block until all data has been retrieved.
     fa_data = fa_buffer.get_data()
     high_data, low_data = select_data(fa_data, osc.plane, exc_high, exc_low)
-    save_data(high_data, low_data, quad, osc, lattice)
+    save_data(high_data, low_data, quad, osc, accelerator)
 
     # Restore setpoint.  We don't need SAFETY_NET here because we've saved
     # all the data before we request the move.
-    lattice.set_quad(quad, quad_sp)
+    accelerator.set_quad(quad, quad_sp)
     cothread.Sleep(quad_lag_s / 2)

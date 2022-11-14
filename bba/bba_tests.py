@@ -8,7 +8,8 @@ Various ways of testing BBA.
 import argparse
 import logging as log
 
-from bba import excite, faa, jump_bba, utils, constants, accelerator
+from bba import excite, faa, jump_bba, constants
+from bba import accelerator as acc
 
 
 def get_new_logger():
@@ -42,62 +43,62 @@ def load_amps(quad_scale=1.0, corr_scale=1.0):
     return h_amps, v_amps
 
 
-def one_bba(lattice, quad, plane):
+def one_bba(accelerator, quad, plane):
     #plane = constants.PLANE_VALUES[plane]
-    quad_prefix = lattice.prefix_from_element(quad, "b1")
+    quad_prefix = accelerator.prefix_from_element(quad, "b1")
     log.warning("BBA on quad {} in plane {}".format(quad_prefix, plane.axis))
-    amps = load_amps()[plane.int]
+    amps = load_amps()[plane.index]
     quad_step, corr_amp = amps[quad_prefix]
     osc = excite.Oscillation(corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
-    jump_bba.jump_bba(quad, quad_step, osc, lattice)
+    jump_bba.jump_bba(quad, quad_step, osc, accelerator)
 
-def frequency_scan(lattice, quad, plane):
+def frequency_scan(accelerator, quad, plane):
     log.warning("Beginning test of different corrector oscillation frequencies.")
-    amps = load_amps()[plane.int]
-    quad_step, corr_amp = amps[lattice.prefix_from_element(quad, "b1")]
+    amps = load_amps()[plane.index]
+    quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
     for i in range(1, 8):
         period = faa.TICKS_PER_SECOND // i
         log.info("The calculated period is {}.".format(period))
         osc = excite.Oscillation(corr_amp, plane, i, constants.CYCLES)
-        # TODO: Cannot work: Passing plane in quad_step arg and missing lattice arg
+        # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
         jump_bba.jump_bba(quad, plane, quad_step, osc)
 
 
-def cycle_scan(lattice, quad, plane):
+def cycle_scan(accelerator, quad, plane):
     log.warning("Beginning test of different numbers of corrector cycles.")
-    amps = load_amps()[plane.int]
-    quad_step, corr_amp = amps[lattice.prefix_from_element(quad, "b1")]
+    amps = load_amps()[plane.index]
+    quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
     for cycles in range(1, 5):
         log.info("Trying {} cycles.".format(cycles))
         osc = excite.Oscillation(corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
-        # TODO: Cannot work: Passing plane in quad_step arg and missing lattice arg
+        # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
         jump_bba.jump_bba(quad, plane, quad_step, osc)
 
 
-def repeatability_scan(lattice, quad, plane, counts):
+def repeatability_scan(accelerator, quad, plane, counts):
     log.warning("Beginning test of different numbers of corrector cycles.")
-    amps = load_amps()[plane.int]
-    quad_step, corr_amp = amps[lattice.prefix_from_element(quad, "b1")]
+    amps = load_amps()[plane.index]
+    quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
     log.info("Quad_step %s, corr_amp %s", quad_step, corr_amp)
     for count in counts:  # Just run ten times at 8 Hz
         log.info("Trying scan {} of {}.".format(count, counts))
         osc = excite.Oscillation(corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
-        # TODO: Cannot work: Missing lattice arg
+        # TODO: Cannot work: Missing accelerator arg
         jump_bba.jump_bba(quad, quad_step, osc)
 
 
-def compare_decimated_data(lattice, quad, plane):
+def compare_decimated_data(accelerator, quad, plane):
     log.warning("Beginning test between raw and decimated data.")
-    amps = load_amps()[plane.int]
-    quad_step, corr_amp = amps[lattice.prefix_from_element(quad, "b1")]
+    amps = load_amps()[plane.index]
+    quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
 
     osc = excite.Oscillation(corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
-    # TODO: Cannot work: Passing plane in quad_step arg and missing lattice arg
+    # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
     jump_bba.jump_bba(quad, plane, quad_step, osc)
     # Now do the full one.  Change a constant!
     jump_bba.DECIMATED = False
     try:
-        # TODO: Cannot work: Passing plane in quad_step arg and missing lattice arg
+        # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
         jump_bba.jump_bba(quad, plane, quad_step, osc)
     except Exception as e:
         log.warn("BBA failed: {} ({}).".format(e, e.__class__))
@@ -105,24 +106,24 @@ def compare_decimated_data(lattice, quad, plane):
     jump_bba.DECIMATED = True
 
 
-def scan_cell(lattice, cell):
+def scan_cell(accelerator, cell):
     log.warning("Beginning scan of cell {}.".format(cell))
-    quads = lattice.quads_from_cell(cell)
+    quads = accelerator.quads_from_cell(cell)
     amps = load_amps()
     for quad in quads:
         for plane in (constants.X, constants.Y):
-            quad_step, corr_amp = amps[plane][lattice.prefix_from_element(quad, "b1")]
+            quad_step, corr_amp = amps[plane][accelerator.prefix_from_element(quad, "b1")]
             osc = excite.Oscillation(corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
-            # TODO: Cannot work: Passing plane in quad_step arg and missing lattice arg
+            # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
             jump_bba.jump_bba(quad, plane, quad_step, osc)
 
 
-def scan_amplitudes(lattice, quad, plane, scale_quad=True, scale_corr=True):
+def scan_amplitudes(accelerator, quad, plane, scale_quad=True, scale_corr=True):
     log.warning(
         "Beginning scaling test: quad? {}; corr? {}.".format(scale_quad, scale_corr)
     )
-    amps = load_amps()[plane.int]
-    quad_step, corr_amp = amps[lattice.prefix_from_element(quad, "b1")]
+    amps = load_amps()[plane.index]
+    quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
     osc = excite.Oscillation(corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
     scales = [0.5, 1.0, 2.0, 5.0]
     for s in scales:
@@ -131,7 +132,7 @@ def scan_amplitudes(lattice, quad, plane, scale_quad=True, scale_corr=True):
         if scale_corr:
             ca = corr_amp * s
             osc = excite.Oscillation(ca, plane, constants.FREQUENCY, constants.CYCLES)
-        # TODO: Cannot work: Passing plane in quad_step arg and missing lattice arg
+        # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
         jump_bba.jump_bba(quad, plane, qs, osc)
 
 def parse_args():
@@ -181,20 +182,19 @@ def main():
         )
     )
     ringmode = None
-    lattice = accelerator.Accelerator(ringmode)
-    quad = lattice.pv_2_quad(pv)
-    plane = constants.PLANE_VALUES[plane]
-    one_bba(lattice, quad, plane)
+    accelerator = acc.Accelerator(ringmode)
+    quad = accelerator.pv_2_quad(pv)
+    one_bba(accelerator, quad, constants.PLANE_VALUES[plane])
 
     """
-    one_bba(lattice, quad, plane)
+    one_bba(accelerator, quad, plane)
     # None of these work
-    frequency_scan(lattice, quad, plane)
-    cycle_scan(lattice, quad, plane)
-    repeatability_scan(lattice, quad, plane, counts)
-    compare_decimated_data(lattice, quad, plane)
-    scan_cell(lattice, cell)
-    scan_amplitudes(lattice, quad, plane, scale_quad=True, scale_corr=True)
+    frequency_scan(accelerator, quad, plane)
+    cycle_scan(accelerator, quad, plane)
+    repeatability_scan(accelerator, quad, plane, counts)
+    compare_decimated_data(accelerator, quad, plane)
+    scan_cell(accelerator, cell)
+    scan_amplitudes(accelerator, quad, plane, scale_quad=True, scale_corr=True)
     """
 
 

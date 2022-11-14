@@ -7,24 +7,13 @@ from cothread.catools import caput
 
 from bba import faa, constants
 
-#RINGMODE_PV = "SR-CS-RING-01:MODE"
-
-#IOCS = ["SR%02dA-CS-FOFB-01" % i for i in range(1, 25)]
-#TICKS_PER_SECOND = 10072
-
 Oscillation = collections.namedtuple("Oscillation", ["amp", "plane", "freq", "cycles"])
 
 FofbCorrector = collections.namedtuple(
     "FofbCorrector", ["num", "ioc", "corr", "is_slow"]
 )
 
-# CORRECTORS_TXT = "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/correctors.txt"
-# CORRECTORS_TXT = "config/correctors.csv"
-
 def get_corrector_table():
-    #basepath = os.path.dirname(__file__)
-    #filepath = os.path.join(basepath, "data", CORRECTORS_TXT)
-    #return numpy.genfromtxt(filepath, names=True, dtype=None, encoding="UTF-8")
     return numpy.genfromtxt(constants.CORRECTORS_FILE, names=True, dtype=None, delimiter=",", encoding="UTF-8")
 
 
@@ -40,8 +29,7 @@ def get_fofb_corrector(pytac_element, plane):
         pytac_element.index + 1,
         table["ioc"][index],
         int(table["farow"][index]),
-        int(table["slow"][index]),
-    )
+        int(table["slow"][index]),)
 
 
 class Excitation(object):
@@ -58,8 +46,7 @@ class Excitation(object):
         self.count = int(numpy.round(self.dwell * faa.TICKS_PER_SECOND))
         # Phase advance per tick per revoloution
         self.delta = int(
-            numpy.floor(self.oscillation.freq * 2 ** 32 / faa.TICKS_PER_SECOND)
-        )
+            numpy.floor(self.oscillation.freq * 2 ** 32 / faa.TICKS_PER_SECOND))
 
         fofb_corrector = get_fofb_corrector(self.corrector, oscillation.plane)
         self.ioc = fofb_corrector.ioc
@@ -85,8 +72,7 @@ def excite(excitations):
         if pvs.setdefault(f"{e.ioc}:EXCITE:START_TIMES", [0] * N)[index] != 0:
             raise ValueError(
                 f"Corrector {e.ioc}:{e.fofb_index:02d} cannot be "
-                "specified twice in the same plane"
-            )
+                "specified twice in the same plane")
         pvs.setdefault(f"{e.ioc}:EXCITE:START_TIMES", [0] * N)[index] = e.start_time
         pvs.setdefault(f"{e.ioc}:EXCITE:AMPS", [0] * N)[index] = e.oscillation.amp
         pvs.setdefault(f"{e.ioc}:EXCITE:DELTAS", [0] * N)[index] = e.delta

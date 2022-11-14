@@ -3,21 +3,21 @@ from cothread.catools import DBR_STRING, caget
 from bba import constants
 
 class Accelerator:
-    """Accelerator class stores all lattice data and functions."""
+    """Accelerator class stores all accelerator data and functions."""
 
     def __init__(self, ringmode = None):
-        """Initialising the lattice, HSTR, VSTR and BPM arrays."""
+        """Initialising the accelerator, HSTR, VSTR and BPM arrays."""
         self.ringmode = self.get_ring_mode(ringmode)
-        self.lattice = pytac.load_csv.load(self.ringmode)
+        self.accelerator = pytac.load_csv.load(self.ringmode)
 
         # Required to stop timeout on the machine.
-        self.lattice._data_source_manager._data_sources[pytac.LIVE]._devices["beam_current"]._cs._timeout = 5.0
+        self.accelerator._data_source_manager._data_sources[pytac.LIVE]._devices["beam_current"]._cs._timeout = 5.0
 
-        # Getting important elements in the lattice
-        self.bpms = self.lattice.get_elements("BPM")
-        self.quads = self.lattice.get_elements("quadrupole")
+        # Getting important elements in the accelerator
+        self.bpms = self.accelerator.get_elements("BPM")
+        self.quads = self.accelerator.get_elements("quadrupole")
 
-        self.quad_pvs = self.lattice.get_element_pv_names("quadrupole", "b1", pytac.RB)
+        self.quad_pvs = self.accelerator.get_element_pv_names("quadrupole", "b1", pytac.RB)
         self.quad_pvs = [quad[:-2] for quad in self.quad_pvs]
 
     def get_ring_mode(self, ringmode = None):
@@ -27,7 +27,7 @@ class Accelerator:
         return ringmode
 
     def enabled_bpms(self):
-        good_bpms = self.lattice.get_element_values("BPM", "enabled")
+        good_bpms = self.accelerator.get_element_values("BPM", "enabled")
         return good_bpms
 
     def quad_2_pv(self, quad, field=None):
@@ -49,7 +49,7 @@ class Accelerator:
 
     def get_correctors(self, plane):
        # TODO: sort plane values between hstr, 0, horizontal etc.
-        corr = self.lattice.get_elements(plane)
+        corr = self.accelerator.get_elements(plane)
         return corr
 
     def quads_from_cell(self, cell):
