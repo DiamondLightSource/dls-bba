@@ -172,7 +172,7 @@ def main():
     quad_scale = float(args.quad_scale)
     corr_scale = float(args.corr_scale)
 
-    # TODO: System that will accept a cell or selection of Quads that need correcting, then will adjust which function is required.
+    # TODO: System that will accept a cell or selection of quads that need correcting, then will adjust which function is required.
     # TODO: Doesnt remove all inactive elements, only bpms.
     pv = "SR01A-PC-Q2B-09"
     get_new_logger()
@@ -182,8 +182,11 @@ def main():
         )
     )
     ringmode = None
+    # TODO: Tie in axis into lattice?
+    # TODO: Existing slow bba completes the process for both axes.
     accelerator = acc.Accelerator(ringmode)
-    quad = accelerator.pv_2_quad(pv)
+    quad = accelerator.pv_to_quad(pv)
+    # TODO: Using accelerator.special-correctors() for programatic approach.
     one_bba(accelerator, quad, constants.PLANE_VALUES[plane])
 
     """

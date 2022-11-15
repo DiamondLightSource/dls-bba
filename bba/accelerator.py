@@ -1,7 +1,5 @@
 import pytac
 from cothread.catools import DBR_STRING, caget
-from bba import constants
-
 class Accelerator:
     """Accelerator class stores all accelerator data and functions."""
 
@@ -13,9 +11,10 @@ class Accelerator:
         # Required to stop timeout on the machine.
         self.accelerator._data_source_manager._data_sources[pytac.LIVE]._devices["beam_current"]._cs._timeout = 5.0
 
-        # Getting important elements in the accelerator
         self.bpms = self.accelerator.get_elements("BPM")
         self.quads = self.accelerator.get_elements("quadrupole")
+        self.hstr_pvs = self.accelerator.get_element_pv_names("HSTR", "x_kick", pytac.RB)
+        self.vstr_pvs = self.accelerator.get_element_pv_names("VSTR", "y_kick", pytac.RB)
 
         self.quad_pvs = self.accelerator.get_element_pv_names("quadrupole", "b1", pytac.RB)
         self.quad_pvs = [quad[:-2] for quad in self.quad_pvs]
@@ -30,7 +29,7 @@ class Accelerator:
         good_bpms = self.accelerator.get_element_values("BPM", "enabled")
         return good_bpms
 
-    def quad_2_pv(self, quad, field=None):
+    def quad_to_pv(self, quad, field=None):
         if field is None:
             index = self.quads.index(quad)
             pv = self.quad_pvs[index]
@@ -38,7 +37,7 @@ class Accelerator:
             pv = quad.get_pv_name(field, pytac.SP)
         return pv
 
-    def pv_2_quad(self, quad_pv):
+    def pv_to_quad(self, quad_pv):
         base_pv = quad_pv.split(":")[0]
         index = self.quad_pvs.index(base_pv)
         return self.quads[index]

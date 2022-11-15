@@ -5,10 +5,9 @@ import math
 import cothread
 import numpy
 import scipy.io
-from cothread.catools import caget, caput
 
 from bba import excite, faa, utils, constants
-
+from bba.constants import INDEX_OFFSET
 
 DECIMATED = False
 
@@ -63,8 +62,8 @@ def select_data(data, plane, exc_high, exc_low):
     log.debug("Searched start times: %s, %s", high_start, low_start)
     # Ensure we include the entire oscillation if using decimated data.
     length = math.ceil(exc_high.count / 10) if DECIMATED else exc_high.count
-    high_data = data[high_start: high_start + length, :, plane]
-    low_data = data[low_start: low_start + length, :, plane]
+    high_data = data[high_start: high_start + length, :, plane.index]
+    low_data = data[low_start: low_start + length, :, plane.index]
     log.info("Selected data shape: {} {}".format(high_data.shape, low_data.shape))
     assert high_data.shape == low_data.shape
     return high_data, low_data
@@ -99,7 +98,8 @@ def jump_bba(quad, quad_step, osc, accelerator):
     # Set off the data collection
     high_start = now + constants.NETWORK_LAG
     duration = constants.NETWORK_LAG + osc_length + constants.SAFETY_NET + quad_lag + osc_length
-    fa_buffer = faa.Buffer([accelerator.bpms.index(bpm) for bpm in accelerator.bpms], high_start, duration, DECIMATED)
+    bpm_list = [i for i in range(len(accelerator.bpms) + INDEX_OFFSET)]
+    fa_buffer = faa.Buffer(bpm_list, high_start, duration, DECIMATED)
     low_start = high_start + osc_length + constants.SAFETY_NET + quad_lag
     log.debug("Safety net: {}; quad_lag: {}".format(constants.SAFETY_NET, quad_lag))
     log.info("Time now: {}.".format(now))

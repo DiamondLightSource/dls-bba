@@ -20,9 +20,7 @@ def get_corrector_table():
 def get_fofb_corrector(pytac_element, plane):
     """Create FofbCorrector tuple from pytac element."""
     table = get_corrector_table()
-    #print(plane)
     kick_field = plane.kick
-    #kick_field = "x_kick" if plane == constants.X else "y_kick"
     name = pytac_element.get_device(kick_field).name
     index = int(table["epics"].tolist().index(name))
     return FofbCorrector(
@@ -65,7 +63,7 @@ def excite(excitations):
 
     # Create dict of PVs to put
     for e in excitations:
-        index = e.fofb_index + e.oscillation.plane * MAX_CORRECTORS
+        index = e.fofb_index + e.oscillation.plane.index * MAX_CORRECTORS
 
         # If start times has already been filled in this corrector is
         # specified twice. The IOC can't deal with this so raise an exception

@@ -17,6 +17,7 @@ PLANE_VALUES = {
 
 # Formatting constants
 LOG_FORMAT = "%(levelname)-7s: %(message)s"
+INDEX_OFFSET = 1 # Needed for faa data grabbing.
 
 #TICKS_PER_SECOND = 10072
 NETWORK_LAG_S = 0.5

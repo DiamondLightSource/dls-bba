@@ -34,10 +34,9 @@ def save_file(file):
 
 
 def append_slow_column():
-    """MAIN"""
     file = get_corrector_data(CORRECTORS_TXT)
     file = add_slow_column(file)
-    file = sort_slow(file)
+    file = mark_slow(file)
     save_file(file)
 
 

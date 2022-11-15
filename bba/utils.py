@@ -26,8 +26,8 @@ def get_inverse_orbit_response_matrix():  # We should use SVD for this
 
 def quad_to_bpm(quad, accelerator):
     """Simply find the BPM closest to the quad."""
-    #bpms = accelerator.get_elements("BPM")
-    # Find centre of quad.
+    # TODO: Can be looked up from config file
+    # TODO: Should be a part of the accelerator class so the config generator can use the same code.
     qs = quad.s + quad.length / 2
     closest_bpm = None
     closest_bpm_index = None
@@ -44,6 +44,20 @@ def quad_to_bpm(quad, accelerator):
     print("ID {}, dist {}".format(closest_bpm_index, bpm_dist))
     return closest_bpm_index, closest_bpm
 
+def quad2bpm_new(quad): #Unused
+
+    # Done currently from the config file -> Ideal to remove configs.
+    # TODO: Configs should be inside the accelerator class?
+    
+    filename = "config/horizontal_bba.csv"
+    with open(filename) as f:
+        for line in f:
+            if line.strip():
+                bpm_pv, quad_pv, quad_amps, _, corr_pv, corr_amps, _ = line.split(",")
+                for i in quad_pv:
+                    if quad == quad_pv:
+                        return bpm_pv
+        return "No Quad / BPM found"
 
 def effective_corrector(quad, plane, accelerator):
     """Find most effective corrector for a quadrupole.
