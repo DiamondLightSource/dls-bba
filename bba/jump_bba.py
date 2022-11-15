@@ -7,7 +7,6 @@ import numpy
 import scipy.io
 
 from bba import excite, faa, utils, constants
-from bba.constants import INDEX_OFFSET
 
 DECIMATED = False
 
@@ -98,7 +97,8 @@ def jump_bba(quad, quad_step, osc, accelerator):
     # Set off the data collection
     high_start = now + constants.NETWORK_LAG
     duration = constants.NETWORK_LAG + osc_length + constants.SAFETY_NET + quad_lag + osc_length
-    bpm_list = [i for i in range(len(accelerator.bpms) + INDEX_OFFSET)]
+    # Incompatability between pytaclattice and faa number of bpms.
+    bpm_list = [i for i in range(len(accelerator.bpms) + 1)]
     fa_buffer = faa.Buffer(bpm_list, high_start, duration, DECIMATED)
     low_start = high_start + osc_length + constants.SAFETY_NET + quad_lag
     log.debug("Safety net: {}; quad_lag: {}".format(constants.SAFETY_NET, quad_lag))

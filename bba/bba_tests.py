@@ -186,7 +186,7 @@ def main():
     # TODO: Existing slow bba completes the process for both axes.
     accelerator = acc.Accelerator(ringmode)
     quad = accelerator.pv_to_quad(pv)
-    # TODO: Using accelerator.special-correctors() for programatic approach.
+    # TODO: Using accelerator.special_correctors() for programatic approach.
     one_bba(accelerator, quad, constants.PLANE_VALUES[plane])
 
     """
