@@ -28,7 +28,7 @@ def save_data(high_data, low_data, quad, osc, accelerator):
     datadict["quad"] = quad_prefix
     datadict["plane"] = plane_name
     datadict["bpm"] = utils.quad_to_bpm(quad, accelerator)[0]
-    datadict["enabled_bpms"] = accelerator.enabled_bpms().astype(numpy.int)
+    datadict["enabled_bpms"] = accelerator.enabled_bpms()
     datadict["high"] = high_data
     datadict["low"] = low_data
     filename = "data/{}-{}-{}".format(get_filename_prefix(), quad_prefix, plane_name)
