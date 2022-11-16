@@ -47,20 +47,26 @@ def load_amps(quad_scale=1.0, corr_scale=1.0):
 
 def one_bba(accelerator, quad, plane):
     """Needs accelerator, quad element and plane dictionary."""
-    #plane = constants.PLANE_VALUES[plane]
     quad_prefix = accelerator.prefix_from_element(quad, "b1")
     log.warning("BBA on quad {} in plane {}".format(quad_prefix, plane.axis))
-    #amps = load_amps()[plane.index]
-    #quad_step, corr_amp = amps[quad_prefix]
-    #print(quad_step, corr_amp)
-
-    new_quad_step = accelerator.measure_quad(quad) * 0.01
+    new_quad_step = accelerator.measure_quad(quad) * constants.QUADRUPOLE_SCALAR
     corrector_index, corr_element = accelerator.effective_corrector(quad, plane)
-    corr_pv = accelerator.corr_element2pv(corr_element, plane)
+    corr_pv = accelerator.element_to_pv(corr_element, plane)
     new_corr_amp = accelerator.microrads(corr_pv)
     osc = excite.Oscillation(new_corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
     jump_bba.jump_bba(quad, new_quad_step, osc, accelerator)
 
+"""
+def frequency_scan(accelerator, quad, plane):
+    log.warning("Beginning test of different corrector oscillation frequencies.")
+    amps = load_amps()[plane.index]
+    quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
+    for i in range(1, 8):
+        period = faa.TICKS_PER_SECOND // i
+        log.info("The calculated period is {}.".format(period))
+        osc = excite.Oscillation(corr_amp, plane, i, constants.CYCLES)
+        # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
+        jump_bba.jump_bba(quad, plane, quad_step, osc)
 
 # def frequency_scan(accelerator, quad, plane):
 #     log.warning("Beginning test of different corrector oscillation frequencies.")
@@ -145,6 +151,23 @@ def one_bba(accelerator, quad, plane):
 #         # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
 #         jump_bba.jump_bba(quad, plane, qs, osc)
 
+def scan_amplitudes(accelerator, quad, plane, scale_quad=True, scale_corr=True):
+    log.warning(
+        "Beginning scaling test: quad? {}; corr? {}.".format(scale_quad, scale_corr)
+    )
+    amps = load_amps()[plane.index]
+    quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
+    osc = excite.Oscillation(corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
+    scales = [0.5, 1.0, 2.0, 5.0]
+    for s in scales:
+        if scale_quad:
+            qs = quad_step * s
+        if scale_corr:
+            ca = corr_amp * s
+            osc = excite.Oscillation(ca, plane, constants.FREQUENCY, constants.CYCLES)
+        # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
+        jump_bba.jump_bba(quad, plane, qs, osc)
+"""
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Take BBA measurements")
