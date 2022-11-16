@@ -15,7 +15,7 @@ class Algorithm(ABC):
         pass
 
     @abstractmethod
-    def run(self, quad, plane_dict):
+    def run(self, quad, plane_info):
         pass
 
     @abstractmethod

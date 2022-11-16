@@ -14,9 +14,9 @@ class SBBA(Algorithm):
         self.decimated = decimated
         #self.PLOT_GRAPHS = PLOT_GRAPHS
 
-    def run(self, quad, plane_dict):
+    def run(self, quad, plane_info):
         self.quad = quad
-        self.plane_dict = plane_dict
+        self.plane_info = plane_info
     
     def save_data(self):
         pass

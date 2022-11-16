@@ -6,7 +6,7 @@ import numpy as np
 
 DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
 MASTER_CALIBRATION_PATH = "/dls_sw/work/common/matlab/mml/machine-new/diamond/master_calibration.csv"
-REQUIRED_RAD = 2e-5
+REQUIRED_RAD = 2e-5 # Radians
 
 
 class Accelerator:

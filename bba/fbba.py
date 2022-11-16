@@ -33,15 +33,17 @@ class FBBA(Algorithm):
     def run(self, quad, plane_info):
 
         self.quad = quad
-        self.plane_dict = plane_info
+        self.plane_info = plane_info
 
-        quad_prefix = self._accelerator.prefix_from_element(self.quad, "b1")
-        log.warning("BBA on quad {} in plane {}".format(quad_prefix, self.plane_dict.axis))
+        quad_pv = self._accelerator.quad_to_pv(self.quad)
         quad_step = self._accelerator.measure_quad(self.quad) * self.quadrupole_scalar
-        corrector_index, corr_element = self._accelerator.effective_corrector(self.quad, self.plane_dict)
-        corr_pv = self._accelerator.element_to_pv(corr_element, self.plane_dict)
+        log.info(
+            f"FBBA on quad {quad_pv} with quad step of {quad_step} in plane {self.plane_info.axis}.")
+
+        corrector_index, corr_element = self._accelerator.effective_corrector(self.quad, self.plane_info)
+        corr_pv = self._accelerator.element_to_pv(corr_element, self.plane_info)
         new_corr_amp = self._accelerator.microrads(corr_pv)
-        osc = excite.Oscillation(new_corr_amp, self.plane_dict, self.frequency, self.cycles)
+        osc = excite.Oscillation(new_corr_amp, self.plane_info, self.frequency, self.cycles)
         self.osc = osc
                 #jump_bba.jump_bba(self.quad, quad_step, osc, self.accelerator)
 
@@ -127,8 +129,8 @@ class FBBA(Algorithm):
         log.debug("Searched start times: %s, %s", high_start, low_start)
         # Ensure we include the entire oscillation if using decimated data.
         length = ceil(self.exc_high.count / 10) if self.decimated else self.exc_high.count
-        high_data = data[high_start: high_start + length, :, self.plane_dict.index]
-        low_data = data[low_start: low_start + length, :, self.plane_dict.index]
+        high_data = data[high_start: high_start + length, :, self.plane_info.index]
+        low_data = data[low_start: low_start + length, :, self.plane_info.index]
         log.info("Selected data shape: {} {}".format(high_data.shape, low_data.shape))
         assert high_data.shape == low_data.shape
         return high_data, low_data
@@ -136,8 +138,8 @@ class FBBA(Algorithm):
 
     def save_data(self, prefix):
         """Save the provided arrays into a .mat file with additional metadata."""
-        quad_prefix = self._accelerator.quad_2_pv(self.quad)
-        plane_name = self.plane_dict.axis
+        quad_prefix = self._accelerator.quad_to_pv(self.quad)
+        plane_name = self.plane_info.axis
         period = TICKS_PER_SECOND // self.osc.freq
         datadict = {"period": period, "amp": self.osc.amp, "cycles": self.osc.cycles}
         datadict["method"] = "FBBA"
