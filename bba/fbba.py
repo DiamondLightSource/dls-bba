@@ -28,7 +28,7 @@ class FBBA(Algorithm):
         self.cycles = cycles
         self.frequency = frequency
         self.decimated = decimated
-        #self.PLOT_GRAPHS = PLOT_GRAPHS
+        # self.PLOT_GRAPHS = PLOT_GRAPHS
 
     def run(self, quad, plane_info):
 

@@ -11,7 +11,7 @@ PLANE_VALUES = {
 class Algorithm(ABC):
 
     @abstractmethod
-    def configure(self, **kwargs):
+    def configure(self, *args, **kwargs):
         pass
 
     @abstractmethod

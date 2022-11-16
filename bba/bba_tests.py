@@ -8,11 +8,9 @@ Various ways of testing BBA.
 import argparse
 import logging as log
 
-from bba.constants import LOG_FORMAT, FREQUENCY, CYCLES, PLANE_VALUES, QUADRUPOLE_SCALAR
-from bba.accelerator import Accelerator as acc
-from bba.excite import Oscillation
-from bba.faa import TICKS_PER_SECOND
-from bba import jump_bba
+from bba import excite, faa
+from bba import accelerator as acc
+
 
 QUADRUPOLE_SCALAR = 0.01
 
