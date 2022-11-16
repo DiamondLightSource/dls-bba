@@ -6,7 +6,7 @@ import cothread
 import numpy
 import scipy.io
 
-from bba import excite, faa, utils, constants
+from bba import excite, faa, constants
 
 DECIMATED = False
 
@@ -26,7 +26,7 @@ def save_data(high_data, low_data, quad, osc, accelerator):
     datadict = {"period": period, "amp": osc.amp, "cycles": osc.cycles}
     datadict["quad"] = quad_prefix
     datadict["plane"] = plane_name
-    datadict["bpm"] = utils.quad_to_bpm(quad, accelerator)[0]
+    datadict["bpm"] = accelerator.quad2bpm(quad)[0]
     datadict["enabled_bpms"] = accelerator.enabled_bpms()
     datadict["high"] = high_data
     datadict["low"] = low_data
@@ -72,9 +72,8 @@ def jump_bba(quad, quad_step, osc, accelerator):
     """Execute 'jump BBA' for one quad and save the data."""
     # Do we need undecimated data?
 
-    prefix = accelerator.quad_2_pv(quad)
-    plane = [osc.plane.axis]
-    log.info("BBA of quad {} in plane {}".format(prefix, plane))
+    prefix = accelerator.quad_to_pv(quad)
+    log.info("BBA of quad {} in plane {}".format(prefix, osc.plane.axis))
     log.info("Quad step is {}".format(quad_step))
     log.info(
         "Oscillation amplitude {}; frequency {}; cycles {}".format(
@@ -86,7 +85,7 @@ def jump_bba(quad, quad_step, osc, accelerator):
     quad_lag_s = quad_step / constants.QUAD_SLEW_RATE
     quad_lag = int(quad_lag_s * faa.TICKS_PER_SECOND)
 
-    corr_id, ap_corr = utils.effective_corrector(quad, osc.plane, accelerator)
+    corr_id, ap_corr = accelerator.effective_corrector(quad, osc.plane)
     field = osc.plane.kick
     log.info("Using corrector {}: {}".format(corr_id, ap_corr.get_device(field).name))
     # Move quad high
@@ -106,11 +105,11 @@ def jump_bba(quad, quad_step, osc, accelerator):
     log.info("High start time: {}.".format(high_start - now))
     log.info("Low start time: {}.".format(low_start - now))
     log.debug("The oscillation: {}".format(osc))
-    exc_high = excite.Excitation(ap_corr, osc, high_start)
+    exc_high = excite.Excitation(ap_corr, osc, high_start, accelerator)
     log.debug(
         "The excitation: dwell {} count {}".format(exc_high.dwell, exc_high.count)
     )
-    exc_low = excite.Excitation(ap_corr, osc, low_start)
+    exc_low = excite.Excitation(ap_corr, osc, low_start, accelerator)
     excite.excite((exc_high,))
     # Sleep for first excitation. SAFETY_NET ensures that we don't start
     # moving the quad before the excitation has finished.

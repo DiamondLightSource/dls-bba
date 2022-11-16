@@ -46,13 +46,20 @@ def load_amps(quad_scale=1.0, corr_scale=1.0):
 
 
 def one_bba(accelerator, quad, plane):
+    """Needs accelerator, quad element and plane dictionary."""
     #plane = constants.PLANE_VALUES[plane]
     quad_prefix = accelerator.prefix_from_element(quad, "b1")
     log.warning("BBA on quad {} in plane {}".format(quad_prefix, plane.axis))
-    amps = load_amps()[plane.index]
-    quad_step, corr_amp = amps[quad_prefix]
-    osc = Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
-    jump_bba(quad, quad_step, osc, accelerator)
+    #amps = load_amps()[plane.index]
+    #quad_step, corr_amp = amps[quad_prefix]
+    #print(quad_step, corr_amp)
+
+    new_quad_step = accelerator.measure_quad(quad) * 0.01
+    corrector_index, corr_element = accelerator.effective_corrector(quad, plane)
+    corr_pv = accelerator.corr_element2pv(corr_element, plane)
+    new_corr_amp = accelerator.microrads(corr_pv)
+    osc = excite.Oscillation(new_corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
+    jump_bba.jump_bba(quad, new_quad_step, osc, accelerator)
 
 def frequency_scan(accelerator, quad, plane):
     log.warning("Beginning test of different corrector oscillation frequencies.")
@@ -188,8 +195,7 @@ def main():
     # TODO: Existing slow bba completes the process for both axes.
     accelerator = acc(ringmode)
     quad = accelerator.pv_to_quad(pv)
-    # TODO: Using accelerator.special_correctors() for programatic approach.
-    one_bba(accelerator, quad, PLANE_VALUES[plane])
+    one_bba(accelerator, quad, constants.PLANE_VALUES[plane])
 
     """
     one_bba(accelerator, quad, plane)

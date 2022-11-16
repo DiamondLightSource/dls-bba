@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io as io
 from matplotlib.gridspec import GridSpec
-from bba import faa, constants
+from bba import faa
 
 DECIMATED = False
 

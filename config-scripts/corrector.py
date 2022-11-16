@@ -1,4 +1,3 @@
-import csv
 import numpy as np
 from numpy.lib.recfunctions import append_fields
 

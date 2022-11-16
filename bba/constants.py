@@ -29,10 +29,10 @@ IOCS = ["SR%02dA-CS-FOFB-01" % i for i in range(1, 25)] #Number of cells - ie on
 
 # Config filepaths
 
-H_AMPS_FILE = "config/horizontal_bba.csv"
-V_AMPS_FILE = "config/vertical_bba.csv"
-CORRECTORS_FILE = "config/correctors.csv"
+#H_AMPS_FILE = "config/horizontal_bba.csv"
+#V_AMPS_FILE = "config/vertical_bba.csv"
+#CORRECTORS_FILE = "config/correctors.csv"
 
 # Other filepaths
 # GoldenBPMResp.mat Root
-DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
+#DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
