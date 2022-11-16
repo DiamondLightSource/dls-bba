@@ -14,7 +14,7 @@ PLANE_VALUES = {
     "HORIZONTAL": PlaneValues(0, "X", "HSTR", "x_kick"),
     "VERTICAL": PlaneValues(1, "Y", "VSTR", "y_kick")
 }
-
+QUADRUPOLE_SCALAR = 0.01
 # Formatting constants
 LOG_FORMAT = "%(levelname)-7s: %(message)s"
 

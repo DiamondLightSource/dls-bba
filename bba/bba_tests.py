@@ -54,7 +54,7 @@ def one_bba(accelerator, quad, plane):
     #quad_step, corr_amp = amps[quad_prefix]
     #print(quad_step, corr_amp)
 
-    new_quad_step = accelerator.measure_quad(quad) * 0.01
+    new_quad_step = accelerator.measure_quad(quad) * constants.QUADRUPOLE_SCALAR
     corrector_index, corr_element = accelerator.effective_corrector(quad, plane)
     corr_pv = accelerator.corr_element2pv(corr_element, plane)
     new_corr_amp = accelerator.microrads(corr_pv)

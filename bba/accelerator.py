@@ -4,7 +4,6 @@ import scipy.io as io
 import numpy as np
 
 # Constants
-QUADRUPOLE_SCALAR = 0.01
 DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
 MASTER_CALIBRATION_PATH = "/dls_sw/work/common/matlab/mml/machine-new/diamond/master_calibration.csv"
 REQUIRED_RAD = 2e-5
