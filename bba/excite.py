@@ -9,10 +9,13 @@ from bba.constants import IOCS
 
 CORRECTORS_TXT = "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/correctors.txt"
 
+CORRECTORS_TXT = "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/correctors.txt"
+
 Oscillation = collections.namedtuple("Oscillation", ["amp", "plane", "freq", "cycles"])
 FofbCorrector = collections.namedtuple("FofbCorrector", ["num", "ioc", "corr", "is_slow"])
 
 def get_corrector_table():
+    #return numpy.genfromtxt(constants.CORRECTORS_FILE, names=True, dtype=None, delimiter=",", encoding="UTF-8")
     with open(CORRECTORS_TXT, "r", encoding='utf8', newline="") as file:
         data = np.genfromtxt(file, names=True, dtype=None, encoding="UTF-8")
     return data
@@ -25,7 +28,10 @@ def get_fofb_corrector(accelerator, pytac_element, plane):
     name = pytac_element.get_device(kick_field).name
     index = int(table["epics"].tolist().index(name))
     special_correctors = accelerator.special_correctors()
-    slow = 1 if name in special_correctors else 0
+    if name in special_correctors:
+        slow = 1 
+    else:
+        slow = 0
     return FofbCorrector(
         pytac_element.index + 1,
         table["ioc"][index],
@@ -36,7 +42,7 @@ def get_fofb_corrector(accelerator, pytac_element, plane):
 class Excitation(object):
     """An excitation performed on a corrector."""
 
-    def __init__(self, accelerator, corrector, oscillation, start_time):
+    def __init__(self, corrector, oscillation, start_time, accelerator):
         self.corrector = corrector
         self.oscillation = oscillation
         self.start_time = start_time
@@ -44,10 +50,10 @@ class Excitation(object):
         # Length of time of excitation in s
         self.dwell = self.oscillation.cycles / self.oscillation.freq
         # Length of time of excitation in FOFB ticks
-        self.count = int(np.round(self.dwell * TICKS_PER_SECOND))
+        self.count = int(np.round(self.dwell * faa.TICKS_PER_SECOND))
         # Phase advance per tick per revoloution
         self.delta = int(
-            np.floor(self.oscillation.freq * 2 ** 32 / TICKS_PER_SECOND))
+            np.floor(self.oscillation.freq * 2 ** 32 / faa.TICKS_PER_SECOND))
 
         fofb_corrector = get_fofb_corrector(accelerator, self.corrector, oscillation.plane)
         self.ioc = fofb_corrector.ioc

@@ -29,3 +29,13 @@ NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
 SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
 
 IOCS = ["SR%02dA-CS-FOFB-01" % i for i in range(1, 25)] #Number of cells - ie one IOC per cell.
+
+# Config filepaths
+
+#H_AMPS_FILE = "config/horizontal_bba.csv"
+#V_AMPS_FILE = "config/vertical_bba.csv"
+#CORRECTORS_FILE = "config/correctors.csv"
+
+# Other filepaths
+# GoldenBPMResp.mat Root
+#DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"

@@ -6,9 +6,7 @@ import cothread
 import numpy
 import scipy.io
 
-from bba.excite import Excitation, excite
-from bba.faa import TICKS_PER_SECOND, get_timestamp, Buffer
-from bba.constants import QUAD_SLEW_RATE, NETWORK_LAG, SAFETY_NET
+from bba import excite, faa, constants
 
 DECIMATED = False
 
@@ -28,7 +26,7 @@ def save_data(high_data, low_data, quad, osc, accelerator):
     datadict = {"period": period, "amp": osc.amp, "cycles": osc.cycles}
     datadict["quad"] = quad_prefix
     datadict["plane"] = plane_name
-    datadict["bpm"] = accelerator.quad_to_bpm(quad)[0]
+    datadict["bpm"] = accelerator.quad2bpm(quad)[0]
     datadict["enabled_bpms"] = accelerator.enabled_bpms()
     datadict["high"] = high_data
     datadict["low"] = low_data
@@ -107,12 +105,12 @@ def jump_bba(quad, quad_step, osc, accelerator):
     log.info("High start time: {}.".format(high_start - now))
     log.info("Low start time: {}.".format(low_start - now))
     log.debug("The oscillation: {}".format(osc))
-    exc_high = Excitation(accelerator, ap_corr, osc, high_start)
+    exc_high = excite.Excitation(ap_corr, osc, high_start, accelerator)
     log.debug(
         "The excitation: dwell {} count {}".format(exc_high.dwell, exc_high.count)
     )
-    exc_low = Excitation(accelerator, ap_corr, osc, low_start)
-    excite((exc_high,))
+    exc_low = excite.Excitation(ap_corr, osc, low_start, accelerator)
+    excite.excite((exc_high,))
     # Sleep for first excitation. SAFETY_NET ensures that we don't start
     # moving the quad before the excitation has finished.
     cothread.Sleep((NETWORK_LAG + exc_high.count + SAFETY_NET) / TICKS_PER_SECOND)
