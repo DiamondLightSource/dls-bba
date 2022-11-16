@@ -3,12 +3,18 @@ import logging as log
 import math
 
 import cothread
-import numpy
-import scipy.io
+import numpy as np
+import scipy.io as io
 
 from bba import excite, faa, constants
 
 DECIMATED = False
+
+NETWORK_LAG_S = 0.5
+SAFETY_NET_S = 0.1
+QUAD_SLEW_RATE = 0.5  # A/s
+NETWORK_LAG = int(NETWORK_LAG_S * faa.TICKS_PER_SECOND)
+SAFETY_NET = int(SAFETY_NET_S * faa.TICKS_PER_SECOND)
 
 
 def get_filename_prefix():
@@ -31,7 +37,7 @@ def save_data(high_data, low_data, quad, osc, accelerator):
     datadict["high"] = high_data
     datadict["low"] = low_data
     filename = "data/{}-{}-{}".format(get_filename_prefix(), quad_prefix, plane_name)
-    scipy.io.savemat(filename, datadict, oned_as="row")
+    io.savemat(filename, datadict, oned_as="row")
     log.info("Saved data to {}\n".format(filename))
 
 
@@ -44,20 +50,16 @@ def select_data(data, plane, exc_high, exc_low):
     # Note: array data must include the timestamps.
     log.debug("Raw data shape: {}".format(data.shape))
     log.info(
-        "Timestamp range in raw data: {} - {}".format(data[0, 0, 0], data[-1, 0, 0])
-    )
+        "Timestamp range in raw data: {} - {}".format(data[0, 0, 0], data[-1, 0, 0]))
     log.debug("Excitation length: {}".format(exc_high.count))
-    log.debug(
-        "Trailing data to crop: {}.".format(
-            data[-1, 0, 0] - (exc_low.start_time + exc_low.count)
-        )
-    )
+    log.debug("Trailing data to crop: {}.".format(
+            data[-1, 0, 0] - (exc_low.start_time + exc_low.count)))
     assert exc_high.count == exc_low.count, "Excitations different lengths"
     # Extract timestamps from data
     times = data[:, 0, 0]
     data = data[:, 1:, :]
-    high_start = numpy.searchsorted(times, exc_high.start_time)
-    low_start = numpy.searchsorted(times, exc_low.start_time)
+    high_start = np.searchsorted(times, exc_high.start_time)
+    low_start = np.searchsorted(times, exc_low.start_time)
     log.debug("Searched start times: %s, %s", high_start, low_start)
     # Ensure we include the entire oscillation if using decimated data.
     length = math.ceil(exc_high.count / 10) if DECIMATED else exc_high.count
@@ -83,7 +85,7 @@ def jump_bba(quad, quad_step, osc, accelerator):
     quad_high = quad_sp + quad_step
     quad_low = quad_sp - quad_step
     quad_lag_s = quad_step / QUAD_SLEW_RATE
-    quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
+    quad_lag = int(quad_lag_s * faa.TICKS_PER_SECOND)
 
     corr_id, ap_corr = accelerator.effective_corrector(quad, osc.plane)
     field = osc.plane.kick
@@ -98,7 +100,7 @@ def jump_bba(quad, quad_step, osc, accelerator):
     duration = NETWORK_LAG + osc_length + SAFETY_NET + quad_lag + osc_length
     # Incompatability between pytaclattice and faa number of bpms.
     bpm_list = [i for i in range(len(accelerator.bpms) + 1)]
-    fa_buffer = Buffer(bpm_list, high_start, duration, DECIMATED)
+    fa_buffer = faa.Buffer(bpm_list, high_start, duration, DECIMATED)
     low_start = high_start + osc_length + SAFETY_NET + quad_lag
     log.debug("Safety net: {}; quad_lag: {}".format(SAFETY_NET, quad_lag))
     log.info("Time now: {}.".format(now))
@@ -113,7 +115,7 @@ def jump_bba(quad, quad_step, osc, accelerator):
     excite.excite((exc_high,))
     # Sleep for first excitation. SAFETY_NET ensures that we don't start
     # moving the quad before the excitation has finished.
-    cothread.Sleep((NETWORK_LAG + exc_high.count + SAFETY_NET) / TICKS_PER_SECOND)
+    cothread.Sleep((NETWORK_LAG + exc_high.count + SAFETY_NET) / faa.TICKS_PER_SECOND)
     # Move quad from high to low
     accelerator.set_quad(quad, quad_low)
     # Set up second excitation

@@ -158,6 +158,3 @@ class Accelerator:
         linear_value = gradient * REQUIRED_RAD
         rad_value = str(np.format_float_positional(linear_value, precision=6))
         return rad_value
-
-
-# TODO: Attaching the plane values to the lattice since only one axis is done at a time

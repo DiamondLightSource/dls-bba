@@ -4,12 +4,11 @@ import cothread
 import numpy as np
 from cothread.catools import caput
 
-from bba.faa import TICKS_PER_SECOND
-from bba.constants import IOCS
+from bba import faa
 
 CORRECTORS_TXT = "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/correctors.txt"
 
-CORRECTORS_TXT = "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/correctors.txt"
+IOCS = ["SR%02dA-CS-FOFB-01" % i for i in range(1, 25)] #Number of cells - ie one IOC per cell.
 
 Oscillation = collections.namedtuple("Oscillation", ["amp", "plane", "freq", "cycles"])
 FofbCorrector = collections.namedtuple("FofbCorrector", ["num", "ioc", "corr", "is_slow"])
