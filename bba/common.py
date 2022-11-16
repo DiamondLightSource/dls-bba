@@ -17,3 +17,11 @@ class Algorithm:
     def run_bba():
         raise NotImplementedError()   
 
+    def save_data():
+        raise NotImplementedError()
+    
+    def analyse_data():
+        raise NotImplementedError()
+
+    def apply_results():
+        raise NotImplementedError()

@@ -30,14 +30,6 @@ def get_new_logger():
     logger.addHandler(log.StreamHandler())
     logger.setLevel(log.DEBUG)
 
-"""
-fbba = FBBA()
-sbba = SBBA()
-algorithm: Algorithm = fbba
-
-fbba.do_fbba_specific_thing()
-algorithm.do_fbba_specific_thing()
-"""
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Take BBA measurements")
@@ -100,8 +92,11 @@ def main():
 
     
     algorithm.setup(accelerator, quad, PLANE_VALUES[plane])
-    algorithm.config()
+    algorithm.config() # optional args
     algorithm.run_bba()
+    algorithm.save_data(get_filename_prefix())
+    algorithm.analyse_data()
+    algorithm.apply_results()
 
 if __name__ == "__main__":
     main()
