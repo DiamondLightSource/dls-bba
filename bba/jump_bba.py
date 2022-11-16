@@ -26,7 +26,7 @@ def save_data(high_data, low_data, quad, osc, accelerator):
     datadict = {"period": period, "amp": osc.amp, "cycles": osc.cycles}
     datadict["quad"] = quad_prefix
     datadict["plane"] = plane_name
-    datadict["bpm"] = accelerator.quad2bpm(quad)[0]
+    datadict["bpm"] = accelerator.quad_to_bpm(quad)[0]
     datadict["enabled_bpms"] = accelerator.enabled_bpms()
     datadict["high"] = high_data
     datadict["low"] = low_data

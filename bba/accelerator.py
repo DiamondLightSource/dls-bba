@@ -3,16 +3,17 @@ from cothread.catools import DBR_STRING, caget
 import scipy.io as io
 import numpy as np
 
-# Constants
+
 DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
 MASTER_CALIBRATION_PATH = "/dls_sw/work/common/matlab/mml/machine-new/diamond/master_calibration.csv"
 REQUIRED_RAD = 2e-5
+
 
 class Accelerator:
     """Accelerator class stores all accelerator data and functions."""
 
     def __init__(self, ringmode = None):
-        """Initialising the accelerator, HSTR, VSTR and BPM arrays."""
+        """Initialising the accelerator model."""
         self.ringmode = self.get_ring_mode(ringmode)
         self.accelerator = pytac.load_csv.load(self.ringmode)
 
@@ -56,7 +57,7 @@ class Accelerator:
 
     def get_correctors(self, plane):
        # TODO: sort plane values between hstr, 0, horizontal etc.
-        corr = self.accelerator.get_elements(plane)
+        corr = self.accelerator.get_elements(plane.corrector)
         return corr
 
     def quads_from_cell(self, cell):
@@ -91,7 +92,7 @@ class Accelerator:
                 special_correctors.append(corrector_pv[:-2])
         return special_correctors
 
-    def quad2bpm(self, quad):
+    def quad_to_bpm(self, quad):
         """Finds the closest bpm to a quadrupole. (Deals with special cases)"""
         quad1_midpoint = quad.s + quad.length / 2
         quad1_bpm_distance = 1000
@@ -128,17 +129,18 @@ class Accelerator:
 
         Return (id, corrector element)
         """
-        bpm_index, bpm_element = self.quad2bpm(quad)
+        bpm_index, bpm_element = self.quad_to_bpm(quad)
         rm = self.get_rm_file()
         data = io.loadmat(rm, appendmat=False, struct_as_record=False)
         rm = data["Rmat"][plane.index, plane.index].Data
         row = rm[bpm_index - 1, :]
         # Note that ids are 1-indexed but arrays are 0-indexed.
         zero_indexed_corr_id = np.argmax(abs(row))
-        corrs = self.get_correctors(plane.corrector)
+        corrs = self.get_correctors(plane)
         return zero_indexed_corr_id + 1, corrs[zero_indexed_corr_id]
 
-    def corr_element2pv(self, element, plane):
+    def element_to_pv(self, element, plane):
+        """Corrector element to pv"""
         pv = element.get_pv_name(plane.kick, pytac.RB)
         return pv[:-2]
 
