@@ -80,8 +80,8 @@ def main():
 
     # TODO: fbba or sbba selection system in UI.
 
-    fbba = FBBA()
-    sbba = SBBA()
+    fbba = FBBA(accelerator)
+    sbba = SBBA(accelerator)
 
     if method == "fbba":
         algorithm: Algorithm = fbba
@@ -89,14 +89,12 @@ def main():
         algorithm: Algorithm = sbba
     else:
         raise ValueError("This should never happen!")
-
     
-    algorithm.setup(accelerator, quad, PLANE_VALUES[plane])
-    algorithm.config() # optional args
-    algorithm.run_bba()
-    algorithm.save_data(get_filename_prefix())
-    algorithm.analyse_data()
-    algorithm.apply_results()
+    #algorithm.configure() # Only for changing config values.
+    results = algorithm.run(quad, PLANE_VALUES[plane])
+    algorithm.save_data(results, get_filename_prefix())
+    algorithm.analyse_data(results) # Argument for plotting?
+    algorithm.apply_results(results)
 
 if __name__ == "__main__":
     main()
