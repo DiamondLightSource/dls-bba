@@ -4,25 +4,18 @@ from bba.common import Algorithm
 
 
 class SBBA(Algorithm):
-    def __init__(self, accelerator):
-        self._accelerator = accelerator
-        self.configure()
+    def __init__(self):
+        pass
 
-    def configure(self, quadrupole_scalar = 0.01, decimated = False):
-        """These are optional arguments, which are used during testing."""
-        self.quadrupole_scalar = quadrupole_scalar
-        self.decimated = decimated
-        #self.PLOT_GRAPHS = PLOT_GRAPHS
-
-    def run(self, quad, plane_info):
+    def setup(self, accelerator, quad, plane_dict):
+        """This are required arguments."""
+        self.accelerator = accelerator
         self.quad = quad
-        self.plane_info = plane_info
-    
-    def save_data(self):
-        pass
-    
-    def analyse_data(self):
+        self.plane_dict = plane_dict
+
+    def config(self):
+        """These are optional arguments, which are used during testing."""
         pass
 
-    def apply_results(self):
-        pass
+    def run_bba(self):
+        print("sbba")

@@ -12,16 +12,16 @@ from bba import accelerator as acc
 LOG_FORMAT = "%(levelname)-7s: %(message)s"
 
 
-def get_filename_prefix(method):
+def get_filename_prefix():
     """Returns a time string for the filename."""
     now = datetime.now()
     datestring = now.strftime("%Y-%m-%dT%H-%M-%S")
-    return "{}-{}".format(method, datestring)
+    return "bba-{}".format(datestring)
 
 
-def get_new_logger(method):
+def get_new_logger():
     logger = log.getLogger()
-    filename = "data/{}.log".format(get_filename_prefix(method))
+    filename = "data/{}.log".format(get_filename_prefix())
     file_handler = log.FileHandler(filename)
     file_handler.setLevel(log.DEBUG)
     formatter = log.Formatter(LOG_FORMAT)
@@ -30,6 +30,14 @@ def get_new_logger(method):
     logger.addHandler(log.StreamHandler())
     logger.setLevel(log.DEBUG)
 
+"""
+fbba = FBBA()
+sbba = SBBA()
+algorithm: Algorithm = fbba
+
+fbba.do_fbba_specific_thing()
+algorithm.do_fbba_specific_thing()
+"""
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Take BBA measurements")
@@ -65,7 +73,7 @@ def main():
     # TODO: Setup logger in its on logger.py?
     quad_scale = 1
     corr_scale = 1
-    get_new_logger(method)
+    get_new_logger()
     log.warning(
         "Method: {}, Plane: {}, Quad scale: {}, Corr scale: {}\n".format(
             method, plane, quad_scale, corr_scale))
@@ -80,8 +88,8 @@ def main():
 
     # TODO: fbba or sbba selection system in UI.
 
-    fbba = FBBA(accelerator)
-    sbba = SBBA(accelerator)
+    fbba = FBBA()
+    sbba = SBBA()
 
     if method == "fbba":
         algorithm: Algorithm = fbba
@@ -89,12 +97,11 @@ def main():
         algorithm: Algorithm = sbba
     else:
         raise ValueError("This should never happen!")
+
     
-    #algorithm.configure() # Only for changing config values.
-    results = algorithm.run(quad, PLANE_VALUES[plane])
-    algorithm.save_data(results, get_filename_prefix(method))
-    algorithm.analyse_data(results) # Argument for plotting?
-    algorithm.apply_results(results)
+    algorithm.setup(accelerator, quad, PLANE_VALUES[plane])
+    algorithm.config()
+    algorithm.run_bba()
 
 if __name__ == "__main__":
     main()

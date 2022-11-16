@@ -1,4 +1,34 @@
 """
+Various ways of testing BBA.
+
+    - change frequency of corrector oscillations
+    - change number of corrector cycles
+    - scan whole cell
+"""
+import argparse
+import logging as log
+
+from bba.constants import LOG_FORMAT, FREQUENCY, CYCLES, PLANE_VALUES, QUADRUPOLE_SCALAR
+from bba.accelerator import Accelerator as acc
+from bba.excite import Oscillation
+from bba.faa import TICKS_PER_SECOND
+from bba import jump_bba
+
+QUADRUPOLE_SCALAR = 0.01
+
+
+def get_new_logger():
+    logger = log.getLogger()
+    filename = "data/{}.log".format(jump_bba.get_filename_prefix())
+    file_handler = log.FileHandler(filename)
+    file_handler.setLevel(log.DEBUG)
+    formatter = log.Formatter(LOG_FORMAT)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    logger.addHandler(log.StreamHandler())
+    logger.setLevel(log.DEBUG)
+
+"""
 def load_amps_file(filename, quad_scale=1.0, corr_scale=1.0):
     amps = {}
     with open(filename) as f:
@@ -16,8 +46,10 @@ def load_amps(quad_scale=1.0, corr_scale=1.0):
     h_amps = load_amps_file(quad_scale, corr_scale)
     v_amps = load_amps_file(quad_scale, corr_scale)
     return h_amps, v_amps
+"""
 
 def one_bba(accelerator, quad, plane):
+    """Needs accelerator, quad element and plane dictionary."""
     quad_prefix = accelerator.prefix_from_element(quad, "b1")
     log.warning("BBA on quad {} in plane {}".format(quad_prefix, plane.axis))
     new_quad_step = accelerator.measure_quad(quad) * QUADRUPOLE_SCALAR
@@ -27,6 +59,7 @@ def one_bba(accelerator, quad, plane):
     osc = excite.Oscillation(new_corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
     jump_bba.jump_bba(quad, new_quad_step, osc, accelerator)
 
+"""
 def frequency_scan(accelerator, quad, plane):
     log.warning("Beginning test of different corrector oscillation frequencies.")
     amps = load_amps()[plane.index]
@@ -137,7 +170,7 @@ def scan_amplitudes(accelerator, quad, plane, scale_quad=True, scale_corr=True):
             osc = excite.Oscillation(ca, plane, constants.FREQUENCY, constants.CYCLES)
         # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
         jump_bba.jump_bba(quad, plane, qs, osc)
-
+"""
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Take BBA measurements")
@@ -190,18 +223,17 @@ def main():
     quad = accelerator.pv_to_quad(pv)
     one_bba(accelerator, quad, constants.PLANE_VALUES[plane])
 
-    
-    #one_bba(accelerator, quad, plane)
+    """
+    one_bba(accelerator, quad, plane)
     # None of these work
-    #frequency_scan(accelerator, quad, plane)
-    #cycle_scan(accelerator, quad, plane)
-    #repeatability_scan(accelerator, quad, plane, counts)
-    #compare_decimated_data(accelerator, quad, plane)
-    #scan_cell(accelerator, cell)
-    #scan_amplitudes(accelerator, quad, plane, scale_quad=True, scale_corr=True)
-    
+    frequency_scan(accelerator, quad, plane)
+    cycle_scan(accelerator, quad, plane)
+    repeatability_scan(accelerator, quad, plane, counts)
+    compare_decimated_data(accelerator, quad, plane)
+    scan_cell(accelerator, cell)
+    scan_amplitudes(accelerator, quad, plane, scale_quad=True, scale_corr=True)
+    """
 
 
 if __name__ == "__main__":
     main()
-"""
