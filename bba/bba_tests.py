@@ -56,90 +56,90 @@ def one_bba(accelerator, quad, plane):
     osc = Oscillation(new_corr_amp, plane, FREQUENCY, CYCLES)
     jump_bba.jump_bba(quad, new_quad_step, osc, accelerator)
 
-"""
-def frequency_scan(accelerator, quad, plane):
-    log.warning("Beginning test of different corrector oscillation frequencies.")
-    amps = load_amps()[plane.index]
-    quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
-    for i in range(1, 8):
-        period = TICKS_PER_SECOND // i
-        log.info("The calculated period is {}.".format(period))
-        osc = Oscillation(corr_amp, plane, i, CYCLES)
-        # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
-        jump_bba(quad, plane, quad_step, osc)
+
+# def frequency_scan(accelerator, quad, plane):
+#     log.warning("Beginning test of different corrector oscillation frequencies.")
+#     amps = load_amps()[plane.index]
+#     quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
+#     for i in range(1, 8):
+#         period = TICKS_PER_SECOND // i
+#         log.info("The calculated period is {}.".format(period))
+#         osc = Oscillation(corr_amp, plane, i, CYCLES)
+#         # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
+#         jump_bba(quad, plane, quad_step, osc)
 
 
-def cycle_scan(accelerator, quad, plane):
-    log.warning("Beginning test of different numbers of corrector cycles.")
-    amps = load_amps()[plane.index]
-    quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
-    for cycles in range(1, 5):
-        log.info("Trying {} cycles.".format(cycles))
-        osc = Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
-        # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
-        jump_bba(quad, plane, quad_step, osc)
+# def cycle_scan(accelerator, quad, plane):
+#     log.warning("Beginning test of different numbers of corrector cycles.")
+#     amps = load_amps()[plane.index]
+#     quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
+#     for cycles in range(1, 5):
+#         log.info("Trying {} cycles.".format(cycles))
+#         osc = Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
+#         # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
+#         jump_bba(quad, plane, quad_step, osc)
 
 
-def repeatability_scan(accelerator, quad, plane, counts):
-    log.warning("Beginning test of different numbers of corrector cycles.")
-    amps = load_amps()[plane.index]
-    quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
-    log.info("Quad_step %s, corr_amp %s", quad_step, corr_amp)
-    for count in counts:  # Just run ten times at 8 Hz
-        log.info("Trying scan {} of {}.".format(count, counts))
-        osc = Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
-        # TODO: Cannot work: Missing accelerator arg
-        jump_bba(quad, quad_step, osc)
+# def repeatability_scan(accelerator, quad, plane, counts):
+#     log.warning("Beginning test of different numbers of corrector cycles.")
+#     amps = load_amps()[plane.index]
+#     quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
+#     log.info("Quad_step %s, corr_amp %s", quad_step, corr_amp)
+#     for count in counts:  # Just run ten times at 8 Hz
+#         log.info("Trying scan {} of {}.".format(count, counts))
+#         osc = Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
+#         # TODO: Cannot work: Missing accelerator arg
+#         jump_bba(quad, quad_step, osc)
 
 
-def compare_decimated_data(accelerator, quad, plane):
-    log.warning("Beginning test between raw and decimated data.")
-    amps = load_amps()[plane.index]
-    quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
+# def compare_decimated_data(accelerator, quad, plane):
+#     log.warning("Beginning test between raw and decimated data.")
+#     amps = load_amps()[plane.index]
+#     quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
 
-    osc = Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
-    # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
-    jump_bba(quad, plane, quad_step, osc)
-    # Now do the full one.  Change a constant!
-    DECIMATED = False
-    try:
-        # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
-        jump_bba(quad, plane, quad_step, osc)
-    except Exception as e:
-        log.warn("BBA failed: {} ({}).".format(e, e.__class__))
-    # And back!
-    DECIMATED = True
-
-
-def scan_cell(accelerator, cell):
-    log.warning("Beginning scan of cell {}.".format(cell))
-    quads = accelerator.quads_from_cell(cell)
-    amps = load_amps()
-    for quad in quads:
-        for plane in (PLANE_VALUES["HORIZONTAL"]["axis"], PLANE_VALUES["VERTICAL"]["axis"]):
-            quad_step, corr_amp = amps[plane][accelerator.prefix_from_element(quad, "b1")]
-            osc = Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
-            # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
-            jump_bba(quad, plane, quad_step, osc)
+#     osc = Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
+#     # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
+#     jump_bba(quad, plane, quad_step, osc)
+#     # Now do the full one.  Change a constant!
+#     DECIMATED = False
+#     try:
+#         # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
+#         jump_bba(quad, plane, quad_step, osc)
+#     except Exception as e:
+#         log.warn("BBA failed: {} ({}).".format(e, e.__class__))
+#     # And back!
+#     DECIMATED = True
 
 
-def scan_amplitudes(accelerator, quad, plane, scale_quad=True, scale_corr=True):
-    log.warning(
-        "Beginning scaling test: quad? {}; corr? {}.".format(scale_quad, scale_corr)
-    )
-    amps = load_amps()[plane.index]
-    quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
-    osc = Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
-    scales = [0.5, 1.0, 2.0, 5.0]
-    for s in scales:
-        if scale_quad:
-            qs = quad_step * s
-        if scale_corr:
-            ca = corr_amp * s
-            osc = Oscillation(ca, plane, FREQUENCY, CYCLES)
-        # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
-        jump_bba.jump_bba(quad, plane, qs, osc)
-"""
+# def scan_cell(accelerator, cell):
+#     log.warning("Beginning scan of cell {}.".format(cell))
+#     quads = accelerator.quads_from_cell(cell)
+#     amps = load_amps()
+#     for quad in quads:
+#         for plane in (PLANE_VALUES["HORIZONTAL"]["axis"], PLANE_VALUES["VERTICAL"]["axis"]):
+#             quad_step, corr_amp = amps[plane][accelerator.prefix_from_element(quad, "b1")]
+#             osc = Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
+#             # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
+#             jump_bba(quad, plane, quad_step, osc)
+
+
+# def scan_amplitudes(accelerator, quad, plane, scale_quad=True, scale_corr=True):
+#     log.warning(
+#         "Beginning scaling test: quad? {}; corr? {}.".format(scale_quad, scale_corr)
+#     )
+#     amps = load_amps()[plane.index]
+#     quad_step, corr_amp = amps[accelerator.prefix_from_element(quad, "b1")]
+#     osc = Oscillation(corr_amp, plane, FREQUENCY, CYCLES)
+#     scales = [0.5, 1.0, 2.0, 5.0]
+#     for s in scales:
+#         if scale_quad:
+#             qs = quad_step * s
+#         if scale_corr:
+#             ca = corr_amp * s
+#             osc = Oscillation(ca, plane, FREQUENCY, CYCLES)
+#         # TODO: Cannot work: Passing plane in quad_step arg and missing accelerator arg
+#         jump_bba.jump_bba(quad, plane, qs, osc)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Take BBA measurements")

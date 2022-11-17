@@ -7,7 +7,7 @@ from itertools import chain
 
 DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
 MASTER_CALIBRATION_PATH = "/dls_sw/work/common/matlab/mml/machine-new/diamond/master_calibration.csv"
-CORRECTOR_KICK = 2e-5
+CORRECTOR_KICK_RADS = 2e-5
 
 
 class Accelerator:
@@ -137,7 +137,7 @@ class Accelerator:
         return zero_indexed_corr_id + 1, corrs[zero_indexed_corr_id]
 
     def element_to_pv(self, element, plane):
-        """Corrector element to pv"""
+        """Corrector element to pv-root"""
         pv = element.get_pv_name(plane.kick, pytac.RB)
         return pv[:-2]
 
@@ -152,7 +152,7 @@ class Accelerator:
         initial_current, initial_rad = data[result][0][3:5]
         final_current, final_rad = data[result][1][3:5]
         gradient = (float(final_current) - float(initial_current))/(float(final_rad) - float(initial_rad))
-        linear_value = gradient * CORRECTOR_KICK
+        linear_value = gradient * CORRECTOR_KICK_RADS
         rad_value = str(np.format_float_positional(linear_value, precision=6))
         return rad_value
 
