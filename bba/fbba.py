@@ -30,36 +30,45 @@ class FBBA(Algorithm):
         self.decimated = decimated
         # self.PLOT_GRAPHS = PLOT_GRAPHS
 
-    def setup(self):
+    def quad_bpm_corr(self, element):
+        """Input quad/bpm element, calculate relevent elements."""
+        if element in self._accelerator.quads:
+            self.quad = element
+            self.bpm = self._accelerator.quad_to_bpm(self.quad)
+            self.corrector = self._accelerator.effective_corrector(self.bpm, self.plane_info)
+        else:
+            self.bpm = element
+            self.corrector = self._accelerator.effective_corrector(self.bpm, self.plane_info)
+            # TODO: bpm_to_quad()
+            self.quad = self._accelerator.bpm_to_quad()
+
         self.quad_pv = self._accelerator.quad_to_pv(self.quad)
-        self.quad_step = self._accelerator.measure_quad(self.quad) * self.quadrupole_scalar
-        log.info(
-            f"FBBA on quad {self.quad_pv} with step of {self.quad_step} in plane {self.plane_info.axis}.")
+        self.bpm_pv = self._accelerator.bpms_pvs[self._accelerator.bpms.index(self.bpm)]
+        if self.plane_info.index == 0:
+            self.corrector_pv = self._accelerator.hstrs_pvs[self._accelerator.hstrs.index(self.corrector)]
+        else:
+            self.corrector_pv = self._accelerator.vstrs_pvs[self._accelerator.vstrs.index(self.corrector)]
 
-        # TODO: This setup needs finishing/fixing
-        #corr_index, corr_element, corr_pv = self._accelerator.effective_corrector(self.quad, self.plane_info)
-        # TODO: Log quad, bpm, corr info as it is generated. Only needs to be generated once.
+    def run(self, element, plane_info):
+        """Run the FBBA process."""
 
-    def run(self, quad, plane_info):
-
-        self.quad = quad
         self.plane_info = plane_info
+        log.info(f"FBBA process started in plane {self.plane_info.axis}.")
 
-        self.setup()
+        self.quad_bpm_corr(element)
+        log.info(f"Quad: {self.quad_pv}, BPM: {self.bpm_pv}, Corrector: {self.corrector_pv}.")
+
+        quad_step = self._accelerator.measure_quad(self.quad) * self.quadrupole_scalar
+        corr_amp = self._accelerator.microrads(self.corrector, self.plane_info)
+        log.info(f"Quad step: {quad_step}, Corrector step: {corr_amp}.")
 
 
-        #Split corrector and bpm stuff?
-        corrector_index, corr_element = self._accelerator.effective_corrector(self.quad, self.plane_info)
+        
 
-        corr_pv = self._accelerator.element_to_pv(corr_element, self.plane_info)
-        new_corr_amp = self._accelerator.microrads(corr_pv)
-        osc = excite.Oscillation(new_corr_amp, self.plane_info, self.frequency, self.cycles)
+        osc = excite.Oscillation(corr_amp, self.plane_info, self.frequency, self.cycles)
         self.osc = osc
                 #jump_bba.jump_bba(self.quad, quad_step, osc, self.accelerator)
 
-        # Jump bba.
-        log.info("BBA of quad {} in plane {}".format(quad_pv, osc.plane.axis))
-        log.info("Quad step is {}".format(quad_step))
         log.info(
             "Oscillation amplitude {}; frequency {}; cycles {}".format(
                 osc.amp, osc.freq, osc.cycles))
@@ -70,9 +79,11 @@ class FBBA(Algorithm):
         quad_lag_s = quad_step / QUAD_SLEW_RATE
         quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
 
-        corr_id, ap_corr = self._accelerator.effective_corrector(self.quad, osc.plane)
+
+
+        #corr_id, ap_corr = self._accelerator.effective_corrector(self.bpm, osc.plane)
         field = osc.plane.kick
-        log.info("Using corrector {}: {}".format(corr_id, ap_corr.get_device(field).name))
+        log.info("Using corrector: {}".format(self.corrector.get_device(field).name))
         # Move quad high
         self._accelerator.set_quad(self.quad, quad_high)
         cothread.Sleep(quad_lag_s / 2)
@@ -90,10 +101,10 @@ class FBBA(Algorithm):
         log.info("High start time: {}.".format(high_start - now))
         log.info("Low start time: {}.".format(low_start - now))
         log.debug("The oscillation: {}".format(osc))
-        self.exc_high = excite.Excitation(ap_corr, osc, high_start, self._accelerator)
+        self.exc_high = excite.Excitation(self.corrector, osc, high_start, self._accelerator)
         log.debug(
             "The excitation: dwell {} count {}".format(self.exc_high.dwell, self.exc_high.count))
-        self.exc_low = excite.Excitation(ap_corr, osc, low_start, self._accelerator)
+        self.exc_low = excite.Excitation(self.corrector, osc, low_start, self._accelerator)
         excite.excite((self.exc_high,))
         # Sleep for first excitation. SAFETY_NET ensures that we don't start
         # moving the quad before the excitation has finished.

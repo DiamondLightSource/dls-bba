@@ -22,13 +22,19 @@ class Accelerator:
 
         self.bpms = self.accelerator.get_elements("BPM")
         self.enabled_bpms = self.accelerator.get_element_values("BPM", "enabled")
+        self.bpms_pvs = self.accelerator.get_element_pv_names("BPM", "enabled", pytac.RB)
+        self.bpms_pvs = [bpm.split(":")[0] for bpm in self.bpms_pvs]
         
-        self.hstr_pvs = self.accelerator.get_element_pv_names("HSTR", "x_kick", pytac.RB)
-        self.vstr_pvs = self.accelerator.get_element_pv_names("VSTR", "y_kick", pytac.RB)
+        self.hstrs = self.accelerator.get_elements("HSTR")
+        self.vstrs = self.accelerator.get_elements("VSTR")
+        self.hstrs_pvs = self.accelerator.get_element_pv_names("HSTR", "x_kick", pytac.RB)
+        self.vstrs_pvs = self.accelerator.get_element_pv_names("VSTR", "y_kick", pytac.RB)
+        self.hstrs_pvs = [hstr[:-2] for hstr in self.hstrs_pvs]
+        self.vstrs_pvs = [vstr[:-2] for vstr in self.vstrs_pvs]
 
         self.quads = self.accelerator.get_elements("quadrupole")
-        self.quad_pvs = self.accelerator.get_element_pv_names("quadrupole", "b1", pytac.RB)
-        self.quad_pvs = [quad[:-2] for quad in self.quad_pvs]
+        self.quads_pvs = self.accelerator.get_element_pv_names("quadrupole", "b1", pytac.RB)
+        self.quads_pvs = [quad[:-2] for quad in self.quads_pvs]
 
     def get_ring_mode(self, ringmode = None):
         """Get ringmode if one not provided"""
@@ -39,14 +45,14 @@ class Accelerator:
     def quad_to_pv(self, quad, field=None):
         if field is None:
             index = self.quads.index(quad)
-            pv = self.quad_pvs[index]
+            pv = self.quads_pvs[index]
         else:
             pv = quad.get_pv_name(field, pytac.SP)
         return pv
 
     def pv_to_quad(self, quad_pv):
         base_pv = quad_pv.split(":")[0]
-        index = self.quad_pvs.index(base_pv)
+        index = self.quads_pvs.index(base_pv)
         return self.quads[index]
 
     def prefix_from_element(self, element, device):
@@ -80,11 +86,11 @@ class Accelerator:
     def special_correctors(self): 
         "SR01A -> SR01S or HSTR -> HSCOR"
         special_correctors = []
-        for corrector_pv in self.hstr_pvs:
+        for corrector_pv in self.hstrs_pvs:
             pv_split = corrector_pv.split("-")
             if pv_split[0][-1] == "S" or len(pv_split[2]) == 5:
                 special_correctors.append(corrector_pv[:-2])
-        for corrector_pv in self.vstr_pvs:
+        for corrector_pv in self.vstrs_pvs:
             pv_split = corrector_pv.split("-")
             if pv_split[0][-1] == "S" or len(pv_split[2]) == 5:
                 special_correctors.append(corrector_pv[:-2])
@@ -116,38 +122,37 @@ class Accelerator:
             quad1_bpm_index = quad1_bpm_index - 1
             quad1_closest_bpm = self.bpms[quad1_bpm_index]
 
-        return quad1_bpm_index, quad1_closest_bpm
+        return quad1_closest_bpm
 
     def get_rm_file(self):
         rm_file = DATAROOT + "/" + self.ringmode +"/GoldenBPMResp.mat"
         return rm_file
 
-    def effective_corrector(self, quad, plane):
-        """Find most effective corrector for a quad.
-
-        Return (id, corrector element)
-        """
-        bpm_index, bpm_element = self.quad_to_bpm(quad)
+    def effective_corrector(self, bpm, plane):
+        """Find most effective corrector for a bpm.
+        Return (id, corrector element)"""
         rm = self.get_rm_file()
         data = io.loadmat(rm, appendmat=False, struct_as_record=False)
         rm = data["Rmat"][plane.index, plane.index].Data
-        row = rm[bpm_index - 1, :]
+        row = rm[self.bpms.index(bpm) - 1, :]
         # Note that ids are 1-indexed but arrays are 0-indexed.
         zero_indexed_corr_id = np.argmax(abs(row))
+        # TODO: change the following line to use self.hstr/vstr
         corrs = self.get_correctors(plane)
-        return zero_indexed_corr_id + 1, corrs[zero_indexed_corr_id], 
+        return corrs[zero_indexed_corr_id]
 
     def element_to_pv(self, element, plane):
         """Corrector element to pv"""
         pv = element.get_pv_name(plane.kick, pytac.RB)
         return pv[:-2]
 
-    def microrads(self, corr_pv):
+    def microrads(self, corrector, plane):
         """Find the current required for a corrector kick of x microrads"""
 
         with open(MASTER_CALIBRATION_PATH) as file:
             data = np.genfromtxt(file, delimiter=",", dtype = str)
         pv_column = data[:, 0]
+        corr_pv = self.element_to_pv(corrector, plane)
         corr_pv = corr_pv.replace("-", "_")
         result = np.where(pv_column == corr_pv)
         initial_current, initial_rad = data[result][0][3:5]

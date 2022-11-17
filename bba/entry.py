@@ -47,8 +47,8 @@ def parse_args():
         "--method",
         dest="method",
         action="store_const",
-        default="fbba",
-        const ="sbba",
+        default="FBBA",
+        const ="SBBA",
         help="Which BBA method to use"
     )
     return parser.parse_args()
@@ -83,9 +83,9 @@ def main():
     fbba = FBBA(accelerator)
     sbba = SBBA(accelerator)
 
-    if method == "fbba":
+    if method == "FBBA":
         algorithm: Algorithm = fbba
-    elif method == "sbba":
+    elif method == "SBBA":
         algorithm: Algorithm = sbba
     else:
         raise ValueError("This should never happen!")
