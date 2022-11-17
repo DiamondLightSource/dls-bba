@@ -1,6 +1,6 @@
 """A temporary file that contains some constants and filepaths during refactoring."""
 
-from bba import faa
+from bba.faa import TICKS_PER_SECOND
 from typing import NamedTuple
 
 
@@ -25,7 +25,7 @@ LOG_FORMAT = "%(levelname)-7s: %(message)s"
 NETWORK_LAG_S = 0.5
 SAFETY_NET_S = 0.1
 QUAD_SLEW_RATE = 0.5  # A/s
-NETWORK_LAG = int(NETWORK_LAG_S * faa.TICKS_PER_SECOND)
-SAFETY_NET = int(SAFETY_NET_S * faa.TICKS_PER_SECOND)
+NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
+SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
 
 IOCS = ["SR%02dA-CS-FOFB-01" % i for i in range(1, 25)] #Number of cells - ie one IOC per cell.

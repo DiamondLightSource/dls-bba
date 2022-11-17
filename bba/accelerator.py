@@ -2,11 +2,12 @@ import pytac
 from cothread.catools import DBR_STRING, caget
 import scipy.io as io
 import numpy as np
+from itertools import chain
 
 
 DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
 MASTER_CALIBRATION_PATH = "/dls_sw/work/common/matlab/mml/machine-new/diamond/master_calibration.csv"
-REQUIRED_RAD = 2e-5
+CORRECTOR_KICK = 2e-5
 
 
 class Accelerator:
@@ -80,13 +81,10 @@ class Accelerator:
         quad.set_value("b1", value, pytac.ENG)
 
     def special_correctors(self): 
-        "SR01A -> SR01S or HSTR -> HSCOR"
+        """Special correctors refers to correctors that are non standard such as cell 2 and straights 9 and 13.
+        They are identified by: SR01A -> SR01S or HSTR -> HSCOR"""
         special_correctors = []
-        for corrector_pv in self.hstr_pvs:
-            pv_split = corrector_pv.split("-")
-            if pv_split[0][-1] == "S" or len(pv_split[2]) == 5:
-                special_correctors.append(corrector_pv[:-2])
-        for corrector_pv in self.vstr_pvs:
+        for corrector_pv in chain(self.hstr_pvs, self.vstr_pvs):
             pv_split = corrector_pv.split("-")
             if pv_split[0][-1] == "S" or len(pv_split[2]) == 5:
                 special_correctors.append(corrector_pv[:-2])
@@ -120,21 +118,20 @@ class Accelerator:
 
         return quad1_bpm_index, quad1_closest_bpm
 
-    def get_rm_file(self):
+    def get_response_matrix_path(self):
+        """This gets the response matrix file path."""
         rm_file = DATAROOT + "/" + self.ringmode +"/GoldenBPMResp.mat"
         return rm_file
 
     def effective_corrector(self, quad, plane):
         """Find most effective corrector for a quad.
-
-        Return (id, corrector element)
-        """
+        Return (id, corrector element)"""
         bpm_index, bpm_element = self.quad_to_bpm(quad)
-        rm = self.get_rm_file()
+        rm = self.get_response_matrix_path()
         data = io.loadmat(rm, appendmat=False, struct_as_record=False)
         rm = data["Rmat"][plane.index, plane.index].Data
-        row = rm[bpm_index - 1, :]
         # Note that ids are 1-indexed but arrays are 0-indexed.
+        row = rm[bpm_index - 1, :]
         zero_indexed_corr_id = np.argmax(abs(row))
         corrs = self.get_correctors(plane)
         return zero_indexed_corr_id + 1, corrs[zero_indexed_corr_id]
@@ -155,7 +152,7 @@ class Accelerator:
         initial_current, initial_rad = data[result][0][3:5]
         final_current, final_rad = data[result][1][3:5]
         gradient = (float(final_current) - float(initial_current))/(float(final_rad) - float(initial_rad))
-        linear_value = gradient * REQUIRED_RAD
+        linear_value = gradient * CORRECTOR_KICK
         rad_value = str(np.format_float_positional(linear_value, precision=6))
         return rad_value
 
