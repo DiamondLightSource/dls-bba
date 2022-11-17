@@ -8,7 +8,7 @@ Various ways of testing BBA.
 import argparse
 import logging as log
 
-from bba.constants import LOG_FORMAT, H_AMPS_FILE, V_AMPS_FILE, FREQUENCY, CYCLES, PLANE_VALUES
+from bba.constants import LOG_FORMAT, FREQUENCY, CYCLES, PLANE_VALUES, QUADRUPOLE_SCALAR
 from bba.accelerator import Accelerator as acc
 from bba.excite import Oscillation
 from bba.faa import TICKS_PER_SECOND
@@ -40,8 +40,8 @@ def load_amps_file(filename, quad_scale=1.0, corr_scale=1.0):
 
 
 def load_amps(quad_scale=1.0, corr_scale=1.0):
-    h_amps = load_amps_file(H_AMPS_FILE, quad_scale, corr_scale)
-    v_amps = load_amps_file(V_AMPS_FILE, quad_scale, corr_scale)
+    h_amps = load_amps_file(quad_scale, corr_scale)
+    v_amps = load_amps_file(quad_scale, corr_scale)
     return h_amps, v_amps
 
 
@@ -49,11 +49,11 @@ def one_bba(accelerator, quad, plane):
     """Needs accelerator, quad element and plane dictionary."""
     quad_prefix = accelerator.prefix_from_element(quad, "b1")
     log.warning("BBA on quad {} in plane {}".format(quad_prefix, plane.axis))
-    new_quad_step = accelerator.measure_quad(quad) * constants.QUADRUPOLE_SCALAR
+    new_quad_step = accelerator.measure_quad(quad) * QUADRUPOLE_SCALAR
     corrector_index, corr_element = accelerator.effective_corrector(quad, plane)
     corr_pv = accelerator.element_to_pv(corr_element, plane)
     new_corr_amp = accelerator.microrads(corr_pv)
-    osc = excite.Oscillation(new_corr_amp, plane, constants.FREQUENCY, constants.CYCLES)
+    osc = Oscillation(new_corr_amp, plane, FREQUENCY, CYCLES)
     jump_bba.jump_bba(quad, new_quad_step, osc, accelerator)
 
 """
@@ -191,7 +191,7 @@ def main():
     # TODO: Tie in axis into lattice? Or run for both axes as default (same as SBBA)?
     accelerator = acc.Accelerator(ringmode)
     quad = accelerator.pv_to_quad(pv)
-    one_bba(accelerator, quad, constants.PLANE_VALUES[plane])
+    one_bba(accelerator, quad, PLANE_VALUES[plane])
 
     """
     one_bba(accelerator, quad, plane)
