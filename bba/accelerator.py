@@ -21,10 +21,12 @@ class Accelerator:
         self.accelerator._data_source_manager._data_sources[pytac.LIVE]._devices["beam_current"]._cs._timeout = 5.0
 
         self.bpms = self.accelerator.get_elements("BPM")
-        self.quads = self.accelerator.get_elements("quadrupole")
+        self.enabled_bpms = self.accelerator.get_element_values("BPM", "enabled")
+        
         self.hstr_pvs = self.accelerator.get_element_pv_names("HSTR", "x_kick", pytac.RB)
         self.vstr_pvs = self.accelerator.get_element_pv_names("VSTR", "y_kick", pytac.RB)
 
+        self.quads = self.accelerator.get_elements("quadrupole")
         self.quad_pvs = self.accelerator.get_element_pv_names("quadrupole", "b1", pytac.RB)
         self.quad_pvs = [quad[:-2] for quad in self.quad_pvs]
 
@@ -33,10 +35,6 @@ class Accelerator:
         if ringmode is None:
             ringmode = caget("SR-CS-RING-01:MODE", datatype=DBR_STRING)
         return ringmode
-
-    def enabled_bpms(self):
-        good_bpms = self.accelerator.get_element_values("BPM", "enabled")
-        return good_bpms
 
     def quad_to_pv(self, quad, field=None):
         if field is None:
@@ -137,7 +135,7 @@ class Accelerator:
         # Note that ids are 1-indexed but arrays are 0-indexed.
         zero_indexed_corr_id = np.argmax(abs(row))
         corrs = self.get_correctors(plane)
-        return zero_indexed_corr_id + 1, corrs[zero_indexed_corr_id]
+        return zero_indexed_corr_id + 1, corrs[zero_indexed_corr_id], 
 
     def element_to_pv(self, element, plane):
         """Corrector element to pv"""
