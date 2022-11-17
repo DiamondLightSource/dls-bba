@@ -1,6 +1,4 @@
-HORIZONTAL_PLANE = 0  # Fundamental definition of plane orientation
-VERTICAL_PLANE = 1
-X = HORIZONTAL_PLANE
-Y = VERTICAL_PLANE
-AXIS_NAMES = {HORIZONTAL_PLANE: "X", VERTICAL_PLANE: "Y"}
-CORRECTOR_FAMILIES = {HORIZONTAL_PLANE: "HSTR", VERTICAL_PLANE: "VSTR"}
+"""Beam Based Alignment
+
+This module contains the functions to carry out fast BBA or slow BBA alongside analysis functions.
+"""
