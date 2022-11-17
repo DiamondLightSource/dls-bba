@@ -12,11 +12,11 @@ from bba.constants import LOG_FORMAT, FREQUENCY, CYCLES, PLANE_VALUES, QUADRUPOL
 from bba.accelerator import Accelerator as acc
 from bba.excite import Oscillation
 from bba.faa import TICKS_PER_SECOND
-from bba.jump_bba import get_filename_prefix, jump_bba, DECIMATED
+from bba import jump_bba
 
 def get_new_logger():
     logger = log.getLogger()
-    filename = "data/{}.log".format(get_filename_prefix())
+    filename = "data/{}.log".format(jump_bba.get_filename_prefix())
     file_handler = log.FileHandler(filename)
     file_handler.setLevel(log.DEBUG)
     formatter = log.Formatter(LOG_FORMAT)
