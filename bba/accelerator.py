@@ -1,10 +1,20 @@
 import pytac
 from cothread.catools import DBR_STRING, caget
+import scipy.io as io
+import numpy as np
+from itertools import chain
+
+
+DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
+MASTER_CALIBRATION_PATH = "/dls_sw/work/common/matlab/mml/machine-new/diamond/master_calibration.csv"
+CORRECTOR_KICK_RADS = 2e-5
+
+
 class Accelerator:
     """Accelerator class stores all accelerator data and functions."""
 
     def __init__(self, ringmode = None):
-        """Initialising the accelerator, HSTR, VSTR and BPM arrays."""
+        """Initialising the accelerator model."""
         self.ringmode = self.get_ring_mode(ringmode)
         self.accelerator = pytac.load_csv.load(self.ringmode)
 
@@ -48,7 +58,7 @@ class Accelerator:
 
     def get_correctors(self, plane):
        # TODO: sort plane values between hstr, 0, horizontal etc.
-        corr = self.accelerator.get_elements(plane)
+        corr = self.accelerator.get_elements(plane.corrector)
         return corr
 
     def quads_from_cell(self, cell):
@@ -63,8 +73,88 @@ class Accelerator:
         return cell_quads
 
     def measure_quad(self, quad):
+        """This is returning the current quadrupole current value."""
         value = quad.get_value("b1", pytac.RB, pytac.ENG)
         return value
 
     def set_quad(self, quad, value):
         quad.set_value("b1", value, pytac.ENG)
+
+    def special_correctors(self): 
+        """Special correctors refers to correctors that are non standard such as cell 2 and straights 9 and 13.
+        They are identified by: SR01A -> SR01S or HSTR -> HSCOR"""
+        special_correctors = []
+        for corrector_pv in chain(self.hstr_pvs, self.vstr_pvs):
+            pv_split = corrector_pv.split("-")
+            if pv_split[0][-1] == "S" or len(pv_split[2]) == 5:
+                special_correctors.append(corrector_pv[:-2])
+        return special_correctors
+
+    def quad_to_bpm(self, quad):
+        """Finds the closest bpm to a quadrupole. (Deals with special cases)"""
+        quad1_midpoint = quad.s + quad.length / 2
+        quad1_bpm_distance = 1000
+        quad1_closest_bpm = None
+        # Checking the quad before to check for special cases.
+        quad2 = self.quads[self.quads.index(quad) - 1]
+        quad2_midpoint = quad2.s + quad2.length / 2
+        quad2_bpm_distance = 1000
+        quad2_closest_bpm = None
+
+        for bpm in self.bpms:
+            if abs(bpm.s - quad1_midpoint) < quad1_bpm_distance:
+                quad1_closest_bpm = bpm
+                quad1_bpm_distance = abs(bpm.s - quad1_midpoint)
+            if abs(bpm.s - quad2_midpoint) < quad2_bpm_distance:
+                quad2_closest_bpm = bpm
+                quad2_bpm_distance = abs(bpm.s - quad2_midpoint)
+        
+        quad1_bpm_index = self.bpms.index(quad1_closest_bpm)
+        quad2_bpm_index = self.bpms.index(quad2_closest_bpm)
+
+        if quad1_bpm_index != quad2_bpm_index and quad1_bpm_index != quad2_bpm_index + 1:
+            quad1_bpm_index = quad1_bpm_index - 1
+            quad1_closest_bpm = self.bpms[quad1_bpm_index]
+
+        return quad1_bpm_index, quad1_closest_bpm
+
+    def get_response_matrix_path(self):
+        """This gets the response matrix file path."""
+        rm_file = DATAROOT + "/" + self.ringmode +"/GoldenBPMResp.mat"
+        return rm_file
+
+    def effective_corrector(self, quad, plane):
+        """Find most effective corrector for a quad.
+        Return (id, corrector element)"""
+        bpm_index, bpm_element = self.quad_to_bpm(quad)
+        rm = self.get_response_matrix_path()
+        data = io.loadmat(rm, appendmat=False, struct_as_record=False)
+        rm = data["Rmat"][plane.index, plane.index].Data
+        # Note that ids are 1-indexed but arrays are 0-indexed.
+        row = rm[bpm_index - 1, :]
+        zero_indexed_corr_id = np.argmax(abs(row))
+        corrs = self.get_correctors(plane)
+        return zero_indexed_corr_id + 1, corrs[zero_indexed_corr_id]
+
+    def element_to_pv(self, element, plane):
+        """Corrector element to pv-root"""
+        pv = element.get_pv_name(plane.kick, pytac.RB)
+        return pv[:-2]
+
+    def microrads(self, corr_pv):
+        """Find the current required for a corrector kick of x microrads"""
+
+        with open(MASTER_CALIBRATION_PATH) as file:
+            data = np.genfromtxt(file, delimiter=",", dtype = str)
+        pv_column = data[:, 0]
+        corr_pv = corr_pv.replace("-", "_")
+        result = np.where(pv_column == corr_pv)
+        initial_current, initial_rad = data[result][0][3:5]
+        final_current, final_rad = data[result][1][3:5]
+        gradient = (float(final_current) - float(initial_current))/(float(final_rad) - float(initial_rad))
+        linear_value = gradient * CORRECTOR_KICK_RADS
+        rad_value = str(np.format_float_positional(linear_value, precision=6))
+        return rad_value
+
+
+# TODO: Attaching the plane values to the lattice since only one axis is done at a time

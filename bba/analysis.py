@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io as io
 from matplotlib.gridspec import GridSpec
-from bba import faa, constants
+from bba.faa import TICKS_PER_SECOND
 
 DECIMATED = False
 
@@ -19,7 +19,7 @@ def extract_freq_fft(data, freq):
 
 def extract_freq_excite(data, freq):
     data_length = data.shape[0]
-    num_oscs = 1.0 * data_length * freq / faa.TICKS_PER_SECOND
+    num_oscs = 1.0 * data_length * freq / TICKS_PER_SECOND
     num_oscs = num_oscs * 10 if DECIMATED else num_oscs
 
     osc = np.exp(np.linspace(0, 2j * np.pi * num_oscs, data_length))
@@ -36,7 +36,7 @@ def analyse(data, use_fft=False, plot_output=False):
     bpm = data["bpm"] - 1  # Zero Index
     enabled_bpms = np.equal(data["enabled_bpms"], 1)
     bpm_index = bpm - np.sum(enabled_bpms[:bpm] == False)  # noqa false positive
-    freq = faa.TICKS_PER_SECOND / data["period"]
+    freq = TICKS_PER_SECOND / data["period"]
 
     # Remove bad BPMs and change units to um
     q_low = data["low"][:, enabled_bpms] * 1e-3
