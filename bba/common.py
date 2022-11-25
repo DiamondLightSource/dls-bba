@@ -160,6 +160,27 @@ class Algorithm(ABC):
     def analyse_data(self, data, plot_output = False, *args, **kwargs):
         pass
 
-    @abstractmethod
-    def apply_results(self):
-        pass
+    def apply_results(self, results):
+        plane_info = results.metadata["plane"]
+        bpm_pv_prefix = results.metadata['bpm'][0]
+        offset = []
+        error = []
+        for key, value in results.results.items():
+            offset.append(value[0])
+            error.append(value[1])
+        offset_to_apply = mean(offset)
+        error_to_apply = mean(error)
+        print(f"BPM: {bpm_pv_prefix} offset applied: {offset} +- {error}.")
+        
+        if plane_info.axis == "Y":
+            suffix = ":CF:BBA_Y_S"
+        elif plane_info.axis == "X":
+            suffix = ":CF:BBA_X_S"
+        setting_pv = bpm_pv_prefix + suffix
+
+        current_value = caget(setting_pv)
+        print(f"Current offset: {current_value}.")
+
+        new_value = current_value + offset_to_apply
+        caput(setting_pv, new_value)
+        print(f"Applied result of {new_value}.")
