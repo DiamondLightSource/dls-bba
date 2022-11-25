@@ -1,18 +1,16 @@
-"""This file contains fast BBA specific functions and classes"""
+"""This file contains fast BBA specific functions and classes."""
 
-from math import ceil
 import logging as log
+from math import ceil
 
 import cothread
-import scipy.io as io
+import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
-import matplotlib.pyplot as plt
-from cothread.catools import caget, caput
 
 from bba.common import Algorithm, RawData, Results
-from bba.excite import excite, Oscillation, Excitation
-from bba.faa import TICKS_PER_SECOND, get_timestamp, Buffer
+from bba.excite import Excitation, Oscillation, excite
+from bba.faa import TICKS_PER_SECOND, Buffer, get_timestamp
 
 NETWORK_LAG_S = 0.5
 SAFETY_NET_S = 0.1
@@ -20,12 +18,13 @@ QUAD_SLEW_RATE = 0.5
 NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
 SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
 
+
 class FBBA(Algorithm):
     def __init__(self, accelerator):
         super().__init__(accelerator)
         self.configure()
 
-    def configure(self, quadrupole_scalar = 0.01, cycles = 1, frequency = 8, decimated = False):
+    def configure(self, quadrupole_scalar=0.01, cycles=1, frequency=8, decimated=False):
         """These are optional arguments, which are used during testing."""
         self.quadrupole_scalar = quadrupole_scalar
         self.cycles = cycles
@@ -33,7 +32,7 @@ class FBBA(Algorithm):
         self.decimated = decimated
         # self.PLOT_GRAPHS = PLOT_GRAPHS
 
-    def run(self, element, plane_info, max_orbit, temp_corr_amp = None) -> RawData:
+    def run(self, element, plane_info, max_orbit, temp_corr_amp=None) -> RawData:
         """Run the FBBA process."""
         method = "FBBA"
         log.info(f"{method} process started in plane {plane_info.axis}.")
@@ -56,8 +55,8 @@ class FBBA(Algorithm):
             self.toggle_feedbacks(max_orbit)
             original_offsets = self.zero_origins(bpm, plane_info)
             quad_step = self._accelerator.measure_quad(quad) * self.quadrupole_scalar
-            # Changed for testing. 
-            if temp_corr_amp == None:
+            # Changed for testing.
+            if temp_corr_amp is None:
                 corr_amp = self._accelerator.microrads(corrector, plane_info)
             else:
                 corr_amp = temp_corr_amp
@@ -113,8 +112,8 @@ class FBBA(Algorithm):
 
             fa_data = fa_buffer.get_data()
             selected_data = self.select_data(fa_data, plane_info)
-            raw_data[self._accelerator.element_to_pv_prefix(quad)+":High"] = selected_data[0]
-            raw_data[self._accelerator.element_to_pv_prefix(quad)+":Low"] = selected_data[1]
+            raw_data[self._accelerator.element_to_pv_prefix(quad) + ":High"] = selected_data[0]
+            raw_data[self._accelerator.element_to_pv_prefix(quad) + ":Low"] = selected_data[1]
 
             self._accelerator.set_quad(quad, quad_sp)
             cothread.Sleep(quad_lag_s / 2)
@@ -171,9 +170,9 @@ class FBBA(Algorithm):
         # Force the phase to zero by using only the imaginary part of the mean
         return 2 * np.real(reverse_osc * 1j * np.imag(data_es))
 
-    def analyse_data(self, raw_data, plot_output, use_fft = False, *args, **kwargs) -> Results:
+    def analyse_data(self, raw_data, plot_output, use_fft=False, *args, **kwargs) -> Results:
         data = raw_data["raw_data"]
-        algorithm = raw_data["algorithm"]
+        # algorithm = raw_data["algorithm"] -> Not used.
         metadata= raw_data["metadata"]
 
         bpm_number = metadata["bpm"][1] - 1  # Zero Index
@@ -190,8 +189,8 @@ class FBBA(Algorithm):
                 quad_prefixs.append(key.split[0])
 
         for quad in quad_prefixs:
-            low_key = quad+":Low"
-            high_key = quad+":High"
+            low_key = quad + ":Low"
+            high_key = quad + ":High"
 
             # Remove bad BPMs and change units to um
             q_low = data[low_key][:, enabled_bpms] * 1e-3
@@ -248,7 +247,7 @@ class FBBA(Algorithm):
                 plt.show()
             offsets.append(p[:, 1].mean())
             errors.append(p[:, 1].std())
-        
+
         results = {}
         for number in offsets:
             index = offsets.index(number)
@@ -257,10 +256,10 @@ class FBBA(Algorithm):
             error = errors[index]
             print(f"Quad: {quadrupole} offset calculated: {offset} +- {error}")
             results[quadrupole] = [offset, error]
-        
+
         bpm_pv_prefix = metadata['bpm'][0]
         return Results(results, bpm_pv_prefix, metadata)
-        
+
         # results[quadrupole] = [offset, error]
         # offset = offsets.mean()
         # error = errors.mean()
