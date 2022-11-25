@@ -144,8 +144,8 @@ class FBBA(Algorithm):
         log.debug("Searched start times: %s, %s", high_start, low_start)
         # Ensure we include the entire oscillation if using decimated data.
         length = ceil(self.exc_high.count / 10) if self.decimated else self.exc_high.count
-        high_data = data[high_start: high_start + length, :, self.plane_info.index]
-        low_data = data[low_start: low_start + length, :, self.plane_info.index]
+        high_data = data[high_start: high_start + length, :, plane_info.index]
+        low_data = data[low_start: low_start + length, :, plane_info.index]
         log.info("Selected data shape: {} {}".format(high_data.shape, low_data.shape))
         assert high_data.shape == low_data.shape
         return [high_data, low_data]
