@@ -8,13 +8,14 @@ from bba import faa
 
 CORRECTORS_TXT = "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/correctors.txt"
 
-IOCS = ["SR%02dA-CS-FOFB-01" % i for i in range(1, 25)] #Number of cells - ie one IOC per cell.
+IOCS = ["SR%02dA-CS-FOFB-01" % i for i in range(1, 25)]  # Number of cells - ie one IOC per cell.
 
 Oscillation = collections.namedtuple("Oscillation", ["amp", "plane", "freq", "cycles"])
 FofbCorrector = collections.namedtuple("FofbCorrector", ["num", "ioc", "corr", "is_slow"])
 
+
 def get_corrector_table():
-    #return numpy.genfromtxt(constants.CORRECTORS_FILE, names=True, dtype=None, delimiter=",", encoding="UTF-8")
+    # return numpy.genfromtxt(constants.CORRECTORS_FILE, names=True, dtype=None, delimiter=",", encoding="UTF-8")
     with open(CORRECTORS_TXT, "r", encoding='utf8', newline="") as file:
         data = np.genfromtxt(file, names=True, dtype=None, encoding="UTF-8")
     return data
@@ -28,7 +29,7 @@ def get_fofb_corrector(accelerator, pytac_element, plane):
     index = int(table["epics"].tolist().index(name))
     special_correctors = accelerator.special_correctors(plane)
     if name in special_correctors:
-        slow = 1 
+        slow = 1
     else:
         slow = 0
     return FofbCorrector(
