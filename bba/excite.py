@@ -26,7 +26,7 @@ def get_fofb_corrector(accelerator, pytac_element, plane):
     kick_field = plane.kick
     name = pytac_element.get_device(kick_field).name
     index = int(table["epics"].tolist().index(name))
-    special_correctors = accelerator.special_correctors()
+    special_correctors = accelerator.special_correctors(plane)
     if name in special_correctors:
         slow = 1 
     else:
