@@ -38,79 +38,91 @@ class FBBA(Algorithm):
         method = "FBBA"
         log.info(f"{method} process started in plane {plane_info.axis}.")
 
-        self.plane_info = plane_info
-        log.info(f"FBBA process started in plane {self.plane_info.axis}.")
+        bpm, quad_list, corrector = self.select_elements(element, plane_info)
+        quad_pv_list = [self._accelerator.element_to_pv_prefix(quad_element) for quad_element in quad_list]
+        bpm_pv_prefix = self._accelerator.element_to_pv_prefix(bpm)
+        corrector_pv_prefix = self._accelerator.element_to_pv_prefix(corrector, plane_info)
+        log.info(f"Quads: {quad_pv_list}, BPM: {bpm_pv_prefix}, Corrector: {corrector_pv_prefix}.")
+        raw_data = {}
+        metadata = {
+            "plane" : plane_info,
+            "quad" : quad_pv_list,
+            "bpm" : [bpm_pv_prefix, self._accelerator.bpms.index(bpm)],
+            "corrector" : corrector_pv_prefix,
+            "decimated" : self.decimated,
+            "enabled_bpms" : self._accelerator.enabled_bpms}
 
-        self.quad_bpm_corr(element)
-        log.info(f"Quad: {self.quad_pv}, BPM: {self.bpm_pv}, Corrector: {self.corrector_pv}.")
+        for quad in quad_list:
+            self.toggle_feedbacks(max_orbit)
+            original_offsets = self.zero_origins(bpm, plane_info)
+            quad_step = self._accelerator.measure_quad(quad) * self.quadrupole_scalar
+            # Changed for testing. 
+            if temp_corr_amp == None:
+                corr_amp = self._accelerator.microrads(corrector, plane_info)
+            else:
+                corr_amp = temp_corr_amp
+            log.info(f"Quad step: {quad_step}, Corrector step: {corr_amp}.")
 
-        quad_step = self._accelerator.measure_quad(self.quad) * self.quadrupole_scalar
-        corr_amp = self._accelerator.microrads(self.corrector, self.plane_info)
-        log.info(f"Quad step: {quad_step}, Corrector step: {corr_amp}.")
+            osc = Oscillation(corr_amp, plane_info, self.frequency, self.cycles)
+            self.osc = osc
 
+            log.info(
+                "Oscillation amplitude {}; frequency {}; cycles {}".format(
+                    osc.amp, osc.freq, osc.cycles))
+            metadata["period"] = TICKS_PER_SECOND // self.osc.freq
+            metadata["amp"] = self.osc.amp
+            metadata["cycles"] = self.osc.cycles
 
-        
+            quad_sp = self._accelerator.measure_quad(quad)
+            quad_high = quad_sp + quad_step
+            quad_low = quad_sp - quad_step
+            quad_lag_s = quad_step / QUAD_SLEW_RATE
+            quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
 
-        osc = excite.Oscillation(corr_amp, self.plane_info, self.frequency, self.cycles)
-        self.osc = osc
-                #jump_bba.jump_bba(self.quad, quad_step, osc, self.accelerator)
+            # Move quad high
+            self._accelerator.set_quad(quad, quad_high)
+            cothread.Sleep(quad_lag_s / 2)
+            now = get_timestamp(self.decimated)
+            osc_length = ceil(TICKS_PER_SECOND / osc.freq) * osc.cycles
+            # Set off the data collection
+            high_start = now + NETWORK_LAG
+            duration = NETWORK_LAG + osc_length + SAFETY_NET + quad_lag + osc_length
+            # Incompatability between pytaclattice and faa number of bpms.
+            bpm_list = [i for i in range(len(self._accelerator.bpms) + 1)]
+            fa_buffer = Buffer(bpm_list, high_start, duration, self.decimated)
+            low_start = high_start + osc_length + SAFETY_NET + quad_lag
+            log.debug("Safety net: {}; quad_lag: {}".format(SAFETY_NET, quad_lag))
+            log.info("Time now: {}.".format(now))
+            log.info("High start time: {}.".format(high_start - now))
+            log.info("Low start time: {}.".format(low_start - now))
+            log.debug("The oscillation: {}".format(osc))
+            self.exc_high = Excitation(corrector, osc, high_start, self._accelerator)
+            log.debug(
+                "The excitation: dwell {} count {}".format(self.exc_high.dwell, self.exc_high.count))
+            self.exc_low = Excitation(corrector, osc, low_start, self._accelerator)
 
-        log.info(
-            "Oscillation amplitude {}; frequency {}; cycles {}".format(
-                osc.amp, osc.freq, osc.cycles))
+            excite((self.exc_high,))
+            # Sleep for first excitation. SAFETY_NET ensures that we don't start
+            # moving the quad before the excitation has finished.
+            cothread.Sleep((NETWORK_LAG + self.exc_high.count + SAFETY_NET) / TICKS_PER_SECOND)
+            # Move quad from high to low
+            self._accelerator.set_quad(quad, quad_low)
+            # Set up second excitation
+            excite((self.exc_low,))
+            # This will block until all data has been retrieved.
 
-        quad_sp = self._accelerator.measure_quad(self.quad)
-        quad_high = quad_sp + quad_step
-        quad_low = quad_sp - quad_step
-        quad_lag_s = quad_step / QUAD_SLEW_RATE
-        quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
+            fa_data = fa_buffer.get_data()
+            selected_data = self.select_data(fa_data, plane_info)
+            raw_data[self._accelerator.element_to_pv_prefix(quad)+":High"] = selected_data[0]
+            raw_data[self._accelerator.element_to_pv_prefix(quad)+":Low"] = selected_data[1]
 
+            self._accelerator.set_quad(quad, quad_sp)
+            cothread.Sleep(quad_lag_s / 2)
+            self.restore_origins(original_offsets)
 
+        return RawData(raw_data, method, metadata)
 
-        #corr_id, ap_corr = self._accelerator.effective_corrector(self.bpm, osc.plane)
-        field = osc.plane.kick
-        log.info("Using corrector: {}".format(self.corrector.get_device(field).name))
-        # Move quad high
-        self._accelerator.set_quad(self.quad, quad_high)
-        cothread.Sleep(quad_lag_s / 2)
-        now = get_timestamp(self.decimated)
-        osc_length = ceil(TICKS_PER_SECOND / osc.freq) * osc.cycles
-        # Set off the data collection
-        high_start = now + NETWORK_LAG
-        duration = NETWORK_LAG + osc_length + SAFETY_NET + quad_lag + osc_length
-        # Incompatability between pytaclattice and faa number of bpms.
-        bpm_list = [i for i in range(len(self._accelerator.bpms) + 1)]
-        fa_buffer = Buffer(bpm_list, high_start, duration, self.decimated)
-        low_start = high_start + osc_length + SAFETY_NET + quad_lag
-        log.debug("Safety net: {}; quad_lag: {}".format(SAFETY_NET, quad_lag))
-        log.info("Time now: {}.".format(now))
-        log.info("High start time: {}.".format(high_start - now))
-        log.info("Low start time: {}.".format(low_start - now))
-        log.debug("The oscillation: {}".format(osc))
-        self.exc_high = excite.Excitation(self.corrector, osc, high_start, self._accelerator)
-        log.debug(
-            "The excitation: dwell {} count {}".format(self.exc_high.dwell, self.exc_high.count))
-        self.exc_low = excite.Excitation(self.corrector, osc, low_start, self._accelerator)
-        excite.excite((self.exc_high,))
-        # Sleep for first excitation. SAFETY_NET ensures that we don't start
-        # moving the quad before the excitation has finished.
-        cothread.Sleep((NETWORK_LAG + self.exc_high.count + SAFETY_NET) / TICKS_PER_SECOND)
-        # Move quad from high to low
-        self._accelerator.set_quad(self.quad, quad_low)
-        # Set up second excitation
-        excite.excite((self.exc_low,))
-        # This will block until all data has been retrieved.
-        fa_data = fa_buffer.get_data()
-        results = self.select_data(fa_data)
-                #save_data(self.high_data, self.low_data, self.quad, osc, self.accelerator)
-        # Restore setpoint.  We don't need SAFETY_NET here because we've saved
-        # all the data before we request the move.
-        self._accelerator.set_quad(self.quad, quad_sp)
-        cothread.Sleep(quad_lag_s / 2)        
-        return results
-
-
-    def select_data(self, data):
+    def select_data(self, data, plane_info):
         """Extract FA data that covers the excitations exc_high and exc_low.
 
         The input data array should cover the full length of both excitations.
