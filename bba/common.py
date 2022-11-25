@@ -8,6 +8,7 @@ from typing import Any, Dict, NamedTuple
 
 import pytac
 import scipy.io as io
+import numpy as np
 from cothread.catools import caget, caput
 
 PlaneValues = NamedTuple("PlaneValues", [("index", int), ("axis", str), ("corrector", str), ("kick", str)])
@@ -170,8 +171,10 @@ class Algorithm(ABC):
             offset.append(value[0])
             error.append(value[1])
         offset_to_apply = mean(offset)
-        # error_to_apply = mean(error)
-        print(f"BPM: {bpm_pv_prefix} offset applied: {offset} +- {error}.")
+        for place, error in enumerate(error):
+            sum_error += (error/offset[place])**2
+        sum_error = np.sqrt(sum_error) * offset_to_apply
+        print(f"BPM: {bpm_pv_prefix} offset applied: {offset_to_apply} +- {sum_error}.")
 
         if plane_info.axis == "Y":
             suffix = ":CF:BBA_Y_S"

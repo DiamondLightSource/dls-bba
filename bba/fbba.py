@@ -2,6 +2,7 @@
 
 import logging as log
 from math import ceil
+from statistics import mean
 
 import cothread
 import matplotlib.pyplot as plt
@@ -173,7 +174,7 @@ class FBBA(Algorithm):
     def analyse_data(self, raw_data, plot_output, use_fft=False, *args, **kwargs) -> Results:
         data = raw_data["raw_data"]
         # algorithm = raw_data["algorithm"] -> Not used.
-        metadata= raw_data["metadata"]
+        metadata = raw_data["metadata"]
 
         bpm_number = metadata["bpm"][1] - 1  # Zero Index
         enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
@@ -257,11 +258,13 @@ class FBBA(Algorithm):
             print(f"Quad: {quadrupole} offset calculated: {offset} +- {error}")
             results[quadrupole] = [offset, error]
 
-        bpm_pv_prefix = metadata['bpm'][0]
-        return Results(results, bpm_pv_prefix, metadata)
+        offset = mean(offsets)
+        error = mean(errors)
+        sum_error = 0
+        for place, error in enumerate(error):
+            sum_error += (error/offset[place]) ** 2
+        sum_error = np.sqrt(sum_error) * offset
 
-        # results[quadrupole] = [offset, error]
-        # offset = offsets.mean()
-        # error = errors.mean()
-        # print(f"BPM: {metadata['bpm'][0]} offset calculated: {offset} +- {error}.")
-        # return metadata['bpm'][0], offset, error, metadata['plane']
+        bpm_pv_prefix = metadata['bpm'][0]
+        print(f"BPM: {bpm_pv_prefix} offset calculated: {offset} +- {sum_error}.")
+        return Results(results, bpm_pv_prefix, metadata)
