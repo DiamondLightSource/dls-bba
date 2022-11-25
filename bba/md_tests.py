@@ -153,7 +153,7 @@ def main():
                         for quad, answers in results.results.items():
                             cycle_dict_value[cycle] += answers[0]
                             cycle_dict_error[cycle] += answers[1]
-        matrix = np.zeros(shape=(len(cycle_numbers*2), 20))
+        matrix = np.zeros(shape=(len(cycle_numbers)*2, 20))
         for index, cycle in enumerate(cycle_numbers):
             matrix[(index*2), :] = cycle_dict_value[cycle]
             matrix[(index*2) + 1, :] = cycle_dict_error[cycle]
@@ -187,7 +187,7 @@ def main():
                         for quad, answers in results.results.items():
                             corr_dict_value_1[cycle] += answers[0]
                             corr_dict_error_1[cycle] += answers[1]
-        matrix = np.zeros(shape=(len(corr_amps*2), 10))
+        matrix = np.zeros(shape=(len(corr_amps)*2, 10))
         for index, cycle in enumerate(corr_amps):
             matrix[(index*2), :] = corr_dict_value_1[cycle]
             matrix[(index*2) + 1, :] = corr_dict_error_1[cycle]
@@ -208,7 +208,7 @@ def main():
                         for quad, answers in results.results.items():
                             corr_dict_value_10[cycle] += answers[0]
                             corr_dict_error_10[cycle] += answers[1]
-        matrix = np.zeros(shape=(len(corr_amps*2), 10))
+        matrix = np.zeros(shape=(len(corr_amps)*2, 10))
         for index, cycle in enumerate(corr_amps):
             matrix[(index*2), :] = corr_dict_value_10[cycle]
             matrix[(index*2) + 1, :] = corr_dict_error_10[cycle]
@@ -229,7 +229,7 @@ def main():
                         for quad, answers in results.results.items():
                             corr_dict_value_20[cycle] += answers[0]
                             corr_dict_error_20[cycle] += answers[1]
-        matrix = np.zeros(shape=(len(corr_amps*2), 10))
+        matrix = np.zeros(shape=(len(corr_amps)*2, 10))
         for index, cycle in enumerate(corr_amps):
             matrix[(index*2), :] = corr_dict_value_20[cycle]
             matrix[(index*2) + 1, :] = corr_dict_error_20[cycle]
@@ -261,7 +261,7 @@ def main():
                                 honing_dict_error[number_iteration] += answers[1]
                             
                             if repeat == 9:
-                                matrix = np.zeros(shape=(len(iterations*2), 10))
+                                matrix = np.zeros(shape=(len(iterations)*2, 10))
                                 for index, iterate in enumerate(iterations):
                                     matrix[(index*2), :] = honing_dict_value[iterate]
                                     matrix[(index*2) + 1, :] = honing_dict_error[iterate]
@@ -277,6 +277,35 @@ def main():
                                 apply_dict = {"A": [offset, sum_error]}
                                 results = Results(apply_dict, results.bpm_pv_prefix, results.metadata)
                                 algorithm.apply_results(results)
+
+
+    simple_honing = False
+    if simple_honing:
+        print("Running simple honing")
+        apply = True
+        for axis in ["HORIZONTAL"]:
+            for cycles in [1,10]:
+                for element in element_list:
+                    offset = []
+                    error = []
+                    honing_simple_value = []
+                    honing_simple_error = []
+                    for i in range(8):
+                        filename_prefix = get_filename_prefix(method)
+                        algorithm.configure(cycles=cycles)
+                        raw_data = algorithm.run(element, PLANE_VALUES[axis], max_orbit)
+                        raw_data.save(filename_prefix)
+                        results = algorithm.analyse_data(raw_data, plot, fft)
+                        results.save(filename_prefix)
+                        for quad, answers in results.results.items():
+                            honing_simple_value.append(answers[0])
+                            honing_simple_error.append(answers[1])
+                        algorithm.apply_results(results)
+                    matrix = np.zeros(shape=(2, 10))
+                    for index, iterate in enumerate(iterations):
+                        matrix[0, :] = honing_simple_value
+                        matrix[1, :] = honing_simple_error
+                    np.savetxt(f"simple_honing_cycle_{cycles}_test.csv", matrix, delimiter=",")
 
     print("Finished running")
 

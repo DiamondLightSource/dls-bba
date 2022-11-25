@@ -39,6 +39,15 @@ def parse_args():
         default=False,
         help=""
     )
+    parser.add_argument(
+        "-s",
+        "-simple",
+        dest = "simple",
+        action="store_true",
+        default=False,
+        help=""
+    )
+    return parser.parse_args()
     
 
 def main():
@@ -46,6 +55,7 @@ def main():
     cycle = args.cycle
     corr_cycles_test = args.corr_cycles_test
     honing_test = args.honing_test
+    simple = args.simple
 
 
     if cycle:
@@ -132,7 +142,6 @@ def main():
 
 
     if honing_test:
-        apply = True
         matrix1_hon = np.genfromtxt("honing_cycle_1_test.csv", delimiter=",")
         matrix5_hon = np.genfromtxt("honing_cycle_5_test.csv", delimiter=",")
         matrix10_hon = np.genfromtxt("honing_cycle_10_test.csv", delimiter=",")
@@ -186,6 +195,20 @@ def main():
         plt.legend()
         plt.grid(which = "both", axis = "both")
         plt.savefig("honingtest.png", bbox_inches="tight", dpi=1200)
+        plt.show()
+
+    if simple:
+        matrix1 = np.genfromtxt("simple_honing_cycle_1_test.csv", delimiter=",")
+        matrix10 = np.genfromtxt("simple_honing_cycle_10_test.csv", delimiter=",")
+        steps = [1,2,3,4,5,6,7,8]
+        plt.errorbar(steps, matrix1[0, :], matrix1[1, :], marker = ".", label="Cycles = 1")
+        plt.errorbar(steps, matrix10[0, :], matrix10[1, :], marker = ".", label="Cycles = 10")
+        plt.title("Simple Honing test")
+        plt.xlabel("Iteration number")
+        plt.ylabel("Offset Value")
+        plt.legend()
+        plt.grid(which = "both", axis = "both")
+        plt.savefig("simplehoningtest.png", bbox_inches="tight", dpi=1200)
         plt.show()
 
 
