@@ -1,33 +1,32 @@
-import pytac
-from cothread.catools import DBR_STRING, caget
-import scipy.io as io
 import numpy as np
-
+import pytac
+import scipy.io as io
+from cothread.catools import DBR_STRING, caget
 
 DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
 MASTER_CALIBRATION_PATH = "/dls_sw/work/common/matlab/mml/machine-new/diamond/master_calibration.csv"
-REQUIRED_RAD = 2e-5 # Radians
-QUAD_TO_BPM_SPECIAL = { # In these cases, no quad is closest to these BPMs.
-    "SR02A-PC-Q3E-08":"SR02C-DI-EBPM-07", # Quad 2-8 -> BPM 2-7
-    "SR09S-PC-QUADD-02":"SR09S-DI-EBPM-01", # Quad 9S-2 -> BPM 9S-1
-    "SR13S-PC-QUADD-02":"SR13S-DI-EBPM-01" # Quad 13S-2 -> BPM 13S-1
+REQUIRED_RAD = 2e-5  # Radians
+QUAD_TO_BPM_SPECIAL = {  # In these cases, no quad is closest to these BPMs.
+    "SR02A-PC-Q3E-08": "SR02C-DI-EBPM-07",  # Quad 2-8 -> BPM 2-7
+    "SR09S-PC-QUADD-02": "SR09S-DI-EBPM-01",  # Quad 9S-2 -> BPM 9S-1
+    "SR13S-PC-QUADD-02": "SR13S-DI-EBPM-01"  # Quad 13S-2 -> BPM 13S-1
 }
 BPM_TO_QUAD_SPECIAL = {
-    "SR02C-DI-EBPM-01":["SR02A-PC-Q1BE-01"], #Quad 2,1 only
-    "SR02C-DI-EBPM-08":["SR02A-PC-Q1BE-10"], #Quad 2,9 only
-    "SR08C-DI-EBPM-07":["SR08A-PC-QUADF-01"], # 9S-1 is pv 08-1
-    "SR09C-DI-EBPM-01":["SR09A-PC-QUADF-04"], # Cell 9 discrepency.
-    "SR10C-DI-EBPM-01":["SR10A-PC-Q1B-01"],# Cell 10, magnet length inconsistency.
-    "SR10C-DI-EBPM-02":["SR10A-PC-Q2B-02","SR10A-PC-Q3B-03"], # Cell 10, magnet length inconsistency.
-    "SR12C-DI-EBPM-07":["SR12A-PC-QUADF-01"], # 13S-1 is pv 12-1
-    "SR13C-DI-EBPM-01":["SR13A-PC-QUADF-04"], # Cell 13 discrepency.
+    "SR02C-DI-EBPM-01": ["SR02A-PC-Q1BE-01"],  # Quad 2,1 only
+    "SR02C-DI-EBPM-08": ["SR02A-PC-Q1BE-10"],  # Quad 2,9 only
+    "SR08C-DI-EBPM-07": ["SR08A-PC-QUADF-01"],  # 9S-1 is pv 08-1
+    "SR09C-DI-EBPM-01": ["SR09A-PC-QUADF-04"],  # Cell 9 discrepency.
+    "SR10C-DI-EBPM-01": ["SR10A-PC-Q1B-01"],  # Cell 10, magnet length inconsistency.
+    "SR10C-DI-EBPM-02": ["SR10A-PC-Q2B-02", "SR10A-PC-Q3B-03"],  # Cell 10, magnet length inconsistency.
+    "SR12C-DI-EBPM-07": ["SR12A-PC-QUADF-01"],  # 13S-1 is pv 12-1
+    "SR13C-DI-EBPM-01": ["SR13A-PC-QUADF-04"],  # Cell 13 discrepency.
 }
 
 
 class Accelerator:
     """Accelerator class stores all accelerator data and functions."""
 
-    def __init__(self, ringmode = None):
+    def __init__(self, ringmode=None):
         """Initialising the accelerator model."""
         self.ringmode = self.get_ring_mode(ringmode)
         self.accelerator = pytac.load_csv.load(self.ringmode)
@@ -61,8 +60,8 @@ class Accelerator:
             bpm_pv_prefix = self.element_to_pv_prefix(bpm)
             self.bpm_to_quad_dict[bpm_pv_prefix] = quad_pv_prefix
 
-    def get_ring_mode(self, ringmode = None):
-        """Get ringmode if one not provided"""
+    def get_ring_mode(self, ringmode=None):
+        """Get ringmode if one not provided."""
         if ringmode is None:
             ringmode = caget("SR-CS-RING-01:MODE", datatype=DBR_STRING)
         return ringmode
@@ -85,7 +84,7 @@ class Accelerator:
         element = None
         # print(pv_prefix)
         family = pv_prefix.split("-")[2]
-        if family[0] ==  "Q":
+        if family[0] == "Q":
             for quad in self.quads:
                 if self.element_to_pv_prefix(quad) == pv_prefix:
                     element = quad
@@ -98,7 +97,7 @@ class Accelerator:
         return element
 
     def measure_quad(self, quad):
-        """This is returning the current quadrupole current value."""
+        """Returns the current quadrupole current value."""
         value = quad.get_value("b1", pytac.RB, pytac.ENG)
         return value
 
@@ -106,7 +105,7 @@ class Accelerator:
         quad.set_value("b1", value, pytac.ENG)
 
     def special_correctors(self, plane):
-        "SR01A -> SR01S or HSTR -> HSCOR"
+        """SR01A -> SR01S or HSTR -> HSCOR."""
         special_correctors = []
         if plane.corrector == "HSTR":
             corrector_pv_roots = [self.element_to_pv_prefix(corrector_pv_root, plane) for corrector_pv_root in self.hstrs]
@@ -119,7 +118,7 @@ class Accelerator:
         return special_correctors
 
     def quad_to_bpm(self, quad):
-        """Input of quad element, returns closest bpm element"""
+        """Input of quad element, returns closest bpm element."""
         quad_midpoint = quad.s + quad.length / 2
         quad_bpm_distance = 1000
         quad_closest_bpm = None
@@ -155,12 +154,14 @@ class Accelerator:
         return quads_list
 
     def get_rm_file(self):
-        rm_file = DATAROOT + "/" + self.ringmode +"/GoldenBPMResp.mat"
+        rm_file = DATAROOT + "/" + self.ringmode + "/GoldenBPMResp.mat"
         return rm_file
 
     def effective_corrector(self, bpm_pv_prefix, plane):
         """Find most effective corrector for a bpm.
-        Return (id, corrector element)"""
+
+        Return (id, corrector element)
+        """
         rm = self.get_rm_file()
         data = io.loadmat(rm, appendmat=False, struct_as_record=False)
         rm = data["Rmat"][plane.index, plane.index].Data
@@ -175,17 +176,17 @@ class Accelerator:
         return corrs[zero_indexed_corr_id]
 
     def microrads(self, corrector, plane):
-        """Find the current required for a corrector kick of x microrads"""
-
+        """Find the current required for a corrector kick of x microrads."""
         with open(MASTER_CALIBRATION_PATH) as file:
-            data = np.genfromtxt(file, delimiter=",", dtype = str)
+            data = np.genfromtxt(file, delimiter=",", dtype=str)
+
         pv_column = data[:, 0]
         corr_pv_prefix = self.element_to_pv_prefix(corrector, plane)
         corr_pv_prefix = corr_pv_prefix.replace("-", "_")
         result = np.where(pv_column == corr_pv_prefix)
         initial_current, initial_rad = data[result][0][3:5]
         final_current, final_rad = data[result][1][3:5]
-        gradient = (float(final_current) - float(initial_current))/(float(final_rad) - float(initial_rad))
+        gradient = (float(final_current) - float(initial_current)) / (float(final_rad) - float(initial_rad))
         linear_value = gradient * REQUIRED_RAD
         rad_value = str(np.format_float_positional(linear_value, precision=6))
         return rad_value
