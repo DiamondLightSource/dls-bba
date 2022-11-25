@@ -6,9 +6,12 @@ import logging as log
 import cothread
 import scipy.io as io
 import numpy as np
+from matplotlib.gridspec import GridSpec
+import matplotlib.pyplot as plt
+from cothread.catools import caget, caput
 
-from bba.common import Algorithm
-from bba import excite
+from bba.common import Algorithm, RawData, Results
+from bba.excite import excite, Oscillation, Excitation
 from bba.faa import TICKS_PER_SECOND, get_timestamp, Buffer
 
 NETWORK_LAG_S = 0.5
@@ -19,7 +22,7 @@ SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
 
 class FBBA(Algorithm):
     def __init__(self, accelerator):
-        self._accelerator = accelerator
+        super().__init__(accelerator)
         self.configure()
 
     def configure(self, quadrupole_scalar = 0.01, cycles = 1, frequency = 8, decimated = False):
@@ -30,27 +33,10 @@ class FBBA(Algorithm):
         self.decimated = decimated
         # self.PLOT_GRAPHS = PLOT_GRAPHS
 
-    def quad_bpm_corr(self, element):
-        """Input quad/bpm element, calculate relevent elements."""
-        if element in self._accelerator.quads:
-            self.quad = element
-            self.bpm = self._accelerator.quad_to_bpm(self.quad)
-            self.corrector = self._accelerator.effective_corrector(self.bpm, self.plane_info)
-        else:
-            self.bpm = element
-            self.corrector = self._accelerator.effective_corrector(self.bpm, self.plane_info)
-            # TODO: bpm_to_quad()
-            self.quad = self._accelerator.bpm_to_quad()
-
-        self.quad_pv = self._accelerator.quad_to_pv(self.quad)
-        self.bpm_pv = self._accelerator.bpms_pvs[self._accelerator.bpms.index(self.bpm)]
-        if self.plane_info.index == 0:
-            self.corrector_pv = self._accelerator.hstrs_pvs[self._accelerator.hstrs.index(self.corrector)]
-        else:
-            self.corrector_pv = self._accelerator.vstrs_pvs[self._accelerator.vstrs.index(self.corrector)]
-
-    def run(self, element, plane_info):
+    def run(self, element, plane_info, max_orbit, temp_corr_amp = None) -> RawData:
         """Run the FBBA process."""
+        method = "FBBA"
+        log.info(f"{method} process started in plane {plane_info.axis}.")
 
         self.plane_info = plane_info
         log.info(f"FBBA process started in plane {self.plane_info.axis}.")
