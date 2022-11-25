@@ -71,38 +71,35 @@ class Accelerator:
             ringmode = caget("SR-CS-RING-01:MODE", datatype=DBR_STRING)
         return ringmode
 
-    def quad_to_pv(self, quad, field=None):
-        if field is None:
-            index = self.quads.index(quad)
-            pv = self.quads_pvs[index]
+    def element_to_pv_prefix(self, element, plane=None):
+        if element in self.quads:
+            pv = element.get_pv_name("b1", pytac.SP)
+        elif element in self.bpms:
+            pv = element.get_pv_name("x", pytac.RB)
+        elif element in self.hstrs and plane.corrector == "HSTR":
+            pv = element.get_pv_name(plane.kick, pytac.SP)
+        elif element in self.vstrs and plane.corrector == "VSTR":
+            pv = element.get_pv_name(plane.kick, pytac.SP)
         else:
-            pv = quad.get_pv_name(field, pytac.SP)
-        return pv
+            ValueError(f"Unexpected element: {element}.")
 
-    def pv_to_quad(self, quad_pv):
-        base_pv = quad_pv.split(":")[0]
-        index = self.quads_pvs.index(base_pv)
-        return self.quads[index]
-
-    def prefix_from_element(self, element, device):
-        pv = element.get_device(device).get_pv_name(pytac.SP)
         return pv.split(":")[0]
 
-    def get_correctors(self, plane):
-       # TODO: sort plane values between hstr, 0, horizontal etc.
-        corr = self.accelerator.get_elements(plane.corrector)
-        return corr
-
-    def quads_from_cell(self, cell):
-    # Can we get this from pytac?
-    # TODO: Make this work in pytac - there is a function it just doesnt work.
-        cell_quads = []
-        for quad in self.quads:
-            pv = self.prefix_from_element(quad, "b1")
-            cell_from_pv = int(pv[2:4])
-            if cell_from_pv == cell:
-                cell_quads.append(quad)
-        return cell_quads
+    def pv_prefix_to_element(self, pv_prefix, plane=None):
+        element = None
+        # print(pv_prefix)
+        family = pv_prefix.split("-")[2]
+        if family[0] ==  "Q":
+            for quad in self.quads:
+                if self.element_to_pv_prefix(quad) == pv_prefix:
+                    element = quad
+        elif family == "EBPM":
+            for bpm in self.bpms:
+                if self.element_to_pv_prefix(bpm) == pv_prefix:
+                    element = bpm
+        else:
+            ValueError(f"Not Implimented yet for: {pv_prefix}")
+        return element
 
     def measure_quad(self, quad):
         """This is returning the current quadrupole current value."""
@@ -171,17 +168,12 @@ class Accelerator:
         rm = self.get_rm_file()
         data = io.loadmat(rm, appendmat=False, struct_as_record=False)
         rm = data["Rmat"][plane.index, plane.index].Data
-        row = rm[self.bpms.index(bpm) - 1, :]
+        row = rm[self.bpms.index(self.pv_prefix_to_element(bpm_pv_prefix)) - 1, :]
         # Note that ids are 1-indexed but arrays are 0-indexed.
         zero_indexed_corr_id = np.argmax(abs(row))
         # TODO: change the following line to use self.hstr/vstr
         corrs = self.get_correctors(plane)
         return corrs[zero_indexed_corr_id]
-
-    def element_to_pv(self, element, plane):
-        """Corrector element to pv"""
-        pv = element.get_pv_name(plane.kick, pytac.RB)
-        return pv[:-2]
 
     def microrads(self, corrector, plane):
         """Find the current required for a corrector kick of x microrads"""
@@ -189,9 +181,9 @@ class Accelerator:
         with open(MASTER_CALIBRATION_PATH) as file:
             data = np.genfromtxt(file, delimiter=",", dtype = str)
         pv_column = data[:, 0]
-        corr_pv = self.element_to_pv(corrector, plane)
-        corr_pv = corr_pv.replace("-", "_")
-        result = np.where(pv_column == corr_pv)
+        corr_pv_prefix = self.element_to_pv_prefix(corrector, plane)
+        corr_pv_prefix = corr_pv_prefix.replace("-", "_")
+        result = np.where(pv_column == corr_pv_prefix)
         initial_current, initial_rad = data[result][0][3:5]
         final_current, final_rad = data[result][1][3:5]
         gradient = (float(final_current) - float(initial_current))/(float(final_rad) - float(initial_rad))
