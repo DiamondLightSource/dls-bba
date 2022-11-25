@@ -67,9 +67,88 @@ class Algorithm(ABC):
     def configure(self, *args, **kwargs):
         pass
 
-    @abstractmethod
-    def run(self, quad, plane_dict):
-        pass
+    def select_elements(self, element, plane_info):
+        """Input quad/bpm element, calculate relevent elements.
+            Note: This returns quads in a list."""
+
+        if "quadrupole" in element.families:
+            quad_pv_prefix = self._accelerator.element_to_pv_prefix(element)
+            quad = [element]
+            bpm_pv_prefix = self._accelerator.quad_to_bpm_dict[quad_pv_prefix]
+            bpm = self._accelerator.pv_prefix_to_element(bpm_pv_prefix)
+            corrector = self._accelerator.effective_corrector(bpm_pv_prefix, plane_info)
+        elif "bpm" in element.families:
+            bpm = element
+            bpm_pv_prefix = self._accelerator.element_to_pv_prefix(bpm)
+            corrector = self._accelerator.effective_corrector(bpm_pv_prefix, plane_info)
+            bpm_pv_prefix = self._accelerator.element_to_pv_prefix(bpm)
+            quad_pv_prefix = self._accelerator.bpm_to_quad_dict[bpm_pv_prefix]
+            quad = [self._accelerator.pv_prefix_to_element(quad_pv) for quad_pv in quad_pv_prefix]
+        else:
+            ValueError("Unexpected element: Only quadrupoles and bpms are allowed.")
+        return bpm, quad, corrector
+
+    def toggle_feedbacks(self, max_orbit):
+        """Checks that all feedbacks are off, and uses FOFB to realign if needed."""
+        feedbacks = {
+            "Fast Orbit Feedback" : ['SR01A-CS-FOFB-01:RUN', 0],
+            "Slow Orbit Feedback" : ['SR-CS-SOFB-01:ONOFF', "OFF"],
+            "Tune Feedback" : ['SR-CS-TFB-01:ONOFF', "OFF"],
+            "Vertical Emittance Feedback" : ['SR-CS-VEFB-01:LOOP', "OFF"]} # SR-DI-EMIT-01:VEMIT ?
+        
+        for key, pv_name in feedbacks.items():
+            if caget(pv_name[0]) != pv_name[1]:
+                raise ValueError(f"{key} running. Stop feedbacks before running BBA.")
+        
+        bpm_h_values = self._accelerator.accelerator.get_element_values("BPM", "x", pytac.RB)
+        bpm_v_values = self._accelerator.accelerator.get_element_values("BPM", "y", pytac.RB)
+        bpm_values = []
+        for index in range(len(bpm_h_values)):
+            if self._accelerator.bpm_h_fofb_enabled[index] == 0:
+                bpm_values.append(bpm_h_values[index])
+        for index in range(len(bpm_v_values)):
+            if self._accelerator.bpm_v_fofb_enabled[index] == 0:
+                bpm_values.append(bpm_v_values[index])
+
+        max_value = abs(max(bpm_values, key=abs))
+        # value in mm, max_orbit in um.
+        if float(max_value*1000) >= float(max_orbit):
+            print("Correcting orbit with FOFB.")
+            run("/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py start", check = True, shell=True)
+            sleep(1)
+            run("/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py stop", check = True, shell=True)
+            sleep(1)
+
+    def zero_origins(self, bpm, plane_info) -> Dict[str, Any]:
+        """Zeros BCD and Golden offsets. Also stores current Golden offset value for restoring later."""
+        # return None  # For testing -> PV's dont exist in virtac.
+        bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
+        bcd_pv = bpm_pv_root + ORIGIN_SUFFIXES["BCD"].format(axis=plane_info.axis)
+        golden_pv = bpm_pv_root + ORIGIN_SUFFIXES["GOLDEN"].format(axis=plane_info.axis)
+
+        offsets = {}
+        offsets[golden_pv]: caget(golden_pv)
+
+        caput(bcd_pv, 0)
+        caput(golden_pv, 0)
+        return offsets
+
+    def restore_origins(self, offsets):
+        """Restores offset values from offsets dictionary."""
+        # return None  # For testing -> PV's dont exist in virtac.
+        for key, value in offsets.items():
+            caput(key, value)
+
+    def set_bpm_offset(self, bpm, value, plane_info):
+        """Applies the new offset value to the BBA offset."""
+        # TODO: Should this be in Algorithm?
+
+        bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
+        bba_pv = bpm_pv_root + ORIGIN_SUFFIXES["BBA"].format(axis=plane_info.axis)
+
+        current_offset = caget(bba_pv)
+        new_offset = current_offset + value
+        caput(bba_pv, new_offset)
 
     @abstractmethod
     def run(self, element, plane_info, max_orbit) -> RawData:
