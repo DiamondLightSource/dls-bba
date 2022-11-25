@@ -1,13 +1,12 @@
 """This is the entry point for the bba module."""
-from datetime import datetime
 import argparse
 import logging as log
+from datetime import datetime
 
-from bba.common import Algorithm, PLANE_VALUES
+from bba import accelerator as acc
+from bba.common import PLANE_VALUES, Algorithm
 from bba.fbba import FBBA
 from bba.sbba import SBBA
-from bba import accelerator as acc
-
 
 LOG_FORMAT = "%(levelname)-7s: %(message)s"
 
@@ -48,7 +47,7 @@ def parse_args():
         dest="method",
         action="store_const",
         default="FBBA",
-        const ="SBBA",
+        const="SBBA",
         help="Which BBA method to use"
     )
     parser.add_argument(
@@ -56,7 +55,7 @@ def parse_args():
         "--orbit",
         dest="max_orbit",
         action="store",
-        default = 15,
+        default=15,
         help="The maximum orbit size to invoke FOFB in um."
     )
     parser.add_argument(
@@ -100,11 +99,11 @@ def main():
     # TODO: System that will accept a number of quads (or cell).
     # TODO: System that will accept bpm selection.
 
-    pv_list = ["SR01A-PC-Q2AB-07"] #single bpm
-    #pv_list = ["SR01C-DI-EBPM-05"] #single quad
-    #pv_list = ["SR10C-DI-EBPM-02"] #multiple quads
+    pv_list = ["SR01A-PC-Q2AB-07"]  # single bpm
+    # pv_list = ["SR01C-DI-EBPM-05"]  # single quad
+    # pv_list = ["SR10C-DI-EBPM-02"]  # multiple quads
 
-    accelerator = acc.Accelerator(ringmode = None)
+    accelerator = acc.Accelerator(ringmode=None)
 
     element_list = []
     for pv in pv_list:
@@ -119,8 +118,8 @@ def main():
         algorithm: Algorithm = fbba
     elif method == "SBBA":
         algorithm: Algorithm = sbba
-    
-    #algorithm.configure() # Only for changing config values.
+
+    # algorithm.configure() #  Only for changing config values.
     for element in element_list:
         for axis in ["VERTICAL", "HORIZONTAL"]:
             filename_prefix = get_filename_prefix(method)
