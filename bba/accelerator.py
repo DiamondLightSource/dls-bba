@@ -37,15 +37,11 @@ class Accelerator:
 
         self.bpms = self.accelerator.get_elements("BPM")
         self.enabled_bpms = self.accelerator.get_element_values("BPM", "enabled")
-        self.bpms_pvs = self.accelerator.get_element_pv_names("BPM", "enabled", pytac.RB)
-        self.bpms_pvs = [bpm.split(":")[0] for bpm in self.bpms_pvs]
-        
+        self.bpm_h_fofb_enabled = self.accelerator.get_element_values("BPM", "x_fofb_disabled", pytac.RB)
+        self.bpm_v_fofb_enabled = self.accelerator.get_element_values("BPM", "y_fofb_disabled", pytac.RB)
+
         self.hstrs = self.accelerator.get_elements("HSTR")
         self.vstrs = self.accelerator.get_elements("VSTR")
-        self.hstrs_pvs = self.accelerator.get_element_pv_names("HSTR", "x_kick", pytac.RB)
-        self.vstrs_pvs = self.accelerator.get_element_pv_names("VSTR", "y_kick", pytac.RB)
-        self.hstrs_pvs = [hstr[:-2] for hstr in self.hstrs_pvs]
-        self.vstrs_pvs = [vstr[:-2] for vstr in self.vstrs_pvs]
 
         self.quads = self.accelerator.get_elements("quadrupole")
 
@@ -109,17 +105,17 @@ class Accelerator:
     def set_quad(self, quad, value):
         quad.set_value("b1", value, pytac.ENG)
 
-    def special_correctors(self): 
+    def special_correctors(self, plane):
         "SR01A -> SR01S or HSTR -> HSCOR"
         special_correctors = []
-        for corrector_pv in self.hstrs_pvs:
-            pv_split = corrector_pv.split("-")
+        if plane.corrector == "HSTR":
+            corrector_pv_roots = [self.element_to_pv_prefix(corrector_pv_root, plane) for corrector_pv_root in self.hstrs]
+        elif plane.corrector == "VSTR":
+            corrector_pv_roots = [self.element_to_pv_prefix(corrector_pv_root, plane) for corrector_pv_root in self.vstrs]
+        for corrector_pv_root in corrector_pv_roots:
+            pv_split = corrector_pv_root.split("-")
             if pv_split[0][-1] == "S" or len(pv_split[2]) == 5:
-                special_correctors.append(corrector_pv[:-2])
-        for corrector_pv in self.vstrs_pvs:
-            pv_split = corrector_pv.split("-")
-            if pv_split[0][-1] == "S" or len(pv_split[2]) == 5:
-                special_correctors.append(corrector_pv[:-2])
+                special_correctors.append(corrector_pv_root)
         return special_correctors
 
     def quad_to_bpm(self, quad):
@@ -162,7 +158,7 @@ class Accelerator:
         rm_file = DATAROOT + "/" + self.ringmode +"/GoldenBPMResp.mat"
         return rm_file
 
-    def effective_corrector(self, bpm, plane):
+    def effective_corrector(self, bpm_pv_prefix, plane):
         """Find most effective corrector for a bpm.
         Return (id, corrector element)"""
         rm = self.get_rm_file()
@@ -171,8 +167,11 @@ class Accelerator:
         row = rm[self.bpms.index(self.pv_prefix_to_element(bpm_pv_prefix)) - 1, :]
         # Note that ids are 1-indexed but arrays are 0-indexed.
         zero_indexed_corr_id = np.argmax(abs(row))
-        # TODO: change the following line to use self.hstr/vstr
-        corrs = self.get_correctors(plane)
+        # TODO: Make this more elegant?
+        if plane.corrector == "HSTR":
+            corrs = self.hstrs
+        if plane.corrector == "VSTR":
+            corrs = self.vstrs
         return corrs[zero_indexed_corr_id]
 
     def microrads(self, corrector, plane):
