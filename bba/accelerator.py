@@ -7,6 +7,21 @@ import numpy as np
 DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
 MASTER_CALIBRATION_PATH = "/dls_sw/work/common/matlab/mml/machine-new/diamond/master_calibration.csv"
 REQUIRED_RAD = 2e-5 # Radians
+QUAD_TO_BPM_SPECIAL = { # In these cases, no quad is closest to these BPMs.
+    "SR02A-PC-Q3E-08":"SR02C-DI-EBPM-07", # Quad 2-8 -> BPM 2-7
+    "SR09S-PC-QUADD-02":"SR09S-DI-EBPM-01", # Quad 9S-2 -> BPM 9S-1
+    "SR13S-PC-QUADD-02":"SR13S-DI-EBPM-01" # Quad 13S-2 -> BPM 13S-1
+}
+BPM_TO_QUAD_SPECIAL = {
+    "SR02C-DI-EBPM-01":["SR02A-PC-Q1BE-01"], #Quad 2,1 only
+    "SR02C-DI-EBPM-08":["SR02A-PC-Q1BE-10"], #Quad 2,9 only
+    "SR08C-DI-EBPM-07":["SR08A-PC-QUADF-01"], # 9S-1 is pv 08-1
+    "SR09C-DI-EBPM-01":["SR09A-PC-QUADF-04"], # Cell 9 discrepency.
+    "SR10C-DI-EBPM-01":["SR10A-PC-Q1B-01"],# Cell 10, magnet length inconsistency.
+    "SR10C-DI-EBPM-02":["SR10A-PC-Q2B-02","SR10A-PC-Q3B-03"], # Cell 10, magnet length inconsistency.
+    "SR12C-DI-EBPM-07":["SR12A-PC-QUADF-01"], # 13S-1 is pv 12-1
+    "SR13C-DI-EBPM-01":["SR13A-PC-QUADF-04"], # Cell 13 discrepency.
+}
 
 
 class Accelerator:
@@ -33,8 +48,22 @@ class Accelerator:
         self.vstrs_pvs = [vstr[:-2] for vstr in self.vstrs_pvs]
 
         self.quads = self.accelerator.get_elements("quadrupole")
-        self.quads_pvs = self.accelerator.get_element_pv_names("quadrupole", "b1", pytac.RB)
-        self.quads_pvs = [quad[:-2] for quad in self.quads_pvs]
+
+        self.quad_to_bpm_dict = {}
+        self.bpm_to_quad_dict = {}
+
+        for quad in self.quads:
+            closest_bpm = self.quad_to_bpm(quad)
+            quad_pv_prefix = self.element_to_pv_prefix(quad)
+            bpm_pv_prefix = self.element_to_pv_prefix(closest_bpm)
+            self.quad_to_bpm_dict[quad_pv_prefix] = bpm_pv_prefix
+        for bpm in self.bpms:
+            quads = self.bpm_to_quad(bpm)
+            quad_pv_prefix = []
+            for quad in quads:
+                quad_pv_prefix.append(self.element_to_pv_prefix(quad))
+            bpm_pv_prefix = self.element_to_pv_prefix(bpm)
+            self.bpm_to_quad_dict[bpm_pv_prefix] = quad_pv_prefix
 
     def get_ring_mode(self, ringmode = None):
         """Get ringmode if one not provided"""
@@ -97,32 +126,40 @@ class Accelerator:
         return special_correctors
 
     def quad_to_bpm(self, quad):
-        """Finds the closest bpm to a quadrupole. (Deals with special cases)"""
-        quad1_midpoint = quad.s + quad.length / 2
-        quad1_bpm_distance = 1000
-        quad1_closest_bpm = None
-        # Checking the quad before to check for special cases.
-        quad2 = self.quads[self.quads.index(quad) - 1]
-        quad2_midpoint = quad2.s + quad2.length / 2
-        quad2_bpm_distance = 1000
-        quad2_closest_bpm = None
+        """Input of quad element, returns closest bpm element"""
+        quad_midpoint = quad.s + quad.length / 2
+        quad_bpm_distance = 1000
+        quad_closest_bpm = None
 
-        for bpm in self.bpms:
-            if abs(bpm.s - quad1_midpoint) < quad1_bpm_distance:
-                quad1_closest_bpm = bpm
-                quad1_bpm_distance = abs(bpm.s - quad1_midpoint)
-            if abs(bpm.s - quad2_midpoint) < quad2_bpm_distance:
-                quad2_closest_bpm = bpm
-                quad2_bpm_distance = abs(bpm.s - quad2_midpoint)
-        
-        quad1_bpm_index = self.bpms.index(quad1_closest_bpm)
-        quad2_bpm_index = self.bpms.index(quad2_closest_bpm)
+        quad_pv_prefix = self.element_to_pv_prefix(quad)
+        if quad_pv_prefix not in QUAD_TO_BPM_SPECIAL:
+            for bpm in self.bpms:
+                if abs(bpm.s - quad_midpoint) < quad_bpm_distance:
+                    quad_closest_bpm = bpm
+                    quad_bpm_distance = abs(bpm.s - quad_midpoint)
 
-        if quad1_bpm_index != quad2_bpm_index and quad1_bpm_index != quad2_bpm_index + 1:
-            quad1_bpm_index = quad1_bpm_index - 1
-            quad1_closest_bpm = self.bpms[quad1_bpm_index]
+        else:
+            bpm_pv = QUAD_TO_BPM_SPECIAL[self.element_to_pv_prefix(quad)]
+            for bpm in self.bpms:
+                if bpm_pv == self.element_to_pv_prefix(bpm):
+                    quad_closest_bpm = bpm
+        return quad_closest_bpm
 
-        return quad1_closest_bpm
+    def bpm_to_quad(self, bpm):
+        """Input bpm element, return list of closest quad elements."""
+        bpm_pv_prefix = self.element_to_pv_prefix(bpm)
+
+        if bpm_pv_prefix not in BPM_TO_QUAD_SPECIAL:
+            quads_keys = [quad_key for quad_key, bpm_value in self.quad_to_bpm_dict.items() if bpm_value == bpm_pv_prefix]
+            quads_list = []
+            for quad_pv_prefix in quads_keys:
+                quads_list.append(self.pv_prefix_to_element(quad_pv_prefix))
+        else:
+            quads_list = []
+            quads_pvs = BPM_TO_QUAD_SPECIAL[bpm_pv_prefix]
+            for quad_pv_prefix in quads_pvs:
+                quads_list.append(self.pv_prefix_to_element(quad_pv_prefix))
+        return quads_list
 
     def get_rm_file(self):
         rm_file = DATAROOT + "/" + self.ringmode +"/GoldenBPMResp.mat"
