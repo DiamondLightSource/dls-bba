@@ -150,29 +150,119 @@ class FBBA(Algorithm):
         assert high_data.shape == low_data.shape
         return [high_data, low_data]
 
+    def extract_freq_fft(self, data, freq):
+        index = freq - 2
+        data_i = np.fft.rfft(data, axis=0)
+        data_i_f = np.zeros(data_i.shape, "complex")
+        data_i_f[index] = data_i[index]
+        return np.fft.irfft(data_i_f, axis=0)
 
-    def save_data(self, prefix):
-        """Save the provided arrays into a .mat file with additional metadata."""
-        quad_prefix = self._accelerator.quad_to_pv(self.quad)
-        plane_name = self.plane_info.axis
-        period = TICKS_PER_SECOND // self.osc.freq
-        datadict = {"period": period, "amp": self.osc.amp, "cycles": self.osc.cycles}
-        datadict["method"] = "FBBA"
-        datadict["decimated"] = self.decimated
-        datadict["quad"] = quad_prefix
-        datadict["plane"] = plane_name
-        datadict["bpm"] = self._accelerator.quad_to_bpm(self.quad)[0]
-        datadict["enabled_bpms"] = self._accelerator.enabled_bpms
-        datadict["high"] = self.high_data
-        datadict["low"] = self.low_data
-        filename = "data/{}-{}-{}".format(prefix, quad_prefix, plane_name)
-        io.savemat(filename, datadict, oned_as="row")
-        log.info("Saved data to {}\n".format(filename))
+    def extract_freq_excite(self, data, freq):
+        data_length = data.shape[0]
+        num_oscs = 1.0 * data_length * freq / TICKS_PER_SECOND
+        num_oscs = num_oscs * 10 if self.decimated else num_oscs
 
-    def analyse_data():
-        print("Analyse Data")
-        pass
+        osc = np.exp(np.linspace(0, 2j * np.pi * num_oscs, data_length))
+        osc = np.tile(osc, (data.shape[1], 1)).T
+        data_es = np.mean(data * osc, 0)
 
-    def apply_results():
-        print("Applied Result")
-        pass
+        reverse_osc = np.exp(np.linspace(0, -2j * np.pi * num_oscs, data_length))
+        reverse_osc = np.tile(reverse_osc, (data.shape[1], 1)).T
+        # Force the phase to zero by using only the imaginary part of the mean
+        return 2 * np.real(reverse_osc * 1j * np.imag(data_es))
+
+    def analyse_data(self, raw_data, plot_output, use_fft = False, *args, **kwargs) -> Results:
+        data = raw_data["raw_data"]
+        algorithm = raw_data["algorithm"]
+        metadata= raw_data["metadata"]
+
+        bpm_number = metadata["bpm"][1] - 1  # Zero Index
+        enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
+        bpm_index = bpm_number - np.sum(enabled_bpms[:bpm_number] == False)  # noqa false positive
+        freq = TICKS_PER_SECOND / metadata["period"]
+
+        offsets = []
+        errors = []
+
+        quad_prefixs = []
+        for key in data.keys():
+            if ":" in key:
+                quad_prefixs.append(key.split[0])
+
+        for quad in quad_prefixs:
+            low_key = quad+":Low"
+            high_key = quad+":High"
+
+            # Remove bad BPMs and change units to um
+            q_low = data[low_key][:, enabled_bpms] * 1e-3
+            q_high = data[high_key][:, enabled_bpms] * 1e-3
+
+            # Extract the DC componenet of the orbit, and add it to the 8Hz excitation
+            q_high_dc = q_high.mean(0)
+            q_low_dc = q_low.mean(0)
+            if use_fft:
+                q_high_clean = np.add(self.extract_freq_fft(q_high - q_high_dc, freq), q_high_dc)
+                q_low_clean = np.add(self.extract_freq_fft(q_low - q_low_dc, freq), q_low_dc)
+            else:
+                q_high_clean = np.add(self.extract_freq_excite(q_high - q_high_dc, freq), q_high_dc)
+                q_low_clean = np.add(self.extract_freq_excite(q_low - q_low_dc, freq), q_low_dc)
+
+            # Take the difference between fits
+            q_diff = q_high_clean - q_low_clean
+            good = q_diff.std(0) > q_diff.std(0).max() / 2
+            q_diff_good = q_diff[:, good]
+
+            # Use a single fit operation, then transform with the straight line equation
+            fit = np.polynomial.polynomial.polyfit(q_high_clean[:, bpm_index], q_diff_good, 1)
+            p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
+
+            # Produce a large graph
+            if plot_output:
+                to_plot = [q_high_clean, q_low_clean, q_diff, q_diff_good, p]
+                plot_labels = [
+                    "quad high clean",
+                    "quad low clean,",
+                    "quad diff,",
+                    "quad diff good,",
+                    "fit coefficients",
+                ]
+                # Make a grid three wide and N high
+                # Fill with 1D plot, image plot, and colourbar
+                gs = GridSpec(
+                    len(to_plot) + 1,
+                    3,
+                    width_ratios=(20, 20, 1),
+                    height_ratios=([1] * len(to_plot) + [3]),
+                )
+                for i in range(len(to_plot)):
+                    plt.subplot(gs[i, 0]).plot(to_plot[i])
+                    plt.ylabel(plot_labels[i])
+                    im = plt.subplot(gs[i, 1]).imshow(
+                        to_plot[i], aspect="auto", interpolation="nearest"
+                    )
+                    plt.colorbar(im, cax=plt.subplot(gs[i, 2]))
+                # Add a large 1D plot to show end result
+                plt.subplot(gs[-1, :]).plot(q_high_clean[:, bpm_index], q_diff_good)
+                plt.ylabel("BPM %d aginst BPMs" % bpm_number + 1)
+                plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
+                plt.show()
+            offsets.append(p[:, 1].mean())
+            errors.append(p[:, 1].std())
+        
+        results = {}
+        for number in offsets:
+            index = offsets.index(number)
+            quadrupole = quad[index]
+            offset = offsets[index]
+            error = errors[index]
+            print(f"Quad: {quadrupole} offset calculated: {offset} +- {error}")
+            results[quadrupole] = [offset, error]
+        
+        bpm_pv_prefix = metadata['bpm'][0]
+        return Results(results, bpm_pv_prefix, metadata)
+        
+        # results[quadrupole] = [offset, error]
+        # offset = offsets.mean()
+        # error = errors.mean()
+        # print(f"BPM: {metadata['bpm'][0]} offset calculated: {offset} +- {error}.")
+        # return metadata['bpm'][0], offset, error, metadata['plane']
