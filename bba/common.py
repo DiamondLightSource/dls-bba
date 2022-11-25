@@ -1,14 +1,14 @@
 """This file contains functions and classes used in both slow and fast BBA."""
 from abc import ABC, abstractmethod
-from typing import NamedTuple, Dict, Any, Tuple
 from dataclasses import dataclass
-from cothread.catools import caget, caput
-import scipy.io as io
-from time import sleep
-from subprocess import run
-import pytac
 from statistics import mean
+from subprocess import run
+from time import sleep
+from typing import Any, Dict, NamedTuple
 
+import pytac
+import scipy.io as io
+from cothread.catools import caget, caput
 
 PlaneValues = NamedTuple("PlaneValues", [("index", int), ("axis", str), ("corrector", str), ("kick", str)])
 PLANE_VALUES = {
@@ -29,7 +29,7 @@ class RawData:
 
     # TODO: asdict, make all shared attributes not in metadata.
 
-    def save(self, time_prefix, filepath = "data"):
+    def save(self, time_prefix, filepath="data"):
         dct = {'raw_data': self.raw_data, 'algorithm': self.algorithm, 'metadata': self.metadata}
         filename = "{}/{}-{}-{}-rawdata".format(filepath, time_prefix, self.metadata["bpm"][0], self.metadata["plane"].axis)
         io.savemat(filename, dct, oned_as="row")
@@ -47,12 +47,12 @@ class Results:
     bpm_pv_prefix: str
     metadata: Dict[str, Any]
 
-    def save(self, time_prefix, filepath = "data"):
+    def save(self, time_prefix, filepath="data"):
         dct = {'results': self.results, 'bpm_pv_prefix': self.bpm_pv_prefix, 'metadata': self.metadata}
         filename = "{}/{}-{}-{}-results".format(filepath, time_prefix, self.metadata["bpm"][0], self.metadata["plane"].axis)
         io.savemat(filename, dct, oned_as="row")
         print(f"Saved data as {filename}")
-    
+
     @classmethod
     def from_file(cls, filename):
         dct = io.loadmat(filename, squeeze_me=True)
@@ -69,8 +69,9 @@ class Algorithm(ABC):
 
     def select_elements(self, element, plane_info):
         """Input quad/bpm element, calculate relevent elements.
-            Note: This returns quads in a list."""
 
+        Note: This returns quads in a list.
+        """
         if "quadrupole" in element.families:
             quad_pv_prefix = self._accelerator.element_to_pv_prefix(element)
             quad = [element]
@@ -89,17 +90,17 @@ class Algorithm(ABC):
         return bpm, quad, corrector
 
     def toggle_feedbacks(self, max_orbit):
-        """Checks that all feedbacks are off, and uses FOFB to realign if needed."""
+        """Confirms that all feedbacks are off, and toggles FOFB to realign if needed."""
         feedbacks = {
             "Fast Orbit Feedback" : ['SR01A-CS-FOFB-01:RUN', 0],
             "Slow Orbit Feedback" : ['SR-CS-SOFB-01:ONOFF', "OFF"],
             "Tune Feedback" : ['SR-CS-TFB-01:ONOFF', "OFF"],
-            "Vertical Emittance Feedback" : ['SR-CS-VEFB-01:LOOP', "OFF"]} # SR-DI-EMIT-01:VEMIT ?
-        
+            "Vertical Emittance Feedback" : ['SR-CS-VEFB-01:LOOP', "OFF"]}  # SR-DI-EMIT-01:VEMIT ?
+
         for key, pv_name in feedbacks.items():
             if caget(pv_name[0]) != pv_name[1]:
                 raise ValueError(f"{key} running. Stop feedbacks before running BBA.")
-        
+
         bpm_h_values = self._accelerator.accelerator.get_element_values("BPM", "x", pytac.RB)
         bpm_v_values = self._accelerator.accelerator.get_element_values("BPM", "y", pytac.RB)
         bpm_values = []
@@ -112,11 +113,11 @@ class Algorithm(ABC):
 
         max_value = abs(max(bpm_values, key=abs))
         # value in mm, max_orbit in um.
-        if float(max_value*1000) >= float(max_orbit):
+        if float(max_value * 1000) >= float(max_orbit):
             print("Correcting orbit with FOFB.")
-            run("/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py start", check = True, shell=True)
+            run("/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py start", check=True, shell=True)
             sleep(1)
-            run("/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py stop", check = True, shell=True)
+            run("/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py stop", check=True, shell=True)
             sleep(1)
 
     def zero_origins(self, bpm, plane_info) -> Dict[str, Any]:
@@ -140,7 +141,7 @@ class Algorithm(ABC):
             caput(key, value)
 
     def set_bpm_offset(self, bpm, value, plane_info):
-        """Applies the new offset value to the BBA offset."""
+        """Applies new offset value to the BBA offset."""
         # TODO: Should this be in Algorithm?
 
         bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
@@ -157,7 +158,7 @@ class Algorithm(ABC):
         return RawData(raw_data)
 
     @abstractmethod
-    def analyse_data(self, data, plot_output = False, *args, **kwargs):
+    def analyse_data(self, data, plot_output, *args, **kwargs):
         pass
 
     def apply_results(self, results):
@@ -169,9 +170,9 @@ class Algorithm(ABC):
             offset.append(value[0])
             error.append(value[1])
         offset_to_apply = mean(offset)
-        error_to_apply = mean(error)
+        # error_to_apply = mean(error)
         print(f"BPM: {bpm_pv_prefix} offset applied: {offset} +- {error}.")
-        
+
         if plane_info.axis == "Y":
             suffix = ":CF:BBA_Y_S"
         elif plane_info.axis == "X":
