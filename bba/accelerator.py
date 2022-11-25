@@ -5,7 +5,7 @@ from cothread.catools import DBR_STRING, caget
 
 DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
 MASTER_CALIBRATION_PATH = "/dls_sw/work/common/matlab/mml/machine-new/diamond/master_calibration.csv"
-REQUIRED_RAD = 2e-5  # Radians
+CORRECTOR_KICK_RAD = 2e-5  # Radians
 QUAD_TO_BPM_SPECIAL = {  # In these cases, no quad is closest to these BPMs.
     "SR02A-PC-Q3E-08": "SR02C-DI-EBPM-07",  # Quad 2-8 -> BPM 2-7
     "SR09S-PC-QUADD-02": "SR09S-DI-EBPM-01",  # Quad 9S-2 -> BPM 9S-1
