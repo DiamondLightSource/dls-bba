@@ -187,6 +187,6 @@ class Accelerator:
         initial_current, initial_rad = data[result][0][3:5]
         final_current, final_rad = data[result][1][3:5]
         gradient = (float(final_current) - float(initial_current)) / (float(final_rad) - float(initial_rad))
-        linear_value = gradient * REQUIRED_RAD
+        linear_value = gradient * CORRECTOR_KICK_RAD
         rad_value = str(np.format_float_positional(linear_value, precision=6))
         return rad_value
