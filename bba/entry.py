@@ -88,11 +88,11 @@ def parse_args():
 def main():
     # Sort arguments
     args = parse_args()
-    method = str(args.method)
-    max_orbit = args.max_orbit
-    apply = args.apply
-    plot = args.plot
-    fft = args.fft
+    method: str = args.method
+    max_orbit: int = args.max_orbit
+    apply: bool = args.apply
+    plot: bool = args.plot
+    fft: bool = args.fft
 
     get_new_logger(method)
 
