@@ -59,7 +59,8 @@ def main():
 
 
     if cycle:
-        matrix = np.genfromtxt("cycle_test.csv", delimiter=",")
+        matrix = np.genfromtxt("md_data/cycle_test.csv", delimiter=",")
+        #print(matrix)
         cycle_numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 45, 50]
         y = []
         yerr = []
@@ -67,16 +68,21 @@ def main():
         for index, cycle in enumerate(cycle_numbers):
             value_list = matrix[(index*2), :]
             error_list = matrix[(index*2) + 1, :]
+            value_list = [i for i in value_list if i != 0]
+            error_list = [i for i in error_list if i != 0]
             y_value = mean(value_list)
             y.append(y_value)
             sum_error = 0
-            for place, error in enumerate(error_list):
-                sum_error += (error/value_list[place])**2
+            for index, error in enumerate(error_list):
+                sum_error += (error/value_list[index])**2
             sum_error = np.sqrt(sum_error)
             yerr.append(sum_error * y_value)
 
-        plt.errorbar(cycle_numbers, y, yerr, marker = ".")
+        #print(y, yerr)
+
+        plt.errorbar(cycle_numbers, y, yerr, marker = ".", capsize=5)
         plt.title("Number of Cycles test - 20 Repeats")
+        plt.xlim(0,51)
         plt.xlabel("Cycle number")
         plt.ylabel("Offset Value")
         plt.grid(which = "both", axis = "both")

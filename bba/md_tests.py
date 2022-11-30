@@ -131,7 +131,7 @@ def main():
     
     print("Starting Test")
 
-    cycle_number_test = False
+    cycle_number_test = True
     if cycle_number_test:
         print("Running cycle test")
         cycle_numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 45, 50]
@@ -151,8 +151,8 @@ def main():
                         results = algorithm.analyse_data(raw_data, plot, fft)
                         results.save(filename_prefix)
                         for quad, answers in results.results.items():
-                            cycle_dict_value[cycle] += answers[0]
-                            cycle_dict_error[cycle] += answers[1]
+                            cycle_dict_value[cycle] += [answers[0]]
+                            cycle_dict_error[cycle] += [answers[1]]
         matrix = np.zeros(shape=(len(cycle_numbers)*2, 20))
         for index, cycle in enumerate(cycle_numbers):
             matrix[(index*2), :] = cycle_dict_value[cycle]
@@ -284,28 +284,27 @@ def main():
         print("Running simple honing")
         apply = True
         for axis in ["HORIZONTAL"]:
-            for cycles in [1,10]:
-                for element in element_list:
-                    offset = []
-                    error = []
-                    honing_simple_value = []
-                    honing_simple_error = []
-                    for i in range(8):
-                        filename_prefix = get_filename_prefix(method)
-                        algorithm.configure(cycles=cycles)
-                        raw_data = algorithm.run(element, PLANE_VALUES[axis], max_orbit)
-                        raw_data.save(filename_prefix)
-                        results = algorithm.analyse_data(raw_data, plot, fft)
-                        results.save(filename_prefix)
-                        for quad, answers in results.results.items():
-                            honing_simple_value.append(answers[0])
-                            honing_simple_error.append(answers[1])
-                        algorithm.apply_results(results)
-                    matrix = np.zeros(shape=(2, 10))
-                    for index, iterate in enumerate(iterations):
-                        matrix[0, :] = honing_simple_value
-                        matrix[1, :] = honing_simple_error
-                    np.savetxt(f"simple_honing_cycle_{cycles}_test.csv", matrix, delimiter=",")
+            for element in element_list:
+                offset = []
+                error = []
+                honing_simple_value = []
+                honing_simple_error = []
+                for i in range(8):
+                    filename_prefix = get_filename_prefix(method)
+                    #algorithm.configure()
+                    raw_data = algorithm.run(element, PLANE_VALUES[axis], max_orbit)
+                    raw_data.save(filename_prefix)
+                    results = algorithm.analyse_data(raw_data, plot, fft)
+                    results.save(filename_prefix)
+                    for quad, answers in results.results.items():
+                        honing_simple_value.append(answers[0])
+                        honing_simple_error.append(answers[1])
+                    algorithm.apply_results(results)
+                matrix = np.zeros(shape=(2, 8))
+                #for index, iterate in enumerate(iterations):
+                matrix[0, :] = honing_simple_value
+                matrix[1, :] = honing_simple_error
+                np.savetxt(f"simple_honing_cycle_test.csv", matrix, delimiter=",")
 
     print("Finished running")
 

@@ -260,6 +260,7 @@ class FBBA(Algorithm):
         offset = mean(offsets)
         error = mean(errors)
         sum_error = 0
+        # TODO: Fix error propagation.
         for place, error in enumerate(error):
             sum_error += (error/offset[place]) ** 2
         sum_error = np.sqrt(sum_error) * offset
