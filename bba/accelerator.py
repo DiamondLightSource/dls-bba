@@ -38,6 +38,7 @@ class Accelerator:
         self.enabled_bpms = self.accelerator.get_element_values("BPM", "enabled")
         self.bpm_h_fofb_enabled = self.accelerator.get_element_values("BPM", "x_fofb_disabled", pytac.RB)
         self.bpm_v_fofb_enabled = self.accelerator.get_element_values("BPM", "y_fofb_disabled", pytac.RB)
+        self.bpm_disabled = self.accelerator.get_element_values("BPM", "enabled")
 
         self.hstrs = self.accelerator.get_elements("HSTR")
         self.vstrs = self.accelerator.get_elements("VSTR")

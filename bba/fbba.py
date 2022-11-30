@@ -172,9 +172,9 @@ class FBBA(Algorithm):
         return 2 * np.real(reverse_osc * 1j * np.imag(data_es))
 
     def analyse_data(self, raw_data, plot_output, use_fft=False, *args, **kwargs) -> Results:
-        data = raw_data["raw_data"]
+        data = raw_data.raw_data
         # algorithm = raw_data["algorithm"] -> Not used.
-        metadata = raw_data["metadata"]
+        metadata = raw_data.metadata
 
         bpm_number = metadata["bpm"][1] - 1  # Zero Index
         enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
@@ -185,9 +185,8 @@ class FBBA(Algorithm):
         errors = []
 
         quad_prefixs = []
-        for key in data.keys():
-            if ":" in key:
-                quad_prefixs.append(key.split[0])
+        for key in data:
+            quad_prefixs.append(key.split(":")[0])
 
         for quad in quad_prefixs:
             low_key = quad + ":Low"
@@ -243,7 +242,7 @@ class FBBA(Algorithm):
                     plt.colorbar(im, cax=plt.subplot(gs[i, 2]))
                 # Add a large 1D plot to show end result
                 plt.subplot(gs[-1, :]).plot(q_high_clean[:, bpm_index], q_diff_good)
-                plt.ylabel("BPM %d aginst BPMs" % bpm_number + 1)
+                plt.ylabel(f"BPM {bpm_number + 1} aginst BPMs")
                 plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
                 plt.show()
             offsets.append(p[:, 1].mean())

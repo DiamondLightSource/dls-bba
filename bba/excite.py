@@ -72,7 +72,7 @@ def excite(excitations):
 
     # Create dict of PVs to put
     for e in excitations:
-        index = e.fofb_index + e.oscillation.plane.index * MAX_CORRECTORS
+        index = e.fofb_index
 
         # If start times has already been filled in this corrector is
         # specified twice. The IOC can't deal with this so raise an exception

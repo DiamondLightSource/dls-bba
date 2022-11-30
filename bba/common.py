@@ -32,7 +32,7 @@ class RawData:
 
     def save(self, time_prefix, filepath="data"):
         dct = {'raw_data': self.raw_data, 'algorithm': self.algorithm, 'metadata': self.metadata}
-        filename = "{}/{}-{}-{}-rawdata".format(filepath, time_prefix, self.metadata["bpm"][0], self.metadata["plane"].axis)
+        filename = "{}/{}-{}-{}-rawdata.mat".format(filepath, time_prefix, self.metadata["bpm"][0], self.metadata["plane"].axis)
         io.savemat(filename, dct, oned_as="row")
         print(f"Saved data as {filename}")
 
@@ -50,7 +50,7 @@ class Results:
 
     def save(self, time_prefix, filepath="data"):
         dct = {'results': self.results, 'bpm_pv_prefix': self.bpm_pv_prefix, 'metadata': self.metadata}
-        filename = "{}/{}-{}-{}-results".format(filepath, time_prefix, self.metadata["bpm"][0], self.metadata["plane"].axis)
+        filename = "{}/{}-{}-{}-results.mat".format(filepath, time_prefix, self.metadata["bpm"][0], self.metadata["plane"].axis)
         io.savemat(filename, dct, oned_as="row")
         print(f"Saved data as {filename}")
 
@@ -94,9 +94,9 @@ class Algorithm(ABC):
         """Confirms that all feedbacks are off, and toggles FOFB to realign if needed."""
         feedbacks = {
             "Fast Orbit Feedback" : ['SR01A-CS-FOFB-01:RUN', 0],
-            "Slow Orbit Feedback" : ['SR-CS-SOFB-01:ONOFF', "OFF"],
-            "Tune Feedback" : ['SR-CS-TFB-01:ONOFF', "OFF"],
-            "Vertical Emittance Feedback" : ['SR-CS-VEFB-01:LOOP', "OFF"]}  # SR-DI-EMIT-01:VEMIT ?
+            "Slow Orbit Feedback" : ['SR-CS-SOFB-01:ONOFF', 0],
+            "Tune Feedback" : ['SR-CS-TFB-01:ONOFF', 0],
+            "Vertical Emittance Feedback" : ['SR-CS-VEFB-01:LOOP', 0]}
 
         for key, pv_name in feedbacks.items():
             if caget(pv_name[0]) != pv_name[1]:
@@ -106,10 +106,10 @@ class Algorithm(ABC):
         bpm_v_values = self._accelerator.accelerator.get_element_values("BPM", "y", pytac.RB)
         bpm_values = []
         for index in range(len(bpm_h_values)):
-            if self._accelerator.bpm_h_fofb_enabled[index] == 0:
+            if self._accelerator.bpm_h_fofb_enabled[index] == 0 and self._accelerator.bpm_disabled[index] == 1:
                 bpm_values.append(bpm_h_values[index])
         for index in range(len(bpm_v_values)):
-            if self._accelerator.bpm_v_fofb_enabled[index] == 0:
+            if self._accelerator.bpm_v_fofb_enabled[index] == 0 and self._accelerator.bpm_disabled[index] == 1:
                 bpm_values.append(bpm_v_values[index])
 
         max_value = abs(max(bpm_values, key=abs))

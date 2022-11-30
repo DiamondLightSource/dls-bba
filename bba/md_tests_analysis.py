@@ -32,7 +32,7 @@ def parse_args():
         help=""
     )
     parser.add_argument(
-        "-h",
+        "-j",
         "-honing",
         dest = "honing_test",
         action="store_true",
