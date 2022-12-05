@@ -93,7 +93,7 @@ def parse_args():
         dest="honing_test",
         action="store_true",
         default=False,
-        help="honing complex test"
+        help="honing simple test"
     )
     parser.add_argument(
         "-s", "--special",
