@@ -4,15 +4,17 @@ import logging as log
 
 from bba.common import Algorithm, RawData, Results
 
+SBBA_UNIT_CONVERSION = 1000 #TODO: Remember to times result offset by this? SBBA matlab needs it.
 
 class SBBA(Algorithm):
     def __init__(self, accelerator):
         super().__init__(accelerator)
         self.configure()
 
-    def configure(self, quadrupole_scalar = 0.01, decimated = False):
+    def configure(self, quadrupole_scalar = 0.01, corrector_scalar=1, decimated = False):
         """These are optional arguments, which are used during testing."""
         self.quadrupole_scalar = quadrupole_scalar
+        self.corrector_scalar = corrector_scalar
         self.decimated = decimated
         #self.PLOT_GRAPHS = PLOT_GRAPHS
 

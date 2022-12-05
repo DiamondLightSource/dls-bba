@@ -25,15 +25,16 @@ class FBBA(Algorithm):
         super().__init__(accelerator)
         self.configure()
 
-    def configure(self, quadrupole_scalar=0.01, cycles=1, frequency=8, decimated=False):
+    def configure(self, quadrupole_scalar=0.01, corrector_scalar=1, cycles=1, frequency=8, decimated=False):
         """These are optional arguments, which are used during testing."""
         self.quadrupole_scalar = quadrupole_scalar
+        self.corrector_scalar = corrector_scalar
         self.cycles = cycles
         self.frequency = frequency
         self.decimated = decimated
         # self.PLOT_GRAPHS = PLOT_GRAPHS
 
-    def run(self, element, plane_info, max_orbit, temp_corr_amp=None) -> RawData:
+    def run(self, element, plane_info, max_orbit) -> RawData:
         """Run the FBBA process."""
         method = "FBBA"
         log.info(f"{method} process started in plane {plane_info.axis}.")
@@ -51,17 +52,16 @@ class FBBA(Algorithm):
             "bpm_index" : self._accelerator.bpms.index(bpm),
             "corrector" : corrector_pv_prefix,
             "decimated" : self.decimated,
-            "enabled_bpms" : self._accelerator.enabled_bpms}
-
+            "enabled_bpms" : self._accelerator.enabled_bpms,
+            "quadrupole_scalar" : self.quadrupole_scalar,
+            "corrector_scalar" : self.corrector_scalar,
+        }
         for quad in quad_list:
             self.toggle_feedbacks(max_orbit)
             original_offsets = self.zero_origins(bpm, plane_info)
+
             quad_step = self._accelerator.measure_quad(quad) * self.quadrupole_scalar
-            # Changed for testing.
-            if temp_corr_amp is None:
-                corr_amp = self._accelerator.microrads(corrector, plane_info)
-            else:
-                corr_amp = temp_corr_amp
+            corr_amp = self._accelerator.microrads(corrector, plane_info) * self.corrector_scalar
             log.info(f"Quad step: {quad_step}, Corrector step: {corr_amp}.")
 
             osc = Oscillation(corr_amp, plane_info, self.frequency, self.cycles)
@@ -115,8 +115,8 @@ class FBBA(Algorithm):
 
             fa_data = fa_buffer.get_data()
             selected_data = self.select_data(fa_data, plane_info)
-            raw_data[self._accelerator.element_to_pv_prefix(quad) + ":High"] = selected_data[0]
-            raw_data[self._accelerator.element_to_pv_prefix(quad) + ":Low"] = selected_data[1]
+            raw_data[self._accelerator.element_to_pv_prefix(quad).replace("-", "_") + "_High"] = selected_data[0]
+            raw_data[self._accelerator.element_to_pv_prefix(quad).replace("-", "_") + "_Low"] = selected_data[1]
 
             self._accelerator.set_quad(quad, quad_sp)
             cothread.Sleep(quad_lag_s / 2)

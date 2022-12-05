@@ -99,7 +99,11 @@ def main():
     # TODO: System that will accept a number of quads (or cell).
     # TODO: System that will accept bpm selection.
 
+    #pv_list = ['SR01C-DI-EBPM-01'] # First BPM
+    #pv_list = ["SR24C-DI-EBPM-07"] # Last BPM
+
     pv_list = ["SR01A-PC-Q2AB-07"]  # single bpm
+    
     # pv_list = ["SR01C-DI-EBPM-05"]  # single quad
     # pv_list = ["SR10C-DI-EBPM-02"]  # multiple quads
 
