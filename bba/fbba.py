@@ -2,7 +2,7 @@
 
 import logging as log
 from math import ceil
-from statistics import mean
+from statistics import mean, stdev
 
 import cothread
 import matplotlib.pyplot as plt
@@ -18,7 +18,7 @@ SAFETY_NET_S = 0.1
 QUAD_SLEW_RATE = 0.5
 NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
 SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
-
+FBBA_UNIT_CONVERSION = 100
 
 class FBBA(Algorithm):
     def __init__(self, accelerator):
@@ -247,8 +247,8 @@ class FBBA(Algorithm):
                 plt.ylabel(f"BPM {bpm_number + 1} aginst BPMs")
                 plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
                 plt.show()
-            offsets.append(p[:, 1].mean())
-            errors.append(p[:, 1].std())
+            offsets.append(p[:, 1].mean()/FBBA_UNIT_CONVERSION)
+            errors.append(p[:, 1].std()/FBBA_UNIT_CONVERSION)
 
         results = {}
         for index, number in enumerate(offsets):
@@ -261,13 +261,11 @@ class FBBA(Algorithm):
             results[quadrupole] = [offset, error]
 
         offset = mean(offsets)
-        error = mean(errors)
         sum_error = 0
-        # TODO: Fix error propagation.
-        for place, error in enumerate(error):
-            sum_error += (error/offset[place]) ** 2
-        sum_error = np.sqrt(sum_error) * offset
+        for error in errors:
+            sum_error += error ** 2
+        error = np.sqrt(sum_error)
 
-        bpm_pv_prefix = metadata['bpm'][0]
-        print(f"BPM: {bpm_pv_prefix} offset calculated: {offset} +- {sum_error}.")
+        bpm_pv_prefix = metadata['bpm_pv']
+        print(f"BPM: {bpm_pv_prefix} offset calculated: {offset} +- {error}.")
         return Results(results, bpm_pv_prefix, metadata)

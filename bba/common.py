@@ -174,13 +174,15 @@ class Algorithm(ABC):
         offsets = []
         errors = []
         for key, value in results.results.items():
-            offset.append(value[0])
-            error.append(value[1])
-        offset_to_apply = mean(offset)
-        for place, error in enumerate(error):
-            sum_error += (error/offset[place])**2
-        sum_error = np.sqrt(sum_error) * offset_to_apply
-        print(f"BPM: {bpm_pv_prefix} offset applied: {offset_to_apply} +- {sum_error}.")
+            offsets.append(value[0])
+            errors.append(value[1])
+        offset = mean(offsets)
+        sum_error = 0
+        for error in errors:
+            sum_error += error ** 2
+        error = np.sqrt(sum_error)
+        
+        print(f"BPM: {bpm_pv_prefix} offset to apply: {offset} +- {error}.")
 
         if plane_info.axis == "Y":
             suffix = ":CF:BBA_Y_S"
@@ -189,8 +191,5 @@ class Algorithm(ABC):
         setting_pv = bpm_pv_prefix + suffix
 
         current_value = caget(setting_pv)
-        print(f"Current offset: {current_value}.")
-
-        new_value = current_value + offset_to_apply
-        caput(setting_pv, new_value)
-        print(f"Applied result of {new_value}.")
+        print(f"BPM: {bpm_pv_prefix}, Old offset: {current_value}, New offset: {offset}.")
+        caput(setting_pv, offset)
