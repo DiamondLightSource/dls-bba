@@ -31,15 +31,18 @@ class RawData:
     # TODO: asdict, make all shared attributes not in metadata.
 
     def save(self, time_prefix, filepath="data"):
+        filename = "{}/{}-{}-{}-rawdata.mat".format(filepath, time_prefix, self.metadata["bpm_pv"], self.metadata["plane"].axis)
+        self.metadata["plane"] = self.metadata["plane"]._asdict()  # NamedTuple not supported in .mat file.
         dct = {'raw_data': self.raw_data, 'algorithm': self.algorithm, 'metadata': self.metadata}
-        filename = "{}/{}-{}-{}-rawdata.mat".format(filepath, time_prefix, self.metadata["bpm"][0], self.metadata["plane"].axis)
         io.savemat(filename, dct, oned_as="row")
         print(f"Saved data as {filename}")
 
     @classmethod
     def from_file(cls, filename):
-        dct = io.loadmat(filename, squeeze_me=True)
-        return cls(dct['raw_data'], dct['algorithm'], dct['metadata'])
+        dct = io.loadmat(filename, simplify_cells=True)
+        metadata = dct["metadata"]
+        metadata["plane"] = PlaneValues(**metadata["plane"])
+        return cls(dct['raw_data'], dct['algorithm'], metadata)
 
 
 @dataclass
@@ -49,15 +52,18 @@ class Results:
     metadata: Dict[str, Any]
 
     def save(self, time_prefix, filepath="data"):
+        filename = "{}/{}-{}-{}-results.mat".format(filepath, time_prefix, self.metadata["bpm_pv"], self.metadata["plane"].axis)
+        self.metadata["plane"] = self.metadata["plane"]._asdict()  # NamedTuple not supported in .mat file.
         dct = {'results': self.results, 'bpm_pv_prefix': self.bpm_pv_prefix, 'metadata': self.metadata}
-        filename = "{}/{}-{}-{}-results.mat".format(filepath, time_prefix, self.metadata["bpm"][0], self.metadata["plane"].axis)
         io.savemat(filename, dct, oned_as="row")
         print(f"Saved data as {filename}")
 
     @classmethod
     def from_file(cls, filename):
-        dct = io.loadmat(filename, squeeze_me=True)
-        return cls(dct['results'], dct['bpm_pv_prefix'], dct['metadata'])
+        dct = io.loadmat(filename, simplify_cells=True)
+        metadata = dct["metadata"]
+        metadata["plane"] = PlaneValues(**metadata["plane"])
+        return cls(dct['results'], dct['bpm_pv_prefix'], metadata)
 
 
 class Algorithm(ABC):
