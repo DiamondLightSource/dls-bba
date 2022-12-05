@@ -47,7 +47,8 @@ class FBBA(Algorithm):
         metadata = {
             "plane" : plane_info,
             "quad" : quad_pv_list,
-            "bpm" : [bpm_pv_prefix, self._accelerator.bpms.index(bpm)],
+            "bpm_pv" : bpm_pv_prefix,
+            "bpm_index" : self._accelerator.bpms.index(bpm),
             "corrector" : corrector_pv_prefix,
             "decimated" : self.decimated,
             "enabled_bpms" : self._accelerator.enabled_bpms}
@@ -69,6 +70,7 @@ class FBBA(Algorithm):
             log.info(
                 "Oscillation amplitude {}; frequency {}; cycles {}".format(
                     osc.amp, osc.freq, osc.cycles))
+            metadata["frequency"] = self.osc.freq
             metadata["period"] = TICKS_PER_SECOND // self.osc.freq
             metadata["amp"] = self.osc.amp
             metadata["cycles"] = self.osc.cycles
@@ -176,7 +178,7 @@ class FBBA(Algorithm):
         # algorithm = raw_data["algorithm"] -> Not used.
         metadata = raw_data.metadata
 
-        bpm_number = metadata["bpm"][1] - 1  # Zero Index
+        bpm_number = metadata["bpm_index"]
         enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
         bpm_index = bpm_number - np.sum(enabled_bpms[:bpm_number] == False)  # noqa false positive
         freq = TICKS_PER_SECOND / metadata["period"]
@@ -186,17 +188,18 @@ class FBBA(Algorithm):
 
         quad_prefixs = []
         for key in data:
-            quad_prefixs.append(key.split(":")[0])
-
+            quad_prefix = "_".join(key.split("_")[0:4])
+            if quad_prefix not in quad_prefixs:
+                quad_prefixs.append(quad_prefix)
         for quad in quad_prefixs:
-            low_key = quad + ":Low"
-            high_key = quad + ":High"
+            low_key = quad + "_Low"
+            high_key = quad + "_High"
 
             # Remove bad BPMs and change units to um
             q_low = data[low_key][:, enabled_bpms] * 1e-3
             q_high = data[high_key][:, enabled_bpms] * 1e-3
 
-            # Extract the DC componenet of the orbit, and add it to the 8Hz excitation
+            # Extract the DC componenet of the orbit, and add it to the excitation
             q_high_dc = q_high.mean(0)
             q_low_dc = q_low.mean(0)
             if use_fft:
@@ -214,7 +217,6 @@ class FBBA(Algorithm):
             # Use a single fit operation, then transform with the straight line equation
             fit = np.polynomial.polynomial.polyfit(q_high_clean[:, bpm_index], q_diff_good, 1)
             p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
-
             # Produce a large graph
             if plot_output:
                 to_plot = [q_high_clean, q_low_clean, q_diff, q_diff_good, p]
@@ -249,12 +251,13 @@ class FBBA(Algorithm):
             errors.append(p[:, 1].std())
 
         results = {}
-        for number in offsets:
-            index = offsets.index(number)
-            quadrupole = quad[index]
+        for index, number in enumerate(offsets):
+
+            quadrupole = quad_prefixs[index]
             offset = offsets[index]
             error = errors[index]
-            print(f"Quad: {quadrupole} offset calculated: {offset} +- {error}")
+            quad_name = quadrupole.replace("_", "-")
+            print(f"Quad: {quad_name} offset calculated: {offset} +- {error}.")
             results[quadrupole] = [offset, error]
 
         offset = mean(offsets)

@@ -170,9 +170,9 @@ class Algorithm(ABC):
 
     def apply_results(self, results):
         plane_info = results.metadata["plane"]
-        bpm_pv_prefix = results.metadata['bpm'][0]
-        offset = []
-        error = []
+        bpm_pv_prefix = results.bpm_pv_prefix
+        offsets = []
+        errors = []
         for key, value in results.results.items():
             offset.append(value[0])
             error.append(value[1])
