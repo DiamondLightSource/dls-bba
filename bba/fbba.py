@@ -54,7 +54,7 @@ class FBBA(Algorithm):
             "decimated" : self.decimated,
             "enabled_bpms" : self._accelerator.enabled_bpms,
             "quadrupole_scalar" : self.quadrupole_scalar,
-            "corrector_scalar" : self.corrector_scalar,
+            "corrector_scalar" : self.corrector_scalar
         }
         for quad in quad_list:
             self.toggle_feedbacks(max_orbit)
@@ -63,7 +63,8 @@ class FBBA(Algorithm):
             quad_step = self._accelerator.measure_quad(quad) * self.quadrupole_scalar
             corr_amp = self._accelerator.microrads(corrector, plane_info) * self.corrector_scalar
             log.info(f"Quad step: {quad_step}, Corrector step: {corr_amp}.")
-
+            metadata["quad_step"] = quad_step
+            metadata["corr_step"] = corr_amp
             osc = Oscillation(corr_amp, plane_info, self.frequency, self.cycles)
             self.osc = osc
 
