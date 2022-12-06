@@ -247,8 +247,9 @@ class FBBA(Algorithm):
                 plt.ylabel(f"BPM {bpm_number + 1} aginst BPMs")
                 plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
                 plt.show()
-            offsets.append(p[:, 1].mean()/FBBA_UNIT_CONVERSION)
-            errors.append(p[:, 1].std()/FBBA_UNIT_CONVERSION)
+            # Change results to mm.
+            offsets.append(mean(p[:, 1])/FBBA_UNIT_CONVERSION)
+            errors.append(stdev(p[:, 1])/FBBA_UNIT_CONVERSION)
 
         results = {}
         for index, number in enumerate(offsets):
