@@ -99,11 +99,20 @@ class Accelerator:
 
     def measure_quad(self, quad):
         """Returns the current quadrupole current value."""
-        value = quad.get_value("b1", pytac.RB, pytac.ENG)
-        return value
+        return quad.get_value("b1", pytac.RB, pytac.ENG)
 
     def set_quad(self, quad, value):
         quad.set_value("b1", value, pytac.ENG)
+
+    def measure_corrector(self, corrector, plane_info):
+        """Returns the current corrector current value."""
+        return corrector.get_value(plane_info.kick, pytac.RB, pytac.ENG)
+
+    def set_corrector(self, corrector, plane_info, value):
+        corrector.get_value(plane_info.kick, pytac.ENG)
+
+    def measure_bpms(self, plane_info):
+        return self.bpms.get_element_values("BPM", plane_info.axis.lower())
 
     def special_correctors(self, plane):
         """SR01A -> SR01S or HSTR -> HSCOR."""
