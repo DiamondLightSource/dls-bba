@@ -182,7 +182,8 @@ class FBBA(Algorithm):
         bpm_number = metadata["bpm_index"]
         enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
         bpm_index = bpm_number - np.sum(enabled_bpms[:bpm_number] == False)  # noqa false positive
-        freq = TICKS_PER_SECOND / metadata["period"]
+        #freq = TICKS_PER_SECOND / metadata["period"]
+        freq = metadata["frequency"]
 
         offsets = []
         errors = []
@@ -192,6 +193,7 @@ class FBBA(Algorithm):
             quad_prefix = "_".join(key.split("_")[0:4])
             if quad_prefix not in quad_prefixs:
                 quad_prefixs.append(quad_prefix)
+
         for quad in quad_prefixs:
             low_key = quad + "_Low"
             high_key = quad + "_High"
