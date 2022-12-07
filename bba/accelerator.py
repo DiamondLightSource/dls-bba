@@ -185,7 +185,7 @@ class Accelerator:
             corrs = self.vstrs
         return corrs[zero_indexed_corr_id]
 
-    def microrads(self, corrector, plane):
+    def microrads(self, corrector, plane) -> float:
         """Find the current required for a corrector kick of x microrads."""
         with open(MASTER_CALIBRATION_PATH) as file:
             data = np.genfromtxt(file, delimiter=",", dtype=str)
@@ -198,5 +198,5 @@ class Accelerator:
         final_current, final_rad = data[result][1][3:5]
         gradient = (float(final_current) - float(initial_current)) / (float(final_rad) - float(initial_rad))
         linear_value = gradient * CORRECTOR_KICK_RAD
-        rad_value = str(np.format_float_positional(linear_value, precision=6))
+        rad_value = float(np.format_float_positional(linear_value, precision=6))
         return rad_value
