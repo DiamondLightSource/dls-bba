@@ -109,12 +109,11 @@ def main():
     # Sort arguments
     args = parse_args()
     method = str(args.method)
-    apply = args.apply
 
     cycle_test = args.cycle
     freq_test = args.freq
     corr_test = args.corr_amp_test
-    quad_test = args.quad_amp_test
+    quad_test = args.quads_amp_test
     honing_test = args.honing_test
     combination_test = args.combi
 
@@ -145,7 +144,7 @@ def main():
     
     log.info("Starting Test")
     # Note: All tests occur in the x-axis only.
-    axis = ["HORIZONTAL"]
+    axis = "HORIZONTAL"
 
 
     if cycle_test:

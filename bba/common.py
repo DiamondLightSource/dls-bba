@@ -181,15 +181,14 @@ class Algorithm(ABC):
         for error in errors:
             sum_error += error ** 2
         error = np.sqrt(sum_error)
-        
-        print(f"BPM: {bpm_pv_prefix} offset to apply: {offset} +- {error}.")
 
-        if plane_info.axis == "Y":
+        if plane_info["axis"] == "Y":
             suffix = ":CF:BBA_Y_S"
-        elif plane_info.axis == "X":
+        elif plane_info["axis"] == "X":
             suffix = ":CF:BBA_X_S"
         setting_pv = bpm_pv_prefix + suffix
 
-        current_value = caget(setting_pv)
-        print(f"BPM: {bpm_pv_prefix}, Old offset: {current_value}, New offset: {offset}.")
-        caput(setting_pv, offset)
+        current_offset = caget(setting_pv)
+        new_offset = current_offset + offset
+        print(f"BPM: {bpm_pv_prefix}, Old offset: {current_offset}, Delta: {offset} +- {error}, New offset: {new_offset}.")
+        caput(setting_pv, new_offset)
