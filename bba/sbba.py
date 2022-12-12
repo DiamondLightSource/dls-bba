@@ -77,11 +77,11 @@ class SBBA(Algorithm):
                 # High quad step
                 self._accelerator.set_quad(quad, quad_high)
                 cothread.Sleep(quad_lag_s / 2)
-                high_bpms = self._accelerator.measure_bpms(plane_info)
+                high_bpms = self._accelerator.measure_bpms(plane_info) #TODO: Add the try thing - may fail.
                 # Low quad step
                 self._accelerator.set_quad(quad, quad_low)
                 cothread.Sleep(quad_lag_s / 2)
-                low_bpms = self._accelerator.measure_bpms(plane_info)
+                low_bpms = self._accelerator.measure_bpms(plane_info) #TODO: Add the try thing - may fail.
                 # Change in step.
                 raw_data[f"{quad_pv_root}_{index}"] = np.subtract(high_bpms, low_bpms)
             
@@ -118,6 +118,15 @@ class SBBA(Algorithm):
                 if value == 0:
                     matrix = np.delete(matrix, index, axis=1)
 
+
+            # TODO: Sort in ascending order (gradient sort, keep offsets)
+            # remove first half (smallest half)
+            # if len(remaining stuff > 5): maxslope = last - 4, else maxslope= last
+            # remove gradients if their abs value < slopemax * 0.25
+            # recursively remove 1std away.
+
+            # gradient > 20 * BPMnoise?
+
             corr_step = metadata["corr_step"]
             corrector_step_list = [corr_step, corr_step/2, 0, -corr_step/2, -corr_step]
             fit = np.polynomial.polynomial.polyfit(corrector_step_list, matrix, 1)
@@ -129,14 +138,14 @@ class SBBA(Algorithm):
                 offset_mean = mean(p[:, 1])
                 offset_stdev = stdev(p[:, 1])
                 for index, (offset, gradient) in enumerate(p):
-                    if offset > offset_mean + offset_stdev or offset < offset_mean - offset_stdev:
+                    if (offset > offset_mean + offset_stdev) or (offset < offset_mean - offset_stdev):
                         counter += 1
                         p = np.delete(p, index, axis=0)
                 if counter == 0:
                     pass_var = False
             log.info(f"Size of p: {np.shape(p)}")
             if plot_output:
-                print("Plotting")
+                log.critical("Plotting - Not implimented yet.")
             offset_mean = mean(p[:, 1])
             offset_stdev = stdev(p[:, 1])
             log.info(offset_mean, offset_stdev)
@@ -145,13 +154,13 @@ class SBBA(Algorithm):
             errors.append(offset_stdev/SBBA_UNIT_CONVERSION)
 
         results = {}
-        for index, number in enumerate(offsets):
+        for index, _ in enumerate(offsets):
 
             quadrupole = quad_prefixs[index]
             offset = offsets[index]
             error = errors[index]
             quad_name = quadrupole.replace("_", "-")
-            print(f"Quad: {quad_name} offset calculated: {offset} +- {error}.")
+            log.debug(f"Quad: {quad_name} offset calculated: {offset} +- {error}.")
             results[quadrupole] = [offset, error]
 
         offset = mean(offsets)
@@ -161,5 +170,5 @@ class SBBA(Algorithm):
         error = np.sqrt(sum_error)
 
         bpm_pv_prefix = metadata['bpm_pv']
-        print(f"BPM: {bpm_pv_prefix} offset calculated: {offset} +- {error}.")
+        log.info(f"BPM: {bpm_pv_prefix} offset calculated: {offset} +- {error}.")
         return Results(results, bpm_pv_prefix, metadata)
