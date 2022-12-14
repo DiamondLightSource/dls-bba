@@ -36,21 +36,20 @@ class Accelerator:
     def __init__(self, ringmode=None):
         """Initialising the accelerator model."""
         self.ringmode = self.get_ring_mode(ringmode)
-        self.accelerator = pytac.load_csv.load(self.ringmode)
+        self.lattice = pytac.load_csv.load(self.ringmode)
 
         # Required to stop timeout on the machine.
-        self.accelerator._data_source_manager._data_sources[pytac.LIVE]._devices["beam_current"]._cs._timeout = 5.0
+        self.lattice._data_source_manager._data_sources[pytac.LIVE]._devices["beam_current"]._cs._timeout = 5.0
 
-        self.bpms = self.accelerator.get_elements("BPM")
-        self.enabled_bpms = self.accelerator.get_element_values("BPM", "enabled")
-        self.bpm_h_fofb_enabled = self.accelerator.get_element_values("BPM", "x_fofb_disabled", pytac.RB)
-        self.bpm_v_fofb_enabled = self.accelerator.get_element_values("BPM", "y_fofb_disabled", pytac.RB)
-        self.bpm_disabled = self.accelerator.get_element_values("BPM", "enabled")
+        self.bpms = self.lattice.get_elements("BPM")
+        self.enabled_bpms = self.lattice.get_element_values("BPM", "enabled")
+        self.bpm_h_fofb_enabled = self.lattice.get_element_values("BPM", "x_fofb_disabled", pytac.RB)
+        self.bpm_v_fofb_enabled = self.lattice.get_element_values("BPM", "y_fofb_disabled", pytac.RB)
 
-        self.hstrs = self.accelerator.get_elements("HSTR")
-        self.vstrs = self.accelerator.get_elements("VSTR")
+        self.hstrs = self.lattice.get_elements("HSTR")
+        self.vstrs = self.lattice.get_elements("VSTR")
 
-        self.quads = self.accelerator.get_elements("quadrupole")
+        self.quads = self.lattice.get_elements("quadrupole")
 
         self.quad_to_bpm_dict = {}
         self.bpm_to_quad_dict = {}
