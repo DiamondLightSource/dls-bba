@@ -113,37 +113,55 @@ class SBBA(Algorithm):
             for index in range(5):
                 matrix[index, :] = data[f"{quad}_{index}"]
 
-            # TODO: Get ride of bad bpms with of data.
+            bad_indices = []
+            # Get rid of disabled bpms.
             for index, value in reversed(list(enumerate(enabled_bpms))):
                 if value == 0:
-                    matrix = np.delete(matrix, index, axis=1)
+                    bad_indices.append(index)
 
+            # Get rid of bad bpms.
+            if metadata["plane"].axis == "X":
+                for index, _ in enumerate(self._accelerator.bpms):
+                    if self._accelerator.bpm_h_fofb_enabled[index] == 1:
+                        bad_indices.append(index)
+            if metadata["plane"].axis == "Y":
+                for index, _ in enumerate(self._accelerator.bpms):
+                    if self._accelerator.bpm_v_fofb_enabled[index] == 1:
+                        bad_indices.append(index)
 
-            # TODO: Sort in ascending order (gradient sort, keep offsets)
-            # remove first half (smallest half)
-            # if len(remaining stuff > 5): maxslope = last - 4, else maxslope= last
-            # remove gradients if their abs value < slopemax * 0.25
-            # recursively remove 1std away.
-
-            # gradient > 20 * BPMnoise?
+            matrix = np.delete(matrix, bad_indices, axis=1)
 
             corr_step = metadata["corr_step"]
             corrector_step_list = [corr_step, corr_step/2, 0, -corr_step/2, -corr_step]
             fit = np.polynomial.polynomial.polyfit(corrector_step_list, matrix, 1)
             p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
-            pass_var = True
-            while pass_var:
+
+            gradients = p[:, 1]
+            max_gradient = abs(max(gradients, key=abs))
+
+            # Get rid of bad gradients
+            bad_gradients = []
+            for gradient in gradients:
+                if abs(gradient) < max_gradient * 0.25:
+                    bad_gradients.append(gradients.index(gradient))
+
+            p = np.delete(p, bad_gradients, axis=0)
+            # gradient > 20 * BPMnoise?
+
+            while True:
                 log.info(f"Size of p: {np.shape(p)}")
                 counter = 0
                 offset_mean = mean(p[:, 1])
                 offset_stdev = stdev(p[:, 1])
+                std_list = []
                 for index, (offset, gradient) in enumerate(p):
                     if (offset > offset_mean + offset_stdev) or (offset < offset_mean - offset_stdev):
                         counter += 1
-                        p = np.delete(p, index, axis=0)
+                        std_list.append(index)
+                p = np.delete(p, std_list, axis=0)
                 if counter == 0:
-                    pass_var = False
-            log.info(f"Size of p: {np.shape(p)}")
+                    break
+            log.info(f"Final size of p: {np.shape(p)}")
             if plot_output:
                 log.critical("Plotting - Not implimented yet.")
             offset_mean = mean(p[:, 1])
