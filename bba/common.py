@@ -55,8 +55,7 @@ class Results:
     metadata: Dict[str, Any]
 
     def save(self, time_prefix, filepath="data"):
-        filename = "{}/{}-{}-{}-results.mat".format(filepath, time_prefix, self.metadata["bpm_pv"], self.metadata["plane"].axis)
-        self.metadata["plane"] = self.metadata["plane"]._asdict()  # NamedTuple not supported in .mat file.
+        filename = "{}/{}-{}-{}-results.mat".format(filepath, time_prefix, self.metadata["bpm_pv"], self.metadata["plane"]["axis"])
         dct = {'results': self.results, 'bpm_pv_prefix': self.bpm_pv_prefix, 'metadata': self.metadata}
         io.savemat(filename, dct, oned_as="row")
         print(f"Saved data as {filename}")
