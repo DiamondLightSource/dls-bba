@@ -143,14 +143,15 @@ class Algorithm(ABC):
             if caget(pv_name[0]) != pv_name[1]:
                 raise ValueError(f"{key} running. Stop feedbacks before running BBA.")
 
-        bpm_h_values = self._accelerator.accelerator.get_element_values("BPM", "x", pytac.RB)
-        bpm_v_values = self._accelerator.accelerator.get_element_values("BPM", "y", pytac.RB)
+        bpm_h_values = self._accelerator.measure_bpms("BPM", "x", pytac.RB)
+        bpm_v_values = self._accelerator.measure_bpms("BPM", "y", pytac.RB)
+
         bpm_values = []
-        for index in range(len(bpm_h_values)):
-            if self._accelerator.bpm_h_fofb_enabled[index] == 0 and self._accelerator.bpm_disabled[index] == 1:
+        for index, _ in enumerate(bpm_h_values):
+            if self._accelerator.bpm_h_fofb_enabled[index] == 0 and self._accelerator.enabled_bpms[index] == 1:
                 bpm_values.append(bpm_h_values[index])
-        for index in range(len(bpm_v_values)):
-            if self._accelerator.bpm_v_fofb_enabled[index] == 0 and self._accelerator.bpm_disabled[index] == 1:
+        for index, _ in enumerate(bpm_v_values):
+            if self._accelerator.bpm_v_fofb_enabled[index] == 0 and self._accelerator.enabled_bpms[index] == 1:
                 bpm_values.append(bpm_v_values[index])
 
         max_value = abs(max(bpm_values, key=abs))
@@ -196,12 +197,11 @@ class Algorithm(ABC):
     @abstractmethod
     def run(self, element, plane_info, max_orbit) -> RawData:
         # This fbba/sbba specifc -> save into a Data object
-        raw_data = {}
-        return RawData(raw_data)
+        return RawData
 
     @abstractmethod
-    def analyse_data(self, data, plot_output, *args, **kwargs):
-        pass
+    def analyse_data(self, data, plot_output, *args, **kwargs) -> Results:
+        return Results
 
     def apply_results(self, results):
         plane_info = results.metadata["plane"]

@@ -15,7 +15,6 @@ FofbCorrector = collections.namedtuple("FofbCorrector", ["num", "ioc", "corr", "
 
 
 def get_corrector_table():
-    # return numpy.genfromtxt(constants.CORRECTORS_FILE, names=True, dtype=None, delimiter=",", encoding="UTF-8")
     with open(CORRECTORS_TXT, "r", encoding='utf8', newline="") as file:
         data = np.genfromtxt(file, names=True, dtype=None, encoding="UTF-8")
     return data

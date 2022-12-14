@@ -91,7 +91,7 @@ class FBBA(Algorithm):
             high_start = now + NETWORK_LAG
             duration = NETWORK_LAG + osc_length + SAFETY_NET + quad_lag + osc_length
             # Incompatability between pytaclattice and faa number of bpms.
-            bpm_list = [i for i in range(len(self._accelerator.bpms) + 1)]
+            bpm_list = [0] + [i for i, _ in enumerate(self._accelerator.bpms, start=1)]
             fa_buffer = Buffer(bpm_list, high_start, duration, self.decimated)
             low_start = high_start + osc_length + SAFETY_NET + quad_lag
             log.debug("Safety net: {}; quad_lag: {}".format(SAFETY_NET, quad_lag))
@@ -238,7 +238,7 @@ class FBBA(Algorithm):
                     width_ratios=(20, 20, 1),
                     height_ratios=([1] * len(to_plot) + [3]),
                 )
-                for i in range(len(to_plot)):
+                for i, _ in enumerate(to_plot):
                     plt.subplot(gs[i, 0]).plot(to_plot[i])
                     plt.ylabel(plot_labels[i])
                     im = plt.subplot(gs[i, 1]).imshow(
