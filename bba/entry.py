@@ -8,8 +8,8 @@ from bba.common import PLANE_VALUES, Algorithm
 from bba.fbba import FBBA
 from bba.sbba import SBBA
 
-LOG_FORMAT = "%(levelname)-7s: %(message)s"
-
+CONSOLE_LOG_FORMAT = "%(levelname)-7s: [%(filename)s:%(lineno)d] — %(message)s"
+FILE_LOG_FORMAT = "%(levelname)-7s: %(asctime)s — [%(filename)s:%(lineno)d] — %(message)s"
 
 def get_filename_prefix(method):
     """Returns a time string for the filename."""
@@ -20,14 +20,18 @@ def get_filename_prefix(method):
 
 def get_new_logger(method):
     logger = log.getLogger()
+    logger.setLevel(log.NOTSET)
     filename = "data/{}.log".format(get_filename_prefix(method))
+    # Console handler
+    console_handler = log.StreamHandler()
+    console_handler.setLevel(log.INFO)
+    console_handler.setFormatter(log.Formatter(CONSOLE_LOG_FORMAT))
+    logger.addHandler(console_handler)
+    # File handler
     file_handler = log.FileHandler(filename)
     file_handler.setLevel(log.DEBUG)
-    formatter = log.Formatter(LOG_FORMAT)
-    file_handler.setFormatter(formatter)
+    file_handler.setFormatter(log.Formatter(FILE_LOG_FORMAT))
     logger.addHandler(file_handler)
-    logger.addHandler(log.StreamHandler())
-    logger.setLevel(log.DEBUG)
 
 
 def parse_args():

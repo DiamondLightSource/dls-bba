@@ -32,7 +32,7 @@ class FBBA(Algorithm):
         self.cycles = cycles
         self.frequency = frequency
         self.decimated = decimated
-        # self.PLOT_GRAPHS = PLOT_GRAPHS
+        log.debug(f"Configuration: Cycles: {self.cycles}, Frequency: {self.frequency}, Quadrupole Scalar: {self.quadrupole_scalar}, Corrector Scalar: {self.corrector_scalar}, Decimated: {self.decimated}")
 
     def run(self, element, plane_info, max_orbit) -> RawData:
         """Run the FBBA process."""
@@ -43,7 +43,7 @@ class FBBA(Algorithm):
         quad_pv_list = [self._accelerator.element_to_pv_prefix(quad_element) for quad_element in quad_list]
         bpm_pv_prefix = self._accelerator.element_to_pv_prefix(bpm)
         corrector_pv_prefix = self._accelerator.element_to_pv_prefix(corrector, plane_info)
-        log.info(f"Quads: {quad_pv_list}, BPM: {bpm_pv_prefix}, Corrector: {corrector_pv_prefix}.")
+        log.debug(f"Quads: {quad_pv_list}, BPM: {bpm_pv_prefix}, Corrector: {corrector_pv_prefix}.")
         raw_data = {}
         metadata = {
             "plane" : plane_info,
@@ -62,13 +62,13 @@ class FBBA(Algorithm):
 
             quad_step = self._accelerator.measure_quad(quad) * self.quadrupole_scalar
             corr_amp = self._accelerator.microrads(corrector, plane_info) * self.corrector_scalar
-            log.info(f"Quad step: {quad_step}, Corrector step: {corr_amp}.")
+            log.debug(f"Quad step: {quad_step}, Corrector step: {corr_amp}.")
             metadata["quad_step"] = quad_step
             metadata["corr_step"] = corr_amp
             osc = Oscillation(corr_amp, plane_info, self.frequency, self.cycles)
             self.osc = osc
 
-            log.info(
+            log.debug(
                 "Oscillation amplitude {}; frequency {}; cycles {}".format(
                     osc.amp, osc.freq, osc.cycles))
             metadata["frequency"] = self.osc.freq
@@ -95,21 +95,24 @@ class FBBA(Algorithm):
             fa_buffer = Buffer(bpm_list, high_start, duration, self.decimated)
             low_start = high_start + osc_length + SAFETY_NET + quad_lag
             log.debug("Safety net: {}; quad_lag: {}".format(SAFETY_NET, quad_lag))
-            log.info("Time now: {}.".format(now))
-            log.info("High start time: {}.".format(high_start - now))
-            log.info("Low start time: {}.".format(low_start - now))
+            log.debug("Time now: {}.".format(now))
+            log.debug("High start time: {}.".format(high_start - now))
+            log.debug("Low start time: {}.".format(low_start - now))
             log.debug("The oscillation: {}".format(osc))
             self.exc_high = Excitation(corrector, osc, high_start, self._accelerator)
             log.debug(
                 "The excitation: dwell {} count {}".format(self.exc_high.dwell, self.exc_high.count))
             self.exc_low = Excitation(corrector, osc, low_start, self._accelerator)
 
+            log.info(f"High Oscillation")
             excite((self.exc_high,))
             # Sleep for first excitation. SAFETY_NET ensures that we don't start
             # moving the quad before the excitation has finished.
             cothread.Sleep((NETWORK_LAG + self.exc_high.count + SAFETY_NET) / TICKS_PER_SECOND)
             # Move quad from high to low
             self._accelerator.set_quad(quad, quad_low)
+            cothread.Sleep(quad_lag_s)
+            log.info(f"Low Oscillation")
             # Set up second excitation
             excite((self.exc_low,))
             # This will block until all data has been retrieved.
@@ -133,7 +136,7 @@ class FBBA(Algorithm):
         """
         # Note: array data must include the timestamps.
         log.debug("Raw data shape: {}".format(data.shape))
-        log.info(
+        log.debug(
             "Timestamp range in raw data: {} - {}".format(data[0, 0, 0], data[-1, 0, 0]))
         log.debug("Excitation length: {}".format(self.exc_high.count))
         log.debug("Trailing data to crop: {}.".format(
@@ -149,7 +152,7 @@ class FBBA(Algorithm):
         length = ceil(self.exc_high.count / 10) if self.decimated else self.exc_high.count
         high_data = data[high_start: high_start + length, :, plane_info.index]
         low_data = data[low_start: low_start + length, :, plane_info.index]
-        log.info("Selected data shape: {} {}".format(high_data.shape, low_data.shape))
+        log.debug("Selected data shape: {} {}".format(high_data.shape, low_data.shape))
         assert high_data.shape == low_data.shape
         return [high_data, low_data]
 
@@ -261,7 +264,7 @@ class FBBA(Algorithm):
             offset = offsets[index]
             error = errors[index]
             quad_name = quadrupole.replace("_", "-")
-            print(f"Quad: {quad_name} offset calculated: {offset} +- {error}.")
+            log.debug(f"Quad: {quad_name} offset calculated: {offset} +- {error}.")
             results[quadrupole] = [offset, error]
 
         offset = mean(offsets)
@@ -271,5 +274,5 @@ class FBBA(Algorithm):
         error = np.sqrt(sum_error)
 
         bpm_pv_prefix = metadata['bpm_pv']
-        print(f"BPM: {bpm_pv_prefix} offset calculated: {offset} +- {error}.")
+        log.info(f"BPM: {bpm_pv_prefix} offset calculated: {offset} +- {error}.")
         return Results(results, bpm_pv_prefix, metadata)

@@ -5,6 +5,7 @@ from statistics import mean
 from subprocess import run
 from time import sleep
 from typing import Any, Dict, NamedTuple
+import logging as log
 
 import pytac
 import scipy.io as io
@@ -38,7 +39,7 @@ class RawData:
         self.metadata["plane"] = self.metadata["plane"]._asdict()  # NamedTuple not supported in .mat file.
         dct = {'raw_data': self.raw_data, 'algorithm': self.algorithm, 'metadata': self.metadata}
         io.savemat(filename, dct, oned_as="row")
-        print(f"Saved data as {filename}")
+        log.info(f"Saved raw data as {filename}")
 
     @classmethod
     def from_file(cls, filename):
@@ -58,7 +59,7 @@ class Results:
         filename = "{}/{}-{}-{}-results.mat".format(filepath, time_prefix, self.metadata["bpm_pv"], self.metadata["plane"]["axis"])
         dct = {'results': self.results, 'bpm_pv_prefix': self.bpm_pv_prefix, 'metadata': self.metadata}
         io.savemat(filename, dct, oned_as="row")
-        print(f"Saved data as {filename}")
+        log.info(f"Saved results as {filename}")
 
     @classmethod
     def from_file(cls, filename):
@@ -141,6 +142,7 @@ class Algorithm(ABC):
 
         for key, pv_name in feedbacks.items():
             if caget(pv_name[0]) != pv_name[1]:
+                log.critical(f"{key} running. Stop feedbacks before running BBA.")
                 raise ValueError(f"{key} running. Stop feedbacks before running BBA.")
 
         bpm_h_values = self._accelerator.measure_bpms("BPM", "x", pytac.RB)
@@ -157,7 +159,7 @@ class Algorithm(ABC):
         max_value = abs(max(bpm_values, key=abs))
         # value in mm, max_orbit in um.
         if float(max_value * 1000) >= float(max_orbit):
-            print("Correcting orbit with FOFB.")
+            log.warn("Correcting orbit with FOFB.")
             run("/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py start", check=True, shell=True)
             sleep(1)
             run("/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py stop", check=True, shell=True)
@@ -166,6 +168,7 @@ class Algorithm(ABC):
     def zero_origins(self, bpm, plane_info) -> Dict[str, Any]:
         """Zeros BCD and Golden offsets. Also stores current Golden offset value for restoring later."""
         # return None  # For testing -> PV's dont exist in virtac.
+        log.info(f"Origins Zeroed")
         bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
         bcd_pv = bpm_pv_root + ORIGIN_SUFFIXES["BCD"].format(axis=plane_info.axis)
         golden_pv = bpm_pv_root + ORIGIN_SUFFIXES["GOLDEN"].format(axis=plane_info.axis)
@@ -182,6 +185,7 @@ class Algorithm(ABC):
         # return None  # For testing -> PV's dont exist in virtac.
         for key, value in offsets.items():
             caput(key, value)
+        log.info(f"Origins Restored")
 
     def set_bpm_offset(self, bpm, value, plane_info):
         """Applies new offset value to the BBA offset."""
@@ -225,5 +229,5 @@ class Algorithm(ABC):
 
         current_offset = caget(setting_pv)
         new_offset = current_offset + offset
-        print(f"BPM: {bpm_pv_prefix}, Old offset: {current_offset}, Delta: {offset} +- {error}, New offset: {new_offset}.")
+        log.info(f"BPM: {bpm_pv_prefix}, Old offset: {current_offset}, Delta: {offset} +- {error}, New offset: {new_offset}.")
         caput(setting_pv, new_offset)
