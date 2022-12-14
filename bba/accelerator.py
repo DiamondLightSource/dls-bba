@@ -1,8 +1,11 @@
 import numpy as np
 import pytac
 import scipy.io as io
-from cothread.catools import DBR_STRING, caget
+import logging as log
+import cothread
+from cothread.catools import DBR_STRING, caget, ca_nothing
 
+TRIES = 3  # Attempts to get BPM values before failing.
 DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
 MASTER_CALIBRATION_PATH = "/dls_sw/work/common/matlab/mml/machine-new/diamond/master_calibration.csv"
 CORRECTOR_KICK_RAD = 2e-5  # Radians
@@ -21,6 +24,10 @@ BPM_TO_QUAD_SPECIAL = {
     "SR12C-DI-EBPM-07": ["SR12A-PC-QUADF-01"],  # 13S-1 is pv 12-1
     "SR13C-DI-EBPM-01": ["SR13A-PC-QUADF-04"],  # Cell 13 discrepency.
 }
+
+
+class AcceleratorException(Exception):
+    pass
 
 
 class Accelerator:
@@ -67,6 +74,9 @@ class Accelerator:
             ringmode = caget("SR-CS-RING-01:MODE", datatype=DBR_STRING)
         return ringmode
 
+    def get_beam_current(self):
+        return self.lattice.get_value("beam_current")
+
     def element_to_pv_prefix(self, element, plane=None):
         if element in self.quads:
             pv = element.get_pv_name("b1", pytac.SP)
@@ -83,7 +93,6 @@ class Accelerator:
 
     def pv_prefix_to_element(self, pv_prefix, plane=None):
         element = None
-        # print(pv_prefix)
         family = pv_prefix.split("-")[2]
         if family[0] == "Q":
             for quad in self.quads:
@@ -112,7 +121,21 @@ class Accelerator:
         corrector.get_value(plane_info.kick, pytac.ENG)
 
     def measure_bpms(self, plane_info):
-        return self.bpms.get_element_values("BPM", plane_info.axis.lower())
+        """Returns the current bpm values for all bpms."""
+        # The try statement is due to an occasional caput error.
+        for attempt in range(TRIES):
+            try:
+                bpm_values = self.bpms.get_element_values("BPM", plane_info.axis.lower())
+            except ca_nothing as e:
+                log.error(f"Failure no: {attempt + 1} to retrieve bpm values:\n{e}")
+                if attempt < TRIES - 1:
+                    cothread.Sleep(1)
+                    continue
+                log.critical(f"Failed to retrieve bpm values {TRIES} times:\n{e}")
+                raise AcceleratorException(f"Failed to retrieve bpm values {TRIES} times:\n{e}")
+            else:
+                break
+        return bpm_values
 
     def special_correctors(self, plane):
         """SR01A -> SR01S or HSTR -> HSCOR."""

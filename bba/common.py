@@ -11,6 +11,9 @@ import scipy.io as io
 import numpy as np
 from cothread.catools import caget, caput
 
+MAXIMUM_CURRENT_DROP = 20  # mA
+MINIMUM_CURRENT_DROP = 5  # mA
+
 PlaneValues = NamedTuple("PlaneValues", [("index", int), ("axis", str), ("corrector", str), ("kick", str)])
 PLANE_VALUES = {
     "HORIZONTAL": PlaneValues(0, "X", "HSTR", "x_kick"),
@@ -66,6 +69,10 @@ class Results:
         return cls(dct['results'], dct['bpm_pv_prefix'], metadata)
 
 
+class LowBeamCurrent(Exception):
+    pass
+
+
 class Algorithm(ABC):
     def __init__(self, accelerator):
         self._accelerator = accelerator
@@ -73,6 +80,35 @@ class Algorithm(ABC):
     @abstractmethod
     def configure(self, *args, **kwargs):
         pass
+
+    def check_beam_current(self, initial_current) -> bool:
+        """Checks that the beam current hasn't dropped substantially
+        and gives an opportunity to top up. Will return True if beam is okay, 
+        will return False if beam is okay but was topped up.
+        If beam has dropped too much, will cancel BBA."""
+        current_drop = initial_current - self._accelerator.get_beam_current()
+        if current_drop > MAXIMUM_CURRENT_DROP:
+            log.critical(f"Beam current dropped by >20mA. Cancelling BBA.")
+            raise LowBeamCurrent(f"Beam current dropped by >20mA. Cancelling BBA.")
+
+        if current_drop > MINIMUM_CURRENT_DROP:
+            log.error(f"Beam current dropped by 5-20mA. Top-up or cancel.")
+            response = ""
+            while True:
+                response = input("Input y to continue, or n to cancel: ").lower()
+
+                if response == "n":
+                    log.critical("User cancelled BBA.")
+                    raise LowBeamCurrent(f"Beam current dropped by 5-20mA. User cancelled BBA.")
+                elif response == "y":
+                    current_drop = initial_current - self._accelerator.get_beam_current()
+                    if current_drop < MINIMUM_CURRENT_DROP:
+                        break
+                    print(f"Current not high enough yet. Must be within 5 mA of {initial_current}")
+
+            return False
+
+        return True
 
     def select_elements(self, element, plane_info):
         """Input quad/bpm element, calculate relevent elements.

@@ -77,11 +77,11 @@ class SBBA(Algorithm):
                 # High quad step
                 self._accelerator.set_quad(quad, quad_high)
                 cothread.Sleep(quad_lag_s / 2)
-                high_bpms = self._accelerator.measure_bpms(plane_info) #TODO: Add the try thing - may fail.
+                high_bpms = self._accelerator.measure_bpms(plane_info)
                 # Low quad step
                 self._accelerator.set_quad(quad, quad_low)
                 cothread.Sleep(quad_lag_s / 2)
-                low_bpms = self._accelerator.measure_bpms(plane_info) #TODO: Add the try thing - may fail.
+                low_bpms = self._accelerator.measure_bpms(plane_info)
                 # Change in step.
                 raw_data[f"{quad_pv_root}_{index}"] = np.subtract(high_bpms, low_bpms)
             
