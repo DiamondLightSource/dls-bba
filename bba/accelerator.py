@@ -10,20 +10,20 @@ from cothread.catools import DBR_STRING, caget, ca_nothing
 TRIES = 3  # Attempts to get BPM values before failing.
 DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata"
 MASTER_CALIBRATION_PATH = "/dls_sw/work/common/matlab/mml/machine-new/diamond/master_calibration.csv"
-CORRECTOR_KICK_RAD = 2e-5  # Radians
+CORRECTOR_KICK_RAD = 2e-5  # Radians.
 QUAD_TO_BPM_SPECIAL = {  # In these cases, no quad is closest to these BPMs.
-    "SR02A-PC-Q3E-08": "SR02C-DI-EBPM-07",  # Quad 2-8 -> BPM 2-7
-    "SR09S-PC-QUADD-02": "SR09S-DI-EBPM-01",  # Quad 9S-2 -> BPM 9S-1
-    "SR13S-PC-QUADD-02": "SR13S-DI-EBPM-01"  # Quad 13S-2 -> BPM 13S-1
+    "SR02A-PC-Q3E-08": "SR02C-DI-EBPM-07",  # Quad 2-8 -> BPM 2-7.
+    "SR09S-PC-QUADD-02": "SR09S-DI-EBPM-01",  # Quad 9S-2 -> BPM 9S-1.
+    "SR13S-PC-QUADD-02": "SR13S-DI-EBPM-01"  # Quad 13S-2 -> BPM 13S-1.
 }
 BPM_TO_QUAD_SPECIAL = {
-    "SR02C-DI-EBPM-01": ["SR02A-PC-Q1BE-01"],  # Quad 2,1 only
-    "SR02C-DI-EBPM-08": ["SR02A-PC-Q1BE-10"],  # Quad 2,9 only
-    "SR08C-DI-EBPM-07": ["SR08A-PC-QUADF-01"],  # 9S-1 is pv 08-1
+    "SR02C-DI-EBPM-01": ["SR02A-PC-Q1BE-01"],  # Quad 2,1 only.
+    "SR02C-DI-EBPM-08": ["SR02A-PC-Q1BE-10"],  # Quad 2,9 only.
+    "SR08C-DI-EBPM-07": ["SR08A-PC-QUADF-01"],  # 9S-1 is pv 08-1.
     "SR09C-DI-EBPM-01": ["SR09A-PC-QUADF-04"],  # Cell 9 discrepency.
     "SR10C-DI-EBPM-01": ["SR10A-PC-Q1B-01"],  # Cell 10, magnet length inconsistency.
     "SR10C-DI-EBPM-02": ["SR10A-PC-Q2B-02", "SR10A-PC-Q3B-03"],  # Cell 10, magnet length inconsistency.
-    "SR12C-DI-EBPM-07": ["SR12A-PC-QUADF-01"],  # 13S-1 is pv 12-1
+    "SR12C-DI-EBPM-07": ["SR12A-PC-QUADF-01"],  # 13S-1 is pv 12-1.
     "SR13C-DI-EBPM-01": ["SR13A-PC-QUADF-04"],  # Cell 13 discrepency.
 }
 
@@ -134,8 +134,8 @@ class Accelerator:
         """Returns the current corrector current value."""
         return corrector.get_value(plane_info.kick, pytac.RB, pytac.ENG)
 
-    def set_corrector(self, corrector, plane_info, value):
-        corrector.get_value(plane_info.kick, pytac.ENG)
+    # def set_corrector(self, corrector, plane_info, value):
+    #     corrector.set_value(plane_info.kick, value, pytac.ENG)
 
     def measure_bpms(self, plane_info):
         """Returns the current bpm values for all bpms."""

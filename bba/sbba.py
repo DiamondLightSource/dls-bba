@@ -21,7 +21,7 @@ class SBBA(Algorithm):
         super().__init__(accelerator)
         self.configure()
 
-    def configure(self, quadrupole_scalar = 0.01, corrector_scalar=1, decimated = False):
+    def configure(self, quadrupole_scalar=0.01, corrector_scalar=1, decimated=False):
         """These are optional arguments, which are used during testing."""
         self.quadrupole_scalar = quadrupole_scalar
         self.corrector_scalar = corrector_scalar
@@ -92,7 +92,7 @@ class SBBA(Algorithm):
             log.info(f"Restored")
 
         return RawData(raw_data, method, metadata)
-    
+
     def analyse_data(self, raw_data, plot_output, *args, **kwargs) -> Results:
         data = raw_data.raw_data
         #algorithm = raw_data["algorithm"]
@@ -148,6 +148,7 @@ class SBBA(Algorithm):
             p = np.delete(p, bad_gradients, axis=0)
             # gradient > 20 * BPMnoise?
 
+            # Remove all values that are more than 1 stdev from the mean.
             while True:
                 log.info(f"Size of p: {np.shape(p)}")
                 counter = 0
@@ -161,9 +162,10 @@ class SBBA(Algorithm):
                 p = np.delete(p, std_list, axis=0)
                 if counter == 0:
                     break
+
             log.info(f"Final size of p: {np.shape(p)}")
             if plot_output:
-                log.critical("Plotting - Not implimented yet.")
+                log.error("Plotting - Not implimented yet.")
             offset_mean = mean(p[:, 1])
             offset_stdev = stdev(p[:, 1])
             log.info(offset_mean, offset_stdev)
