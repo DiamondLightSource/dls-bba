@@ -139,10 +139,11 @@ class Accelerator:
 
     def measure_bpms(self, plane_info):
         """Returns the current bpm values for all bpms."""
-        # The try statement is due to an occasional caput error.
+        # Repeat CA requests for BPMs due to recurring device issues.
         for attempt in range(TRIES):
             try:
-                bpm_values = self.bpms.get_element_values("BPM", plane_info.axis.lower())
+                bpm_values = self.lattice.get_element_values("BPM", plane_info.axis.lower())
+                # self.lattice.get_element_values("BPM", "enabled")
             except ca_nothing as e:
                 log.error(f"Failure no: {attempt + 1} to retrieve bpm values:\n{e}")
                 if attempt < TRIES - 1:

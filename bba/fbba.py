@@ -3,11 +3,15 @@
 import logging as log
 from math import ceil
 from statistics import mean, stdev
+from datetime import datetime
+
 
 import cothread
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
+from scipy.fft import rfft, rfftfreq, irfft
+from scipy.signal import find_peaks
 
 from bba.common import Algorithm, RawData, Results
 from bba.excite import Excitation, Oscillation, excite
@@ -25,10 +29,10 @@ class FBBA(Algorithm):
         super().__init__(accelerator)
         self.configure()
 
-    def configure(self, quadrupole_scalar=0.025, corrector_scalar=2, cycles=1, frequency=8, decimated=False):
+    def configure(self, quadrupole_scalar=0.02, corrector_scalar=2, cycles=1, frequency=8, decimated=False):
         """These are optional arguments, which are used during testing."""
-        self.quadrupole_scalar = quadrupole_scalar
-        self.corrector_scalar = float(corrector_scalar)
+        self.quadrupole_scalar = quadrupole_scalar  # 0.01
+        self.corrector_scalar = float(corrector_scalar)  # 1
         self.cycles = cycles
         self.frequency = frequency
         self.decimated = decimated
@@ -156,12 +160,76 @@ class FBBA(Algorithm):
         assert high_data.shape == low_data.shape
         return [high_data, low_data]
 
-    def extract_freq_fft(self, data, freq):
-        index = freq - 2
-        data_i = np.fft.rfft(data, axis=0)
-        data_i_f = np.zeros(data_i.shape, "complex")
-        data_i_f[index] = data_i[index]
-        return np.fft.irfft(data_i_f, axis=0)
+    def extract_freq_fft(self, data, known_freq):
+        
+        #plt.plot(data)
+        #plt.savefig("before.png", bbox_inches="tight", dpi=1200)
+        #plt.close()
+
+
+
+        samplingfreq = TICKS_PER_SECOND
+        length, samples = data.shape
+        data = np.transpose(data)
+
+        # Add hanning window.
+        for i in range(0, samples):
+           hanning_list = np.hanning(len(data[:,i]))
+           data[:,i] = [x + y for x, y in zip(data[:,i], hanning_list)]
+
+        yf = rfft(data)  / length
+        xf = rfftfreq(length, 1/samplingfreq)
+        peak_intensity = []
+        peak_frequency = []
+        for i in range(0, samples):
+            y_data = np.abs(np.transpose(np.real(yf[i])))
+            peaks, _ = find_peaks(y_data)
+            peak_max = peaks[np.argmax(y_data[peaks])]
+            xmax = xf[peak_max]
+            peak_intensity.append(peak_max)
+            peak_frequency.append(xmax)
+
+        peak_int_freq = [int(freq) for freq in peak_frequency]
+        most_frequent = np.argmax(np.bincount(peak_int_freq))
+
+        #plt.plot(xf, np.transpose(yf))
+        #plt.savefig("during.png", bbox_inches="tight", dpi=1200)
+        #plt.close()
+
+        if most_frequent != known_freq:
+            print(f"Calculated frequency {most_frequent} does not match expected frequency {known_freq}. Results are likely to be untrustworthly.")
+            log.info(f"Calculated frequency {most_frequent} does not match expected frequency {known_freq}.")
+        
+        # to_be_removed = []
+        # for i, e in reversed(list(enumerate(peak_frequency))):
+        #     if int(e) != most_frequent:
+        #         to_be_removed.append(i)
+
+        temp_yf = yf
+        yf_abs = np.abs(temp_yf)
+        indices = yf_abs<300
+        yf_clean = indices * temp_yf
+
+        # Isolate the useful frequency.
+
+        xf_list = [int(value) for value in xf]
+        freq_index = xf_list.index(known_freq)
+        for bpm_index, dataset in enumerate(yf_clean):
+            for index, value in enumerate(dataset):
+                if index != freq_index:
+                    yf_clean[bpm_index][index] = 0
+
+        #plt.plot(xf, np.transpose(yf_clean))
+        #plt.savefig("during_cleaned.png", bbox_inches="tight", dpi=1200)
+        #plt.close()
+
+
+        clean = np.transpose(irfft(yf_clean))
+        length_list = range(1, length)
+        #plt.plot(clean)
+        #plt.savefig("after.png", bbox_inches="tight", dpi=1200)
+        #plt.close()
+        return clean
 
     def extract_freq_excite(self, data, freq):
         data_length = data.shape[0]
@@ -175,7 +243,8 @@ class FBBA(Algorithm):
         reverse_osc = np.exp(np.linspace(0, -2j * np.pi * num_oscs, data_length))
         reverse_osc = np.tile(reverse_osc, (data.shape[1], 1)).T
         # Force the phase to zero by using only the imaginary part of the mean
-        return 2 * np.real(reverse_osc * 1j * np.imag(data_es))
+        answer = 2 * np.real(reverse_osc * 1j * np.imag(data_es))
+        return answer
 
     def analyse_data(self, raw_data, plot_output, use_fft=False, *args, **kwargs) -> Results:
         data = raw_data.raw_data

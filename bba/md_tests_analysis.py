@@ -4,6 +4,7 @@ from datetime import datetime
 import argparse
 import logging as log
 from statistics import mean, stdev
+import os.path as osp
 
 from bba.common import Algorithm, PLANE_VALUES
 from bba.fbba import FBBA
@@ -50,13 +51,6 @@ def parse_args():
         default=False,
         help="honing complex test"
     )
-    parser.add_argument(
-        "-s", "--special",
-        dest="combi",
-        action="store_true",
-        default=False,
-        help="combination test"
-    )
     return parser.parse_args()
     
 
@@ -65,34 +59,36 @@ def main():
     cycle_test = args.cycle
     freq_test = args.freq
     corr_test = args.corr_amp_test
-    quad_test = args.quad_amp_test
+    #quad_test = args.quad_amp_test
     honing_test = args.honing_test
-    combination_test = args.combi
 
-    if cycle_test:
-        repeats = 20
-        cycle_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-        data = np.genfromtxt(f"cycle_scan_repeats_{repeats}_len_{len(cycle_list)}.csv", delimiter=",")
-        y = []
-        y_err = []
-        for index, cycle in enumerate(cycle_list):
-            value_list = data[(index*2), :]
-            y.append(mean(value_list))
-            y_err.append(stdev(value_list))
-        plt.errorbar(cycle_list, y, y_err, marker = ".", capsize=5)
-        # plt.hlines(y= , xmin=0, xmax=(max(cycle_list) + 1), color="r", linestyles="-")
-        plt.title(f"Cycles Test - {repeats} Repeats")
-        plt.xlim(0, max(cycle_list) + 1)
-        plt.xlabel("Cycles")
-        plt.ylabel("Offset Value")
-        plt.grid(which = "both", axis = "both")
-        plt.savefig(f"cycle_scan_repeats_{repeats}_len_{len(cycle_list)}_plot.png", bbox_inches="tight", dpi=1200)
-        plt.show()
+    # if cycle_test:
+    #     repeats = 20
+    #     cycle_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+    #     data = np.genfromtxt(f"cycle_scan_repeats_{repeats}_len_{len(cycle_list)}.csv", delimiter=",")
+    #     y = []
+    #     y_err = []
+    #     for index, cycle in enumerate(cycle_list):
+    #         value_list = data[(index*2), :]
+    #         y.append(mean(value_list))
+    #         y_err.append(stdev(value_list))
+    #     plt.errorbar(cycle_list, y, y_err, marker = ".", capsize=5)
+    #     # plt.hlines(y= , xmin=0, xmax=(max(cycle_list) + 1), color="r", linestyles="-")
+    #     plt.title(f"Cycles Test - {repeats} Repeats")
+    #     plt.xlim(0, max(cycle_list) + 1)
+    #     plt.xlabel("Cycles")
+    #     plt.ylabel("Offset Value")
+    #     plt.grid(which = "both", axis = "both")
+    #     plt.savefig(f"cycle_scan_repeats_{repeats}_len_{len(cycle_list)}_plot.png", bbox_inches="tight", dpi=1200)
+    #     plt.show()
 
     if freq_test:
         repeats = 10
-        frequency_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
-        data = np.genfromtxt(f"frequency_scan_repeats_{repeats}_len_{len(frequency_list)}.csv", delimiter=",")
+        MAX_TIME = 2  # 2 seconds
+        frequency_list = [int(num) for num in range(0, 251)]
+        TEMP_FILEPATH_ROOT = osp.join("/dls", "physics", "owr68555", "13Jan2023")
+
+        data = np.genfromtxt(f"{TEMP_FILEPATH_ROOT}/frequency_scan_repeats_{repeats}_{MAX_TIME}_len_{len(frequency_list)}.csv", delimiter=",")
         y = []
         y_err = []
         for index, cycle in enumerate(frequency_list):
@@ -101,98 +97,190 @@ def main():
             y_err.append(stdev(value_list))
         plt.errorbar(frequency_list, y, y_err, marker = ".", capsize=5)
         # plt.hlines(y= , xmin=0, xmax=(max(frequency_list) + 1), color="r", linestyles="-")
-        plt.title(f"Frequency Test - {repeats} Repeats")
+        plt.title(f"Frequency Test - {repeats} Repeats of 2 seconds")
         plt.xlim(0, max(frequency_list) + 1)
         plt.xlabel("Frequency")
         plt.ylabel("Offset Value")
         plt.grid(which = "both", axis = "both")
-        plt.savefig(f"frequency_scan_repeats_{repeats}_len_{len(frequency_list)}_plot.csv.png", bbox_inches="tight", dpi=1200)
+        plt.savefig(f"{TEMP_FILEPATH_ROOT}/frequency_scan_repeats_{repeats}_{MAX_TIME}_len_{len(frequency_list)}.png", bbox_inches="tight", dpi=1200)
         plt.show()
 
     if corr_test:
+        TEMP_FILEPATH_ROOT = osp.join("/dls", "physics", "owr68555", "13Jan2023")
+        element = ['SR04A-PC-Q1B-01', 'SR04A-PC-Q2B-02', 'SR04A-PC-Q3B-03', 'SR04A-PC-Q2AB-04', 'SR04A-PC-Q1AB-05', 'SR04A-PC-Q1AD-06', 'SR04A-PC-Q2AD-07', 'SR04A-PC-Q3D-08', 'SR04A-PC-Q2D-09', 'SR04A-PC-Q1D-10']
+        # backup_cell_list = ['SR07A-PC-Q1B-01', 'SR07A-PC-Q2B-02', 'SR07A-PC-Q3B-03', 'SR07A-PC-Q2AB-04', 'SR07A-PC-Q1AB-05', 'SR07A-PC-Q1AB-06', 'SR07A-PC-Q2AB-07', 'SR07A-PC-Q3B-08', 'SR07A-PC-Q2B-09', 'SR07A-PC-Q1B-10']
+        corr_amp_list = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.20, 1.4, 1.6, 1.8, 2, 2.25, 2.5, 3, 3.5]
         repeats = 10
-        #As a multiplier (default 1)
-        corr_amp_list = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.20, 1.4, 1.6, 1.8, 2, 2.25, 2.5, 3, 3.5, 4, 4.5, 5]
-        data = np.genfromtxt(f"corr_amp_scan_repeats_{repeats}_len_{len(corr_amp_list)}.csv", delimiter=",")
-        y = []
-        y_err = []
-        for index, cycle in enumerate(corr_amp_list):
-            value_list = data[(index*2), :]
-            y.append(mean(value_list))
-            y_err.append(stdev(value_list))
-        plt.errorbar(corr_amp_list, y, y_err, marker = ".", capsize=5)
-        # plt.hlines(y= , xmin=0, xmax=(max(corr_amp_list) + 0.1), color="r", linestyles="-")
+        for ele in element:
+            #As a multiplier (default 1)
+            data = np.genfromtxt(f"{TEMP_FILEPATH_ROOT}/corr_amp_scan_repeats_{repeats}_{ele}.csv", delimiter=",")
+            y = []
+            y_err = []
+            for index, cycle in enumerate(corr_amp_list):
+                value_list = data[(index*2), :]
+                y.append(mean(value_list))
+                y_err.append(stdev(value_list))
+            plt.errorbar(corr_amp_list, y, y_err, marker = ".", capsize=5, label=f"{ele}")
+            # plt.hlines(y= , xmin=0, xmax=(max(corr_amp_list) + 0.1), color="r", linestyles="-")
         plt.title(f"Corrector amplitude Test - {repeats} Repeats")
         plt.xlim(0 , max(corr_amp_list) + 0.1)
         plt.xlabel("Corrector Amplitude")
         plt.ylabel("Offset Value")
         plt.grid(which = "both", axis = "both")
-        plt.savefig(f"corr_amp_scan_repeats_{repeats}_len_{len(corr_amp_list)}_plot.png", bbox_inches="tight", dpi=1200)
+        plt.legend()
+        plt.savefig(f"{TEMP_FILEPATH_ROOT}/corr_amp_scan_repeats_{repeats}_cell4_plot.png", bbox_inches="tight", dpi=1200)
         plt.show()
+        plt.close()
 
-    if quad_test:
-        repeats = 10
-        #As a multiplier (default 0.01 for 1% of current value)
-        quad_amp_list = [0.001, 0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05]
-        data = np.genfromtxt(f"quad_amp_scan_repeats_{repeats}_len_{len(quad_amp_list)}.csv", delimiter=",")
-        y = []
-        y_err = []
-        for index, cycle in enumerate(quad_amp_list):
-            value_list = data[(index*2), :]
-            y.append(mean(value_list))
-            y_err.append(stdev(value_list))
-        plt.errorbar(quad_amp_list, y, y_err, marker = ".", capsize=5)
-        # plt.hlines(y= , xmin=0, xmax=(max(quad_amp_list) + 0.005), color="r", linestyles="-")
-        plt.title(f"Quad amplitude Test - {repeats} Repeats")
-        plt.xlim(0 , max(quad_amp_list) + 0.005)
-        plt.xlabel("Quad Amplitude (0.01 is 1%)")
-        plt.ylabel("Offset Value")
-        plt.grid(which = "both", axis = "both")
-        plt.savefig(f"quad_amp_scan_repeats_{repeats}_len_{len(quad_amp_list)}_plot.png", bbox_inches="tight", dpi=1200)
-        plt.show()
+    # if quad_test:
+    #     repeats = 10
+    #     #As a multiplier (default 0.01 for 1% of current value)
+    #     quad_amp_list = [0.001, 0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05]
+    #     data = np.genfromtxt(f"quad_amp_scan_repeats_{repeats}_len_{len(quad_amp_list)}.csv", delimiter=",")
+    #     y = []
+    #     y_err = []
+    #     for index, cycle in enumerate(quad_amp_list):
+    #         value_list = data[(index*2), :]
+    #         y.append(mean(value_list))
+    #         y_err.append(stdev(value_list))
+    #     plt.errorbar(quad_amp_list, y, y_err, marker = ".", capsize=5)
+    #     # plt.hlines(y= , xmin=0, xmax=(max(quad_amp_list) + 0.005), color="r", linestyles="-")
+    #     plt.title(f"Quad amplitude Test - {repeats} Repeats")
+    #     plt.xlim(0 , max(quad_amp_list) + 0.005)
+    #     plt.xlabel("Quad Amplitude (0.01 is 1%)")
+    #     plt.ylabel("Offset Value")
+    #     plt.grid(which = "both", axis = "both")
+    #     plt.savefig(f"quad_amp_scan_repeats_{repeats}_len_{len(quad_amp_list)}_plot.png", bbox_inches="tight", dpi=1200)
+    #     plt.show()
 
     if honing_test:
         #Add comparison to slow bba.
-        repeats = 5
-        cycles = 1
+        TEMP_FILEPATH_ROOT = osp.join("/dls", "physics", "owr68555", "13Jan2023")
+        repeats = 8
+        cycles = 16
         frequency = 8
-        quad_scalar = 0.01
-        corr_scalar = 1
-        data = np.genfromtxt(f"honing_simple_repeats_{repeats}_c{cycles}_f{frequency}_q{quad_scalar}_cs{corr_scalar}.csv", delimiter=",")
-        y = data[index, :]
-        y_err = data[index+1, :]
-        x_axis = [1, 2, 3, 4, 5]
-        plt.errorbar(x_axis, y, y_err, marker = ".", capsize=5)
-        # plt.hlines(y= , xmin=0, xmax=5.1, color="r", linestyles="-")
-        plt.title(f"Honing Test")
-        plt.xlim(0 , 5.1)
-        plt.xlabel("Run number")
-        plt.ylabel("Offset Value")
-        plt.grid(which = "both", axis = "both")
-        plt.savefig(f"honing_simple_repeats_{repeats}_c{cycles}_f{frequency}_q{quad_scalar}_cs{corr_scalar}_plot.png", bbox_inches="tight", dpi=1200)
-        plt.show()
+        quadrupole_scalar = 0.02
+        corrector_scalar = 2
+        x_axis = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
-    if combination_test:
-        repeats = 5
-        corr_amps = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.20, 1.4, 1.6, 1.8, 2, 2.25, 2.5, 3, 3.5, 4, 4.5, 5]
-        cycles_list = [1, 10, 20]
-        for cycle in cycles_list:
-            data = np.genfromtxt(f"combination_scan_repeats_{repeats}_cycle_{cycle}.csv", delimiter=",")
-            y = []
-            y_err = []
-            for index, cycle in enumerate(corr_amps):
-                value_list = data[(index*2), :]
-                y.append(mean(value_list))
-                y_err.append(stdev(value_list))
-            plt.errorbar(corr_amps, y, y_err, marker = ".", capsize=5, label=f"Cycle={cycle}")
-        # plt.hlines(y= , xmin=0, xmax=5.1, color="r", linestyles="-")
-        plt.title(f"Corrector amplitude and cycles Test")
-        plt.xlim(0 , 5.1)
-        plt.xlabel("Corrector amplitude")
+        offset_0_original = 0.795
+        plt.hlines(y=offset_0_original , xmin=0, xmax=8.1, color="r", linestyles="--")
+
+        offset_100_original = 0.895
+        plt.hlines(y=offset_100_original , xmin=0, xmax=8.1, color="r", linestyles="--")
+
+        #BBA matlab 0 offset:
+        method= "Matlab BBA"
+        offset = 0
+        y = [0.795, 0.7880, 0.7880, 0.7890, 0.7880, 0.7900, 0.7890, 0.7770, 0.7850]
+        #y_err = []
+        plt.errorbar(x_axis, y, marker = ".", capsize=5, label=f"{method}, Offset:{offset}")
+
+        #BBA matlab 100 offset:
+        method= "Matlab BBA"
+        offset = 100
+        y = [0.895, 0.8080, 0.7920, 0.7880, 0.787, 0.790, 0.786, 0.788, 0.7870]
+        #y_err = []
+        plt.errorbar(x_axis, y, marker = ".", capsize=5, label=f"{method}, Offset:{offset}")
+
+        index = 0
+
+        _fft = False
+        offset = 0
+        method = "FBBA"
+        data = np.genfromtxt(f"{TEMP_FILEPATH_ROOT}/honing_simple_repeats_{method}_{repeats}_c1_f8_q{quadrupole_scalar}_cs{corrector_scalar}_fft{_fft}_offset{offset}.csv", delimiter=",")
+        o0_f = data[index, :]
+        y = offset_0_original
+        # y.append(data[index, :])
+        summed = np.cumsum(data[index, :])
+        y = [y] + [value + offset_0_original for value in summed]
+        y_err = 0
+        y_err = [y_err] + list((data[index+1, :]))
+        #print(y_err)
+        plt.errorbar(x_axis, y, y_err, marker = ".", capsize=5, label=f"{method}, Offset:{offset}, fft:{_fft}")
+
+        _fft = True
+        offset = 0
+        method = "FBBA"
+        data = np.genfromtxt(f"{TEMP_FILEPATH_ROOT}/honing_simple_repeats_{method}_{repeats}_c16_f8_q{quadrupole_scalar}_cs{corrector_scalar}_fft{_fft}_offset{offset}.csv", delimiter=",")
+        o0_t = data[index, :]
+        y = offset_0_original
+        #y = data[index, :]
+        summed = np.cumsum(data[index, :])
+        y = [y] + [value + offset_0_original for value in summed]
+        y_err = 0
+        y_err= [y_err] + list(data[index+1, :])
+        plt.errorbar(x_axis, y, y_err, marker = ".", capsize=5, label=f"{method}, Offset:{offset}, fft:{_fft}")
+
+        # method = "SBBA"
+        # _fft = False
+        # offset = 0
+        # data = np.genfromtxt(f"{TEMP_FILEPATH_ROOT}/honing_simple_repeats_{method}_{repeats}_c{cycles}_f{frequency}_q{quadrupole_scalar}_cs{corrector_scalar}_fft{_fft}_offset{offset}.csv", delimiter=",")
+        # y = data[index, :]
+        # #y = np.cumsum(y)
+        # #y = [value + offset_0_original for value in y]
+        # y_err = data[index+1, :]
+        # plt.errorbar(x_axis, y, y_err, marker = ".", capsize=5, label=f"{method}, Offset:{offset}, fft:{_fft}")
+
+        _fft = False
+        offset = 100
+        method = "FBBA"
+        data = np.genfromtxt(f"{TEMP_FILEPATH_ROOT}/honing_simple_repeats_{method}_{repeats}_c16_f8_q{quadrupole_scalar}_cs{corrector_scalar}_fft{_fft}_offset{offset}.csv", delimiter=",")
+        o100_f = data[index, :]
+        y = offset_100_original
+        summed = np.cumsum(data[index, :])
+        y = [y] + [value + offset_100_original for value in summed]
+        y_err = 0
+        y_err= [y_err] + list(data[index+1, :])
+        plt.errorbar(x_axis, y, y_err, marker = ".", capsize=5, label=f"{method}, Offset:{offset}, fft:{_fft}")
+
+        _fft = True
+        offset = 100
+        method = "FBBA"
+        data = np.genfromtxt(f"{TEMP_FILEPATH_ROOT}/honing_simple_repeats_{method}_{repeats}_c10_f50_q{quadrupole_scalar}_cs{corrector_scalar}_fft{_fft}_offset{offset}.csv", delimiter=",")
+        o100_t = data[index, :]
+        y = offset_100_original
+        #y = data[index, :]
+        summed = np.cumsum(data[index, :])
+        y = [y] + [value + offset_100_original for value in summed]
+        y_err = 0
+        y_err= [y_err] + list(data[index+1, :])
+        plt.errorbar(x_axis, y, y_err, marker = ".", capsize=5, label=f"{method}, Offset:{offset}, fft:{_fft}")
+
+        # method = "SBBA"
+        # _fft = False
+        # offset = 100
+        # data = np.genfromtxt(f"{TEMP_FILEPATH_ROOT}/honing_simple_repeats_{method}_{repeats}_c{cycles}_f{frequency}_q{quadrupole_scalar}_cs{corrector_scalar}_fft{_fft}_offset{offset}.csv", delimiter=",")
+        # y = data[index, :]
+        # #y = np.cumsum(y)
+        # #y = [value + offset_100_original for value in y]
+        # y_err = data[index+1, :]
+        # plt.errorbar(x_axis, y, y_err, marker = ".", capsize=5, label=f"{method}, Offset:{offset}, fft:{_fft}")
+
+        plt.title("Honing Test")
+        plt.xlim(0 , 7.1)
+        plt.xlabel("Run number -1")
         plt.ylabel("Offset Value")
         plt.grid(which = "both", axis = "both")
-        plt.savefig(f"combination_scan_repeats_{repeats}_cycle_full_plot.png", bbox_inches="tight", dpi=1200)
+        plt.legend()
+        plt.savefig(f"{TEMP_FILEPATH_ROOT}/honing_simple_repeats_{repeats}_c{cycles}_f{frequency}_q{quadrupole_scalar}_cs{corrector_scalar}_plot.png", bbox_inches="tight", dpi=1200)
         plt.show()
+        plt.close()
+
+
+        plt.title("Change in offset (FBBA only).")
+        plt.xlim(0 , 8.1)
+        plt.xlabel("Run number")
+        plt.ylabel("Change in Offset Value")
+        plt.grid(which = "both", axis = "both")
+        plt.plot(o0_f, label="0 Offset, FFT False")
+        plt.plot(o0_t, label="0 Offset, FFT True")
+        plt.plot(o100_f, label="100 Offset, FFT False")
+        plt.plot(o100_t, label="100 Offset, FFT True")
+        plt.legend()
+        plt.savefig(f"{TEMP_FILEPATH_ROOT}/honing_simple_repeats_change_plot.png", bbox_inches="tight", dpi=1200)
+        plt.show()
+        plt.close()
 
 
 if __name__ == "__main__":

@@ -145,8 +145,8 @@ class Algorithm(ABC):
                 log.critical(f"{key} running. Stop feedbacks before running BBA.")
                 raise ValueError(f"{key} running. Stop feedbacks before running BBA.")
 
-        bpm_h_values = self._accelerator.measure_bpms("BPM", "x", pytac.RB)
-        bpm_v_values = self._accelerator.measure_bpms("BPM", "y", pytac.RB)
+        bpm_h_values = self._accelerator.measure_bpms(PLANE_VALUES["HORIZONTAL"])
+        bpm_v_values = self._accelerator.measure_bpms(PLANE_VALUES["VERTICAL"])
 
         bpm_values = []
         for index, _ in enumerate(bpm_h_values):
