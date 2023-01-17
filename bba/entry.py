@@ -8,8 +8,8 @@ from bba.common import PLANE_VALUES, Algorithm
 from bba.fbba import FBBA
 from bba.sbba import SBBA
 
-LOG_FORMAT = "%(levelname)-7s: %(message)s"
-
+CONSOLE_LOG_FORMAT = "%(levelname)-7s: [%(filename)s:%(lineno)d] — %(message)s"
+FILE_LOG_FORMAT = "%(levelname)-7s: %(asctime)s — [%(filename)s:%(lineno)d] — %(message)s"
 
 def get_filename_prefix(method):
     """Returns a time string for the filename."""
@@ -20,14 +20,18 @@ def get_filename_prefix(method):
 
 def get_new_logger(method):
     logger = log.getLogger()
+    logger.setLevel(log.NOTSET)
     filename = "data/{}.log".format(get_filename_prefix(method))
+    # Console handler
+    console_handler = log.StreamHandler()
+    console_handler.setLevel(log.INFO)
+    console_handler.setFormatter(log.Formatter(CONSOLE_LOG_FORMAT))
+    logger.addHandler(console_handler)
+    # File handler
     file_handler = log.FileHandler(filename)
     file_handler.setLevel(log.DEBUG)
-    formatter = log.Formatter(LOG_FORMAT)
-    file_handler.setFormatter(formatter)
+    file_handler.setFormatter(log.Formatter(FILE_LOG_FORMAT))
     logger.addHandler(file_handler)
-    logger.addHandler(log.StreamHandler())
-    logger.setLevel(log.DEBUG)
 
 
 def parse_args():
@@ -99,7 +103,11 @@ def main():
     # TODO: System that will accept a number of quads (or cell).
     # TODO: System that will accept bpm selection.
 
+    #pv_list = ['SR01C-DI-EBPM-01'] # First BPM
+    #pv_list = ["SR24C-DI-EBPM-07"] # Last BPM
+
     pv_list = ["SR01A-PC-Q2AB-07"]  # single bpm
+    
     # pv_list = ["SR01C-DI-EBPM-05"]  # single quad
     # pv_list = ["SR10C-DI-EBPM-02"]  # multiple quads
 
@@ -111,19 +119,20 @@ def main():
 
     # TODO: fbba or sbba selection system in UI.
 
-    fbba = FBBA(accelerator)
-    sbba = SBBA(accelerator)
-
     if method == "FBBA":
-        algorithm: Algorithm = fbba
+        algorithm: Algorithm = FBBA(accelerator)
     elif method == "SBBA":
-        algorithm: Algorithm = sbba
+        algorithm: Algorithm = SBBA(accelerator)
 
     # algorithm.configure() #  Only for changing config values.
     for element in element_list:
         for axis in ["VERTICAL", "HORIZONTAL"]:
             filename_prefix = get_filename_prefix(method)
-            raw_data = algorithm.run(element, PLANE_VALUES[axis], max_orbit)
+            initial_current = algorithm._accelerator.get_beam_current()
+            while True:
+                raw_data = algorithm.run(element, PLANE_VALUES[axis], max_orbit)
+                if algorithm.check_beam_current(initial_current):
+                    break
             raw_data.save(filename_prefix)
             results = algorithm.analyse_data(raw_data, plot, fft)
             results.save(filename_prefix)

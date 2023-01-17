@@ -1,8 +1,11 @@
 import numpy as np
 import pytac
 import scipy.io as io
-from cothread.catools import DBR_STRING, caget
+import logging as log
+import cothread
+from cothread.catools import DBR_STRING, caget, ca_nothing
 
+TRIES = 3  # Attempts to get BPM values before failing.
 DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
 MASTER_CALIBRATION_PATH = "/dls_sw/work/common/matlab/mml/machine-new/diamond/master_calibration.csv"
 CORRECTOR_KICK_RAD = 2e-5  # Radians
@@ -23,27 +26,30 @@ BPM_TO_QUAD_SPECIAL = {
 }
 
 
+class AcceleratorException(Exception):
+    pass
+
+
 class Accelerator:
     """Accelerator class stores all accelerator data and functions."""
 
     def __init__(self, ringmode=None):
         """Initialising the accelerator model."""
         self.ringmode = self.get_ring_mode(ringmode)
-        self.accelerator = pytac.load_csv.load(self.ringmode)
+        self.lattice = pytac.load_csv.load(self.ringmode)
 
         # Required to stop timeout on the machine.
-        self.accelerator._data_source_manager._data_sources[pytac.LIVE]._devices["beam_current"]._cs._timeout = 5.0
+        self.lattice._data_source_manager._data_sources[pytac.LIVE]._devices["beam_current"]._cs._timeout = 5.0
 
-        self.bpms = self.accelerator.get_elements("BPM")
-        self.enabled_bpms = self.accelerator.get_element_values("BPM", "enabled")
-        self.bpm_h_fofb_enabled = self.accelerator.get_element_values("BPM", "x_fofb_disabled", pytac.RB)
-        self.bpm_v_fofb_enabled = self.accelerator.get_element_values("BPM", "y_fofb_disabled", pytac.RB)
-        self.bpm_disabled = self.accelerator.get_element_values("BPM", "enabled")
+        self.bpms = self.lattice.get_elements("BPM")
+        self.enabled_bpms = self.lattice.get_element_values("BPM", "enabled")
+        self.bpm_h_fofb_enabled = self.lattice.get_element_values("BPM", "x_fofb_disabled", pytac.RB)
+        self.bpm_v_fofb_enabled = self.lattice.get_element_values("BPM", "y_fofb_disabled", pytac.RB)
 
-        self.hstrs = self.accelerator.get_elements("HSTR")
-        self.vstrs = self.accelerator.get_elements("VSTR")
+        self.hstrs = self.lattice.get_elements("HSTR")
+        self.vstrs = self.lattice.get_elements("VSTR")
 
-        self.quads = self.accelerator.get_elements("quadrupole")
+        self.quads = self.lattice.get_elements("quadrupole")
 
         self.quad_to_bpm_dict = {}
         self.bpm_to_quad_dict = {}
@@ -67,6 +73,9 @@ class Accelerator:
             ringmode = caget("SR-CS-RING-01:MODE", datatype=DBR_STRING)
         return ringmode
 
+    def get_beam_current(self):
+        return self.lattice.get_value("beam_current")
+
     def element_to_pv_prefix(self, element, plane=None):
         if element in self.quads:
             pv = element.get_pv_name("b1", pytac.SP)
@@ -83,7 +92,6 @@ class Accelerator:
 
     def pv_prefix_to_element(self, pv_prefix, plane=None):
         element = None
-        # print(pv_prefix)
         family = pv_prefix.split("-")[2]
         if family[0] == "Q":
             for quad in self.quads:
@@ -99,11 +107,33 @@ class Accelerator:
 
     def measure_quad(self, quad):
         """Returns the current quadrupole current value."""
-        value = quad.get_value("b1", pytac.RB, pytac.ENG)
-        return value
+        return quad.get_value("b1", pytac.RB, pytac.ENG)
 
     def set_quad(self, quad, value):
         quad.set_value("b1", value, pytac.ENG)
+
+    def measure_corrector(self, corrector, plane_info):
+        """Returns the current corrector current value."""
+        return corrector.get_value(plane_info.kick, pytac.RB, pytac.ENG)
+
+    def set_corrector(self, corrector, plane_info, value):
+        corrector.get_value(plane_info.kick, pytac.ENG)
+
+    def measure_bpms(self, plane_info):
+        """Returns the current bpm values for all bpms."""
+        # The try statement is due to an occasional caput error.
+        for attempt in range(1, TRIES + 1):
+            try:
+                bpm_values = self.bpms.get_element_values("BPM", plane_info.axis.lower())
+            except ca_nothing as e:
+                log.error(f"Failure no: {attempt} to retrieve bpm values:\n{e}")
+                if attempt == TRIES:
+                    log.critical(f"Failed to retrieve bpm values {TRIES} times:\n{e}")
+                    raise AcceleratorException(f"Failed to retrieve bpm values {TRIES} times:\n{e}") 
+                cothread.Sleep(1)
+            else:
+                break
+        return bpm_values
 
     def special_correctors(self, plane):
         """SR01A -> SR01S or HSTR -> HSCOR."""
@@ -176,7 +206,7 @@ class Accelerator:
             corrs = self.vstrs
         return corrs[zero_indexed_corr_id]
 
-    def microrads(self, corrector, plane):
+    def microrads(self, corrector, plane) -> float:
         """Find the current required for a corrector kick of x microrads."""
         with open(MASTER_CALIBRATION_PATH) as file:
             data = np.genfromtxt(file, delimiter=",", dtype=str)
@@ -189,5 +219,5 @@ class Accelerator:
         final_current, final_rad = data[result][1][3:5]
         gradient = (float(final_current) - float(initial_current)) / (float(final_rad) - float(initial_rad))
         linear_value = gradient * CORRECTOR_KICK_RAD
-        rad_value = str(np.format_float_positional(linear_value, precision=6))
+        rad_value = float(np.format_float_positional(linear_value, precision=6))
         return rad_value
