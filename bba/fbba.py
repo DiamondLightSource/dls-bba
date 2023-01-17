@@ -29,8 +29,8 @@ class FBBA(Algorithm):
 
     def configure(self, quadrupole_scalar=0.02, corrector_scalar=2, cycles=1, frequency=8, decimated=False):
         """These are optional arguments, which are used during testing."""
-        self.quadrupole_scalar = quadrupole_scalar  # 0.01
-        self.corrector_scalar = float(corrector_scalar)  # 1
+        self.quadrupole_scalar = quadrupole_scalar  # 0.01 = default
+        self.corrector_scalar = float(corrector_scalar)  # 1 = default
         self.cycles = cycles
         self.frequency = frequency
         self.decimated = decimated
