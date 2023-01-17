@@ -1,3 +1,4 @@
+from collections import defaultdict
 import numpy as np
 import pytac
 import os
@@ -51,6 +52,22 @@ class Accelerator:
         self.vstrs = self.lattice.get_elements("VSTR")
 
         self.quads = self.lattice.get_elements("quadrupole")
+
+        # Provides a cell dictionary.
+        quad_pv_names = self.lattice.get_element_pv_names("quadrupole", "b1", pytac.RB)
+        self.cell_dictionary = defaultdict(list)
+        for index, quad in enumerate(self.quads):
+            split_pv = quad_pv_names[index].split("-")
+            cell_number = split_pv[0][2:5]
+            identifier = split_pv[2]
+            if identifier in ["QUADF", "QUADD"]:
+                if cell_number in ["08A", "09S", "09A"]:
+                    self.cell_dictionary["9.5"].append(quad)
+                if cell_number in ["12A", "13S", "13A"]:
+                    self.cell_dictionary["13.5"].append(quad)
+            else:
+                self.cell_dictionary[f"{cell_number[0:2]}"].append(quad)
+
 
         self.quad_to_bpm_dict = {}
         self.bpm_to_quad_dict = {}
