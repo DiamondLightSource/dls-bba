@@ -122,16 +122,15 @@ class Accelerator:
     def measure_bpms(self, plane_info):
         """Returns the current bpm values for all bpms."""
         # The try statement is due to an occasional caput error.
-        for attempt in range(TRIES):
+        for attempt in range(1, TRIES + 1):
             try:
                 bpm_values = self.bpms.get_element_values("BPM", plane_info.axis.lower())
             except ca_nothing as e:
-                log.error(f"Failure no: {attempt + 1} to retrieve bpm values:\n{e}")
-                if attempt < TRIES - 1:
-                    cothread.Sleep(1)
-                    continue
-                log.critical(f"Failed to retrieve bpm values {TRIES} times:\n{e}")
-                raise AcceleratorException(f"Failed to retrieve bpm values {TRIES} times:\n{e}")
+                log.error(f"Failure no: {attempt} to retrieve bpm values:\n{e}")
+                if attempt == TRIES:
+                    log.critical(f"Failed to retrieve bpm values {TRIES} times:\n{e}")
+                    raise AcceleratorException(f"Failed to retrieve bpm values {TRIES} times:\n{e}") 
+                cothread.Sleep(1)
             else:
                 break
         return bpm_values
