@@ -1,12 +1,13 @@
 import numpy as np
 import pytac
+import os
 import scipy.io as io
 import logging as log
 import cothread
 from cothread.catools import DBR_STRING, caget, ca_nothing
 
 TRIES = 3  # Attempts to get BPM values before failing.
-DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
+DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata"
 MASTER_CALIBRATION_PATH = "/dls_sw/work/common/matlab/mml/machine-new/diamond/master_calibration.csv"
 CORRECTOR_KICK_RAD = 2e-5  # Radians
 QUAD_TO_BPM_SPECIAL = {  # In these cases, no quad is closest to these BPMs.
@@ -185,7 +186,7 @@ class Accelerator:
         return quads_list
 
     def get_rm_file(self):
-        rm_file = DATAROOT + "/" + self.ringmode + "/GoldenBPMResp.mat"
+        rm_file = os.path.join(DATAROOT, self.ringmode, "GoldenBPMResp.mat")
         return rm_file
 
     def effective_corrector(self, bpm_pv_prefix, plane):

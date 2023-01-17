@@ -18,10 +18,10 @@ def get_filename_prefix(method):
     return "{}-{}".format(method, datestring)
 
 
-def get_new_logger(method):
+def get_new_logger(method, filepath="data"):
     logger = log.getLogger()
     logger.setLevel(log.NOTSET)
-    filename = "data/{}.log".format(get_filename_prefix(method))
+    filename = "{}/{}.log".format(filepath, get_filename_prefix(method))
     # Console handler
     console_handler = log.StreamHandler()
     console_handler.setLevel(log.INFO)
