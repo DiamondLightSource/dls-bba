@@ -69,7 +69,7 @@ class Results:
         return cls(dct['results'], dct['bpm_pv_prefix'], metadata)
 
 
-class LowBeamCurrent(Exception):
+class LowCurrentError(Exception):
     pass
 
 
@@ -89,7 +89,7 @@ class Algorithm(ABC):
         current_drop = initial_current - self._accelerator.get_beam_current()
         if current_drop > MAXIMUM_CURRENT_DROP:
             log.critical(f"Beam current dropped by >20mA. Cancelling BBA.")
-            raise LowBeamCurrent(f"Beam current dropped by >20mA. Cancelling BBA.")
+            raise LowCurrentError(f"Beam current dropped by >20mA. Cancelling BBA.")
 
         if current_drop > MINIMUM_CURRENT_DROP:
             log.error(f"Beam current dropped by 5-20mA. Top-up or cancel.")
@@ -99,7 +99,7 @@ class Algorithm(ABC):
 
                 if response == "n":
                     log.critical("User cancelled BBA.")
-                    raise LowBeamCurrent(f"Beam current dropped by 5-20mA. User cancelled BBA.")
+                    raise LowCurrentError(f"Beam current dropped by 5-20mA. User cancelled BBA.")
                 elif response == "y":
                     current_drop = initial_current - self._accelerator.get_beam_current()
                     if current_drop < MINIMUM_CURRENT_DROP:
