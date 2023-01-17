@@ -111,7 +111,7 @@ class FBBA(Algorithm):
             cothread.Sleep((NETWORK_LAG + self.exc_high.count + SAFETY_NET) / TICKS_PER_SECOND)
             # Move quad from high to low
             self._accelerator.set_quad(quad, quad_low)
-            cothread.Sleep(quad_lag_s)
+            # cothread.Sleep(quad_lag_s)
             log.info(f"Low Oscillation")
             # Set up second excitation
             excite((self.exc_low,))
@@ -175,7 +175,8 @@ class FBBA(Algorithm):
         reverse_osc = np.exp(np.linspace(0, -2j * np.pi * num_oscs, data_length))
         reverse_osc = np.tile(reverse_osc, (data.shape[1], 1)).T
         # Force the phase to zero by using only the imaginary part of the mean
-        return 2 * np.real(reverse_osc * 1j * np.imag(data_es))
+        answer = 2 * np.real(reverse_osc * 1j * np.imag(data_es))
+        return answer
 
     def analyse_data(self, raw_data, plot_output, use_fft=False, *args, **kwargs) -> Results:
         data = raw_data.raw_data
