@@ -145,7 +145,6 @@ class Accelerator:
         for attempt in range(1, TRIES + 1):
             try:
                 bpm_values = self.lattice.get_element_values("BPM", plane_info.axis.lower())
-                # self.lattice.get_element_values("BPM", "enabled")
             except ca_nothing as e:
                 log.error(f"Failure no: {attempt} to retrieve bpm values:\n{e}")
                 if attempt == TRIES:

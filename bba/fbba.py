@@ -113,7 +113,6 @@ class FBBA(Algorithm):
             cothread.Sleep((NETWORK_LAG + self.exc_high.count + SAFETY_NET) / TICKS_PER_SECOND)
             # Move quad from high to low
             self._accelerator.set_quad(quad, quad_low)
-            # cothread.Sleep(quad_lag_s)
             log.info(f"Low Oscillation")
             # Set up second excitation
             excite((self.exc_low,))
