@@ -21,7 +21,7 @@ class SBBA(Algorithm):
         super().__init__(accelerator)
         self.configure()
 
-    def configure(self, quadrupole_scalar = 0.01, corrector_scalar=1, decimated = False):
+    def configure(self, quadrupole_scalar=0.01, corrector_scalar=1, decimated=False):
         """These are optional arguments, which are used during testing."""
         self.quadrupole_scalar = quadrupole_scalar
         self.corrector_scalar = corrector_scalar

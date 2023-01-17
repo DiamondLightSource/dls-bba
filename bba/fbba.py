@@ -27,10 +27,10 @@ class FBBA(Algorithm):
         super().__init__(accelerator)
         self.configure()
 
-    def configure(self, quadrupole_scalar=0.01, corrector_scalar=1, cycles=1, frequency=8, decimated=False):
+    def configure(self, quadrupole_scalar=0.02, corrector_scalar=2, cycles=1, frequency=8, decimated=False):
         """These are optional arguments, which are used during testing."""
-        self.quadrupole_scalar = quadrupole_scalar
-        self.corrector_scalar = float(corrector_scalar)
+        self.quadrupole_scalar = quadrupole_scalar  # 0.01
+        self.corrector_scalar = float(corrector_scalar)  # 1
         self.cycles = cycles
         self.frequency = frequency
         self.decimated = decimated
