@@ -93,14 +93,6 @@ def main():
 
     pv_list = ["SR01A-PC-Q2AB-07"]
 
-    #pv_list = ['SR01C-DI-EBPM-01'] # First BPM
-    #pv_list = ["SR24C-DI-EBPM-07"] # Last BPM
-
-    pv_list = ["SR01A-PC-Q2AB-07"]  # single bpm
-    
-    # pv_list = ["SR01C-DI-EBPM-05"]  # single quad
-    # pv_list = ["SR10C-DI-EBPM-02"]  # multiple quads
-
     accelerator = acc.Accelerator(ringmode=None)
 
     element_list = []
