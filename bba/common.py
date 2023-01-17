@@ -88,23 +88,23 @@ class Algorithm(ABC):
         If beam has dropped too much, will cancel BBA."""
         current_drop = initial_current - self._accelerator.get_beam_current()
         if current_drop > MAXIMUM_CURRENT_DROP:
-            log.critical(f"Beam current dropped by >20mA. Cancelling BBA.")
-            raise LowCurrentError(f"Beam current dropped by >20mA. Cancelling BBA.")
+            log.critical(f"Beam current dropped by >{MAXIMUM_CURRENT_DROP}mA. Cancelling BBA.")
+            raise LowCurrentError(f"Beam current dropped by >{MAXIMUM_CURRENT_DROP}mA. Cancelling BBA.")
 
         if current_drop > MINIMUM_CURRENT_DROP:
-            log.error(f"Beam current dropped by 5-20mA. Top-up or cancel.")
+            log.error(f"Beam current dropped by {MINIMUM_CURRENT_DROP}-{MAXIMUM_CURRENT_DROP}mA. Top-up or cancel.")
             response = ""
             while True:
                 response = input("Input y to continue, or n to cancel: ").lower()
 
                 if response == "n":
                     log.critical("User cancelled BBA.")
-                    raise LowCurrentError(f"Beam current dropped by 5-20mA. User cancelled BBA.")
+                    raise LowCurrentError(f"Beam current dropped by {MINIMUM_CURRENT_DROP}-{MAXIMUM_CURRENT_DROP}mA. User cancelled BBA.")
                 elif response == "y":
                     current_drop = initial_current - self._accelerator.get_beam_current()
                     if current_drop < MINIMUM_CURRENT_DROP:
                         break
-                    print(f"Current not high enough yet. Must be within 5 mA of {initial_current}")
+                    print(f"Current not high enough yet. Must be within {MINIMUM_CURRENT_DROP} mA of {initial_current}")
 
             return False
 
