@@ -44,7 +44,9 @@ class Accelerator:
         self.lattice._data_source_manager._data_sources[pytac.LIVE]._devices["beam_current"]._cs._timeout = 5.0
 
         self.bpms = self.lattice.get_elements("BPM")
-        self.enabled_bpms = self.lattice.get_element_values("BPM", "enabled")
+        # self.enabled_bpms = self.lattice.get_element_values("BPM", "enabled")
+        self.enabled_bpms = np.logical_not(caget("SR-DI-EBPM-01:ENABLED")).astype(int)
+
         self.bpm_h_fofb_enabled = self.lattice.get_element_values("BPM", "x_fofb_disabled", pytac.RB)
         self.bpm_v_fofb_enabled = self.lattice.get_element_values("BPM", "y_fofb_disabled", pytac.RB)
 
@@ -139,10 +141,11 @@ class Accelerator:
 
     def measure_bpms(self, plane_info):
         """Returns the current bpm values for all bpms."""
-        # The try statement is due to an occasional caput error.
+        # Repeat CA requests for BPMs due to recurring device issues.
         for attempt in range(1, TRIES + 1):
             try:
-                bpm_values = self.bpms.get_element_values("BPM", plane_info.axis.lower())
+                bpm_values = self.lattice.get_element_values("BPM", plane_info.axis.lower())
+                # self.lattice.get_element_values("BPM", "enabled")
             except ca_nothing as e:
                 log.error(f"Failure no: {attempt} to retrieve bpm values:\n{e}")
                 if attempt == TRIES:
