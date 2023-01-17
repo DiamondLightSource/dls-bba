@@ -136,8 +136,8 @@ class Accelerator:
         """Returns the current corrector current value."""
         return corrector.get_value(plane_info.kick, pytac.RB, pytac.ENG)
 
-    # def set_corrector(self, corrector, plane_info, value):
-    #     corrector.set_value(plane_info.kick, value, pytac.ENG)
+    def set_corrector(self, corrector, plane_info, value):
+        corrector.set_value(plane_info.kick, value, pytac.ENG)
 
     def measure_bpms(self, plane_info):
         """Returns the current bpm values for all bpms."""
