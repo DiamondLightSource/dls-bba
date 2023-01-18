@@ -1,27 +1,29 @@
+from collections import defaultdict
 import numpy as np
 import pytac
+import os
 import scipy.io as io
 import logging as log
 import cothread
 from cothread.catools import DBR_STRING, caget, ca_nothing
 
 TRIES = 3  # Attempts to get BPM values before failing.
-DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/"
+DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata"
 MASTER_CALIBRATION_PATH = "/dls_sw/work/common/matlab/mml/machine-new/diamond/master_calibration.csv"
-CORRECTOR_KICK_RAD = 2e-5  # Radians
+CORRECTOR_KICK_RAD = 2e-5  # Radians.
 QUAD_TO_BPM_SPECIAL = {  # In these cases, no quad is closest to these BPMs.
-    "SR02A-PC-Q3E-08": "SR02C-DI-EBPM-07",  # Quad 2-8 -> BPM 2-7
-    "SR09S-PC-QUADD-02": "SR09S-DI-EBPM-01",  # Quad 9S-2 -> BPM 9S-1
-    "SR13S-PC-QUADD-02": "SR13S-DI-EBPM-01"  # Quad 13S-2 -> BPM 13S-1
+    "SR02A-PC-Q3E-08": "SR02C-DI-EBPM-07",  # Quad 2-8 -> BPM 2-7.
+    "SR09S-PC-QUADD-02": "SR09S-DI-EBPM-01",  # Quad 9S-2 -> BPM 9S-1.
+    "SR13S-PC-QUADD-02": "SR13S-DI-EBPM-01"  # Quad 13S-2 -> BPM 13S-1.
 }
 BPM_TO_QUAD_SPECIAL = {
-    "SR02C-DI-EBPM-01": ["SR02A-PC-Q1BE-01"],  # Quad 2,1 only
-    "SR02C-DI-EBPM-08": ["SR02A-PC-Q1BE-10"],  # Quad 2,9 only
-    "SR08C-DI-EBPM-07": ["SR08A-PC-QUADF-01"],  # 9S-1 is pv 08-1
+    "SR02C-DI-EBPM-01": ["SR02A-PC-Q1BE-01"],  # Quad 2,1 only.
+    "SR02C-DI-EBPM-08": ["SR02A-PC-Q1BE-10"],  # Quad 2,9 only.
+    "SR08C-DI-EBPM-07": ["SR08A-PC-QUADF-01"],  # 9S-1 is pv 08-1.
     "SR09C-DI-EBPM-01": ["SR09A-PC-QUADF-04"],  # Cell 9 discrepency.
     "SR10C-DI-EBPM-01": ["SR10A-PC-Q1B-01"],  # Cell 10, magnet length inconsistency.
     "SR10C-DI-EBPM-02": ["SR10A-PC-Q2B-02", "SR10A-PC-Q3B-03"],  # Cell 10, magnet length inconsistency.
-    "SR12C-DI-EBPM-07": ["SR12A-PC-QUADF-01"],  # 13S-1 is pv 12-1
+    "SR12C-DI-EBPM-07": ["SR12A-PC-QUADF-01"],  # 13S-1 is pv 12-1.
     "SR13C-DI-EBPM-01": ["SR13A-PC-QUADF-04"],  # Cell 13 discrepency.
 }
 
@@ -42,7 +44,9 @@ class Accelerator:
         self.lattice._data_source_manager._data_sources[pytac.LIVE]._devices["beam_current"]._cs._timeout = 5.0
 
         self.bpms = self.lattice.get_elements("BPM")
-        self.enabled_bpms = self.lattice.get_element_values("BPM", "enabled")
+        # self.enabled_bpms = self.lattice.get_element_values("BPM", "enabled")
+        self.enabled_bpms = np.logical_not(caget("SR-DI-EBPM-01:ENABLED")).astype(int)
+
         self.bpm_h_fofb_enabled = self.lattice.get_element_values("BPM", "x_fofb_disabled", pytac.RB)
         self.bpm_v_fofb_enabled = self.lattice.get_element_values("BPM", "y_fofb_disabled", pytac.RB)
 
@@ -50,6 +54,22 @@ class Accelerator:
         self.vstrs = self.lattice.get_elements("VSTR")
 
         self.quads = self.lattice.get_elements("quadrupole")
+
+        # Provides a cell dictionary.
+        quad_pv_names = self.lattice.get_element_pv_names("quadrupole", "b1", pytac.RB)
+        self.cell_dictionary = defaultdict(list)
+        for index, quad in enumerate(self.quads):
+            split_pv = quad_pv_names[index].split("-")
+            cell_number = split_pv[0][2:5]
+            identifier = split_pv[2]
+            if identifier in ["QUADF", "QUADD"]:
+                if cell_number in ["08A", "09S", "09A"]:
+                    self.cell_dictionary["9.5"].append(quad)
+                if cell_number in ["12A", "13S", "13A"]:
+                    self.cell_dictionary["13.5"].append(quad)
+            else:
+                self.cell_dictionary[f"{cell_number[0:2]}"].append(quad)
+
 
         self.quad_to_bpm_dict = {}
         self.bpm_to_quad_dict = {}
@@ -117,14 +137,14 @@ class Accelerator:
         return corrector.get_value(plane_info.kick, pytac.RB, pytac.ENG)
 
     def set_corrector(self, corrector, plane_info, value):
-        corrector.get_value(plane_info.kick, pytac.ENG)
+        corrector.set_value(plane_info.kick, value, pytac.ENG)
 
     def measure_bpms(self, plane_info):
         """Returns the current bpm values for all bpms."""
-        # The try statement is due to an occasional caput error.
+        # Repeat CA requests for BPMs due to recurring device issues.
         for attempt in range(1, TRIES + 1):
             try:
-                bpm_values = self.bpms.get_element_values("BPM", plane_info.axis.lower())
+                bpm_values = self.lattice.get_element_values("BPM", plane_info.axis.lower())
             except ca_nothing as e:
                 log.error(f"Failure no: {attempt} to retrieve bpm values:\n{e}")
                 if attempt == TRIES:
@@ -185,7 +205,7 @@ class Accelerator:
         return quads_list
 
     def get_rm_file(self):
-        rm_file = DATAROOT + "/" + self.ringmode + "/GoldenBPMResp.mat"
+        rm_file = os.path.join(DATAROOT, self.ringmode, "GoldenBPMResp.mat")
         return rm_file
 
     def effective_corrector(self, bpm_pv_prefix, plane):

@@ -18,10 +18,10 @@ def get_filename_prefix(method):
     return "{}-{}".format(method, datestring)
 
 
-def get_new_logger(method):
+def get_new_logger(method, filepath="data"):
     logger = log.getLogger()
     logger.setLevel(log.NOTSET)
-    filename = "data/{}.log".format(get_filename_prefix(method))
+    filename = "{}/{}.log".format(filepath, get_filename_prefix(method))
     # Console handler
     console_handler = log.StreamHandler()
     console_handler.setLevel(log.INFO)
@@ -36,15 +36,6 @@ def get_new_logger(method):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Take BBA measurements")
-    # parser.add_argument(
-    #     "-p",
-    #     "--plane",
-    #     dest="plane",
-    #     action="store_const",
-    #     default="HORIZONTAL",
-    #     const="VERTICAL",
-    #     help="Which plane to measure",
-    # )
     parser.add_argument(
         "-m",
         "--method",
@@ -100,24 +91,13 @@ def main():
 
     get_new_logger(method)
 
-    # TODO: System that will accept a number of quads (or cell).
-    # TODO: System that will accept bpm selection.
-
-    #pv_list = ['SR01C-DI-EBPM-01'] # First BPM
-    #pv_list = ["SR24C-DI-EBPM-07"] # Last BPM
-
-    pv_list = ["SR01A-PC-Q2AB-07"]  # single bpm
-    
-    # pv_list = ["SR01C-DI-EBPM-05"]  # single quad
-    # pv_list = ["SR10C-DI-EBPM-02"]  # multiple quads
+    pv_list = ["SR01A-PC-Q2AB-07"]
 
     accelerator = acc.Accelerator(ringmode=None)
 
     element_list = []
     for pv in pv_list:
         element_list.append(accelerator.pv_prefix_to_element(pv))
-
-    # TODO: fbba or sbba selection system in UI.
 
     if method == "FBBA":
         algorithm: Algorithm = FBBA(accelerator)
