@@ -1,38 +1,71 @@
-# compiled python
-*.pyc
-# vim temporary files
-*.swp
-# generated matlab
-*.mat
-# log files
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+.venv
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+**/_version.py
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+cov.xml
+.pytest_cache/
+.mypy_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
 *.log
-# IDE files
-/.idea/
-/.vscode/
 
-# Build files
-*/_build/
-/pyburt.egg-info/
-/build/
-/dist/
+# Sphinx documentation
+docs/_build/
 
-# Pipenv cache
-/.cache/
+# PyBuilder
+target/
 
-# Python backup files
-*.pyc
+# likely venv names
+.venv*
+venv*
 
-# Testing files
-/.pytest_cache/
-/.coverage
-/htmlcov/
-
-# Virtualenvs
-/venv*/
-.venv/
-
-# mypy cache
-/.mypy_cache/
+# further build artifacts
+lockfiles/
 
 # other stuff
 /claire_data/
