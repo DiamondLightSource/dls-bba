@@ -131,7 +131,7 @@ class FBBA(Algorithm):
             )
             self.exc_low = Excitation(corrector, osc, low_start, self._accelerator)
 
-            log.info(f"High Oscillation")
+            log.info("High Oscillation")
             excite((self.exc_high,))
             # Sleep for first excitation. SAFETY_NET ensures that we don't start
             # moving the quad before the excitation has finished.
@@ -140,7 +140,7 @@ class FBBA(Algorithm):
             )
             # Move quad from high to low
             self._accelerator.set_quad(quad, quad_low)
-            log.info(f"Low Oscillation")
+            log.info("Low Oscillation")
             # Set up second excitation
             excite((self.exc_low,))
             # This will block until all data has been retrieved.
@@ -244,8 +244,6 @@ class FBBA(Algorithm):
                     yf_clean[bpm_index][index] = 0
 
         clean = np.transpose(irfft(yf_clean))
-        length_list = range(1, length)
-
         return clean
 
     def extract_freq_excite(self, data, freq):
@@ -263,9 +261,7 @@ class FBBA(Algorithm):
         answer = 2 * np.real(reverse_osc * 1j * np.imag(data_es))
         return answer
 
-    def analyse_data(
-        self, raw_data, plot_output, use_fft=False, *args, **kwargs
-    ) -> Results:
+    def analyse_data(self, raw_data, plot_output, use_fft=False, *args, **kwargs):
         data = raw_data.raw_data
         # algorithm = raw_data["algorithm"] -> Not used.
         metadata = raw_data.metadata
@@ -273,8 +269,8 @@ class FBBA(Algorithm):
         bpm_number = metadata["bpm_index"]
         enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
         bpm_index = bpm_number - np.sum(
-            enabled_bpms[:bpm_number] == False
-        )  # noqa false positive
+            enabled_bpms[:bpm_number] == False  # noqa false positive
+        )
         # freq = TICKS_PER_SECOND / metadata["period"]
         freq = metadata["frequency"]
 

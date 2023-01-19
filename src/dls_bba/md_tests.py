@@ -510,7 +510,7 @@ def honing_simple(
 
 
 def honing_average():
-    apply = True
+    # apply = True
     # Showing the honing ability of BBA if each step is repeated before being applied.
     pass
 

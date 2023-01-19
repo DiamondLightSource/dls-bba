@@ -112,11 +112,11 @@ class SBBA(Algorithm):
             self._accelerator.set_corrector(corrector, plane_info, corrector_sp)
             self._accelerator.set_quad(quad, quad_sp)
             self.restore_origins(original_offsets)
-            log.info(f"Restored")
+            log.info("Restored")
 
         return RawData(raw_data, method, metadata)
 
-    def analyse_data(self, raw_data, plot_output, *args, **kwargs) -> Results:
+    def analyse_data(self, raw_data, plot_output, *args, **kwargs):
         data = raw_data.raw_data
         # algorithm = raw_data["algorithm"]
         metadata = raw_data.metadata

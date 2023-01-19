@@ -218,13 +218,13 @@ class Algorithm(ABC):
     def zero_origins(self, bpm, plane_info) -> Dict[str, Any]:
         """Zeros BCD and Golden offsets. Also stores current Golden offset value for restoring later."""
         # return None  # For testing -> PV's dont exist in virtac.
-        log.info(f"Origins Zeroed")
+        log.info("Origins Zeroed")
         bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
         bcd_pv = bpm_pv_root + ORIGIN_SUFFIXES["BCD"].format(axis=plane_info.axis)
         golden_pv = bpm_pv_root + ORIGIN_SUFFIXES["GOLDEN"].format(axis=plane_info.axis)
 
         offsets = {}
-        offsets[golden_pv]: caget(golden_pv)
+        offsets[golden_pv] = caget(golden_pv)
 
         caput(bcd_pv, 0)
         caput(golden_pv, 0)
@@ -235,7 +235,7 @@ class Algorithm(ABC):
         # return None  # For testing -> PV's dont exist in virtac.
         for key, value in offsets.items():
             caput(key, value)
-        log.info(f"Origins Restored")
+        log.info("Origins Restored")
 
     def set_bpm_offset(self, bpm, value, plane_info):
         """Applies new offset value to the BBA offset."""
@@ -249,12 +249,12 @@ class Algorithm(ABC):
         caput(bba_pv, new_offset)
 
     @abstractmethod
-    def run(self, element, plane_info, max_orbit) -> RawData:
+    def run(self, element, plane_info, max_orbit):
         # This fbba/sbba specifc -> save into a Data object
         return RawData
 
     @abstractmethod
-    def analyse_data(self, data, plot_output, *args, **kwargs) -> Results:
+    def analyse_data(self, data, plot_output, *args, **kwargs):
         return Results
 
     def apply_results(self, results):

@@ -260,7 +260,7 @@ def main():
         x_axis = [1, 2, 3, 4, 5]
         plt.errorbar(x_axis, y, y_err, marker=".", capsize=5)
         # plt.hlines(y= , xmin=0, xmax=5.1, color="r", linestyles="-")
-        plt.title(f"Honing Test")
+        plt.title("Honing Test")
         plt.xlim(0, 5.1)
         plt.xlabel("Run number")
         plt.ylabel("Offset Value")
@@ -313,7 +313,7 @@ def main():
                 corr_amps, y, y_err, marker=".", capsize=5, label=f"Cycle={cycle}"
             )
         # plt.hlines(y= , xmin=0, xmax=5.1, color="r", linestyles="-")
-        plt.title(f"Corrector amplitude and cycles Test")
+        plt.title("Corrector amplitude and cycles Test")
         plt.xlim(0, 5.1)
         plt.xlabel("Corrector amplitude")
         plt.ylabel("Offset Value")
