@@ -49,7 +49,7 @@ class Accelerator:
         # Required to stop timeout on the machine.
         self.lattice._data_source_manager._data_sources[pytac.LIVE]._devices[
             "beam_current"
-        ]._cs._timeout = 5.0
+        ]._cs._timeout = 10.0
 
         self.bpms = self.lattice.get_elements("BPM")
         # self.enabled_bpms = self.lattice.get_element_values("BPM", "enabled")
