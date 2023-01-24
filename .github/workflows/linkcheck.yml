@@ -8,6 +8,11 @@ on:
 
 jobs:
   docs:
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10"]
+
     runs-on: ubuntu-latest
 
     steps:
@@ -19,6 +24,7 @@ jobs:
         with:
           requirements_file: requirements-dev-3.x.txt
           install_options: -e .[dev]
+          python_version: "3.10"
 
       - name: Check links
         run: tox -e docs build -- -b linkcheck

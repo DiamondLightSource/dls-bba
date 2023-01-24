@@ -9,6 +9,8 @@ on:
 env:
   # The target python version, which must match the Dockerfile version
   CONTAINER_PYTHON: "3.10"
+  # enable tests with no X Display for Qt
+  QT_QPA_PLATFORM: "offscreen"
 
 jobs:
   lint:
@@ -25,6 +27,7 @@ jobs:
         with:
           requirements_file: requirements-dev-3.x.txt
           install_options: -e .[dev]
+          python_version: ${{env.CONTAINER_PYTHON}}
 
       - name: Lint
         run: tox -e pre-commit,mypy
