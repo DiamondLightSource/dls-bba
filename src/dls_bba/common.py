@@ -167,6 +167,21 @@ class Algorithm(ABC):
             ValueError("Unexpected element: Only quadrupoles and bpms are allowed.")
         return bpm, quad, corrector
 
+    def toggle_fofb(self):
+        log.warn("Correcting orbit with FOFB.")
+        run(
+            "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py start",
+            check=True,
+            shell=True,
+        )
+        sleep(1)
+        run(
+            "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py stop",
+            check=True,
+            shell=True,
+        )
+        sleep(1)
+
     def toggle_feedbacks(self, max_orbit):
         """Confirms that all feedbacks are off, and toggles FOFB to realign if needed."""
         feedbacks = {
@@ -201,19 +216,7 @@ class Algorithm(ABC):
         max_value = abs(max(bpm_values, key=abs))
         # value in mm, max_orbit in um.
         if float(max_value * 1000) >= float(max_orbit):
-            log.warn("Correcting orbit with FOFB.")
-            run(
-                "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py start",
-                check=True,
-                shell=True,
-            )
-            sleep(1)
-            run(
-                "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py stop",
-                check=True,
-                shell=True,
-            )
-            sleep(1)
+            self.toggle_fofb()
 
     def zero_origins(self, bpm, plane_info) -> Dict[str, Any]:
         """Zeros BCD and Golden offsets. Also stores current Golden offset value for restoring later."""
