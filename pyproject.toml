@@ -21,6 +21,7 @@ dependencies = [
     "pytac",
     "PyQt5",
     "scipy",
+    "setuptools>=60.0.0",
 ]
 dynamic = ["version"]
 license.file = "LICENSE"
