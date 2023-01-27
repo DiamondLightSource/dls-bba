@@ -37,7 +37,7 @@ class RawData:
 
     # TODO: asdict, make all shared attributes not in metadata.
 
-    def save(self, time_prefix, filepath="data"):
+    def save(self, time_prefix, filepath):
         filename = "{}/{}-{}-{}-rawdata.mat".format(
             filepath, time_prefix, self.metadata["bpm_pv"], self.metadata["plane"].axis
         )
@@ -66,7 +66,7 @@ class Results:
     bpm_pv_prefix: str
     metadata: Dict[str, Any]
 
-    def save(self, time_prefix, filepath="data"):
+    def save(self, time_prefix, filepath):
         filename = "{}/{}-{}-{}-results.mat".format(
             filepath,
             time_prefix,
@@ -80,6 +80,7 @@ class Results:
         }
         io.savemat(filename, dct, oned_as="row")
         log.info(f"Saved results as {filename}")
+        return filename
 
     @classmethod
     def from_file(cls, filename):
@@ -98,7 +99,7 @@ class Algorithm(ABC):
         self._accelerator = accelerator
 
     @abstractmethod
-    def configure(self, *args, **kwargs):
+    def configure(self):
         pass
 
     def check_beam_current(self, initial_current) -> bool:

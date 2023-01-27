@@ -32,9 +32,11 @@ class FBBA(Algorithm):
         self,
         quadrupole_scalar=0.02,
         corrector_scalar=2,
-        cycles=1,
+        cycles=16,
         frequency=8,
         decimated=False,
+        *args,
+        **kwargs,
     ):
         """These are optional arguments, which are used during testing."""
         self.quadrupole_scalar = quadrupole_scalar  # 0.01 is old default
