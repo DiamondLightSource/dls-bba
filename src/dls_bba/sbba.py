@@ -24,11 +24,21 @@ class SBBA(Algorithm):
         super().__init__(accelerator)
         self.configure()
 
-    def configure(self, quadrupole_scalar=0.01, corrector_scalar=1, decimated=False):
+    def configure(
+        self,
+        quadrupole_scalar=0.02,
+        corrector_scalar=2,
+        decimated=False,
+        *args,
+        **kwargs,
+    ):
         """These are optional arguments, which are used during testing."""
         self.quadrupole_scalar = quadrupole_scalar
         self.corrector_scalar = corrector_scalar
         self.decimated = decimated
+        log.debug(
+            f"Configuration: Quadrupole Scalar: {self.quadrupole_scalar}, Corrector Scalar: {self.corrector_scalar}, Decimated: {self.decimated}"
+        )
 
     def run(self, element, plane_info, max_orbit) -> RawData:
         method = "SBBA"
