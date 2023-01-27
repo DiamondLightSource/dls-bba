@@ -8,12 +8,14 @@
 
 import argparse
 import logging as log
-import os.path as osp
+import os
 from collections import defaultdict
 from datetime import datetime
 
 import matplotlib.pyplot as plt  # noqa
 import numpy as np
+from cothread import Sleep
+from cothread.catools import caget, caput
 
 from dls_bba import accelerator as acc
 from dls_bba.common import PLANE_VALUES, Algorithm
@@ -25,7 +27,14 @@ FILE_LOG_FORMAT = (
     "%(levelname)-7s: %(asctime)s — [%(filename)s:%(lineno)d] — %(message)s"
 )
 
-TEMP_FILEPATH_ROOT = osp.join("/dls", "physics", "owr68555", "13Jan2023")
+TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "31Jan2023")
+
+
+direction_dict = {
+    "x": ["HORIZONTAL"],
+    "y": ["VERTICAL"],
+    "both": ["HORIZONTAL", "VERTICAL"],
+}
 
 
 def get_filename_prefix(method):
@@ -35,7 +44,7 @@ def get_filename_prefix(method):
     return "{}-{}".format(method, datestring)
 
 
-def get_new_logger(method, filepath="data"):
+def get_new_logger(method, filepath):
     logger = log.getLogger()
     logger.setLevel(log.NOTSET)
     filename = "{}/{}.log".format(filepath, get_filename_prefix(method))
@@ -63,6 +72,14 @@ def parse_args():
         help="Which BBA method to use",
     )
     parser.add_argument(
+        "-d",
+        "--direction",
+        dest="directions",
+        choices=direction_dict.keys(),
+        default=list(direction_dict)[2],
+        help="The directions that bba will be performed in.",
+    )
+    parser.add_argument(
         "-o",
         "--orbit",
         dest="max_orbit",
@@ -72,51 +89,43 @@ def parse_args():
     )
     parser.add_argument(
         "-c",
-        "--cycle",
-        dest="cycle",
+        "--cell",
+        dest="cell_t",
         action="store_true",
         default=False,
-        help="Cycle test",
+        help="Cell test",
     )
     parser.add_argument(
         "-f",
         "--freq",
-        dest="freq",
+        dest="freq_t",
         action="store_true",
         default=False,
         help="Freq test",
     )
     parser.add_argument(
-        "-q",
-        "--quads",
-        dest="quads_amp_test",
-        action="store_true",
-        default=False,
-        help="Quad test",
-    )
-    parser.add_argument(
-        "-k",
-        "--corrector",
-        dest="corr_amp_test",
-        action="store_true",
-        default=False,
-        help="Corrector test",
-    )
-    parser.add_argument(
         "-j",
         "--honing",
-        dest="honing_test",
+        dest="honing_t",
         action="store_true",
         default=False,
         help="honing simple test",
     )
     parser.add_argument(
-        "-s",
-        "--special",
-        dest="combi",
+        "-t",
+        "--triple",
+        dest="triple_t",
         action="store_true",
         default=False,
-        help="combination test",
+        help="triple frequency test",
+    )
+    parser.add_argument(
+        "-r",
+        "--running",
+        dest="running_t",
+        action="store_true",
+        default=False,
+        help="Running test",
     )
     return parser.parse_args()
 
@@ -125,30 +134,36 @@ def main():
     # Sort arguments
     args = parse_args()
     method = str(args.method)
+    directions = direction_dict[args.directions]
+    cell_test = args.cell_t
+    freq_test = args.freq_t
+    honing_test = args.honing_t
+    triple = args.triple_t
+    running = args.running_t
 
-    cycle_test = args.cycle
-    freq_test = args.freq
-    corr_test = args.corr_amp_test
-    quad_test = args.quads_amp_test
-    honing_test = args.honing_test
-    combination_test = args.combi
+    get_new_logger(method, TEMP_FILEPATH_ROOT)
 
-    get_new_logger(method)
-
-    # TODO: System that will accept a number of quads (or cell).
-    # TODO: System that will accept bpm selection.
-
-    # pv_list = ['SR01C-DI-EBPM-01'] # First BPM
-    # pv_list = ["SR24C-DI-EBPM-07"] # Last BPM
     pv_list = ["SR01A-PC-Q2AB-07"]  # Single BPM
-
+    cell_pv_list = [
+        "SR07A-PC-Q1B-01",
+        "SR07A-PC-Q2B-02",
+        "SR07A-PC-Q3B-03",
+        "SR07A-PC-Q2AB-04",
+        "SR07A-PC-Q1AB-05",
+        "SR07A-PC-Q1AB-06",
+        "SR07A-PC-Q2AB-07",
+        "SR07A-PC-Q3B-08",
+        "SR07A-PC-Q2B-09",
+        "SR07A-PC-Q1B-10",
+    ]
     accelerator = acc.Accelerator(ringmode=None)
 
     element_list = []
     for pv in pv_list:
         element_list.append(accelerator.pv_prefix_to_element(pv))
-
-    # TODO: fbba or sbba selection system in UI.
+    cell_list = []
+    for item in cell_pv_list:
+        cell_list.append(accelerator.pv_prefix_to_element(item))
 
     fbba = FBBA(accelerator)
     sbba = SBBA(accelerator)
@@ -159,395 +174,322 @@ def main():
         algorithm: Algorithm = sbba  # type: ignore
 
     log.info("Starting Test")
-    # Note: All tests occur in the x-axis only.
-    axis = "HORIZONTAL"
-
-    if cycle_test:
-        repeats = 20
-        cycle_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-        cycle_scan(algorithm, element_list[0], method, axis, repeats, False, cycle_list)
-
-    if freq_test:
-        repeats = 10
-        frequency_list = [
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9,
-            10,
-            11,
-            12,
-            13,
-            14,
-            15,
-            16,
-            17,
-            18,
-            19,
-            20,
-            21,
-            22,
-            23,
-            24,
-            25,
-            26,
-            27,
-            28,
-            29,
-            30,
-        ]
-        frequency_scan(
-            algorithm, element_list[0], method, axis, repeats, False, frequency_list
-        )
-
-    if corr_test:
-        repeats = 10
-        # As a multiplier (default 1)
-        corr_amp_list = [
-            0.1,
-            0.2,
-            0.3,
-            0.4,
-            0.5,
-            0.6,
-            0.7,
-            0.8,
-            0.9,
-            1,
-            1.20,
-            1.4,
-            1.6,
-            1.8,
-            2,
-            2.25,
-            2.5,
-            3,
-            3.5,
-            4,
-            4.5,
-            5,
-        ]
-        corrector_amplitude_scan(
-            algorithm, element_list[0], method, axis, repeats, False, corr_amp_list
-        )
-
-    if quad_test:
-        repeats = 10
-        # As a multiplier (default 0.01 for 1% of current value)
-        quad_amp_list = [
-            0.001,
-            0.005,
-            0.01,
-            0.015,
-            0.02,
-            0.025,
-            0.03,
-            0.035,
-            0.04,
-            0.045,
-            0.05,
-        ]
-        quadrupole_amplitude_scan(
-            algorithm, element_list[0], method, axis, repeats, False, quad_amp_list
-        )
 
     if honing_test:
-        # Simple honing test.
-        repeats = 5
-        cycles = 1
-        frequency = 8
-        quad_scalar = 0.01
-        corr_scalar = 1
-        honing_simple(
-            algorithm,
-            element_list[0],
-            method,
-            axis,
-            repeats,
-            quadrupole_scalar=quad_scalar,
-            corrector_scalar=corr_scalar,
-            cycles=cycles,
-            frequency=frequency,
-        )
+        log.info("Honing Test")
+        honing(algorithm, element_list[0], method, directions)
 
-    if combination_test:
-        # cycles and corr_amp test
-        repeats = 5
-        corr_amps = [
-            0.1,
-            0.2,
-            0.3,
-            0.4,
-            0.5,
-            0.6,
-            0.7,
-            0.8,
-            0.9,
-            1,
-            1.20,
-            1.4,
-            1.6,
-            1.8,
-            2,
-            2.25,
-            2.5,
-            3,
-            3.5,
-            4,
-            4.5,
-            5,
-        ]
-        cycles_list = [1, 10, 20]
-        combination(
-            algorithm,
-            element_list[0],
-            method,
-            axis,
-            repeats,
-            False,
-            cycles_list,
-            corr_amps,
-        )
+    if freq_test:
+        log.info("Frequency Test")
+        frequency(algorithm, element_list[0], method, directions)
+
+    if cell_test:
+        log.info("Cell Test")
+        cell(algorithm, cell_list, method, directions)
+
+    if triple:
+        log.info("Triple frequency Test")
+        triple_freq(algorithm, element_list[0], method, directions)
+
+    if running:
+        log.info("Running Test")
+        running_(algorithm, element_list[0], method, directions)
 
 
 def repeat_test(
     algorithm,
     element,
     method,
-    axis,
+    directions_list,
     repeats,
     apply,
-    quadrupole_scalar_=0.01,
-    corrector_scalar_=1,
-    cycles_=1,
+    quadrupole_scalar_=0.02,
+    corrector_scalar_=2,
+    cycles_=16,
     frequency_=8,
     decimated_=False,
+    fft_=False,
+    fofb_trigger_=False,
+    delay_=0,
 ):
     """For repeating BBA a number of times with the same arguments."""
     log.info(f"Starting repeats: {repeats}, with apply: {apply}.")
     plot = False
     max_orbit = 15
-    offsets = []
-    errors = []
+    offsets = defaultdict(list)
+    errors = defaultdict(list)
 
     for i in range(repeats):
-        filename_prefix = get_filename_prefix(method)
-        algorithm.configure(
-            quadrupole_scalar=quadrupole_scalar_,
-            corrector_scalar=corrector_scalar_,
-            cycles=cycles_,
-            frequency=frequency_,
-            decimated=decimated_,
-        )
-        raw_data = algorithm.run(element, PLANE_VALUES[axis], max_orbit)
-        raw_data.save(filename_prefix)
-        results = algorithm.analyse_data(raw_data, plot)
-        results.save(filename_prefix)
+        filename_store = []
+        for axis in directions_list:
+            filename_prefix = get_filename_prefix(method)
+            algorithm.configure(
+                quadrupole_scalar=quadrupole_scalar_,
+                corrector_scalar=corrector_scalar_,
+                cycles=cycles_,
+                frequency=frequency_,
+                decimated=decimated_,
+            )
+            initial_current = algorithm._accelerator.get_beam_current()
+            while True:
+                if fofb_trigger_:
+                    algorithm.toggle_fofb()
+                raw_data = algorithm.run(element, PLANE_VALUES[axis], max_orbit)
+                if algorithm.check_beam_current(initial_current):
+                    break
+            raw_data.save(filename_prefix, TEMP_FILEPATH_ROOT)
+            results = algorithm.analyse_data(raw_data, plot, fft_)
+            filename = results.save(filename_prefix, TEMP_FILEPATH_ROOT)
+            filename_store.append([filename])
+            for quad, answers in results.results.items():
+                offsets[axis] += [answers[0]]
+                errors[axis] += [answers[1]]
         if apply:
-            algorithm.apply_results(results)
-        for quad, answers in results.results.items():
-            offsets += [answers[0]]
-            errors += [answers[1]]
+            for filename in filename_store:
+                results_filepath = os.path.join(TEMP_FILEPATH_ROOT, filename)
+                results.from_file(results_filepath)
+        Sleep(delay_)
     return offsets, errors
 
 
-def cycle_scan(algorithm, element, method, axis, repeats, apply, cycle_list):
-    """For repeating FBBA for different numbers of cycles."""
-    value_dictionary = defaultdict(list)
-    error_dictionary = defaultdict(list)
-
-    for cycle in cycle_list:
-        cycle_values, cycle_errors = repeat_test(
-            algorithm, element, method, axis, repeats, apply, cycles_=cycle
-        )
-        value_dictionary[cycle] = cycle_values
-        error_dictionary[cycle] = cycle_errors
-
-    matrix = np.zeros(shape=(len(cycle_list) * 2, repeats))
-    for index, cycle in enumerate(cycle_list):
-        matrix[(index * 2), :] = value_dictionary[cycle]
-        matrix[(index * 2) + 1, :] = error_dictionary[cycle]
-    np.savetxt(
-        f"cycle_scan_repeats_{repeats}_len_{len(cycle_list)}.csv", matrix, delimiter=","
-    )
-
-
-def frequency_scan(algorithm, element, method, axis, repeats, apply, frequency_list):
-    # For repeating FBBA for different frequencies.
-
-    value_dictionary = defaultdict(list)
-    error_dictionary = defaultdict(list)
-
-    for frequency in frequency_list:
-        frequency_values, frequency_errors = repeat_test(
-            algorithm, element, method, axis, repeats, apply, frequency_=frequency
-        )
-        value_dictionary[frequency] = frequency_values
-        error_dictionary[frequency] = frequency_errors
-
-    matrix = np.zeros(shape=(len(frequency_list) * 2, repeats))
-    for index, frequency in enumerate(frequency_list):
-        matrix[(index * 2), :] = value_dictionary[frequency]
-        matrix[(index * 2) + 1, :] = error_dictionary[frequency]
-    np.savetxt(
-        f"frequency_scan_repeats_{repeats}_len_{len(frequency_list)}.csv",
-        matrix,
-        delimiter=",",
-    )
-
-
-def corrector_amplitude_scan(
-    algorithm, element, method, axis, repeats, apply, corr_amplitude_list
-):
-    # For repeating FBBA at different amplitudes.
-
-    value_dictionary = defaultdict(list)
-    error_dictionary = defaultdict(list)
-
-    for amplitude in corr_amplitude_list:
-        amp_values, amp_errors = repeat_test(
-            algorithm,
-            element,
-            method,
-            axis,
-            repeats,
-            apply,
-            corrector_scalar_=amplitude,
-        )
-        value_dictionary[amplitude] = amp_values
-        error_dictionary[amplitude] = amp_errors
-
-    matrix = np.zeros(shape=(len(corr_amplitude_list) * 2, repeats))
-    for index, amplitude in enumerate(corr_amplitude_list):
-        matrix[(index * 2), :] = value_dictionary[amplitude]
-        matrix[(index * 2) + 1, :] = error_dictionary[amplitude]
-    np.savetxt(
-        f"corr_amp_scan_repeats_{repeats}_len_{len(corr_amplitude_list)}.csv",
-        matrix,
-        delimiter=",",
-    )
-
-
-def quadrupole_amplitude_scan(
-    algorithm, element, method, axis, repeats, apply, quad_amplitude_list
-):
-    # For repeating FBBA at different amplitudes.
-
-    value_dictionary = defaultdict(list)
-    error_dictionary = defaultdict(list)
-
-    for amplitude in quad_amplitude_list:
-        amp_values, amp_errors = repeat_test(
-            algorithm,
-            element,
-            method,
-            axis,
-            repeats,
-            apply,
-            quadrupole_scalar_=amplitude,
-        )
-        value_dictionary[amplitude] = amp_values
-        error_dictionary[amplitude] = amp_errors
-
-    matrix = np.zeros(shape=(len(quad_amplitude_list) * 2, repeats))
-    for index, amplitude in enumerate(quad_amplitude_list):
-        matrix[(index * 2), :] = value_dictionary[amplitude]
-        matrix[(index * 2) + 1, :] = error_dictionary[amplitude]
-    np.savetxt(
-        f"quad_amp_scan_repeats_{repeats}_len_{len(quad_amplitude_list)}.csv",
-        matrix,
-        delimiter=",",
-    )
-
-
-def decimated_scan():
-    # For comparing decimated FBBA against non decimated FBBA.
-    pass
-
-
-def honing_simple(
-    algorithm,
-    element,
-    method,
-    axis,
-    repeats,
-    quadrupole_scalar=0.01,
-    corrector_scalar=1,
-    cycles=1,
-    frequency=8,
-):
-    # Applying the first calculated value. Repeats refers to the # of times run.
-    apply = True
-
-    value_list = []
-    error_list = []
-
-    value_list, error_list = repeat_test(
+def honing(algorithm, element, method, directions_list):
+    """Honing Test"""
+    repeats = 8
+    fft_ = False
+    fofb_trigger_ = False
+    current = 300
+    offsets, errors = repeat_test(
         algorithm,
         element,
         method,
-        axis,
+        directions_list,
         repeats,
-        apply,
-        quadrupole_scalar_=quadrupole_scalar,
-        corrector_scalar_=corrector_scalar,
-        cycles_=cycles,
-        frequency_=frequency,
-    )  # Can add other args here.
+        apply=True,
+        fft_=fft_,
+        fofb_trigger_=fofb_trigger_,
+    )
+
     matrix = np.zeros(shape=(2, repeats))
-    matrix[0, :] = value_list
-    matrix[1, :] = error_list
+    matrix[0, :] = offsets[direction_dict["x"]]
+    matrix[1, :] = errors[direction_dict["x"]]
     np.savetxt(
-        f"honing_simple_repeats_{repeats}_c{cycles}_f{frequency}_q{quadrupole_scalar}_cs{corrector_scalar}.csv",
+        f"{TEMP_FILEPATH_ROOT}/honing_{method}_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_x.csv",
+        matrix,
+        delimiter=",",
+    )
+    matrix = np.zeros(shape=(2, repeats))
+    matrix[0, :] = offsets[direction_dict["y"]]
+    matrix[1, :] = errors[direction_dict["y"]]
+    np.savetxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_{method}_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_y.csv",
         matrix,
         delimiter=",",
     )
 
 
-def honing_average():
-    # apply = True
-    # Showing the honing ability of BBA if each step is repeated before being applied.
-    pass
+def frequency(algorithm, element, method, directions_list):
+    """Frequency test"""
+    repeats = 10
+    MAX_TIME = 2  # Seconds
+    fft_ = False
+    fofb_trigger_ = False
 
+    frequency_list = [int(num) for num in range(0, 251)]
 
-def combination(
-    algorithm, element, method, axis, repeats, apply, cycle_list, corr_amplitude_list
-):
-    # Something that can do multiple tests at once. eg. corrector_amp and cycles.
-    # Saved in terms of the cycle list for all amplitudes.
+    value_dictionary_x = defaultdict(list)
+    error_dictionary_x = defaultdict(list)
+    value_dictionary_y = defaultdict(list)
+    error_dictionary_y = defaultdict(list)
 
-    value_dictionary = defaultdict(list)
-    error_dictionary = defaultdict(list)
-    for cycle in cycle_list:
-        for corr_amp in corr_amplitude_list:
-            value_list, error_list = repeat_test(
-                algorithm,
-                element,
-                method,
-                axis,
-                repeats,
-                apply,
-                corrector_scalar_=corr_amp,
-                cycles_=cycle,
-            )
-            value_dictionary[f"c_{cycle},a_{corr_amp}"] = value_list
-            error_dictionary[f"c_{cycle},a_{corr_amp}"] = error_list
+    for freq in frequency_list:
+        cycles = int(np.floor(MAX_TIME * frequency))
+        offsets, errors = repeat_test(
+            algorithm,
+            element,
+            method,
+            directions_list,
+            repeats,
+            apply=False,
+            cycles_=cycles,
+            frequency_=freq,
+            fft_=fft_,
+            fofb_trigger_=fofb_trigger_,
+        )
 
-    for cycle in cycle_list:
-        matrix = np.zeros(shape=(len(corr_amplitude_list) * 2, repeats))
-        for index, corr_amp in enumerate(corr_amplitude_list):
-            matrix[(index * 2), :] = value_dictionary[f"c_{cycle},a_{corr_amp}"]
-            matrix[(index * 2) + 1, :] = error_dictionary[f"c_{cycle},a_{corr_amp}"]
+        value_dictionary_x[freq] = offsets[direction_dict["x"]]
+        error_dictionary_x[freq] = errors[direction_dict["x"]]
+        value_dictionary_y[freq] = offsets[direction_dict["y"]]
+        error_dictionary_y[freq] = errors[direction_dict["y"]]
+
+        matrix = np.zeros(shape=(len(frequency_list) * 2, repeats))
+        for index, freq in enumerate(frequency_list):
+            matrix[(index * 2), :] = value_dictionary_x[freq]
+            matrix[(index * 2) + 1, :] = error_dictionary_x[freq]
         np.savetxt(
-            f"combination_scan_repeats_{repeats}_cycle_{cycle}.csv",
+            f"{TEMP_FILEPATH_ROOT}/frequency_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{frequency_list[0]}_{frequency_list[-1]}_x.csv",
             matrix,
             delimiter=",",
         )
+
+        matrix = np.zeros(shape=(len(frequency_list) * 2, repeats))
+        for index, freq in enumerate(frequency_list):
+            matrix[(index * 2), :] = value_dictionary_y[freq]
+            matrix[(index * 2) + 1, :] = error_dictionary_y[freq]
+        np.savetxt(
+            f"{TEMP_FILEPATH_ROOT}/frequency_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{frequency_list[0]}_{frequency_list[-1]}_y.csv",
+            matrix,
+            delimiter=",",
+        )
+
+
+def triple_freq(algorithm, element, method, directions_list):
+    """Honing but for three specific frequencies."""
+    frequencies = [8, 83, 137, 179, 223, 269]
+    for freq in frequencies:
+        repeats = 8
+        fft_ = True
+        fofb_trigger_ = True
+        current = 300
+        offsets, errors = repeat_test(
+            algorithm,
+            element,
+            method,
+            directions_list,
+            repeats,
+            frequency_=freq,
+            apply=True,
+            fft_=fft_,
+            fofb_trigger_=fofb_trigger_,
+        )
+
+        matrix = np.zeros(shape=(2, repeats))
+        matrix[0, :] = offsets[direction_dict["x"]]
+        matrix[1, :] = errors[direction_dict["x"]]
+        np.savetxt(
+            f"{TEMP_FILEPATH_ROOT}/triple_r8_c16_f{freq}_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_x.csv",
+            matrix,
+            delimiter=",",
+        )
+        matrix = np.zeros(shape=(2, repeats))
+        matrix[0, :] = offsets[direction_dict["y"]]
+        matrix[1, :] = errors[direction_dict["y"]]
+        np.savetxt(
+            f"{TEMP_FILEPATH_ROOT}/triple_r8_c16_f{freq}_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_y.csv",
+            matrix,
+            delimiter=",",
+        )
+
+
+def cell(algorithm, cell_list, method, directions_list):
+    """Cell corrector amplitudes test"""
+    repeats = 10
+    MAX_TIME = 2  # Seconds
+    fft_ = True
+    fofb_trigger_ = True
+
+    # TODO: CORRECTOR AND QUAD RANGES for mutliplier.
+    # correctors_list = []
+    # quadrupole_list = []
+
+    frequency_list = [int(num) for num in range(0, 251)]
+    for index, element in enumerate(cell_list):
+        value_dictionary_x = defaultdict(list)
+        error_dictionary_x = defaultdict(list)
+        value_dictionary_y = defaultdict(list)
+        error_dictionary_y = defaultdict(list)
+        for freq in frequency_list:
+            cycles = int(np.floor(MAX_TIME * frequency))
+            offsets, errors = repeat_test(
+                algorithm,
+                element,
+                method,
+                directions_list,
+                repeats,
+                apply=False,
+                cycles_=cycles,
+                frequency_=freq,
+                fft_=fft_,
+                fofb_trigger_=fofb_trigger_,
+            )
+
+            value_dictionary_x[freq] = offsets[direction_dict["x"]]
+            error_dictionary_x[freq] = errors[direction_dict["x"]]
+            value_dictionary_y[freq] = offsets[direction_dict["y"]]
+            error_dictionary_y[freq] = errors[direction_dict["y"]]
+
+            matrix = np.zeros(shape=(len(frequency_list) * 2, repeats))
+            for index, freq in enumerate(frequency_list):
+                matrix[(index * 2), :] = value_dictionary_x[freq]
+                matrix[(index * 2) + 1, :] = error_dictionary_x[freq]
+            np.savetxt(
+                f"{TEMP_FILEPATH_ROOT}/cell_7.{index}_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_x.csv",
+                matrix,
+                delimiter=",",
+            )
+
+            matrix = np.zeros(shape=(len(frequency_list) * 2, repeats))
+            for index, freq in enumerate(frequency_list):
+                matrix[(index * 2), :] = value_dictionary_y[freq]
+                matrix[(index * 2) + 1, :] = error_dictionary_y[freq]
+            np.savetxt(
+                f"{TEMP_FILEPATH_ROOT}/cell_7.{index}_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_y.csv",
+                matrix,
+                delimiter=",",
+            )
+
+
+def running_(algorithm, element, method, directions_list):
+    """Repeat running of F/S BBA."""
+    # TODO: Measurements will be off if only one measurement. Do three or so measurements?
+
+    repeats = 30
+    fft_ = True
+    apply = True
+    fofb_trigger_ = True
+    current = 300
+    delay = 40  # second
+    for i in range(1, repeats + 1):
+        log.info(f"Run: {i}")
+        pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
+        pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
+        repeat = 8
+        current_x = caget(pv_x)
+        current_y = caget(pv_y)
+        log.info(f"Start: x={current_x}, y={current_y}")
+        offsets, errors = repeat_test(
+            algorithm,
+            element,
+            method,
+            directions_list,
+            repeat,
+            apply=apply,
+            fft_=fft_,
+            fofb_trigger_=fofb_trigger_,
+        )
+
+        matrix = np.zeros(shape=(2, repeats))
+        matrix[0, :] = offsets[direction_dict["x"]]
+        matrix[1, :] = errors[direction_dict["x"]]
+        np.savetxt(
+            f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_x_{i}.csv",
+            matrix,
+            delimiter=",",
+        )
+        matrix = np.zeros(shape=(2, repeats))
+        matrix[0, :] = offsets[direction_dict["y"]]
+        matrix[1, :] = errors[direction_dict["y"]]
+        np.savetxt(
+            f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_y_{i}.csv",
+            matrix,
+            delimiter=",",
+        )
+        final_x = caget(pv_x)
+        final_y = caget(pv_y)
+        log.info(f"Final: x={final_x}, y={final_y}")
+        caput(pv_x, current_x)
+        caput(pv_y, current_y)
+        log.info(f"Reset: x={current_x}, y={current_y}")
+        Sleep(delay)
 
 
 if __name__ == "__main__":
