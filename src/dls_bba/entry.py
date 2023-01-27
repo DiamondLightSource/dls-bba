@@ -1,6 +1,7 @@
 """This is the entry point for the bba module."""
 import argparse
 import logging as log
+import os
 from datetime import datetime
 
 from dls_bba import accelerator as acc
@@ -131,7 +132,6 @@ def main():
     elif method == "SBBA":
         algorithm: Algorithm = SBBA(accelerator)
 
-    # algorithm.configure() #  Only for changing config values.
     for element in element_list:
         filename_store = []
         for axis in directions_list:
