@@ -110,25 +110,26 @@ class SBBA(Algorithm):
                 # High quad step
                 self._accelerator.set_quad(quad, quad_high)
                 cothread.Sleep(quad_lag_s / 2)
+                log.info(f"Quad High Measurement for corrector step {index}.")
                 high_bpms = self._accelerator.measure_bpms(plane_info)
                 # Low quad step
                 self._accelerator.set_quad(quad, quad_low)
                 cothread.Sleep(quad_lag_s / 2)
+                log.info(f"Quad Low Measurement for corrector step {index}.")
                 low_bpms = self._accelerator.measure_bpms(plane_info)
                 # Change in step.
-                raw_data[f"{quad_pv_root}_{index}"] = np.subtract(high_bpms, low_bpms)
+                raw_data[f"{quad_pv_root}_{index}_High"] = high_bpms
+                raw_data[f"{quad_pv_root}_{index}_Low"] = low_bpms
 
             # Reset magnets
             self._accelerator.set_corrector(corrector, plane_info, corrector_sp)
             self._accelerator.set_quad(quad, quad_sp)
             self.restore_origins(original_offsets)
-            log.info("Restored")
 
         return RawData(raw_data, method, metadata)
 
     def analyse_data(self, raw_data, plot_output, *args, **kwargs):
         data = raw_data.raw_data
-        # algorithm = raw_data["algorithm"]
         metadata = raw_data.metadata
 
         enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
@@ -144,7 +145,9 @@ class SBBA(Algorithm):
         for quad in quad_prefixs:
             matrix = np.zeros(shape=(5, len(enabled_bpms)))
             for index in range(5):
-                matrix[index, :] = data[f"{quad}_{index}"]
+                high = data[f"{quad}_{index}_High"]
+                low = data[f"{quad}_{index}_Low"]
+                matrix[index, :] = np.subtract(high, low)
 
             bad_indices = []
             # Get rid of disabled bpms.
