@@ -263,7 +263,7 @@ class FBBA(Algorithm):
         answer = 2 * np.real(reverse_osc * 1j * np.imag(data_es))
         return answer
 
-    def analyse_data(self, raw_data, plot_output, use_fft=False, *args, **kwargs):
+    def analyse_data(self, raw_data, plot_output=False, use_fft=False, *args, **kwargs):
         data = raw_data.raw_data
         # algorithm = raw_data["algorithm"] -> Not used.
         metadata = raw_data.metadata
