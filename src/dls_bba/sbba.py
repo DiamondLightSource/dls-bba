@@ -34,7 +34,7 @@ class SBBA(Algorithm):
     ):
         """These are optional arguments, which are used during testing."""
         self.quadrupole_scalar = quadrupole_scalar
-        self.corrector_scalar = corrector_scalar
+        self.corrector_scalar = float(corrector_scalar)
         self.decimated = decimated
         log.debug(
             f"Configuration: Quadrupole Scalar: {self.quadrupole_scalar}, Corrector Scalar: {self.corrector_scalar}, Decimated: {self.decimated}"
