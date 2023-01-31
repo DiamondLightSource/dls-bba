@@ -57,8 +57,8 @@ def parse_args():
 
 def main():
     args = parse_args()
-    # cell_test = args.cell_t
-    # freq_test = args.freq_t
+    cell = args.cell_t
+    frequency = args.freq_t
     honing_test = args.honing_t
     triple = args.triple_t
     running = args.running_t
@@ -887,6 +887,61 @@ def main():
         plt.legend()
         plt.savefig(
             f"{TEMP_FILEPATH_ROOT}/honing_fbba_sbba_bba_100mA_comparison.png",
+            bbox_inches="tight",
+            dpi=1200,
+        )
+        # plt.show()
+        plt.close()
+
+    if frequency:
+        # Incomplete: Unsure if needed.
+        repeats = 5
+        fft_ = True
+        fofb_trigger_ = True
+        frequency_list = [int(num) for num in range(0, 251)]
+        start_x = 0
+        # start_y = 0
+
+        for freq in frequency_list:
+            data_x = np.genfromtxt(
+                f"{TEMP_FILEPATH_ROOT}/frequency_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{frequency_list[0]}_{frequency_list[-1]}_x.csv",
+                delimiter=",",
+            )
+            y_change = np.cumsum((data_x[0])[0, :])
+            y_values = [start_x] + [value + start_x for value in y_change]
+            y_errors = [0] + [value for value in (value[0])[1, :]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                # color=freq_dict[freq],
+                linestyle="-",
+                label=f"FBBA x: fft:{fft_}, fofb:{fofb_trigger_},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+        plt.hlines(
+            y=start_x,
+            xmin=0,
+            xmax=250.1,
+            color="gray",
+            linestyles="--",
+            label=f"x initial: {start_x}",
+        )
+
+        plt.title("Frequency Plot fft, fofb on: x")
+        plt.xlim(0, 250.1)
+        plt.xlabel("Run number")
+        plt.ylabel("Offset Value (mm)")
+        plt.grid(which="both", axis="both")
+        plt.legend()
+        plt.savefig(
+            f"{TEMP_FILEPATH_ROOT}/frequency_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{frequency_list[0]}_{frequency_list[-1]}_x.png",
             bbox_inches="tight",
             dpi=1200,
         )

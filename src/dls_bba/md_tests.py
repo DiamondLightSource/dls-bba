@@ -289,10 +289,10 @@ def honing(algorithm, element, method, directions_list):
 
 def frequency(algorithm, element, method, directions_list):
     """Frequency test"""
-    repeats = 10
+    repeats = 5
     MAX_TIME = 2  # Seconds
-    fft_ = False
-    fofb_trigger_ = False
+    fft_ = True
+    fofb_trigger_ = True
 
     frequency_list = [int(num) for num in range(0, 251)]
 
