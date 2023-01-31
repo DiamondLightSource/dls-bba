@@ -955,16 +955,17 @@ def main():
         current = 300
         x_axis = [0, 1, 2, 3, 4, 5, 6, 7, 8]
         spread_index = 3
+
         initial_x_300 = 0
         initial_y_300 = 0
 
         freq_dict = {
-            8: "",
-            83: "",
-            137: "",
-            179: "",
-            223: "",
-            269: "",
+            8: "darkred",
+            83: "red",
+            137: "darkorange",
+            179: "lime",
+            223: "darkgreen",
+            269: "dodgerblue",
         }
         bba_300_dict = {
             "data_x_300_BBA_fofbT": [
@@ -1027,7 +1028,7 @@ def main():
                 marker=".",
                 capsize=5,
                 color=freq_dict[freq],
-                linestyle="-",
+                linestyle="--",
                 label=f"FBBA x: fft:{fft_}, fofb:{fofb_trigger_},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
             )
 
@@ -1067,19 +1068,22 @@ def main():
             label=f"y initial: {initial_y_300}",
         )
 
-        plt.title("FBBA / BBA frequency comparison at 300mA, fofb and fft on.")
+        plt.title(f"FBBA / BBA frequency comparison at {current}mA, fofb and fft on.")
         plt.xlim(0, 8.1)
         plt.xlabel("Run number")
         plt.ylabel("Offset Value (mm)")
         plt.grid(which="both", axis="both")
         plt.legend()
         plt.savefig(
-            f"{TEMP_FILEPATH_ROOT}/triple_frequency_comparison_300_fftT_fofbT.png",
+            f"{TEMP_FILEPATH_ROOT}/triple_frequency_comparison_{current}_fftT_fofbT.png",
             bbox_inches="tight",
             dpi=1200,
         )
         # plt.show()
         plt.close()
+
+    if cell:
+        pass
 
     if running:
         fft_ = True
@@ -1088,12 +1092,10 @@ def main():
         delay = 40
         # x_axis = [int(num) for num in range(0, 30+1)]
         spread_index = 3
-        initial_x_300 = 0
-        initial_y_300 = 0
-        settled_x_10 = 0
-        settled_y_10 = 0
+        initial_x_300 = [0]
+        initial_y_300 = [0]
 
-        repeats = 30
+        repeats = 40
         for i in range(1, repeats + 1):
             x = [int(num) for num in range(1, ((i) * 10) + 1)][
                 -9:
@@ -1103,14 +1105,16 @@ def main():
                 delimiter=",",
             )
             y_change = np.cumsum((data_x[0])[0, :])
-            y_values = [initial_x_300] + [value + initial_x_300 for value in y_change]
+            y_values = [initial_x_300[-1]] + [
+                value + initial_x_300[-1] for value in y_change
+            ]
             y_errors = [0] + [value for value in (value[0])[1, :]]
             spread_mean = mean(y_values[spread_index:])
             spread_list = [
                 (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
             ]
             spread_error = spread_mean * np.sqrt(sum(spread_list))
-
+            initial_x_300.append(initial_x_300[-1] + y_values[-1])
             plt.errorbar(
                 x,
                 y_values,
@@ -1126,13 +1130,16 @@ def main():
                 delimiter=",",
             )
             y_change = np.cumsum((data_y[0])[0, :])
-            y_values = [initial_x_300] + [value + initial_x_300 for value in y_change]
+            y_values = [initial_y_300[-1]] + [
+                value + initial_y_300[-1] for value in y_change
+            ]
             y_errors = [0] + [value for value in (value[0])[1, :]]
             spread_mean = mean(y_values[spread_index:])
             spread_list = [
                 (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
             ]
             spread_error = spread_mean * np.sqrt(sum(spread_list))
+            initial_y_300.append(initial_y_300[-1] + y_values[-1])
             plt.errorbar(
                 x,
                 y_values,
@@ -1147,7 +1154,7 @@ def main():
         plt.hlines(
             y=initial_x_300,
             xmin=0,
-            xmax=8.1,
+            xmax=400.1,
             color="black",
             linestyles="--",
             label=f"x initial: {initial_x_300}",
@@ -1155,32 +1162,25 @@ def main():
         plt.hlines(
             y=initial_y_300,
             xmin=0,
-            xmax=8.1,
+            xmax=400.1,
             color="gray",
             linestyles="--",
             label=f"y initial: {initial_y_300}",
         )
 
-        plt.hlines(
-            y=settled_x_10,
-            xmin=0,
-            xmax=8.1,
-            color="black",
-            linestyles="--",
-            label=f"x final: {settled_x_10}",
-        )
-        plt.hlines(
-            y=settled_y_10,
-            xmin=0,
-            xmax=8.1,
-            color="gray",
-            linestyles="--",
-            label=f"y final: {settled_y_10}",
-        )
+        DUMP = "Dumptime"
+        DUMP_CURRENT = "300"
+        FILL = "Filled"
+        FILL_CURRENT = "10"
 
-        plt.title("FBBA / BBA frequency comparison at 300mA, fofb and fft on.")
-        plt.xlim(0, 8.1)
-        plt.xlabel("Run number - Time to be determined later")
+        FIRST = "ISOSTART"
+        FINISH = "ISOFINISH"
+
+        plt.title(
+            f"FBBA 300mA -> 10mA decay offsets. Dumped: {DUMP} from {DUMP_CURRENT}, Filled to 10mA: {FILL} to {FILL_CURRENT}"
+        )
+        plt.xlim(0, 400.1)
+        plt.xlabel(f"Run number: 0->400 : {FIRST}->{FINISH}")
         plt.ylabel("Offset Value (mm)")
         plt.grid(which="both", axis="both")
         plt.legend()
