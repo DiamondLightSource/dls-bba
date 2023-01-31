@@ -104,6 +104,14 @@ def parse_args():
         default=False,
         help="Use fft analysis?",
     )
+    parser.add_argument(
+        "-b",
+        "-fofb",
+        dest="fofb",
+        action="store_true",
+        default=False,
+        help="Use fofb between each run?",
+    )
     return parser.parse_args()
 
 
@@ -117,6 +125,7 @@ def main():
     apply: bool = args.apply
     plot: bool = args.plot
     fft: bool = args.fft
+    fofb_trigger: bool = args.fofb
 
     get_new_logger(method, filepath)
     pv_list = ["SR01A-PC-Q2AB-07"]
@@ -138,8 +147,8 @@ def main():
             filename_prefix = get_filename_prefix(method)
             initial_current = algorithm._accelerator.get_beam_current()
             while True:
-                # if fofb_trigger:
-                #     algorithm.toggle_fofb()
+                if fofb_trigger:
+                    algorithm.toggle_fofb()
                 raw_data = algorithm.run(element, PLANE_VALUES[axis], max_orbit)
                 if algorithm.check_beam_current(initial_current):
                     break
