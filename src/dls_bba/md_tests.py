@@ -344,8 +344,14 @@ def frequency(algorithm, element, method, directions_list):
 
 def triple_freq(algorithm, element, method, directions_list):
     """Honing but for three specific frequencies."""
+
     frequencies = [8, 83, 137, 179, 223, 269]
     for freq in frequencies:
+        pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
+        pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
+        current_x = caget(pv_x)
+        current_y = caget(pv_y)
+        log.info(f"Freq: {freq}. Start: x={current_x}, y={current_y}")
         repeats = 8
         fft_ = True
         fofb_trigger_ = True
@@ -378,6 +384,13 @@ def triple_freq(algorithm, element, method, directions_list):
             matrix,
             delimiter=",",
         )
+        final_x = caget(pv_x)
+        final_y = caget(pv_y)
+        log.info(f"Final: x={final_x}, y={final_y}")
+        caput(pv_x, current_x)
+        caput(pv_y, current_y)
+        log.info(f"Reset: x={current_x}, y={current_y}")
+        Sleep(1)
 
 
 def cell(algorithm, cell_list, method, directions_list):
@@ -440,9 +453,8 @@ def cell(algorithm, cell_list, method, directions_list):
 
 def running_(algorithm, element, method, directions_list):
     """Repeat running of F/S BBA."""
-    # TODO: Measurements will be off if only one measurement. Do three or so measurements?
 
-    repeats = 30
+    repeats = 40
     fft_ = True
     apply = True
     fofb_trigger_ = True
@@ -467,7 +479,7 @@ def running_(algorithm, element, method, directions_list):
             fofb_trigger_=fofb_trigger_,
         )
 
-        matrix = np.zeros(shape=(2, repeats))
+        matrix = np.zeros(shape=(2, repeat))
         matrix[0, :] = offsets[direction_dict["x"]]
         matrix[1, :] = errors[direction_dict["x"]]
         np.savetxt(
@@ -475,7 +487,7 @@ def running_(algorithm, element, method, directions_list):
             matrix,
             delimiter=",",
         )
-        matrix = np.zeros(shape=(2, repeats))
+        matrix = np.zeros(shape=(2, repeat))
         matrix[0, :] = offsets[direction_dict["y"]]
         matrix[1, :] = errors[direction_dict["y"]]
         np.savetxt(
@@ -486,9 +498,9 @@ def running_(algorithm, element, method, directions_list):
         final_x = caget(pv_x)
         final_y = caget(pv_y)
         log.info(f"Final: x={final_x}, y={final_y}")
-        caput(pv_x, current_x)
-        caput(pv_y, current_y)
-        log.info(f"Reset: x={current_x}, y={current_y}")
+        # caput(pv_x, current_x)
+        # caput(pv_y, current_y)
+        # log.info(f"Reset: x={current_x}, y={current_y}")
         Sleep(delay)
 
 
