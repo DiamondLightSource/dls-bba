@@ -460,6 +460,8 @@ def running_(algorithm, element, method, directions_list):
     fofb_trigger_ = True
     current = 300
     delay = 40  # second
+    note = "warming"
+    topup = "topup1"
     for i in range(1, repeats + 1):
         log.info(f"Run: {i}")
         pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
@@ -483,7 +485,7 @@ def running_(algorithm, element, method, directions_list):
         matrix[0, :] = offsets[direction_dict["x"]]
         matrix[1, :] = errors[direction_dict["x"]]
         np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_x_{i}.csv",
+            f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_{note}_{topup}_x_{i}.csv",
             matrix,
             delimiter=",",
         )
@@ -491,7 +493,7 @@ def running_(algorithm, element, method, directions_list):
         matrix[0, :] = offsets[direction_dict["y"]]
         matrix[1, :] = errors[direction_dict["y"]]
         np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_y_{i}.csv",
+            f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_{note}_{topup}_y_{i}.csv",
             matrix,
             delimiter=",",
         )

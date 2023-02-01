@@ -1094,6 +1094,8 @@ def main():
         spread_index = 3
         initial_x_300 = [0]
         initial_y_300 = [0]
+        note = "warming"
+        note = "cooling"
 
         repeats = 40
         for i in range(1, repeats + 1):
@@ -1101,7 +1103,7 @@ def main():
                 -9:
             ]  # To give the spacing between each set of 8 +1 runs.
             data_x = np.genfromtxt(
-                f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_x_{i}.csv",
+                f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_{note}_x_{i}.csv",
                 delimiter=",",
             )
             y_change = np.cumsum((data_x[0])[0, :])
@@ -1126,7 +1128,7 @@ def main():
                 label=f"FBBA x: fft:{fft_}, fofb:{fofb_trigger_},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
             )
             data_y = np.genfromtxt(
-                f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_y_{i}.csv",
+                f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_{note}_y_{i}.csv",
                 delimiter=",",
             )
             y_change = np.cumsum((data_y[0])[0, :])
@@ -1177,7 +1179,7 @@ def main():
         FINISH = "ISOFINISH"
 
         plt.title(
-            f"FBBA 300mA -> 10mA decay offsets. Dumped: {DUMP} from {DUMP_CURRENT}, Filled to 10mA: {FILL} to {FILL_CURRENT}"
+            f"FBBA {note} decay offsets. Dumped: {DUMP} from {DUMP_CURRENT}, Filled to 10mA: {FILL} to {FILL_CURRENT}"
         )
         plt.xlim(0, 400.1)
         plt.xlabel(f"Run number: 0->400 : {FIRST}->{FINISH}")
