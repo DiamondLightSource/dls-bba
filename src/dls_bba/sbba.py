@@ -61,7 +61,8 @@ class SBBA(Algorithm):
             "method": method,
             "plane": plane_info,
             "quad": quad_pv_list,
-            "bpm": [bpm_pv_prefix, self._accelerator.bpms.index(bpm)],
+            "bpm_pv": bpm_pv_prefix,
+            "bpm_index": self._accelerator.bpms.index(bpm),
             "corrector": corrector_pv_prefix,
             "decimated": self.decimated,
             "enabled_bpms": self._accelerator.enabled_bpms,
@@ -156,11 +157,11 @@ class SBBA(Algorithm):
                     bad_indices.append(index)
 
             # Get rid of bad bpms.
-            if metadata["plane"].axis == "X":
+            if metadata["plane"]["axis"] == "X":
                 for index, _ in enumerate(self._accelerator.bpms):
                     if self._accelerator.bpm_h_fofb_enabled[index] == 1:
                         bad_indices.append(index)
-            if metadata["plane"].axis == "Y":
+            if metadata["plane"]["axis"] == "Y":
                 for index, _ in enumerate(self._accelerator.bpms):
                     if self._accelerator.bpm_v_fofb_enabled[index] == 1:
                         bad_indices.append(index)
