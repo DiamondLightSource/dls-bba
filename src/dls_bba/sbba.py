@@ -115,9 +115,10 @@ class SBBA(Algorithm):
                 high_bpms = self._accelerator.measure_bpms(plane_info)
                 # Low quad step
                 self._accelerator.set_quad(quad, quad_low)
-                cothread.Sleep(quad_lag_s / 2)
+                cothread.Sleep(quad_lag_s)
                 log.info(f"Quad Low Measurement for corrector step {index}.")
                 low_bpms = self._accelerator.measure_bpms(plane_info)
+                cothread.Sleep(quad_lag_s / 2)
                 # Change in step.
                 raw_data[f"{quad_pv_root}_{index}_High"] = high_bpms
                 raw_data[f"{quad_pv_root}_{index}_Low"] = low_bpms
