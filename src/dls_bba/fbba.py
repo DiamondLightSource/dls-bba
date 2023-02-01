@@ -32,9 +32,11 @@ class FBBA(Algorithm):
         self,
         quadrupole_scalar=0.02,
         corrector_scalar=2,
-        cycles=1,
+        cycles=16,
         frequency=8,
         decimated=False,
+        *args,
+        **kwargs,
     ):
         """These are optional arguments, which are used during testing."""
         self.quadrupole_scalar = quadrupole_scalar  # 0.01 is old default
@@ -261,7 +263,7 @@ class FBBA(Algorithm):
         answer = 2 * np.real(reverse_osc * 1j * np.imag(data_es))
         return answer
 
-    def analyse_data(self, raw_data, plot_output, use_fft=False, *args, **kwargs):
+    def analyse_data(self, raw_data, plot_output=False, use_fft=False, *args, **kwargs):
         data = raw_data.raw_data
         # algorithm = raw_data["algorithm"] -> Not used.
         metadata = raw_data.metadata

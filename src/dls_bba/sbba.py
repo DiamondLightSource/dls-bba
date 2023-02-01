@@ -24,11 +24,21 @@ class SBBA(Algorithm):
         super().__init__(accelerator)
         self.configure()
 
-    def configure(self, quadrupole_scalar=0.01, corrector_scalar=1, decimated=False):
+    def configure(
+        self,
+        quadrupole_scalar=0.02,
+        corrector_scalar=2,
+        decimated=False,
+        *args,
+        **kwargs,
+    ):
         """These are optional arguments, which are used during testing."""
         self.quadrupole_scalar = quadrupole_scalar
-        self.corrector_scalar = corrector_scalar
+        self.corrector_scalar = float(corrector_scalar)
         self.decimated = decimated
+        log.debug(
+            f"Configuration: Quadrupole Scalar: {self.quadrupole_scalar}, Corrector Scalar: {self.corrector_scalar}, Decimated: {self.decimated}"
+        )
 
     def run(self, element, plane_info, max_orbit) -> RawData:
         method = "SBBA"
@@ -51,7 +61,8 @@ class SBBA(Algorithm):
             "method": method,
             "plane": plane_info,
             "quad": quad_pv_list,
-            "bpm": [bpm_pv_prefix, self._accelerator.bpms.index(bpm)],
+            "bpm_pv": bpm_pv_prefix,
+            "bpm_index": self._accelerator.bpms.index(bpm),
             "corrector": corrector_pv_prefix,
             "decimated": self.decimated,
             "enabled_bpms": self._accelerator.enabled_bpms,
@@ -100,25 +111,27 @@ class SBBA(Algorithm):
                 # High quad step
                 self._accelerator.set_quad(quad, quad_high)
                 cothread.Sleep(quad_lag_s / 2)
+                log.info(f"Quad High Measurement for corrector step {index}.")
                 high_bpms = self._accelerator.measure_bpms(plane_info)
                 # Low quad step
                 self._accelerator.set_quad(quad, quad_low)
-                cothread.Sleep(quad_lag_s / 2)
+                cothread.Sleep(quad_lag_s)
+                log.info(f"Quad Low Measurement for corrector step {index}.")
                 low_bpms = self._accelerator.measure_bpms(plane_info)
+                cothread.Sleep(quad_lag_s / 2)
                 # Change in step.
-                raw_data[f"{quad_pv_root}_{index}"] = np.subtract(high_bpms, low_bpms)
+                raw_data[f"{quad_pv_root}_{index}_High"] = high_bpms
+                raw_data[f"{quad_pv_root}_{index}_Low"] = low_bpms
 
             # Reset magnets
             self._accelerator.set_corrector(corrector, plane_info, corrector_sp)
             self._accelerator.set_quad(quad, quad_sp)
             self.restore_origins(original_offsets)
-            log.info("Restored")
 
         return RawData(raw_data, method, metadata)
 
     def analyse_data(self, raw_data, plot_output, *args, **kwargs):
         data = raw_data.raw_data
-        # algorithm = raw_data["algorithm"]
         metadata = raw_data.metadata
 
         enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
@@ -134,7 +147,9 @@ class SBBA(Algorithm):
         for quad in quad_prefixs:
             matrix = np.zeros(shape=(5, len(enabled_bpms)))
             for index in range(5):
-                matrix[index, :] = data[f"{quad}_{index}"]
+                high = data[f"{quad}_{index}_High"]
+                low = data[f"{quad}_{index}_Low"]
+                matrix[index, :] = np.subtract(high, low)
 
             bad_indices = []
             # Get rid of disabled bpms.
@@ -143,11 +158,11 @@ class SBBA(Algorithm):
                     bad_indices.append(index)
 
             # Get rid of bad bpms.
-            if metadata["plane"].axis == "X":
+            if metadata["plane"]["axis"] == "X":
                 for index, _ in enumerate(self._accelerator.bpms):
                     if self._accelerator.bpm_h_fofb_enabled[index] == 1:
                         bad_indices.append(index)
-            if metadata["plane"].axis == "Y":
+            if metadata["plane"]["axis"] == "Y":
                 for index, _ in enumerate(self._accelerator.bpms):
                     if self._accelerator.bpm_v_fofb_enabled[index] == 1:
                         bad_indices.append(index)
@@ -165,7 +180,7 @@ class SBBA(Algorithm):
             fit = np.polynomial.polynomial.polyfit(corrector_step_list, matrix, 1)
             p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
 
-            gradients = p[:, 1]
+            gradients = list(p[:, 1])
             max_gradient = abs(max(gradients, key=abs))
 
             # Get rid of bad gradients

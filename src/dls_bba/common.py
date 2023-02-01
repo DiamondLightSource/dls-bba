@@ -37,7 +37,7 @@ class RawData:
 
     # TODO: asdict, make all shared attributes not in metadata.
 
-    def save(self, time_prefix, filepath="data"):
+    def save(self, time_prefix, filepath):
         filename = "{}/{}-{}-{}-rawdata.mat".format(
             filepath, time_prefix, self.metadata["bpm_pv"], self.metadata["plane"].axis
         )
@@ -66,7 +66,7 @@ class Results:
     bpm_pv_prefix: str
     metadata: Dict[str, Any]
 
-    def save(self, time_prefix, filepath="data"):
+    def save(self, time_prefix, filepath):
         filename = "{}/{}-{}-{}-results.mat".format(
             filepath,
             time_prefix,
@@ -80,6 +80,7 @@ class Results:
         }
         io.savemat(filename, dct, oned_as="row")
         log.info(f"Saved results as {filename}")
+        return filename
 
     @classmethod
     def from_file(cls, filename):
@@ -98,7 +99,7 @@ class Algorithm(ABC):
         self._accelerator = accelerator
 
     @abstractmethod
-    def configure(self, *args, **kwargs):
+    def configure(self):
         pass
 
     def check_beam_current(self, initial_current) -> bool:
@@ -167,6 +168,21 @@ class Algorithm(ABC):
             ValueError("Unexpected element: Only quadrupoles and bpms are allowed.")
         return bpm, quad, corrector
 
+    def toggle_fofb(self):
+        log.warn("Correcting orbit with FOFB.")
+        run(
+            "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py start",
+            check=True,
+            shell=True,
+        )
+        sleep(1)
+        run(
+            "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py stop",
+            check=True,
+            shell=True,
+        )
+        sleep(1)
+
     def toggle_feedbacks(self, max_orbit):
         """Confirms that all feedbacks are off, and toggles FOFB to realign if needed."""
         feedbacks = {
@@ -201,19 +217,7 @@ class Algorithm(ABC):
         max_value = abs(max(bpm_values, key=abs))
         # value in mm, max_orbit in um.
         if float(max_value * 1000) >= float(max_orbit):
-            log.warn("Correcting orbit with FOFB.")
-            run(
-                "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py start",
-                check=True,
-                shell=True,
-            )
-            sleep(1)
-            run(
-                "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py stop",
-                check=True,
-                shell=True,
-            )
-            sleep(1)
+            self.toggle_fofb()
 
     def zero_origins(self, bpm, plane_info) -> Dict[str, Any]:
         """Zeros BCD and Golden offsets. Also stores current Golden offset value for restoring later."""

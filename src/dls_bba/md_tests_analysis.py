@@ -2,377 +2,1197 @@
 
 import argparse
 import os
-from statistics import mean, stdev
+from statistics import mean
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "24Jan2023")
+TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "31Jan2023")
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="testing")
-    parser.add_argument(
-        "-c",
-        "--cycle",
-        dest="cycle",
-        action="store_true",
-        default=False,
-        help="Cycle test",
-    )
-    parser.add_argument(
-        "-f",
-        "--freq",
-        dest="freq",
-        action="store_true",
-        default=False,
-        help="Freq test",
-    )
-    parser.add_argument(
-        "-q",
-        "--quads",
-        dest="quads_amp_test",
-        action="store_true",
-        default=False,
-        help="Quad test",
-    )
-    parser.add_argument(
-        "-k",
-        "--corrector",
-        dest="corr_amp_test",
-        action="store_true",
-        default=False,
-        help="Corrector test",
-    )
+    # parser.add_argument(
+    #     "-c",
+    #     "--cell",
+    #     dest="cell_t",
+    #     action="store_true",
+    #     default=False,
+    #     help="Cell test",
+    # )
+    # parser.add_argument(
+    #     "-f",
+    #     "--freq",
+    #     dest="freq_t",
+    #     action="store_true",
+    #     default=False,
+    #     help="Freq test",
+    # )
     parser.add_argument(
         "-j",
         "--honing",
-        dest="honing_test",
+        dest="honing_t",
         action="store_true",
         default=False,
-        help="honing complex test",
+        help="honing simple test",
+    )
+    parser.add_argument(
+        "-t",
+        "--triple",
+        dest="triple_t",
+        action="store_true",
+        default=False,
+        help="triple frequency test",
+    )
+    parser.add_argument(
+        "-r",
+        "--running",
+        dest="running_t",
+        action="store_true",
+        default=False,
+        help="Running test",
     )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    # cycle_test = args.cycle
-    freq_test = args.freq
-    corr_test = args.corr_amp_test
-    # quad_test = args.quad_amp_test
-    honing_test = args.honing_test
+    cell = args.cell_t
+    frequency = args.freq_t
+    honing_test = args.honing_t
+    triple = args.triple_t
+    running = args.running_t
 
-    # if cycle_test:
-    #     repeats = 20
-    #     cycle_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-    #     data = np.genfromtxt(f"cycle_scan_repeats_{repeats}_len_{len(cycle_list)}.csv", delimiter=",")
-    #     y = []
-    #     y_err = []
-    #     for index, cycle in enumerate(cycle_list):
-    #         value_list = data[(index*2), :]
-    #         y.append(mean(value_list))
-    #         y_err.append(stdev(value_list))
-    #     plt.errorbar(cycle_list, y, y_err, marker = ".", capsize=5)
-    #     # plt.hlines(y= , xmin=0, xmax=(max(cycle_list) + 1), color="r", linestyles="-")
-    #     plt.title(f"Cycles Test - {repeats} Repeats")
-    #     plt.xlim(0, max(cycle_list) + 1)
-    #     plt.xlabel("Cycles")
-    #     plt.ylabel("Offset Value")
-    #     plt.grid(which = "both", axis = "both")
-    #     plt.savefig(f"cycle_scan_repeats_{repeats}_len_{len(cycle_list)}_plot.png", bbox_inches="tight", dpi=1200)
-    #     plt.show()
-
-    if freq_test:
-        repeats = 10
-        MAX_TIME = 2  # 2 seconds
-        frequency_list = [int(num) for num in range(0, 251)]
-
-        data = np.genfromtxt(
-            f"{TEMP_FILEPATH_ROOT}/frequency_scan_repeats_{repeats}_{MAX_TIME}_len_{len(frequency_list)}.csv",
-            delimiter=",",
-        )
-        y = []
-        y_err = []
-        for index, cycle in enumerate(frequency_list):
-            value_list = data[(index * 2), :]
-            y.append(mean(value_list))
-            y_err.append(stdev(value_list))
-        plt.errorbar(frequency_list, y, y_err, marker=".", capsize=5)
-        # plt.hlines(y= , xmin=0, xmax=(max(frequency_list) + 1), color="r", linestyles="-")
-        plt.title(f"Frequency Test - {repeats} Repeats of 2 seconds")
-        plt.xlim(0, max(frequency_list) + 1)
-        plt.xlabel("Frequency")
-        plt.ylabel("Offset Value")
-        plt.grid(which="both", axis="both")
-        plt.savefig(
-            f"{TEMP_FILEPATH_ROOT}/frequency_scan_repeats_{repeats}_{MAX_TIME}_len_{len(frequency_list)}.png",
-            bbox_inches="tight",
-            dpi=1200,
-        )
-        plt.show()
-
-    if corr_test:
-        # element = ['SR04A-PC-Q1B-01', 'SR04A-PC-Q2B-02', 'SR04A-PC-Q3B-03', 'SR04A-PC-Q2AB-04', 'SR04A-PC-Q1AB-05', 'SR04A-PC-Q1AD-06', 'SR04A-PC-Q2AD-07', 'SR04A-PC-Q3D-08', 'SR04A-PC-Q2D-09', 'SR04A-PC-Q1D-10']
-        element = [
-            "SR07A-PC-Q1B-01",
-            "SR07A-PC-Q2B-02",
-            "SR07A-PC-Q3B-03",
-            "SR07A-PC-Q2AB-04",
-            "SR07A-PC-Q1AB-05",
-            "SR07A-PC-Q1AB-06",
-            "SR07A-PC-Q2AB-07",
-            "SR07A-PC-Q3B-08",
-            "SR07A-PC-Q2B-09",
-            "SR07A-PC-Q1B-10",
-        ]
-        corr_amp_list = [
-            0.1,
-            0.2,
-            0.3,
-            0.4,
-            0.5,
-            0.6,
-            0.7,
-            0.8,
-            0.9,
-            1,
-            1.20,
-            1.4,
-            1.6,
-            1.8,
-            2,
-            2.25,
-            2.5,
-            3,
-            3.5,
-        ]
-        repeats = 10
-        for ele in element:
-            # As a multiplier (default 1)
-            data = np.genfromtxt(
-                f"{TEMP_FILEPATH_ROOT}/corr_amp_scan_repeats_{repeats}_{ele}.csv",
-                delimiter=",",
-            )
-            y = []
-            y_err = []
-            for index, cycle in enumerate(corr_amp_list):
-                value_list = data[(index * 2), :]
-                y.append(mean(value_list))
-                y_err.append(stdev(value_list))
-            plt.errorbar(corr_amp_list, y, y_err, marker=".", capsize=5, label=f"{ele}")
-            # plt.hlines(y= , xmin=0, xmax=(max(corr_amp_list) + 0.1), color="r", linestyles="-")
-        plt.title(f"Corrector amplitude Test - {repeats} Repeats, Cell 7")
-        plt.xlim(0, max(corr_amp_list) + 0.1)
-        plt.xlabel("Corrector Amplitude")
-        plt.ylabel("Offset Value")
-        plt.grid(which="both", axis="both")
-        plt.legend()
-        plt.savefig(
-            f"{TEMP_FILEPATH_ROOT}/corr_amp_scan_repeats_{repeats}_cell4_plot.png",
-            bbox_inches="tight",
-            dpi=1200,
-        )
-        plt.show()
-        plt.close()
-
-    # if quad_test:
-    #     repeats = 10
-    #     #As a multiplier (default 0.01 for 1% of current value)
-    #     quad_amp_list = [0.001, 0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05]
-    #     data = np.genfromtxt(f"quad_amp_scan_repeats_{repeats}_len_{len(quad_amp_list)}.csv", delimiter=",")
-    #     y = []
-    #     y_err = []
-    #     for index, cycle in enumerate(quad_amp_list):
-    #         value_list = data[(index*2), :]
-    #         y.append(mean(value_list))
-    #         y_err.append(stdev(value_list))
-    #     plt.errorbar(quad_amp_list, y, y_err, marker = ".", capsize=5)
-    #     # plt.hlines(y= , xmin=0, xmax=(max(quad_amp_list) + 0.005), color="r", linestyles="-")
-    #     plt.title(f"Quad amplitude Test - {repeats} Repeats")
-    #     plt.xlim(0 , max(quad_amp_list) + 0.005)
-    #     plt.xlabel("Quad Amplitude (0.01 is 1%)")
-    #     plt.ylabel("Offset Value")
-    #     plt.grid(which = "both", axis = "both")
-    #     plt.savefig(f"quad_amp_scan_repeats_{repeats}_len_{len(quad_amp_list)}_plot.png", bbox_inches="tight", dpi=1200)
-    #     plt.show()
+    # 300ma FBBA
+    data_x_300_FBBA_fftT_fofbT = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r8_c16_f8_qs0.02_cs2_fftTrue_fofbTrue_300_x.csv",
+        delimiter=",",
+    )
+    data_y_300_FBBA_fftT_fofbT = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r8_c16_f8_qs0.02_cs2_fftTrue_fofbTrue_300_y.csv",
+        delimiter=",",
+    )
+    data_x_300_FBBA_fftF_fofbT = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r8_c16_f8_qs0.02_cs2_fftFalse_fofbTrue_300_x.csv",
+        delimiter=",",
+    )
+    data_y_300_FBBA_fftF_fofbT = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r8_c16_f8_qs0.02_cs2_fftFalse_fofbTrue_300_y.csv",
+        delimiter=",",
+    )
+    data_x_300_FBBA_fftT_fofbF = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r8_c16_f8_qs0.02_cs2_fftTrue_fofbFalse_300_x.csv",
+        delimiter=",",
+    )
+    data_y_300_FBBA_fftT_fofbF = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r8_c16_f8_qs0.02_cs2_fftTrue_fofbFalse_300_y.csv",
+        delimiter=",",
+    )
+    data_x_300_FBBA_fftF_fofbF = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r8_c16_f8_qs0.02_cs2_fftFalse_fofbFalse_300_x.csv",
+        delimiter=",",
+    )
+    data_y_300_FBBA_fftF_fofbF = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r8_c16_f8_qs0.02_cs2_fftFalse_fofbFalse_300_y.csv",
+        delimiter=",",
+    )
+    # 300ma SBBA
+    data_x_300_SBBA_fofbF = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_SBBA_r8_c16_f8_qs0.02_cs2_fftFalse_fofbFalse_300_x.csv",
+        delimiter=",",
+    )
+    data_y_300_SBBA_fofbF = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_SBBA_r8_c16_f8_qs0.02_cs2_fftFalse_fofbFalse_300_y.csv",
+        delimiter=",",
+    )
+    data_x_300_SBBA_fofbT = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_SBBA_r8_c16_f8_qs0.02_cs2_fftFalse_fofbTrue_300_x.csv",
+        delimiter=",",
+    )
+    data_y_300_SBBA_fofbT = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_SBBA_r8_c16_f8_qs0.02_cs2_fftFalse_fofbTrue_300_y.csv",
+        delimiter=",",
+    )
+    # 300ma BBA
+    data_x_300_BBA_fofbF = []
+    data_y_300_BBA_fofbF = []
+    data_x_300_BBA_fofbT = []
+    data_y_300_BBA_fofbT = []
+    data_x_300_BBA_fofbF_error = []
+    data_y_300_BBA_fofbF_error = []
+    data_x_300_BBA_fofbT_error = []
+    data_y_300_BBA_fofbT_error = []
+    """"""
+    initial_x_10 = 0
+    initial_y_10 = 0
+    # 10ma FBBA
+    data_x_10_FBBA_fftT_fofbT = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r8_c16_f8_qs0.02_cs2_fftTrue_fofbTrue_10_x.csv",
+        delimiter=",",
+    )
+    data_y_10_FBBA_fftT_fofbT = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r8_c16_f8_qs0.02_cs2_fftTrue_fofbTrue_10_y.csv",
+        delimiter=",",
+    )
+    data_x_10_FBBA_fftF_fofbT = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r8_c16_f8_qs0.02_cs2_fftFalse_fofbTrue_10_x.csv",
+        delimiter=",",
+    )
+    data_y_10_FBBA_fftF_fofbT = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r8_c16_f8_qs0.02_cs2_fftFalse_fofbTrue_10_y.csv",
+        delimiter=",",
+    )
+    data_x_10_FBBA_fftT_fofbF = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r8_c16_f8_qs0.02_cs2_fftTrue_fofbFalse_10_x.csv",
+        delimiter=",",
+    )
+    data_y_10_FBBA_fftT_fofbF = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r8_c16_f8_qs0.02_cs2_fftTrue_fofbFalse_10_y.csv",
+        delimiter=",",
+    )
+    data_x_10_FBBA_fftF_fofbF = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r8_c16_f8_qs0.02_cs2_fftFalse_fofbFalse_10_x.csv",
+        delimiter=",",
+    )
+    data_y_10_FBBA_fftF_fofbF = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r8_c16_f8_qs0.02_cs2_fftFalse_fofbFalse_10_y.csv",
+        delimiter=",",
+    )
+    # 10ma SBBA
+    data_x_10_SBBA_fofbF = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_SBBA_r8_c16_f8_qs0.02_cs2_fftFalse_fofbFalse_10_x.csv",
+        delimiter=",",
+    )
+    data_y_10_SBBA_fofbF = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_SBBA_r8_c16_f8_qs0.02_cs2_fftFalse_fofbFalse_10_y.csv",
+        delimiter=",",
+    )
+    data_x_10_SBBA_fofbT = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_SBBA_r8_c16_f8_qs0.02_cs2_fftFalse_fofbTrue_10_x.csv",
+        delimiter=",",
+    )
+    data_y_10_SBBA_fofbT = np.genfromtxt(
+        f"{TEMP_FILEPATH_ROOT}/honing_SBBA_r8_c16_f8_qs0.02_cs2_fftFalse_fofbTrue_10_y.csv",
+        delimiter=",",
+    )
+    # 10ma BBA
+    data_x_10_BBA_fofbF = []
+    data_y_10_BBA_fofbF = []
+    data_x_10_BBA_fofbT = []
+    data_y_10_BBA_fofbT = []
+    data_x_10_BBA_fofbF_error = []
+    data_y_10_BBA_fofbF_error = []
+    data_x_10_BBA_fofbT_error = []
+    data_y_10_BBA_fofbT_error = []
 
     if honing_test:
-        # Add comparison to slow bba.
-        repeats = 8
-        cycles = 16
-        frequency = 8
-        quadrupole_scalar = 0.02
-        corrector_scalar = 2
+        """"""
         x_axis = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-        index = 0
-        spread_index = 1
+        spread_index = 3
 
-        offset_0_original = 0.7890
-        plt.hlines(y=offset_0_original, xmin=0, xmax=8.1, color="r", linestyle="--")
+        initial_x_300 = 0
+        initial_y_300 = 0
 
-        offset_100_original = 0.8890
-        plt.hlines(y=offset_100_original, xmin=0, xmax=8.1, color="r", linestyle="--")
+        fbba_300_dict = {
+            "data_x_300_FBBA_fftT_fofbT": [
+                data_x_300_FBBA_fftT_fofbT,
+                "x",
+                "True",
+                "True",
+                "cyan",
+                "-",
+            ],
+            "data_y_300_FBBA_fftT_fofbT": [
+                data_y_300_FBBA_fftT_fofbT,
+                "y",
+                "True",
+                "True",
+                "cyan",
+                "--",
+            ],
+            "data_x_300_FBBA_fftF_fofbT": [
+                data_x_300_FBBA_fftF_fofbT,
+                "x",
+                "False",
+                "True",
+                "teal",
+                "-",
+            ],
+            "data_y_300_FBBA_fftF_fofbT": [
+                data_y_300_FBBA_fftF_fofbT,
+                "y",
+                "False",
+                "True",
+                "teal",
+                "--",
+            ],
+            "data_x_300_FBBA_fftT_fofbF": [
+                data_x_300_FBBA_fftT_fofbF,
+                "x",
+                "True",
+                "False",
+                "deepskyblue",
+                "-",
+            ],
+            "data_y_300_FBBA_fftT_fofbF": [
+                data_y_300_FBBA_fftT_fofbF,
+                "y",
+                "True",
+                "False",
+                "deepskyblue",
+                "--",
+            ],
+            "data_x_300_FBBA_fftF_fofbF": [
+                data_x_300_FBBA_fftF_fofbF,
+                "x",
+                "True",
+                "False",
+                "dodgerblue",
+                "-",
+            ],
+            "data_y_300_FBBA_fftF_fofbF": [
+                data_y_300_FBBA_fftF_fofbF,
+                "y",
+                "True",
+                "False",
+                "dodgerblue",
+                "--",
+            ],
+        }
+        bba_300_dict = {
+            "data_x_300_BBA_fofbF": [
+                data_x_300_BBA_fofbF,
+                data_x_300_BBA_fofbF_error,
+                "x",
+                "False",
+                "darkred",
+                "-",
+            ],
+            "data_y_300_BBA_fofbF": [
+                data_y_300_BBA_fofbF,
+                data_y_300_BBA_fofbF_error,
+                "y",
+                "False",
+                "darkred",
+                "--",
+            ],
+            "data_x_300_BBA_fofbT": [
+                data_x_300_BBA_fofbT,
+                data_x_300_BBA_fofbT_error,
+                "x",
+                "True",
+                "chocolate",
+                "-",
+            ],
+            "data_y_300_BBA_fofbT": [
+                data_y_300_BBA_fofbT,
+                data_y_300_BBA_fofbT_error,
+                "y",
+                "True",
+                "chocolate",
+                "--",
+            ],
+        }
+        sbba_300_dict = {
+            "data_x_300_SBBA_fofbF": [data_x_300_SBBA_fofbF, "x", "False", "lime", "-"],
+            "data_y_300_SBBA_fofbF": [
+                data_y_300_SBBA_fofbF,
+                "y",
+                "False",
+                "lime",
+                "--",
+            ],
+            "data_x_300_SBBA_fofbT": [
+                data_x_300_SBBA_fofbT,
+                "x",
+                "True",
+                "darkgreen",
+                "-",
+            ],
+            "data_y_300_SBBA_fofbT": [
+                data_y_300_SBBA_fofbT,
+                "y",
+                "True",
+                "darkgreen",
+                "--",
+            ],
+        }
+        fbba_10_dict = {
+            "data_x_10_FBBA_fftT_fofbT": [
+                data_x_10_FBBA_fftT_fofbT,
+                "x",
+                "True",
+                "True",
+                "darkslategray",
+                "-",
+            ],
+            "data_y_10_FBBA_fftT_fofbT": [
+                data_y_10_FBBA_fftT_fofbT,
+                "y",
+                "True",
+                "True",
+                "darkslategray",
+                "--",
+            ],
+            "data_x_10_FBBA_fftF_fofbT": [
+                data_x_10_FBBA_fftF_fofbT,
+                "x",
+                "False",
+                "True",
+                "royalblue",
+                "-",
+            ],
+            "data_y_10_FBBA_fftF_fofbT": [
+                data_y_10_FBBA_fftF_fofbT,
+                "y",
+                "False",
+                "True",
+                "royalblue",
+                "--",
+            ],
+            "data_x_10_FBBA_fftT_fofbF": [
+                data_x_10_FBBA_fftT_fofbF,
+                "x",
+                "True",
+                "False",
+                "blue",
+                "-",
+            ],
+            "data_y_10_FBBA_fftT_fofbF": [
+                data_y_10_FBBA_fftT_fofbF,
+                "y",
+                "True",
+                "False",
+                "blue",
+                "--",
+            ],
+            "data_x_10_FBBA_fftF_fofbF": [
+                data_x_10_FBBA_fftF_fofbF,
+                "x",
+                "True",
+                "False",
+                "navy",
+                "-",
+            ],
+            "data_y_10_FBBA_fftF_fofbF": [
+                data_y_10_FBBA_fftF_fofbF,
+                "y",
+                "True",
+                "False",
+                "navy",
+                "--",
+            ],
+        }
+        bba_10_dict = {
+            "data_x_10_BBA_fofbF": [
+                data_x_10_BBA_fofbF,
+                data_x_10_BBA_fofbF_error,
+                "x",
+                "False",
+                "darkred",
+                "-",
+            ],
+            "data_y_10_BBA_fofbF": [
+                data_y_10_BBA_fofbF,
+                data_y_10_BBA_fofbF_error,
+                "y",
+                "False",
+                "darkred",
+                "--",
+            ],
+            "data_x_10_BBA_fofbT": [
+                data_x_10_BBA_fofbT,
+                data_x_10_BBA_fofbT_error,
+                "x",
+                "True",
+                "chocolate",
+                "-",
+            ],
+            "data_y_10_BBA_fofbT": [
+                data_y_10_BBA_fofbT,
+                data_y_10_BBA_fofbT_error,
+                "y",
+                "True",
+                "chocolate",
+                "--",
+            ],
+        }
+        sbba_10_dict = {
+            "data_x_10_SBBA_fofbF": [data_x_10_SBBA_fofbF, "x", "False", "lime", "-"],
+            "data_y_10_SBBA_fofbF": [data_y_10_SBBA_fofbF, "y", "False", "lime", "--"],
+            "data_x_10_SBBA_fofbT": [
+                data_x_10_SBBA_fofbT,
+                "x",
+                "True",
+                "darkgreen",
+                "-",
+            ],
+            "data_y_10_SBBA_fofbT": [
+                data_y_10_SBBA_fofbT,
+                "y",
+                "True",
+                "darkgreen",
+                "--",
+            ],
+        }
 
-        # BBA matlab 0 offset:
-        method = "Matlab BBA"
-        offset = 0
-        y = [0.789, 0.7160, 0.7110, 0.7180, 0.7140, 0.7200, 0.7170, 0.7160, 0.7200]
-        plt.plot(
-            x_axis,
-            y,
-            marker="x",
-            color="k",
-            linestyle="--",
-            label=f"{method}, Offset:{offset}, Spread: {str(mean(y[spread_index:]))[:6]} +- {str(stdev(y[spread_index:]))[:6]}",
+        # FBBA 300mA comparison
+        for key, value in fbba_300_dict:
+            y_change = np.cumsum((value[0])[0, :])
+            y_values = [initial_x_300] + [value + initial_x_300 for value in y_change]
+            y_errors = [0] + [value for value in (value[0])[1, :]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=value[4],
+                linestyle=value[5],
+                label=f"FBBA {value[1]}: fft:{value[2]}, fofb:{value[3]},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+        for key, value in bba_300_dict:
+            y_values = value[0]
+            y_errors = [0] + [v for v in value[1]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=value[4],
+                linestyle=value[5],
+                label=f"BBA {value[2]}: fofb:{value[3]},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+
+        plt.hlines(
+            y=initial_x_300,
+            xmin=0,
+            xmax=8.1,
+            color="black",
+            linestyles="--",
+            label=f"x initial: {initial_x_300}",
+        )
+        plt.hlines(
+            y=initial_y_300,
+            xmin=0,
+            xmax=8.1,
+            color="gray",
+            linestyles="--",
+            label=f"y initial: {initial_y_300}",
         )
 
-        # BBA matlab 100 offset:
-        method = "Matlab BBA"
-        offset = 100
-        y = [0.889, 0.7340, 0.7130, 0.713, 0.7190, 0.7150, 0.713, 0.7080, 0.7170]
-        plt.plot(
-            x_axis,
-            y,
-            marker="x",
-            color="k",
-            label=f"{method}, Offset:{offset}, Spread: {str(mean(y[spread_index:]))[:6]} +- {str(stdev(y[spread_index:]))[:6]}",
-        )
-
-        _fft = False
-        offset = 0
-        method = "FBBA"
-        data = np.genfromtxt(
-            f"{TEMP_FILEPATH_ROOT}/honing_simple_repeats_{method}_{repeats}_c{cycles}_f{frequency}_q{quadrupole_scalar}_cs{corrector_scalar}_fft{_fft}_offset{offset}.csv",
-            delimiter=",",
-        )
-        y = data[index, :]
-        cumy = np.cumsum(y)
-        ydata = [offset_0_original] + [value + offset_0_original for value in cumy]
-        y_err = [0]
-        y_err.extend(data[index + 1, :])
-        spread_mean = mean(ydata[spread_index:])
-        spread_list = [(y_err[n] / ydata[n]) ** 2 for n in range(spread_index, 9)]
-        spread_error = spread_mean * np.sqrt(sum(spread_list))
-        plt.errorbar(
-            x_axis,
-            ydata,
-            y_err,
-            marker=".",
-            capsize=5,
-            color="b",
-            linestyle="--",
-            label=f"{method}, Offset:{offset}, fft:{_fft}, Spread: {str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
-        )
-
-        _fft = True
-        offset = 0
-        method = "FBBA"
-        data = np.genfromtxt(
-            f"{TEMP_FILEPATH_ROOT}/honing_simple_repeats_{method}_{repeats}_c{cycles}_f{frequency}_q{quadrupole_scalar}_cs{corrector_scalar}_fft{_fft}_offset{offset}.csv",
-            delimiter=",",
-        )
-        y = data[index, :]
-        cumy = np.cumsum(y)
-        ydata = [offset_0_original] + [value + offset_0_original for value in cumy]
-        y_err = [0]
-        y_err.extend(data[index + 1, :])
-        spread_mean = mean(ydata[spread_index:])
-        spread_list = [(y_err[n] / ydata[n]) ** 2 for n in range(spread_index, 9)]
-        spread_error = spread_mean * np.sqrt(sum(spread_list))
-        plt.errorbar(
-            x_axis,
-            ydata,
-            y_err,
-            marker=".",
-            capsize=5,
-            color="g",
-            linestyle="--",
-            label=f"{method}, Offset:{offset}, fft:{_fft}, Spread: {str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
-        )
-
-        # method = "SBBA"
-        # _fft = False
-        # offset = 0
-        # data = np.genfromtxt(f"{TEMP_FILEPATH_ROOT}/honing_simple_repeats_{method}_{repeats}_c{cycles}_f{frequency}_q{quadrupole_scalar}_cs{corrector_scalar}_fft{_fft}_offset{offset}.csv", delimiter=",")
-        # y = data[index, :]
-        # cumy = np.cumsum(y)
-        # ydata = [value + offset_0_original for value in cumy]
-        # y_err = data[index+1, :]
-        # plt.errorbar(x_axis, ydata, y_err, marker = ".", capsize=5, label=f"{method}, Offset:{offset}, fft:{_fft}")
-
-        _fft = False
-        offset = 100
-        method = "FBBA"
-        data = np.genfromtxt(
-            f"{TEMP_FILEPATH_ROOT}/honing_simple_repeats_{method}_{repeats}_c{cycles}_f{frequency}_q{quadrupole_scalar}_cs{corrector_scalar}_fft{_fft}_offset{offset}.csv",
-            delimiter=",",
-        )
-        y = data[index, :]
-        cumy = np.cumsum(y)
-        ydata = [offset_100_original] + [value + offset_100_original for value in cumy]
-        y_err = [0]
-        y_err.extend(data[index + 1, :])
-        spread_mean = mean(ydata[spread_index:])
-        spread_list = [(y_err[n] / ydata[n]) ** 2 for n in range(spread_index, 9)]
-        spread_error = spread_mean * np.sqrt(sum(spread_list))
-        plt.errorbar(
-            x_axis,
-            ydata,
-            y_err,
-            marker=".",
-            capsize=5,
-            color="c",
-            label=f"{method}, Offset:{offset}, fft:{_fft}, Spread: {str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
-        )
-
-        _fft = True
-        offset = 100
-        method = "FBBA"
-        data = np.genfromtxt(
-            f"{TEMP_FILEPATH_ROOT}/honing_simple_repeats_{method}_{repeats}_c{cycles}_f{frequency}_q{quadrupole_scalar}_cs{corrector_scalar}_fft{_fft}_offset{offset}.csv",
-            delimiter=",",
-        )
-        y = data[index, :]
-        cumy = np.cumsum(y)
-        ydata = [offset_100_original] + [value + offset_100_original for value in cumy]
-        y_err = [0]
-        y_err.extend(data[index + 1, :])
-        spread_mean = mean(ydata[spread_index:])
-        spread_list = [(y_err[n] / ydata[n]) ** 2 for n in range(spread_index, 9)]
-        spread_error = spread_mean * np.sqrt(sum(spread_list))
-        plt.errorbar(
-            x_axis,
-            ydata,
-            y_err,
-            marker=".",
-            capsize=5,
-            color="y",
-            label=f"{method}, Offset:{offset}, fft:{_fft}, Spread: {str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
-        )
-
-        # method = "SBBA"
-        # _fft = False
-        # offset = 100
-        # data = np.genfromtxt(f"{TEMP_FILEPATH_ROOT}/honing_simple_repeats_{method}_{repeats}_c{cycles}_f{frequency}_q{quadrupole_scalar}_cs{corrector_scalar}_fft{_fft}_offset{offset}.csv", delimiter=",")
-        # y = data[index, :]
-        # cumy = np.cumsum(y)
-        # ydata = [value + offset_0_original for value in cumy]
-        # y_err = data[index+1, :]
-        # plt.errorbar(x_axis, ydata,  marker = ".", capsize=5, label=f"{method}, Offset:{offset}, fft:{_fft}")
-
-        plt.title(f"Honing Test of BPM 1-5, Spread is from point {spread_index}")
+        plt.title("Honing Test of FBBA / bba at 300mA")
         plt.xlim(0, 8.1)
         plt.xlabel("Run number")
         plt.ylabel("Offset Value (mm)")
         plt.grid(which="both", axis="both")
         plt.legend()
         plt.savefig(
-            f"{TEMP_FILEPATH_ROOT}/honing_simple_repeats_{repeats}_c{cycles}_f{frequency}_q{quadrupole_scalar}_cs{corrector_scalar}_plot.png",
+            f"{TEMP_FILEPATH_ROOT}/honing_fbba_bba_300mA_comparison.png",
             bbox_inches="tight",
             dpi=1200,
         )
-        plt.show()
+        # plt.show()
+        plt.close()
+
+        # FBBA 10mA comparison
+        for key, value in fbba_10_dict:
+            y_change = np.cumsum((value[0])[0, :])
+            y_values = [initial_x_10] + [value + initial_x_10 for value in y_change]
+            y_errors = [0] + [value for value in (value[0])[1, :]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=value[4],
+                linestyle=value[5],
+                label=f"FBBA {value[1]}: fft:{value[2]}, fofb:{value[3]},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+        for key, value in bba_10_dict:
+            y_values = value[0]
+            y_errors = [0] + [v for v in value[1]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=value[4],
+                linestyle=value[5],
+                label=f"BBA {value[2]}: fofb:{value[3]},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+
+        plt.hlines(
+            y=initial_x_10,
+            xmin=0,
+            xmax=8.1,
+            color="black",
+            linestyles="--",
+            label=f"x initial: {initial_x_10}",
+        )
+        plt.hlines(
+            y=initial_y_10,
+            xmin=0,
+            xmax=8.1,
+            color="gray",
+            linestyles="--",
+            label=f"y initial: {initial_y_10}",
+        )
+
+        plt.title("Honing Test of FBBA / bba at 10mA")
+        plt.xlim(0, 8.1)
+        plt.xlabel("Run number")
+        plt.ylabel("Offset Value (mm)")
+        plt.grid(which="both", axis="both")
+        plt.legend()
+        plt.savefig(
+            f"{TEMP_FILEPATH_ROOT}/honing_fbba_bba_10mA_comparison.png",
+            bbox_inches="tight",
+            dpi=1200,
+        )
+        # plt.show()
+        plt.close()
+
+        # SBBA vs BBA comparison 300 and 10mA
+        for key, value in sbba_300_dict:
+            y_change = np.cumsum((value[0])[0, :])
+            y_values = [initial_x_300] + [value + initial_x_300 for value in y_change]
+            y_errors = [0] + [value for value in (value[0])[1, :]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=value[3],
+                linestyle=value[4],
+                label=f"SBBA {value[1]}: fofb:{value[2]},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+        for key, value in bba_300_dict:
+            y_values = value[0]
+            y_errors = [0] + [v for v in value[1]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=value[4],
+                linestyle=value[5],
+                label=f"BBA {value[2]}: fofb:{value[3]},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+
+        plt.hlines(
+            y=initial_x_300,
+            xmin=0,
+            xmax=8.1,
+            color="black",
+            linestyles="--",
+            label=f"x initial: {initial_x_300}",
+        )
+        plt.hlines(
+            y=initial_y_300,
+            xmin=0,
+            xmax=8.1,
+            color="gray",
+            linestyles="--",
+            label=f"y initial: {initial_y_300}",
+        )
+
+        plt.title("SBBA/BBA comparison at 300mA")
+        plt.xlim(0, 8.1)
+        plt.xlabel("Run number")
+        plt.ylabel("Offset Value (mm)")
+        plt.grid(which="both", axis="both")
+        plt.legend()
+        plt.savefig(
+            f"{TEMP_FILEPATH_ROOT}/honing_fbba_sbba_300mA_comparison.png",
+            bbox_inches="tight",
+            dpi=1200,
+        )
+        # plt.show()
+        plt.close()
+
+        for key, value in sbba_10_dict:
+            y_change = np.cumsum((value[0])[0, :])
+            y_values = [initial_x_10] + [value + initial_x_10 for value in y_change]
+            y_errors = [0] + [value for value in (value[0])[1, :]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=value[3],
+                linestyle=value[4],
+                label=f"SBBA {value[1]}: fofb:{value[2]},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+        for key, value in bba_10_dict:
+            y_values = value[0]
+            y_errors = [0] + [v for v in value[1]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=value[4],
+                linestyle=value[5],
+                label=f"BBA {value[2]}: fofb:{value[3]},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+
+        plt.hlines(
+            y=initial_x_10,
+            xmin=0,
+            xmax=8.1,
+            color="black",
+            linestyles="--",
+            label=f"x initial: {initial_x_10}",
+        )
+        plt.hlines(
+            y=initial_y_10,
+            xmin=0,
+            xmax=8.1,
+            color="gray",
+            linestyles="--",
+            label=f"y initial: {initial_y_10}",
+        )
+
+        plt.title("SBBA/BBA comparison at 10mA")
+        plt.xlim(0, 8.1)
+        plt.xlabel("Run number")
+        plt.ylabel("Offset Value (mm)")
+        plt.grid(which="both", axis="both")
+        plt.legend()
+        plt.savefig(
+            f"{TEMP_FILEPATH_ROOT}/honing_fbba_sbba_10mA_comparison.png",
+            bbox_inches="tight",
+            dpi=1200,
+        )
+        # plt.show()
+        plt.close()
+
+        # FBBA vs SBBA vs BBA 300mA comparison
+        for key, value in fbba_300_dict:
+            y_change = np.cumsum((value[0])[0, :])
+            y_values = [initial_x_300] + [value + initial_x_300 for value in y_change]
+            y_errors = [0] + [value for value in (value[0])[1, :]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=value[4],
+                linestyle=value[5],
+                label=f"FBBA {value[1]}: fft:{value[2]}, fofb:{value[3]},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+        for key, value in bba_300_dict:
+            y_values = value[0]
+            y_errors = [0] + [v for v in value[1]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=value[4],
+                linestyle=value[5],
+                label=f"BBA {value[2]}: fofb:{value[3]},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+        for key, value in sbba_300_dict:
+            y_change = np.cumsum((value[0])[0, :])
+            y_values = [initial_x_300] + [value + initial_x_300 for value in y_change]
+            y_errors = [0] + [value for value in (value[0])[1, :]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=value[3],
+                linestyle=value[4],
+                label=f"SBBA {value[1]}: fofb:{value[2]},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+
+        plt.hlines(
+            y=initial_x_300,
+            xmin=0,
+            xmax=8.1,
+            color="black",
+            linestyles="--",
+            label=f"x initial: {initial_x_300}",
+        )
+        plt.hlines(
+            y=initial_y_300,
+            xmin=0,
+            xmax=8.1,
+            color="gray",
+            linestyles="--",
+            label=f"y initial: {initial_y_300}",
+        )
+
+        plt.title("FBBA/SBBA/BBA comparison at 300mA")
+        plt.xlim(0, 8.1)
+        plt.xlabel("Run number")
+        plt.ylabel("Offset Value (mm)")
+        plt.grid(which="both", axis="both")
+        plt.legend()
+        plt.savefig(
+            f"{TEMP_FILEPATH_ROOT}/honing_fbba_sbba_bba_300mA_comparison.png",
+            bbox_inches="tight",
+            dpi=1200,
+        )
+        # plt.show()
+        plt.close()
+
+        # FBBA vs SBBA vs BBA 10mA comparison
+        for key, value in fbba_10_dict:
+            y_change = np.cumsum((value[0])[0, :])
+            y_values = [initial_x_10] + [value + initial_x_10 for value in y_change]
+            y_errors = [0] + [value for value in (value[0])[1, :]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=value[4],
+                linestyle=value[5],
+                label=f"FBBA {value[1]}: fft:{value[2]}, fofb:{value[3]},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+        for key, value in bba_10_dict:
+            y_values = value[0]
+            y_errors = [0] + [v for v in value[1]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=value[4],
+                linestyle=value[5],
+                label=f"BBA {value[2]}: fofb:{value[3]},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+        for key, value in sbba_10_dict:
+            y_change = np.cumsum((value[0])[0, :])
+            y_values = [initial_x_10] + [value + initial_x_10 for value in y_change]
+            y_errors = [0] + [value for value in (value[0])[1, :]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=value[3],
+                linestyle=value[4],
+                label=f"SBBA {value[1]}: fofb:{value[2]},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+
+        plt.hlines(
+            y=initial_x_10,
+            xmin=0,
+            xmax=8.1,
+            color="black",
+            linestyles="--",
+            label=f"x initial: {initial_x_10}",
+        )
+        plt.hlines(
+            y=initial_y_10,
+            xmin=0,
+            xmax=8.1,
+            color="gray",
+            linestyles="--",
+            label=f"y initial: {initial_y_10}",
+        )
+
+        plt.title("FBBA/SBBA/BBA comparison at 10mA")
+        plt.xlim(0, 8.1)
+        plt.xlabel("Run number")
+        plt.ylabel("Offset Value (mm)")
+        plt.grid(which="both", axis="both")
+        plt.legend()
+        plt.savefig(
+            f"{TEMP_FILEPATH_ROOT}/honing_fbba_sbba_bba_100mA_comparison.png",
+            bbox_inches="tight",
+            dpi=1200,
+        )
+        # plt.show()
+        plt.close()
+
+    if frequency:
+        # Incomplete: Unsure if needed.
+        repeats = 5
+        fft_ = True
+        fofb_trigger_ = True
+        frequency_list = [int(num) for num in range(0, 251)]
+        start_x = 0
+        # start_y = 0
+
+        for freq in frequency_list:
+            data_x = np.genfromtxt(
+                f"{TEMP_FILEPATH_ROOT}/frequency_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{frequency_list[0]}_{frequency_list[-1]}_x.csv",
+                delimiter=",",
+            )
+            y_change = np.cumsum((data_x[0])[0, :])
+            y_values = [start_x] + [value + start_x for value in y_change]
+            y_errors = [0] + [value for value in (value[0])[1, :]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                # color=freq_dict[freq],
+                linestyle="-",
+                label=f"FBBA x: fft:{fft_}, fofb:{fofb_trigger_},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+        plt.hlines(
+            y=start_x,
+            xmin=0,
+            xmax=250.1,
+            color="gray",
+            linestyles="--",
+            label=f"x initial: {start_x}",
+        )
+
+        plt.title("Frequency Plot fft, fofb on: x")
+        plt.xlim(0, 250.1)
+        plt.xlabel("Run number")
+        plt.ylabel("Offset Value (mm)")
+        plt.grid(which="both", axis="both")
+        plt.legend()
+        plt.savefig(
+            f"{TEMP_FILEPATH_ROOT}/frequency_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{frequency_list[0]}_{frequency_list[-1]}_x.png",
+            bbox_inches="tight",
+            dpi=1200,
+        )
+        # plt.show()
+        plt.close()
+
+    if triple:
+        frequencies = [8, 83, 137, 179, 223, 269]
+        fft_ = True
+        fofb_trigger_ = True
+        current = 300
+        x_axis = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+        spread_index = 3
+
+        initial_x_300 = 0
+        initial_y_300 = 0
+
+        freq_dict = {
+            8: "darkred",
+            83: "red",
+            137: "darkorange",
+            179: "lime",
+            223: "darkgreen",
+            269: "dodgerblue",
+        }
+        bba_300_dict = {
+            "data_x_300_BBA_fofbT": [
+                data_x_300_BBA_fofbT,
+                data_x_300_BBA_fofbT_error,
+                "x",
+                "True",
+                "chocolate",
+                "-",
+            ],
+            "data_y_300_BBA_fofbT": [
+                data_y_300_BBA_fofbT,
+                data_y_300_BBA_fofbT_error,
+                "y",
+                "True",
+                "chocolate",
+                "--",
+            ],
+        }
+
+        for freq in frequencies:
+            data_x = np.genfromtxt(
+                f"{TEMP_FILEPATH_ROOT}/triple_r8_c16_f{freq}_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_x.csv",
+                delimiter=",",
+            )
+            data_y = np.genfromtxt(
+                f"{TEMP_FILEPATH_ROOT}/triple_r8_c16_f{freq}_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_y.csv",
+                delimiter=",",
+            )
+            y_change = np.cumsum((data_x[0])[0, :])
+            y_values = [initial_x_300] + [value + initial_x_300 for value in y_change]
+            y_errors = [0] + [value for value in (value[0])[1, :]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=freq_dict[freq],
+                linestyle="-",
+                label=f"FBBA x: fft:{fft_}, fofb:{fofb_trigger_},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+            y_change = np.cumsum((data_y[0])[0, :])
+            y_values = [initial_x_300] + [value + initial_x_300 for value in y_change]
+            y_errors = [0] + [value for value in (value[0])[1, :]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=freq_dict[freq],
+                linestyle="--",
+                label=f"FBBA x: fft:{fft_}, fofb:{fofb_trigger_},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+
+        for key, value in bba_300_dict:
+            y_values = value[0]
+            y_errors = [0] + [v for v in value[1]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=value[4],
+                linestyle=value[5],
+                label=f"BBA {value[2]}: fofb:{value[3]},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+
+        plt.hlines(
+            y=initial_x_300,
+            xmin=0,
+            xmax=8.1,
+            color="black",
+            linestyles="--",
+            label=f"x initial: {initial_x_300}",
+        )
+        plt.hlines(
+            y=initial_y_300,
+            xmin=0,
+            xmax=8.1,
+            color="gray",
+            linestyles="--",
+            label=f"y initial: {initial_y_300}",
+        )
+
+        plt.title(f"FBBA / BBA frequency comparison at {current}mA, fofb and fft on.")
+        plt.xlim(0, 8.1)
+        plt.xlabel("Run number")
+        plt.ylabel("Offset Value (mm)")
+        plt.grid(which="both", axis="both")
+        plt.legend()
+        plt.savefig(
+            f"{TEMP_FILEPATH_ROOT}/triple_frequency_comparison_{current}_fftT_fofbT.png",
+            bbox_inches="tight",
+            dpi=1200,
+        )
+        # plt.show()
+        plt.close()
+
+    if cell:
+        pass
+
+    if running:
+        fft_ = True
+        fofb_trigger_ = True
+        current = 300
+        delay = 40
+        # x_axis = [int(num) for num in range(0, 30+1)]
+        spread_index = 3
+        initial_x_300 = [0]
+        initial_y_300 = [0]
+        note = "warming"
+        note = "cooling"
+
+        repeats = 40
+        for i in range(1, repeats + 1):
+            x = [int(num) for num in range(1, ((i) * 10) + 1)][
+                -9:
+            ]  # To give the spacing between each set of 8 +1 runs.
+            data_x = np.genfromtxt(
+                f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_{note}_x_{i}.csv",
+                delimiter=",",
+            )
+            y_change = np.cumsum((data_x[0])[0, :])
+            y_values = [initial_x_300[-1]] + [
+                value + initial_x_300[-1] for value in y_change
+            ]
+            y_errors = [0] + [value for value in (value[0])[1, :]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            initial_x_300.append(initial_x_300[-1] + y_values[-1])
+            plt.errorbar(
+                x,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=freq_dict[freq],
+                linestyle="-",
+                label=f"FBBA x: fft:{fft_}, fofb:{fofb_trigger_},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+            data_y = np.genfromtxt(
+                f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_{note}_y_{i}.csv",
+                delimiter=",",
+            )
+            y_change = np.cumsum((data_y[0])[0, :])
+            y_values = [initial_y_300[-1]] + [
+                value + initial_y_300[-1] for value in y_change
+            ]
+            y_errors = [0] + [value for value in (value[0])[1, :]]
+            spread_mean = mean(y_values[spread_index:])
+            spread_list = [
+                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
+            ]
+            spread_error = spread_mean * np.sqrt(sum(spread_list))
+            initial_y_300.append(initial_y_300[-1] + y_values[-1])
+            plt.errorbar(
+                x,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=freq_dict[freq],
+                linestyle="-",
+                label=f"FBBA y: fft:{fft_}, fofb:{fofb_trigger_},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+            )
+
+        plt.hlines(
+            y=initial_x_300,
+            xmin=0,
+            xmax=400.1,
+            color="black",
+            linestyles="--",
+            label=f"x initial: {initial_x_300}",
+        )
+        plt.hlines(
+            y=initial_y_300,
+            xmin=0,
+            xmax=400.1,
+            color="gray",
+            linestyles="--",
+            label=f"y initial: {initial_y_300}",
+        )
+
+        DUMP = "Dumptime"
+        DUMP_CURRENT = "300"
+        FILL = "Filled"
+        FILL_CURRENT = "10"
+
+        FIRST = "ISOSTART"
+        FINISH = "ISOFINISH"
+
+        plt.title(
+            f"FBBA {note} decay offsets. Dumped: {DUMP} from {DUMP_CURRENT}, Filled to 10mA: {FILL} to {FILL_CURRENT}"
+        )
+        plt.xlim(0, 400.1)
+        plt.xlabel(f"Run number: 0->400 : {FIRST}->{FINISH}")
+        plt.ylabel("Offset Value (mm)")
+        plt.grid(which="both", axis="both")
+        plt.legend()
+        plt.savefig(
+            f"{TEMP_FILEPATH_ROOT}/running_cooling_down_plot.png",
+            bbox_inches="tight",
+            dpi=1200,
+        )
+        # plt.show()
+        plt.close()
 
 
 if __name__ == "__main__":

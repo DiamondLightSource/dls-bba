@@ -28,6 +28,9 @@ FROM python:3.10-slim as runtime
 
 # Add apt-get system dependecies for runtime here if needed
 
+# Use "minimal" over "xcb" due to Qt issues
+ENV QT_QPA_PLATFORM=minimal
+
 # copy the virtual environment from the build stage and put it in PATH
 COPY --from=build /venv/ /venv/
 ENV PATH=/venv/bin:$PATH
