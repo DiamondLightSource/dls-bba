@@ -180,7 +180,7 @@ class SBBA(Algorithm):
             fit = np.polynomial.polynomial.polyfit(corrector_step_list, matrix, 1)
             p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
 
-            gradients = p[:, 1]
+            gradients = list(p[:, 1])
             max_gradient = abs(max(gradients, key=abs))
 
             # Get rid of bad gradients
