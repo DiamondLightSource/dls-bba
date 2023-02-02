@@ -145,16 +145,16 @@ def main():
 
     pv_list = ["SR01A-PC-Q2AB-07"]  # Single BPM
     cell_pv_list = [
-        "SR07A-PC-Q1B-01",
-        "SR07A-PC-Q2B-02",
-        "SR07A-PC-Q3B-03",
-        "SR07A-PC-Q2AB-04",
-        "SR07A-PC-Q1AB-05",
-        "SR07A-PC-Q1AB-06",
-        "SR07A-PC-Q2AB-07",
-        "SR07A-PC-Q3B-08",
-        "SR07A-PC-Q2B-09",
-        "SR07A-PC-Q1B-10",
+        "SR01A-PC-Q1D-01",
+        "SR01A-PC-Q2D-02",
+        "SR01A-PC-Q3D-03",
+        "SR01A-PC-Q2AD-04",
+        "SR01A-PC-Q1AD-05",
+        "SR01A-PC-Q1AB-06",
+        "SR01A-PC-Q2AB-07",
+        "SR01A-PC-Q3B-08",
+        "SR01A-PC-Q2B-09",
+        "SR01A-PC-Q1B-10",
     ]
     accelerator = acc.Accelerator(ringmode=None)
 
@@ -435,7 +435,7 @@ def cell(algorithm, cell_list, method, directions_list):
                 matrix[(index * 2), :] = value_dictionary_x[freq]
                 matrix[(index * 2) + 1, :] = error_dictionary_x[freq]
             np.savetxt(
-                f"{TEMP_FILEPATH_ROOT}/cell_7.{index}_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_x.csv",
+                f"{TEMP_FILEPATH_ROOT}/cell_1.{index}_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_x.csv",
                 matrix,
                 delimiter=",",
             )
@@ -445,7 +445,7 @@ def cell(algorithm, cell_list, method, directions_list):
                 matrix[(index * 2), :] = value_dictionary_y[freq]
                 matrix[(index * 2) + 1, :] = error_dictionary_y[freq]
             np.savetxt(
-                f"{TEMP_FILEPATH_ROOT}/cell_7.{index}_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_y.csv",
+                f"{TEMP_FILEPATH_ROOT}/cell_1.{index}_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_y.csv",
                 matrix,
                 delimiter=",",
             )
