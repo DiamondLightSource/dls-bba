@@ -221,7 +221,6 @@ class SBBA(Algorithm):
 
         results = {}
         for index, _ in enumerate(offsets):
-
             quadrupole = quad_prefixs[index]
             offset = offsets[index]
             error = errors[index]
