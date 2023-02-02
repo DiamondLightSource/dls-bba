@@ -27,7 +27,7 @@ FILE_LOG_FORMAT = (
     "%(levelname)-7s: %(asctime)s — [%(filename)s:%(lineno)d] — %(message)s"
 )
 
-TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "31Jan2023")
+TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "7Feb2023")
 
 
 direction_dict = {
