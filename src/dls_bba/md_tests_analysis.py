@@ -7,7 +7,7 @@ from statistics import mean
 import matplotlib.pyplot as plt
 import numpy as np
 
-TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "31Jan2023")
+TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "7Feb2023")
 
 
 def parse_args():
