@@ -22,5 +22,9 @@
   {
     "version": "md-testing",
     "url": "https://DiamondLightSource.github.io/dls-bba/md-testing/"
+  },
+  {
+    "version": "simultaneous",
+    "url": "https://DiamondLightSource.github.io/dls-bba/simultaneous/"
   }
 ]
