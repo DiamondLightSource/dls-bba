@@ -141,21 +141,23 @@ def main():
     elif method == "SBBA":
         algorithm: Algorithm = SBBA(accelerator)  # type: ignore
 
+    plane_info = PLANE_VALUES[directions_list]
+    plane_info = None
+
     for element in element_list:
         filename_store = []
-        for axis in directions_list:
-            filename_prefix = get_filename_prefix(method)
-            initial_current = algorithm._accelerator.get_beam_current()
-            while True:
-                if fofb_trigger:
-                    algorithm.toggle_fofb()
-                raw_data = algorithm.run(element, PLANE_VALUES[axis], max_orbit)
-                if algorithm.check_beam_current(initial_current):
-                    break
-            raw_data.save(filename_prefix, filepath)
-            results = algorithm.analyse_data(raw_data, plot, fft)
-            filename = results.save(filename_prefix, filepath)
-            filename_store.append([filename])
+        filename_prefix = get_filename_prefix(method)
+        initial_current = algorithm._accelerator.get_beam_current()
+        while True:
+            if fofb_trigger:
+                algorithm.toggle_fofb()
+            raw_data = algorithm.run(element, plane_info, max_orbit)
+            if algorithm.check_beam_current(initial_current):
+                break
+        raw_data.save(filename_prefix, filepath)
+        results = algorithm.analyse_data(raw_data, plot, fft)
+        filename = results.save(filename_prefix, filepath)
+        filename_store.append([filename])
         if apply:
             for filename in filename_store:
                 results_filepath = os.path.join(filepath, filename)

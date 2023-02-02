@@ -11,7 +11,7 @@ from matplotlib.gridspec import GridSpec
 from scipy.fft import irfft, rfft, rfftfreq
 from scipy.signal import find_peaks
 
-from dls_bba.common import Algorithm, RawData, Results
+from dls_bba.common import PLANE_VALUES, Algorithm, RawData, Results
 from dls_bba.excite import Excitation, Oscillation, excite
 from dls_bba.faa import TICKS_PER_SECOND, Buffer, get_timestamp
 
@@ -32,8 +32,8 @@ class FBBA(Algorithm):
         self,
         quadrupole_scalar=0.02,
         corrector_scalar=2,
-        cycles=16,
-        frequency=8,
+        cycles=[22, 26],
+        frequency=[11, 13],
         decimated=False,
         *args,
         **kwargs,
@@ -51,19 +51,40 @@ class FBBA(Algorithm):
     def run(self, element, plane_info, max_orbit) -> RawData:
         """Run the FBBA process."""
         method = "FBBA"
-        log.info(f"{method} process started in plane {plane_info.axis}.")
+        log.info(f"{method} process started in both planes simultaneously.")
 
-        bpm, quad_list, corrector = self.select_elements(element, plane_info)
+        bpm_x, quad_list_x, corrector_x = self.select_elements(
+            element, PLANE_VALUES["HORIZONTAL"]
+        )
+        bpm_y, quad_list_y, corrector_y = self.select_elements(
+            element, PLANE_VALUES["VERTICAL"]
+        )
+
+        if bpm_x != bpm_y:
+            raise ValueError(f"bpm_x {bpm_x} != bpm_y {bpm_y}")
+        else:
+            bpm = bpm_x
+
+        if quad_list_x != quad_list_y:
+            raise ValueError(f"quad_list_x {quad_list_x} != quad_list_y {quad_list_y}")
+        else:
+            quad_list = quad_list_x
+
         quad_pv_list = [
             self._accelerator.element_to_pv_prefix(quad_element)
             for quad_element in quad_list
         ]
         bpm_pv_prefix = self._accelerator.element_to_pv_prefix(bpm)
-        corrector_pv_prefix = self._accelerator.element_to_pv_prefix(
-            corrector, plane_info
-        )
+        corrector_pv_prefix = [
+            self._accelerator.element_to_pv_prefix(
+                corrector_x, PLANE_VALUES["HORIZONTAL"]
+            ),
+            self._accelerator.element_to_pv_prefix(
+                corrector_y, PLANE_VALUES["VERTICAL"]
+            ),
+        ]
         log.debug(
-            f"Quads: {quad_pv_list}, BPM: {bpm_pv_prefix}, Corrector: {corrector_pv_prefix}."
+            f"Quads: {quad_pv_list}, BPM: {bpm_pv_prefix}, Correctors: {corrector_pv_prefix}."
         )
         raw_data = {}
         metadata = {
@@ -79,28 +100,53 @@ class FBBA(Algorithm):
         }
         for quad in quad_list:
             self.toggle_feedbacks(max_orbit)
-            original_offsets = self.zero_origins(bpm, plane_info)
+            original_offsets = self.zero_origins(bpm)
 
             quad_step = self._accelerator.measure_quad(quad) * self.quadrupole_scalar
-            corr_amp = (
-                self._accelerator.microrads(corrector, plane_info)
-                * self.corrector_scalar
-            )
+            corr_amp = [
+                (
+                    self._accelerator.microrads(corrector_x, PLANE_VALUES["HORIZONTAL"])
+                    * self.corrector_scalar
+                ),
+                (
+                    self._accelerator.microrads(corrector_y, PLANE_VALUES["VERTICAL"])
+                    * self.corrector_scalar
+                ),
+            ]
             log.debug(f"Quad step: {quad_step}, Corrector step: {corr_amp}.")
             metadata["quad_step"] = quad_step
             metadata["corr_step"] = corr_amp
-            osc = Oscillation(corr_amp, plane_info, self.frequency, self.cycles)
-            self.osc = osc
+
+            osc_x = Oscillation(
+                corr_amp[0],
+                PLANE_VALUES["HORIZONTAL"],
+                self.frequency[0],
+                self.cycles[0],
+            )
+            osc_y = Oscillation(
+                corr_amp[1], PLANE_VALUES["VERTICAL"], self.frequency[1], self.cycles[1]
+            )
+            self.osc_x = osc_x
+            self.osc_y = osc_y
 
             log.debug(
-                "Oscillation amplitude {}; frequency {}; cycles {}".format(
-                    osc.amp, osc.freq, osc.cycles
+                "X Oscillation amplitude {}; frequency {}; cycles {}".format(
+                    osc_x.amp, osc_x.freq, osc_x.cycles
                 )
             )
-            metadata["frequency"] = self.osc.freq
-            metadata["period"] = TICKS_PER_SECOND // self.osc.freq
-            metadata["amp"] = self.osc.amp
-            metadata["cycles"] = self.osc.cycles
+            log.debug(
+                "Y Oscillation amplitude {}; frequency {}; cycles {}".format(
+                    osc_y.amp, osc_y.freq, osc_y.cycles
+                )
+            )
+
+            metadata["frequency"] = [self.osc_x.freq, self.osc_y.freq]
+            metadata["period"] = [
+                TICKS_PER_SECOND // self.osc_x.freq,
+                TICKS_PER_SECOND // self.osc_y.freq,
+            ]
+            metadata["amp"] = [self.osc_x.amp, self.osc_y.amp]
+            metadata["cycles"] = [self.osc_x.cycles, self.osc_y.cycles]
 
             quad_sp = self._accelerator.measure_quad(quad)
             quad_high = quad_sp + quad_step
@@ -108,53 +154,74 @@ class FBBA(Algorithm):
             quad_lag_s = quad_step / QUAD_SLEW_RATE
             quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
 
+            osc_length = ceil(TICKS_PER_SECOND / osc_x.freq) * osc_x.cycles
+            duration = NETWORK_LAG + osc_length + SAFETY_NET + quad_lag + osc_length
+            # Incompatability between pytaclattice and faa number of bpms.
+            bpm_list = [0] + [i for i, _ in enumerate(self._accelerator.bpms, start=1)]
+
             # Move quad high
             self._accelerator.set_quad(quad, quad_high)
             cothread.Sleep(quad_lag_s / 2)
             now = get_timestamp(self.decimated)
-            osc_length = ceil(TICKS_PER_SECOND / osc.freq) * osc.cycles
             # Set off the data collection
             high_start = now + NETWORK_LAG
-            duration = NETWORK_LAG + osc_length + SAFETY_NET + quad_lag + osc_length
-            # Incompatability between pytaclattice and faa number of bpms.
-            bpm_list = [0] + [i for i, _ in enumerate(self._accelerator.bpms, start=1)]
             fa_buffer = Buffer(bpm_list, high_start, duration, self.decimated)
             low_start = high_start + osc_length + SAFETY_NET + quad_lag
+
             log.debug("Safety net: {}; quad_lag: {}".format(SAFETY_NET, quad_lag))
             log.debug("Time now: {}.".format(now))
             log.debug("High start time: {}.".format(high_start - now))
             log.debug("Low start time: {}.".format(low_start - now))
-            log.debug("The oscillation: {}".format(osc))
-            self.exc_high = Excitation(corrector, osc, high_start, self._accelerator)
+            log.debug("The oscillation: {}, {}".format(osc_x, osc_y))
+
+            self.exc_high_x = Excitation(
+                corrector_x, osc_x, high_start, self._accelerator
+            )
+            self.exc_high_y = Excitation(
+                corrector_y, osc_y, high_start, self._accelerator
+            )
             log.debug(
-                "The excitation: dwell {} count {}".format(
-                    self.exc_high.dwell, self.exc_high.count
+                "The excitation_x: dwell {} count {}".format(
+                    self.exc_high_x.dwell, self.exc_high_x.count
                 )
             )
-            self.exc_low = Excitation(corrector, osc, low_start, self._accelerator)
+            log.debug(
+                "The excitation_y: dwell {} count {}".format(
+                    self.exc_high_y.dwell, self.exc_high_y.count
+                )
+            )
+            self.exc_low_x = Excitation(
+                corrector_x, osc_x, low_start, self._accelerator
+            )
+            self.exc_low_y = Excitation(
+                corrector_y, osc_y, low_start, self._accelerator
+            )
 
             log.info("High Oscillation")
-            excite((self.exc_high,))
+            excite((self.exc_high_x, self.exc_high_y))
             # Sleep for first excitation. SAFETY_NET ensures that we don't start
             # moving the quad before the excitation has finished.
             cothread.Sleep(
-                (NETWORK_LAG + self.exc_high.count + SAFETY_NET) / TICKS_PER_SECOND
+                (NETWORK_LAG + self.exc_high_x.count + SAFETY_NET) / TICKS_PER_SECOND
             )
             # Move quad from high to low
             self._accelerator.set_quad(quad, quad_low)
             log.info("Low Oscillation")
             # Set up second excitation
-            excite((self.exc_low,))
+            excite((self.exc_low_x, self.exc_low_y))
             # This will block until all data has been retrieved.
 
             fa_data = fa_buffer.get_data()
-            selected_data = self.select_data(fa_data, plane_info)
-            raw_data[
-                self._accelerator.element_to_pv_prefix(quad).replace("-", "_") + "_High"
-            ] = selected_data[0]
-            raw_data[
-                self._accelerator.element_to_pv_prefix(quad).replace("-", "_") + "_Low"
-            ] = selected_data[1]
+            for values in PLANE_VALUES.values():
+                selected_data = self.select_data(fa_data, values)
+                raw_data[
+                    self._accelerator.element_to_pv_prefix(quad).replace("-", "_")
+                    + f"_High_{values.axis}"
+                ] = selected_data[0]
+                raw_data[
+                    self._accelerator.element_to_pv_prefix(quad).replace("-", "_")
+                    + f"_Low_{values.axis}"
+                ] = selected_data[1]
 
             self._accelerator.set_quad(quad, quad_sp)
             cothread.Sleep(quad_lag_s / 2)
