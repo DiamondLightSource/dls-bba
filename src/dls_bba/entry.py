@@ -118,14 +118,14 @@ def parse_args():
 def main():
     # Sort arguments
     args = parse_args()
-    method: str = args.method
-    filepath: str = args.directory
-    directions_list: list = direction_dict[args.directions]
-    max_orbit: int = args.max_orbit
-    apply: bool = args.apply
-    plot: bool = args.plot
-    fft: bool = args.fft
-    fofb_trigger: bool = args.fofb
+    method: str = args.method  # type: ignore
+    filepath: str = args.directory  # type: ignore
+    directions_list: list = direction_dict[args.directions]  # type: ignore
+    max_orbit: int = args.max_orbit  # type: ignore
+    apply: bool = args.apply  # type: ignore
+    plot: bool = args.plot  # type: ignore
+    fft: bool = args.fft  # type: ignore
+    fofb_trigger: bool = args.fofb  # type: ignore
 
     get_new_logger(method, filepath)
     pv_list = ["SR01A-PC-Q2AB-07"]
@@ -137,9 +137,9 @@ def main():
         element_list.append(accelerator.pv_prefix_to_element(pv))
 
     if method == "FBBA":
-        algorithm: Algorithm = FBBA(accelerator)
+        algorithm: Algorithm = FBBA(accelerator)  # type: ignore
     elif method == "SBBA":
-        algorithm: Algorithm = SBBA(accelerator)
+        algorithm: Algorithm = SBBA(accelerator)  # type: ignore
 
     for element in element_list:
         filename_store = []

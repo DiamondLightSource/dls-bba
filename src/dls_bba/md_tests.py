@@ -154,9 +154,9 @@ def main():
     sbba = SBBA(accelerator)
 
     if method == "FBBA":
-        algorithm: Algorithm = fbba
+        algorithm: Algorithm = fbba  # type: ignore
     elif method == "SBBA":
-        algorithm: Algorithm = sbba
+        algorithm: Algorithm = sbba  # type: ignore
 
     log.info("Starting Test")
     # Note: All tests occur in the x-axis only.
