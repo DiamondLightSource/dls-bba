@@ -219,19 +219,21 @@ class Algorithm(ABC):
         if float(max_value * 1000) >= float(max_orbit):
             self.toggle_fofb()
 
-    def zero_origins(self, bpm, plane_info) -> Dict[str, Any]:
+    def zero_origins(self, bpm) -> Dict[str, Any]:
         """Zeros BCD and Golden offsets. Also stores current Golden offset value for restoring later."""
         # return None  # For testing -> PV's dont exist in virtac.
-        log.info("Origins Zeroed")
-        bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
-        bcd_pv = bpm_pv_root + ORIGIN_SUFFIXES["BCD"].format(axis=plane_info.axis)
-        golden_pv = bpm_pv_root + ORIGIN_SUFFIXES["GOLDEN"].format(axis=plane_info.axis)
-
         offsets = {}
-        offsets[golden_pv] = caget(golden_pv)
+        for values in PLANE_VALUES.values():
+            log.info(f"Origins Zeroed for {values.axis}")
+            bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
+            bcd_pv = bpm_pv_root + ORIGIN_SUFFIXES["BCD"].format(axis=values.axis)
+            golden_pv = bpm_pv_root + ORIGIN_SUFFIXES["GOLDEN"].format(axis=values.axis)
 
-        caput(bcd_pv, 0)
-        caput(golden_pv, 0)
+            offsets[golden_pv] = caget(golden_pv)
+            log.debug(f"Golden offset for {golden_pv}: {offsets[golden_pv]}")
+
+            caput(bcd_pv, 0)
+            caput(golden_pv, 0)
         return offsets
 
     def restore_origins(self, offsets):
@@ -239,6 +241,7 @@ class Algorithm(ABC):
         # return None  # For testing -> PV's dont exist in virtac.
         for key, value in offsets.items():
             caput(key, value)
+            log.debug(f"Offset restored {key}: {value}")
         log.info("Origins Restored")
 
     def set_bpm_offset(self, bpm, value, plane_info):
