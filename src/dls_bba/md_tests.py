@@ -14,6 +14,7 @@ from datetime import datetime
 
 import matplotlib.pyplot as plt  # noqa
 import numpy as np
+import pytac
 from cothread import Sleep
 from cothread.catools import caget, caput
 
@@ -127,6 +128,14 @@ def parse_args():
         default=False,
         help="Running test",
     )
+    parser.add_argument(
+        "-w",
+        "--whole",
+        dest="whole_t",
+        action="store_true",
+        default=False,
+        help="Whole machine bba offsets",
+    )
     return parser.parse_args()
 
 
@@ -140,6 +149,7 @@ def main():
     honing_test = args.honing_t
     triple = args.triple_t
     running = args.running_t
+    whole = args.whole_t
 
     get_new_logger(method, TEMP_FILEPATH_ROOT)
 
@@ -194,6 +204,9 @@ def main():
     if running:
         log.info("Running Test")
         running_(algorithm, element_list[0], method, directions)
+
+    if whole:
+        whole_offsets(algorithm)
 
 
 def repeat_test(
@@ -395,7 +408,7 @@ def triple_freq(algorithm, element, method, directions_list):
 
 def cell(algorithm, cell_list, method, directions_list):
     """Cell corrector amplitudes test"""
-    repeats = 10
+    repeats = 8
     MAX_TIME = 2  # Seconds
     fft_ = True
     fofb_trigger_ = True
@@ -435,7 +448,7 @@ def cell(algorithm, cell_list, method, directions_list):
                 matrix[(index * 2), :] = value_dictionary_x[freq]
                 matrix[(index * 2) + 1, :] = error_dictionary_x[freq]
             np.savetxt(
-                f"{TEMP_FILEPATH_ROOT}/cell_1.{index}_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_x.csv",
+                f"{TEMP_FILEPATH_ROOT}/cell_1.{index}_r10_c16_f{freq}_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_x.csv",
                 matrix,
                 delimiter=",",
             )
@@ -445,7 +458,7 @@ def cell(algorithm, cell_list, method, directions_list):
                 matrix[(index * 2), :] = value_dictionary_y[freq]
                 matrix[(index * 2) + 1, :] = error_dictionary_y[freq]
             np.savetxt(
-                f"{TEMP_FILEPATH_ROOT}/cell_1.{index}_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_y.csv",
+                f"{TEMP_FILEPATH_ROOT}/cell_1.{index}_r10_c16_f{freq}_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_y.csv",
                 matrix,
                 delimiter=",",
             )
@@ -504,6 +517,47 @@ def running_(algorithm, element, method, directions_list):
         # caput(pv_y, current_y)
         # log.info(f"Reset: x={current_x}, y={current_y}")
         Sleep(delay)
+
+
+def whole_offsets(algorithm):
+    log.info("Measuring all BBA offsets.")
+    x = []
+    y = []
+    bpm_pvs = algorithm._accelerator.lattice.get_element_pv_names("BPM", "x", pytac.RB)
+    now = datetime.now()
+    datestring = now.strftime("%Y-%m-%dT%H-%M-%S")
+    for bpm in bpm_pvs:
+        root_pv = bpm.split(":")[0]
+        x_value = caget(root_pv + ":CF:BBA_X_S")
+        y_value = caget(root_pv + ":CF:BBA_Y_S")
+        x.append(x_value)
+        y.append(y_value)
+    matrix = np.zeros(shape=(2, len(x)))
+    matrix[0, :] = x
+    matrix[1, :] = y
+    np.savetxt(
+        f"{TEMP_FILEPATH_ROOT}/all_bpm_offsets_{datestring}.csv",
+        matrix,
+        delimiter=",",
+    )
+    length = len(x)
+    x_axis = list(np.arange(1, length + 1))
+    plt.plot(x_axis, x, label="x")
+    plt.plot(x_axis, y, label="y")
+    plt.legend()
+    plt.xlim(0, x_axis[-1] + 1)
+    # plt.ylim(-2, 2)
+    plt.xlabel("BPM number")
+    plt.title("BPM BBA Offsets")
+    plt.ylabel("Offset in mm")
+    plt.grid(which="both", axis="both")
+    plt.savefig(
+        f"{TEMP_FILEPATH_ROOT}/whole_offsets_{datestring}.png",
+        bbox_inches="tight",
+        dpi=1200,
+    )
+    # plt.show()
+    plt.close()
 
 
 if __name__ == "__main__":
