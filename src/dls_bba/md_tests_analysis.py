@@ -1,11 +1,14 @@
 """MD Tests analysis."""
 
 import argparse
+import json
 import os
 from statistics import mean
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+from dls_bba.md_tests import direction_dict
 
 TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "7Feb2023")
 
@@ -1083,7 +1086,126 @@ def main():
         plt.close()
 
     if cell:
-        pass
+        cell_pv_list = [
+            "SR01A-PC-Q1D-01",
+            "SR01A-PC-Q2D-02",
+            "SR01A-PC-Q3D-03",
+            "SR01A-PC-Q2AD-04",
+            "SR01A-PC-Q1AD-05",
+            "SR01A-PC-Q1AB-06",
+            "SR01A-PC-Q2AB-07",
+            "SR01A-PC-Q3B-08",
+            "SR01A-PC-Q2B-09",
+            "SR01A-PC-Q1B-10",
+        ]
+        # correctors_list = [1, 1.5, 2]
+        # quadrupole_list = [1, 1.5, 2]
+        x_d = direction_dict["x"]
+        # y_d = direction_dict["y"]
+        x = np.arange(1, 11)
+
+        def cell_comparison(result_dict, starting_value, average=3):
+            values = []
+            errors = []
+            for index, _ in enumerate(cell_pv_list):
+                y = result_dict[f"{index},{x_d},value"]
+                y_err = result_dict[f"{index},{x_d},error"]
+
+                y_change = np.cumsum(y)
+                y_values = [starting_value] + [
+                    value + starting_value for value in y_change
+                ]
+                y_errors = [0] + [value for value in y_err]
+                spread_mean = mean(y_values[average:])
+                spread_list = [
+                    (y_errors[n] / y_values[n]) ** 2 for n in range(average, 5)
+                ]
+                spread_error = spread_mean * np.sqrt(sum(spread_list))
+                values.append(spread_mean)
+                errors.append(spread_error)
+            return values, errors
+
+        axis = "x"
+        starting_x = 0
+        # starting_y = 0
+
+        filename_x_c1_q1 = f"cell_c1_q1_{x}_f8_c16_FFT_FOFB_5repeats.json"
+        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c1_q1)) as f:
+            data_dict_x_c1_q1 = json.load(f)
+            c1_q1 = cell_comparison(data_dict_x_c1_q1, starting_x, average=3)
+        filename_x_c15_q1 = f"cell_c1.5_q1_{x}_f8_c16_FFT_FOFB_5repeats.json"
+        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c15_q1)) as f:
+            data_dict_x_c15_q1 = json.load(f)
+            c15_q1 = cell_comparison(data_dict_x_c15_q1, starting_x, average=3)
+        filename_x_c2_q1 = f"cell_c2_q1_{x}_f8_c16_FFT_FOFB_5repeats.json"
+        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c2_q1)) as f:
+            data_dict_x_c2_q1 = json.load(f)
+            c2_q1 = cell_comparison(data_dict_x_c2_q1, starting_x, average=3)
+        filename_x_c1_q15 = f"cell_c1_q1.5_{x}_f8_c16_FFT_FOFB_5repeats.json"
+        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c1_q15)) as f:
+            data_dict_x_c1_q15 = json.load(f)
+            c1_q15 = cell_comparison(data_dict_x_c1_q15, starting_x, average=3)
+        filename_x_c15_q15 = f"cell_c1.5_q1.5_{x}_f8_c16_FFT_FOFB_5repeats.json"
+        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c15_q15)) as f:
+            data_dict_x_c15_q15 = json.load(f)
+            c15_q15 = cell_comparison(data_dict_x_c15_q15, starting_x, average=3)
+        filename_x_c2_q15 = f"cell_c2_q1.5_{x}_f8_c16_FFT_FOFB_5repeats.json"
+        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c2_q15)) as f:
+            data_dict_x_c2_q15 = json.load(f)
+            c2_q15 = cell_comparison(data_dict_x_c2_q15, starting_x, average=3)
+        filename_x_c1_q2 = f"cell_c1_q2_{x}_f8_c16_FFT_FOFB_5repeats.json"
+        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c1_q2)) as f:
+            data_dict_x_c1_q2 = json.load(f)
+            c1_q2 = cell_comparison(data_dict_x_c1_q2, starting_x, average=3)
+        filename_x_c15_q2 = f"cell_c1.5_q2_{x}_f8_c16_FFT_FOFB_5repeats.json"
+        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c15_q2)) as f:
+            data_dict_x_c15_q2 = json.load(f)
+            c15_q2 = cell_comparison(data_dict_x_c15_q2, starting_x, average=3)
+        filename_x_c2_q2 = f"cell_c2_q2_{x}_f8_c16_FFT_FOFB_5repeats.json"
+        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c2_q2)) as f:
+            data_dict_x_c2_q2 = json.load(f)
+            c2_q2 = cell_comparison(data_dict_x_c2_q2, starting_x, average=3)
+
+        figure, axis = plt.subplot(3, 3, sharex=True, sharey=True)
+        figure.suptitle(
+            "Change in BBA values across Cell 1 due to quadrupole/corrector amplitudes."
+        )
+        # axis[correctors, quads]
+        axis[2, 0].errorbar(x, c1_q1[0], c1_q1[1])
+        axis[2, 0].set_title("Quad:1, Corr:1")
+
+        axis[2, 1].errorbar(x, c15_q1[0], c15_q1[1])
+        axis[2, 1].set_title("Quad:1, Corr:1.5")
+
+        axis[2, 2].errorbar(x, c2_q1[0], c2_q1[1])
+        axis[2, 2].set_title("Quad:1, Corr:2")
+
+        axis[1, 0].errorbar(x, c1_q15[0], c15_q1[1])
+        axis[1, 0].set_title("Quad:1.5, Corr:1")
+
+        axis[1, 1].errorbar(x, c15_q15[0], c15_q15[1])
+        axis[1, 1].set_title("Quad:1.5, Corr:1.5")
+
+        axis[1, 2].errorbar(x, c2_q15[0], c2_q15[1])
+        axis[1, 2].set_title("Quad:1.5, Corr:2")
+
+        axis[0, 0].errorbar(x, c1_q2[0], c1_q2[1])
+        axis[0, 0].set_title("Quad:2, Corr:1")
+
+        axis[0, 1].errorbar(x, c15_q2[0], c15_q2[1])
+        axis[0, 1].set_title("Quad:2, Corr:1.5")
+
+        axis[0, 2].errorbar(x, c2_q2[0], c2_q2[1])
+        axis[0, 2].set_title("Quad:2, Corr:2")
+
+        plt.grid(which="both", axis="both")
+        plt.legend()
+        plt.savefig(
+            f"{TEMP_FILEPATH_ROOT}/cell1_comparison_x.png",
+            bbox_inches="tight",
+            dpi=1200,
+        )
+        plt.close()
 
     if running:
         fft_ = True
@@ -1094,8 +1216,9 @@ def main():
         spread_index = 3
         initial_x_300 = [0]
         initial_y_300 = [0]
-        note = "warming"
+        # note = "warming"
         note = "cooling"
+        topup = "topup1"
 
         repeats = 40
         for i in range(1, repeats + 1):
@@ -1103,7 +1226,7 @@ def main():
                 -9:
             ]  # To give the spacing between each set of 8 +1 runs.
             data_x = np.genfromtxt(
-                f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_{note}_x_{i}.csv",
+                f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_{note}_{topup}_x_{i}.csv",
                 delimiter=",",
             )
             y_change = np.cumsum((data_x[0])[0, :])
@@ -1128,7 +1251,7 @@ def main():
                 label=f"FBBA x: fft:{fft_}, fofb:{fofb_trigger_},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
             )
             data_y = np.genfromtxt(
-                f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_{note}_y_{i}.csv",
+                f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_{note}_{topup}_y_{i}.csv",
                 delimiter=",",
             )
             y_change = np.cumsum((data_y[0])[0, :])

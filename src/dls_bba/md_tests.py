@@ -7,6 +7,7 @@
 # scan_amplitudes(accelerator, quad, plane, scale_quad=True, scale_corr=True)
 
 import argparse
+import json
 import logging as log
 import os
 from collections import defaultdict
@@ -166,6 +167,7 @@ def main():
         "SR01A-PC-Q2B-09",
         "SR01A-PC-Q1B-10",
     ]
+
     accelerator = acc.Accelerator(ringmode=None)
 
     element_list = []
@@ -182,6 +184,11 @@ def main():
         algorithm: Algorithm = fbba
     elif method == "SBBA":
         algorithm: Algorithm = sbba
+
+    quad_pvs = algorithm._accelerator.lattice.get_element_pv_names(
+        "quadrupole", "b1", pytac.RB
+    )
+    full_machine_quad_pvs = [quad[:-2] for quad in quad_pvs]  # noqa
 
     log.info("Starting Test")
 
@@ -206,7 +213,11 @@ def main():
         running_(algorithm, element_list[0], method, directions)
 
     if whole:
+        log.info("Snapshot of all BBA offsets.")
         whole_offsets(algorithm)
+
+    # if full_bba:
+    #     full_machine_bba(algorithm, full_machine_quad_pvs, method, directions)
 
 
 def repeat_test(
@@ -412,56 +423,60 @@ def cell(algorithm, cell_list, method, directions_list):
     MAX_TIME = 2  # Seconds
     fft_ = True
     fofb_trigger_ = True
+    freq = 8
+    cycles = int(np.floor(MAX_TIME * freq))
+    apply = True
 
-    # TODO: CORRECTOR AND QUAD RANGES for mutliplier.
-    # correctors_list = []
-    # quadrupole_list = []
+    results = {}
+    for quad in cell_list:
+        quadx = quad + ":CF:BBA_X_S"
+        quady = quad + ":CF:BBA_Y_S"
+        x = caget(quadx)
+        y = caget(quady)
+        results[quadx] = x
+        results[quady] = y
+        log.debug(quadx, x)
+        log.debug(quady, y)
 
-    frequency_list = [int(num) for num in range(0, 251)]
-    for index, element in enumerate(cell_list):
-        value_dictionary_x = defaultdict(list)
-        error_dictionary_x = defaultdict(list)
-        value_dictionary_y = defaultdict(list)
-        error_dictionary_y = defaultdict(list)
-        for freq in frequency_list:
-            cycles = int(np.floor(MAX_TIME * frequency))
-            offsets, errors = repeat_test(
-                algorithm,
-                element,
-                method,
-                directions_list,
-                repeats,
-                apply=False,
-                cycles_=cycles,
-                frequency_=freq,
-                fft_=fft_,
-                fofb_trigger_=fofb_trigger_,
-            )
+    correctors_list = [1, 1.5, 2]
+    quadrupole_list = [1, 1.5, 2]
+    x_d = direction_dict["x"]
+    y_d = direction_dict["y"]
+    for corr in correctors_list:
+        for quad in quadrupole_list:
+            data_dict_x = defaultdict(list)
+            data_dict_y = defaultdict(list)
+            for index, element in enumerate(cell_list):
+                offsets, errors = repeat_test(
+                    algorithm,
+                    element,
+                    method,
+                    directions_list,
+                    repeats,
+                    apply=apply,
+                    cycles_=cycles,
+                    frequency_=freq,
+                    corrector_scalar_=corr,
+                    quadrupole_scalar_=quad,
+                    fft_=fft_,
+                    fofb_trigger_=fofb_trigger_,
+                )
+                data_dict_x[f"{index},{x_d},value"] = offsets[x_d]
+                data_dict_x[f"{index},{x_d},error"] = errors[x_d]
+                data_dict_y[f"{index},{y_d},value"] = offsets[y_d]
+                data_dict_y[f"{index},{y_d},error"] = errors[y_d]
 
-            value_dictionary_x[freq] = offsets[direction_dict["x"]]
-            error_dictionary_x[freq] = errors[direction_dict["x"]]
-            value_dictionary_y[freq] = offsets[direction_dict["y"]]
-            error_dictionary_y[freq] = errors[direction_dict["y"]]
+            filename_x = f"cell_c{corr}_q{quad}_x_f8_c16_FFT_FOFB_5repeats.json"
+            with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x), "w") as outfile:
+                json.dump(data_dict_x, outfile, indent=4, ensure_ascii=False)
 
-            matrix = np.zeros(shape=(len(frequency_list) * 2, repeats))
-            for index, freq in enumerate(frequency_list):
-                matrix[(index * 2), :] = value_dictionary_x[freq]
-                matrix[(index * 2) + 1, :] = error_dictionary_x[freq]
-            np.savetxt(
-                f"{TEMP_FILEPATH_ROOT}/cell_1.{index}_r10_c16_f{freq}_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_x.csv",
-                matrix,
-                delimiter=",",
-            )
+            filename_y = f"cell_c{corr}_q{quad}_y_f8_c16_FFT_FOFB_5repeats.json"
+            with open(os.path.join(TEMP_FILEPATH_ROOT, filename_y), "w") as outfile:
+                json.dump(data_dict_y, outfile, indent=4, ensure_ascii=False)
 
-            matrix = np.zeros(shape=(len(frequency_list) * 2, repeats))
-            for index, freq in enumerate(frequency_list):
-                matrix[(index * 2), :] = value_dictionary_y[freq]
-                matrix[(index * 2) + 1, :] = error_dictionary_y[freq]
-            np.savetxt(
-                f"{TEMP_FILEPATH_ROOT}/cell_1.{index}_r10_c16_f{freq}_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_y.csv",
-                matrix,
-                delimiter=",",
-            )
+            # reset bba offsets.
+            for key, value in results.items():
+                caput(key, value)
 
 
 def running_(algorithm, element, method, directions_list):
@@ -473,7 +488,7 @@ def running_(algorithm, element, method, directions_list):
     fofb_trigger_ = True
     current = 300
     delay = 40  # second
-    note = "warming"
+    note = "cooling"
     topup = "topup1"
     for i in range(1, repeats + 1):
         log.info(f"Run: {i}")
@@ -513,14 +528,13 @@ def running_(algorithm, element, method, directions_list):
         final_x = caget(pv_x)
         final_y = caget(pv_y)
         log.info(f"Final: x={final_x}, y={final_y}")
-        # caput(pv_x, current_x)
-        # caput(pv_y, current_y)
-        # log.info(f"Reset: x={current_x}, y={current_y}")
+        caput(pv_x, current_x)
+        caput(pv_y, current_y)
+        log.info(f"Reset: x={current_x}, y={current_y}")
         Sleep(delay)
 
 
 def whole_offsets(algorithm):
-    log.info("Measuring all BBA offsets.")
     x = []
     y = []
     bpm_pvs = algorithm._accelerator.lattice.get_element_pv_names("BPM", "x", pytac.RB)
