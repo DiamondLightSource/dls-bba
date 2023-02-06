@@ -570,7 +570,6 @@ def whole_offsets(algorithm):
         bbox_inches="tight",
         dpi=1200,
     )
-    # plt.show()
     plt.close()
 
 
