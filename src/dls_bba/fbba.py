@@ -339,11 +339,10 @@ class FBBA(Algorithm):
         bpm_index = bpm_number - np.sum(
             enabled_bpms[:bpm_number] == False  # noqa false positive
         )
-        # freq = TICKS_PER_SECOND / metadata["period"]
+
         freq = metadata["frequency"]
 
-        offsets = []
-        errors = []
+        results = {}
 
         quad_prefixs = []
         for key in data:
@@ -352,90 +351,86 @@ class FBBA(Algorithm):
                 quad_prefixs.append(quad_prefix)
 
         for quad in quad_prefixs:
-            low_key = quad + "_Low"
-            high_key = quad + "_High"
+            for values in PLANE_VALUES.values():
+                low_key = quad + f"_Low_{values.axis}"
+                high_key = quad + f"_High_{values.axis}"
 
-            # Remove bad BPMs and change units to um
-            q_low = data[low_key][:, enabled_bpms] * 1e-3
-            q_high = data[high_key][:, enabled_bpms] * 1e-3
+                # Remove bad BPMs and change units to um
+                q_low = data[low_key][:, enabled_bpms] * 1e-3
+                q_high = data[high_key][:, enabled_bpms] * 1e-3
 
-            # Extract the DC componenet of the orbit, and add it to the excitation
-            q_high_dc = q_high.mean(0)
-            q_low_dc = q_low.mean(0)
-            if use_fft:
-                q_high_clean = np.add(
-                    self.extract_freq_fft(q_high - q_high_dc, freq), q_high_dc
-                )
-                q_low_clean = np.add(
-                    self.extract_freq_fft(q_low - q_low_dc, freq), q_low_dc
-                )
-            else:
-                q_high_clean = np.add(
-                    self.extract_freq_excite(q_high - q_high_dc, freq), q_high_dc
-                )
-                q_low_clean = np.add(
-                    self.extract_freq_excite(q_low - q_low_dc, freq), q_low_dc
-                )
-
-            # Take the difference between fits
-            q_diff = q_high_clean - q_low_clean
-            good = q_diff.std(0) > q_diff.std(0).max() / 2
-            q_diff_good = q_diff[:, good]
-
-            # Use a single fit operation, then transform with the straight line equation
-            fit = np.polynomial.polynomial.polyfit(
-                q_high_clean[:, bpm_index], q_diff_good, 1
-            )
-            p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
-            # Produce a large graph
-            if plot_output:
-                to_plot = [q_high_clean, q_low_clean, q_diff, q_diff_good, p]
-                plot_labels = [
-                    "quad high clean",
-                    "quad low clean,",
-                    "quad diff,",
-                    "quad diff good,",
-                    "fit coefficients",
-                ]
-                # Make a grid three wide and N high
-                # Fill with 1D plot, image plot, and colourbar
-                gs = GridSpec(
-                    len(to_plot) + 1,
-                    3,
-                    width_ratios=(20, 20, 1),
-                    height_ratios=([1] * len(to_plot) + [3]),
-                )
-                for i, _ in enumerate(to_plot):
-                    plt.subplot(gs[i, 0]).plot(to_plot[i])
-                    plt.ylabel(plot_labels[i])
-                    im = plt.subplot(gs[i, 1]).imshow(
-                        to_plot[i], aspect="auto", interpolation="nearest"
+                # Extract the DC componenet of the orbit, and add it to the excitation
+                q_high_dc = q_high.mean(0)
+                q_low_dc = q_low.mean(0)
+                if use_fft:
+                    q_high_clean = np.add(
+                        self.extract_freq_fft(q_high - q_high_dc, freq[values.index]),
+                        q_high_dc,
                     )
-                    plt.colorbar(im, cax=plt.subplot(gs[i, 2]))
-                # Add a large 1D plot to show end result
-                plt.subplot(gs[-1, :]).plot(q_high_clean[:, bpm_index], q_diff_good)
-                plt.ylabel(f"BPM {bpm_number + 1} aginst BPMs")
-                plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
-                plt.show()
-            # Change results to mm.
-            offsets.append(mean(p[:, 1]) / FBBA_UNIT_CONVERSION)
-            errors.append(stdev(p[:, 1]) / FBBA_UNIT_CONVERSION)
+                    q_low_clean = np.add(
+                        self.extract_freq_fft(q_low - q_low_dc, freq[values.index]),
+                        q_low_dc,
+                    )
+                else:
+                    q_high_clean = np.add(
+                        self.extract_freq_excite(
+                            q_high - q_high_dc, freq[values.index]
+                        ),
+                        q_high_dc,
+                    )
+                    q_low_clean = np.add(
+                        self.extract_freq_excite(q_low - q_low_dc, freq[values.index]),
+                        q_low_dc,
+                    )
 
-        results = {}
-        for index, number in enumerate(offsets):
-            quadrupole = quad_prefixs[index]
-            offset = offsets[index]
-            error = errors[index]
-            quad_name = quadrupole.replace("_", "-")
-            log.debug(f"Quad: {quad_name} offset calculated: {offset} +- {error}.")
-            results[quadrupole] = [offset, error]
+                # Take the difference between fits
+                q_diff = q_high_clean - q_low_clean
+                good = q_diff.std(0) > q_diff.std(0).max() / 2
+                q_diff_good = q_diff[:, good]
 
-        offset = mean(offsets)
-        sum_error = 0
-        for error in errors:
-            sum_error += error**2
-        error = np.sqrt(sum_error)
+                # Use a single fit operation, then transform with the straight line equation
+                fit = np.polynomial.polynomial.polyfit(
+                    q_high_clean[:, bpm_index], q_diff_good, 1
+                )
+                p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
+                # Produce a large graph
+                if plot_output:
+                    to_plot = [q_high_clean, q_low_clean, q_diff, q_diff_good, p]
+                    plot_labels = [
+                        "quad high clean",
+                        "quad low clean,",
+                        "quad diff,",
+                        "quad diff good,",
+                        "fit coefficients",
+                    ]
+                    # Make a grid three wide and N high
+                    # Fill with 1D plot, image plot, and colourbar
+                    gs = GridSpec(
+                        len(to_plot) + 1,
+                        3,
+                        width_ratios=(20, 20, 1),
+                        height_ratios=([1] * len(to_plot) + [3]),
+                    )
+                    for i, _ in enumerate(to_plot):
+                        plt.subplot(gs[i, 0]).plot(to_plot[i])
+                        plt.ylabel(plot_labels[i])
+                        im = plt.subplot(gs[i, 1]).imshow(
+                            to_plot[i], aspect="auto", interpolation="nearest"
+                        )
+                        plt.colorbar(im, cax=plt.subplot(gs[i, 2]))
+                    # Add a large 1D plot to show end result
+                    plt.subplot(gs[-1, :]).plot(q_high_clean[:, bpm_index], q_diff_good)
+                    plt.ylabel(f"BPM {bpm_number + 1} aginst BPMs")
+                    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
+                    plt.show()
+                # Change results to mm.
+                offset_value = mean(p[:, 1]) / FBBA_UNIT_CONVERSION
+                error_value = stdev(p[:, 1]) / FBBA_UNIT_CONVERSION
+                results[f"{quad},{values.axis}"] = (offset_value, error_value)
+                log.debug(
+                    f"Quad: {quad} {values.axis} offset calculated: {offset_value} +- {error_value}."
+                )
 
         bpm_pv_prefix = metadata["bpm_pv"]
-        log.info(f"BPM: {bpm_pv_prefix} offset calculated: {offset} +- {error}.")
+
         return Results(results, bpm_pv_prefix, metadata)

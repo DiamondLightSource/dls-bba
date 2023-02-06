@@ -265,28 +265,34 @@ class Algorithm(ABC):
         return Results
 
     def apply_results(self, results):
-        plane_info = results.metadata["plane"]
         bpm_pv_prefix = results.bpm_pv_prefix
-        offsets = []
-        errors = []
-        for key, value in results.results.items():
-            offsets.append(value[0])
-            errors.append(value[1])
-        offset = mean(offsets)
-        sum_error = 0
-        for error in errors:
-            sum_error += error**2
-        error = np.sqrt(sum_error)
+        apply = {
+            "X,value": [],
+            "X,error": [],
+            "Y,value": [],
+            "Y,error": [],
+        }
+        for key, values in results.results.items():
+            split_key = key.split(",")
+            apply[f"{split_key[1]},value"].append(values[0])
+            apply[f"{split_key[1]},error"].append(values[1])
 
-        if plane_info["axis"] == "Y":
-            suffix = ":CF:BBA_Y_S"
-        elif plane_info["axis"] == "X":
-            suffix = ":CF:BBA_X_S"
-        setting_pv = bpm_pv_prefix + suffix
+        for axis in ["X", "Y"]:
+            offset = mean(apply[f"{axis},value"])
+            sum_error = 0
+            for error in apply[f"{axis},error"]:
+                sum_error += error**2
+            error = np.sqrt(sum_error)
 
-        current_offset = caget(setting_pv)
-        new_offset = current_offset + offset
-        log.info(
-            f"BPM: {bpm_pv_prefix}, Old offset: {current_offset}, Delta: {offset} +- {error}, New offset: {new_offset}."
-        )
-        caput(setting_pv, new_offset)
+            if axis == "Y":
+                suffix = ":CF:BBA_Y_S"
+            else:
+                suffix = ":CF:BBA_X_S"
+            setting_pv = bpm_pv_prefix + suffix
+
+            current_offset = caget(setting_pv)
+            new_offset = current_offset + offset
+            log.info(
+                f"BPM: {bpm_pv_prefix}, Old offset: {current_offset}, Delta: {offset} +- {error}, New offset: {new_offset}."
+            )
+            caput(setting_pv, new_offset)
