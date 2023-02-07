@@ -141,7 +141,7 @@ def main():
     elif method == "SBBA":
         algorithm: Algorithm = SBBA(accelerator)  # type: ignore
 
-    plane_info = PLANE_VALUES[directions_list]
+    # plane_info = PLANE_VALUES[directions_list]
     plane_info = None
 
     for element in element_list:

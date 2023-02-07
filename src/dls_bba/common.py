@@ -32,7 +32,7 @@ ORIGIN_SUFFIXES = {
 @dataclass
 class RawData:
     raw_data: Dict[str, Any]
-    algorithm: str
+    quad_metadata: Dict[str, Any]
     metadata: Dict[str, Any]
 
     # TODO: asdict, make all shared attributes not in metadata.
@@ -41,12 +41,21 @@ class RawData:
         filename = "{}/{}-{}-{}-rawdata.mat".format(
             filepath, time_prefix, self.metadata["bpm_pv"], self.metadata["plane"].axis
         )
+        # NamedTuple not supported in .mat file.
         self.metadata["plane"] = self.metadata[
             "plane"
         ]._asdict()  # NamedTuple not supported in .mat file.
+        for key in self.quad_metadata.keys():
+            self.quad_metadata[key]["plane"] = self.quad_metadata[key][
+                "plane"
+            ]._asdict()
+            self.quad_metadata[key]["osc"]["plane"] = self.quad_metadata[key]["osc"][
+                "plane"
+            ]._asdict()
+
         dct = {
             "raw_data": self.raw_data,
-            "algorithm": self.algorithm,
+            "quad_metadata": self.quad_metadata,
             "metadata": self.metadata,
         }
         io.savemat(filename, dct, oned_as="row")
@@ -57,7 +66,13 @@ class RawData:
         dct = io.loadmat(filename, simplify_cells=True)
         metadata = dct["metadata"]
         metadata["plane"] = PlaneValues(**metadata["plane"])
-        return cls(dct["raw_data"], dct["algorithm"], metadata)
+        quad_metadata = dct["quad_metadata"]
+        for key in quad_metadata.keys():
+            quad_metadata[key]["plane"] = PlaneValues(**quad_metadata[key]["plane"])
+            quad_metadata[key]["osc"]["plane"] = PlaneValues(
+                **quad_metadata[key]["osc"]["plane"]
+            )
+        return cls(dct["raw_data"], quad_metadata, metadata)
 
 
 @dataclass
@@ -143,7 +158,7 @@ class Algorithm(ABC):
 
         return True
 
-    def select_elements(self, element, plane_info):
+    def select_elements(self, element):
         """Input quad/bpm element, calculate relevent elements.
 
         Note: This returns quads in a list.
@@ -153,11 +168,21 @@ class Algorithm(ABC):
             quad = [element]
             bpm_pv_prefix = self._accelerator.quad_to_bpm_dict[quad_pv_prefix]
             bpm = self._accelerator.pv_prefix_to_element(bpm_pv_prefix)
-            corrector = self._accelerator.effective_corrector(bpm_pv_prefix, plane_info)
+            corrector_x = self._accelerator.effective_corrector(
+                bpm_pv_prefix, PLANE_VALUES["HORIZONTAL"]
+            )
+            corrector_y = self._accelerator.effective_corrector(
+                bpm_pv_prefix, PLANE_VALUES["VERTICAL"]
+            )
         elif "bpm" in element.families:
             bpm = element
             bpm_pv_prefix = self._accelerator.element_to_pv_prefix(bpm)
-            corrector = self._accelerator.effective_corrector(bpm_pv_prefix, plane_info)
+            corrector_x = self._accelerator.effective_corrector(
+                bpm_pv_prefix, PLANE_VALUES["HORIZONTAL"]
+            )
+            corrector_y = self._accelerator.effective_corrector(
+                bpm_pv_prefix, PLANE_VALUES["VERTICAL"]
+            )
             bpm_pv_prefix = self._accelerator.element_to_pv_prefix(bpm)
             quad_pv_prefix = self._accelerator.bpm_to_quad_dict[bpm_pv_prefix]
             quad = [
@@ -166,7 +191,7 @@ class Algorithm(ABC):
             ]
         else:
             ValueError("Unexpected element: Only quadrupoles and bpms are allowed.")
-        return bpm, quad, corrector
+        return bpm, quad, corrector_x, corrector_y
 
     def toggle_fofb(self):
         log.warn("Correcting orbit with FOFB.")
@@ -244,6 +269,12 @@ class Algorithm(ABC):
             log.debug(f"Offset restored {key}: {value}")
         log.info("Origins Restored")
 
+    def get_offsets(self, bpm_pv_prefix):
+        return [
+            caget(bpm_pv_prefix + ":CF:BBA_X_S"),
+            caget(bpm_pv_prefix + ":CF:BBA_Y_S"),
+        ]
+
     def set_bpm_offset(self, bpm, value, plane_info):
         """Applies new offset value to the BBA offset."""
         # TODO: Should this be in Algorithm?
@@ -273,9 +304,9 @@ class Algorithm(ABC):
             "Y,error": [],
         }
         for key, values in results.results.items():
-            split_key = key.split(",")
-            apply[f"{split_key[1]},value"].append(values[0])
-            apply[f"{split_key[1]},error"].append(values[1])
+            axis = key.split("_")[:-1]
+            apply[f"{axis},value"].append(values[0])
+            apply[f"{axis},error"].append(values[1])
 
         for axis in ["X", "Y"]:
             offset = mean(apply[f"{axis},value"])

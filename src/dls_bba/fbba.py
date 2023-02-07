@@ -3,6 +3,7 @@
 import logging as log
 from math import ceil
 from statistics import mean, stdev
+from typing import Any, Dict
 
 import cothread
 import matplotlib.pyplot as plt
@@ -50,184 +51,159 @@ class FBBA(Algorithm):
 
     def run(self, element, plane_info, max_orbit) -> RawData:
         """Run the FBBA process."""
-        method = "FBBA"
-        log.info(f"{method} process started in both planes simultaneously.")
+        metadata: Dict[str, Any] = {}
+        quad_metadata: Dict[str, Any] = {}
+        raw_data: Dict[str, Any] = {}
 
-        bpm_x, quad_list_x, corrector_x = self.select_elements(
-            element, PLANE_VALUES["HORIZONTAL"]
-        )
-        bpm_y, quad_list_y, corrector_y = self.select_elements(
-            element, PLANE_VALUES["VERTICAL"]
-        )
+        metadata["algorithm"] = "FBBA"
+        metadata["plane"] = plane_info
+        log.info(f"{(metadata['algorithm'])} process started in {metadata['plane']}.")
 
-        if bpm_x != bpm_y:
-            raise ValueError(f"bpm_x {bpm_x} != bpm_y {bpm_y}")
-        else:
-            bpm = bpm_x
+        bpm, quad_list, corrector_x, corrector_y = self.select_elements(element)
+        # Incompatability between pytaclattice and faa number of bpms.
+        bpm_list = [0] + [i for i, _ in enumerate(self._accelerator.bpms, start=1)]
 
-        if quad_list_x != quad_list_y:
-            raise ValueError(f"quad_list_x {quad_list_x} != quad_list_y {quad_list_y}")
-        else:
-            quad_list = quad_list_x
-
-        quad_pv_list = [
+        bpm_pv_prefix = self._accelerator.element_to_pv_prefix(bpm)
+        quad_pv_prefix_list = [
             self._accelerator.element_to_pv_prefix(quad_element)
             for quad_element in quad_list
         ]
-        bpm_pv_prefix = self._accelerator.element_to_pv_prefix(bpm)
-        corrector_pv_prefix = [
-            self._accelerator.element_to_pv_prefix(
-                corrector_x, PLANE_VALUES["HORIZONTAL"]
-            ),
-            self._accelerator.element_to_pv_prefix(
-                corrector_y, PLANE_VALUES["VERTICAL"]
-            ),
-        ]
-        log.debug(
-            f"Quads: {quad_pv_list}, BPM: {bpm_pv_prefix}, Correctors: {corrector_pv_prefix}."
+        corrector_pv_prefix_x = self._accelerator.element_to_pv_prefix(
+            corrector_x, PLANE_VALUES["HORIZONTAL"]
         )
-        raw_data = {}
-        metadata = {
-            "plane": plane_info,
-            "quad": quad_pv_list,
-            "bpm_pv": bpm_pv_prefix,
-            "bpm_index": self._accelerator.bpms.index(bpm),
-            "corrector": corrector_pv_prefix,
-            "decimated": self.decimated,
-            "enabled_bpms": self._accelerator.enabled_bpms,
-            "quadrupole_scalar": self.quadrupole_scalar,
-            "corrector_scalar": self.corrector_scalar,
-        }
+        corrector_pv_prefix_y = self._accelerator.element_to_pv_prefix(
+            corrector_y, PLANE_VALUES["VERTICAL"]
+        )
+
+        metadata["quadrupoles"] = quad_pv_prefix_list
+        metadata["bpm_pv"] = bpm_pv_prefix
+        metadata["bpm_index"] = self._accelerator.bpms.index(bpm)
+        metadata["bpm_initial_xy"] = self.get_offsets(bpm_pv_prefix)
+        metadata["corrector_X"] = [corrector_x, corrector_pv_prefix_x]
+        metadata["corrector_Y"] = [corrector_y, corrector_pv_prefix_y]
+
+        log.debug(f"Quads: {metadata['quadrupoles']}")
+        log.debug(f"BPM: {metadata['bpm_pv']}, Index: {metadata['bpm_index']}")
+        log.debug(
+            f"Correctors: {metadata['corrector_X'][1]}, {metadata['corrector_Y'][1]}."
+        )
+
+        metadata["decimated"] = self.decimated
+        metadata["enabled_bpms"] = self._accelerator.enabled_bpms
+        metadata["quadrupole_scalar"] = self.quadrupole_scalar
+        metadata["corrector_scalar"] = self.corrector_scalar
+
         for quad in quad_list:
+            for values in PLANE_VALUES.values():
+                quad_pv = self._accelerator.element_to_pv_prefix(quad).replace("-", "_")
+                quad_step = (
+                    self._accelerator.measure_quad(quad) * self.quadrupole_scalar
+                )
+
+                quad_metadata[f"{quad_pv}_{values.axis}"] = {
+                    "plane": values,
+                    "quadrupole": quad,
+                    "quad_step": quad_step,
+                    "frequency": self.frequency[values.index],
+                    "period": TICKS_PER_SECOND // self.frequency[values.index],
+                    "cycles": self.cycles[values.index],
+                    "corrector": metadata[f"corrector_{values.axis}"][1],
+                    "corr_step": self._accelerator.microrads(
+                        metadata[f"corrector_{values.axis}"][0],
+                        values,  # must be element not pv.
+                    )
+                    * self.corrector_scalar,
+                }
+                quad_metadata[f"{quad_pv}_{values.axis}"]["osc"] = Oscillation(
+                    quad_metadata[f"{quad_pv}_{values.axis}"]["corr_step"],
+                    quad_metadata[f"{quad_pv}_{values.axis}"]["plane"],
+                    quad_metadata[f"{quad_pv}_{values.axis}"]["frequency"],
+                    quad_metadata[f"{quad_pv}_{values.axis}"]["cycles"],
+                )
+        for key, value in quad_metadata.items():
+            log.info(f"{key}: {value}")
+
+        for quad in quad_list:
+            metadata_key = self._accelerator.element_to_pv_prefix(quad).replace(
+                "-", "_"
+            )
+            key_list = [key for key in quad_metadata.keys() if metadata_key in key]
+
             self.toggle_feedbacks(max_orbit)
             original_offsets = self.zero_origins(bpm)
 
-            quad_step = self._accelerator.measure_quad(quad) * self.quadrupole_scalar
-            corr_amp = [
-                (
-                    self._accelerator.microrads(corrector_x, PLANE_VALUES["HORIZONTAL"])
-                    * self.corrector_scalar
-                ),
-                (
-                    self._accelerator.microrads(corrector_y, PLANE_VALUES["VERTICAL"])
-                    * self.corrector_scalar
-                ),
-            ]
-            log.debug(f"Quad step: {quad_step}, Corrector step: {corr_amp}.")
-            metadata["quad_step"] = quad_step
-            metadata["corr_step"] = corr_amp
-
-            osc_x = Oscillation(
-                corr_amp[0],
-                PLANE_VALUES["HORIZONTAL"],
-                self.frequency[0],
-                self.cycles[0],
-            )
-            osc_y = Oscillation(
-                corr_amp[1], PLANE_VALUES["VERTICAL"], self.frequency[1], self.cycles[1]
-            )
-            self.osc_x = osc_x
-            self.osc_y = osc_y
-
-            log.debug(
-                "X Oscillation amplitude {}; frequency {}; cycles {}".format(
-                    osc_x.amp, osc_x.freq, osc_x.cycles
-                )
-            )
-            log.debug(
-                "Y Oscillation amplitude {}; frequency {}; cycles {}".format(
-                    osc_y.amp, osc_y.freq, osc_y.cycles
-                )
-            )
-
-            metadata["frequency"] = [self.osc_x.freq, self.osc_y.freq]
-            metadata["period"] = [
-                TICKS_PER_SECOND // self.osc_x.freq,
-                TICKS_PER_SECOND // self.osc_y.freq,
-            ]
-            metadata["amp"] = [self.osc_x.amp, self.osc_y.amp]
-            metadata["cycles"] = [self.osc_x.cycles, self.osc_y.cycles]
-
             quad_sp = self._accelerator.measure_quad(quad)
+            quad_step = quad_metadata[key_list[0]]["quad_step"]
             quad_high = quad_sp + quad_step
             quad_low = quad_sp - quad_step
             quad_lag_s = quad_step / QUAD_SLEW_RATE
             quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
 
-            osc_length = ceil(TICKS_PER_SECOND / osc_x.freq) * osc_x.cycles
+            osc_length = (
+                ceil(TICKS_PER_SECOND / quad_metadata[key_list[0]]["frequency"])
+                * quad_metadata[key_list[0]]["cycles"]
+            )
             duration = NETWORK_LAG + osc_length + SAFETY_NET + quad_lag + osc_length
-            # Incompatability between pytaclattice and faa number of bpms.
-            bpm_list = [0] + [i for i, _ in enumerate(self._accelerator.bpms, start=1)]
 
             # Move quad high
             self._accelerator.set_quad(quad, quad_high)
             cothread.Sleep(quad_lag_s / 2)
+
             now = get_timestamp(self.decimated)
             # Set off the data collection
             high_start = now + NETWORK_LAG
             fa_buffer = Buffer(bpm_list, high_start, duration, self.decimated)
             low_start = high_start + osc_length + SAFETY_NET + quad_lag
 
-            log.debug("Safety net: {}; quad_lag: {}".format(SAFETY_NET, quad_lag))
-            log.debug("Time now: {}.".format(now))
-            log.debug("High start time: {}.".format(high_start - now))
-            log.debug("Low start time: {}.".format(low_start - now))
-            log.debug("The oscillation: {}, {}".format(osc_x, osc_y))
-
-            self.exc_high_x = Excitation(
-                corrector_x, osc_x, high_start, self._accelerator
-            )
-            self.exc_high_y = Excitation(
-                corrector_y, osc_y, high_start, self._accelerator
-            )
-            log.debug(
-                "The excitation_x: dwell {} count {}".format(
-                    self.exc_high_x.dwell, self.exc_high_x.count
+            excitation = {}
+            for key in key_list:
+                axis = quad_metadata[key]["plane"].axis
+                excitation[f"High_{axis}"] = Excitation(
+                    quad_metadata[key]["corrector"],
+                    quad_metadata[key]["osc"],
+                    high_start,
+                    self._accelerator,
                 )
-            )
-            log.debug(
-                "The excitation_y: dwell {} count {}".format(
-                    self.exc_high_y.dwell, self.exc_high_y.count
+                excitation[f"Low_{axis}"] = Excitation(
+                    quad_metadata[key]["corrector"],
+                    quad_metadata[key]["osc"],
+                    low_start,
+                    self._accelerator,
                 )
-            )
-            self.exc_low_x = Excitation(
-                corrector_x, osc_x, low_start, self._accelerator
-            )
-            self.exc_low_y = Excitation(
-                corrector_y, osc_y, low_start, self._accelerator
-            )
 
             log.info("High Oscillation")
-            excite((self.exc_high_x, self.exc_high_y))
+            high_keys = [key for key in excitation.keys() if "High_" in key]
+            log.debug(excitation[high_keys[0]])
+            excite((excitation[high_keys[0]], excitation[high_keys[0]]))
+
             # Sleep for first excitation. SAFETY_NET ensures that we don't start
             # moving the quad before the excitation has finished.
             cothread.Sleep(
-                (NETWORK_LAG + self.exc_high_x.count + SAFETY_NET) / TICKS_PER_SECOND
+                (NETWORK_LAG + excitation[high_keys[0]].count + SAFETY_NET)
+                / TICKS_PER_SECOND
             )
+
             # Move quad from high to low
             self._accelerator.set_quad(quad, quad_low)
             log.info("Low Oscillation")
-            # Set up second excitation
-            excite((self.exc_low_x, self.exc_low_y))
+            low_keys = [key for key in excitation.keys() if "Low_" in key]
+            excite((excitation[low_keys[0]], excitation[low_keys[1]]))
+
             # This will block until all data has been retrieved.
 
             fa_data = fa_buffer.get_data()
             for values in PLANE_VALUES.values():
                 selected_data = self.select_data(fa_data, values)
-                raw_data[
-                    self._accelerator.element_to_pv_prefix(quad).replace("-", "_")
-                    + f"_High_{values.axis}"
-                ] = selected_data[0]
-                raw_data[
-                    self._accelerator.element_to_pv_prefix(quad).replace("-", "_")
-                    + f"_Low_{values.axis}"
-                ] = selected_data[1]
+                raw_data[f"{metadata_key}_{values.axis}"] = {
+                    "High": selected_data[0],
+                    "Low": selected_data[1],
+                }
 
             self._accelerator.set_quad(quad, quad_sp)
             cothread.Sleep(quad_lag_s / 2)
             self.restore_origins(original_offsets)
 
-        return RawData(raw_data, method, metadata)
+        return RawData(raw_data, quad_metadata, metadata)
 
     def select_data(self, data, plane_info):
         """Extract FA data that covers the excitations exc_high and exc_low.
@@ -333,14 +309,14 @@ class FBBA(Algorithm):
         data = raw_data.raw_data
         # algorithm = raw_data["algorithm"] -> Not used.
         metadata = raw_data.metadata
+        quad_metadata = raw_data.quad_metadata
 
         bpm_number = metadata["bpm_index"]
         enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
         bpm_index = bpm_number - np.sum(
             enabled_bpms[:bpm_number] == False  # noqa false positive
         )
-
-        freq = metadata["frequency"]
+        # freq = metadata["frequency"]
 
         results = {}
 
@@ -352,34 +328,39 @@ class FBBA(Algorithm):
 
         for quad in quad_prefixs:
             for values in PLANE_VALUES.values():
-                low_key = quad + f"_Low_{values.axis}"
-                high_key = quad + f"_High_{values.axis}"
+                key = f"{quad}_{values.axis}"
 
                 # Remove bad BPMs and change units to um
-                q_low = data[low_key][:, enabled_bpms] * 1e-3
-                q_high = data[high_key][:, enabled_bpms] * 1e-3
+                q_low = data[key]["Low"][:, enabled_bpms] * 1e-3
+                q_high = data[key]["High"][:, enabled_bpms] * 1e-3
 
                 # Extract the DC componenet of the orbit, and add it to the excitation
                 q_high_dc = q_high.mean(0)
                 q_low_dc = q_low.mean(0)
                 if use_fft:
                     q_high_clean = np.add(
-                        self.extract_freq_fft(q_high - q_high_dc, freq[values.index]),
+                        self.extract_freq_fft(
+                            q_high - q_high_dc, quad_metadata[key]["frequency"]
+                        ),
                         q_high_dc,
                     )
                     q_low_clean = np.add(
-                        self.extract_freq_fft(q_low - q_low_dc, freq[values.index]),
+                        self.extract_freq_fft(
+                            q_low - q_low_dc, quad_metadata[key]["frequency"]
+                        ),
                         q_low_dc,
                     )
                 else:
                     q_high_clean = np.add(
                         self.extract_freq_excite(
-                            q_high - q_high_dc, freq[values.index]
+                            q_high - q_high_dc, quad_metadata[key]["frequency"]
                         ),
                         q_high_dc,
                     )
                     q_low_clean = np.add(
-                        self.extract_freq_excite(q_low - q_low_dc, freq[values.index]),
+                        self.extract_freq_excite(
+                            q_low - q_low_dc, quad_metadata[key]["frequency"]
+                        ),
                         q_low_dc,
                     )
 
@@ -426,11 +407,9 @@ class FBBA(Algorithm):
                 # Change results to mm.
                 offset_value = mean(p[:, 1]) / FBBA_UNIT_CONVERSION
                 error_value = stdev(p[:, 1]) / FBBA_UNIT_CONVERSION
-                results[f"{quad},{values.axis}"] = (offset_value, error_value)
+                results[f"{quad}_{values.axis}"] = (offset_value, error_value)
                 log.debug(
                     f"Quad: {quad} {values.axis} offset calculated: {offset_value} +- {error_value}."
                 )
-
         bpm_pv_prefix = metadata["bpm_pv"]
-
         return Results(results, bpm_pv_prefix, metadata)
