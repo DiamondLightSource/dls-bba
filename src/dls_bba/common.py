@@ -9,6 +9,7 @@ from typing import Any, Dict, NamedTuple
 
 import numpy as np
 import scipy.io as io
+from cothread import Sleep
 from cothread.catools import caget, caput
 
 MAXIMUM_CURRENT_DROP = 20  # mA
@@ -23,7 +24,7 @@ PLANE_VALUES = {
 }
 
 ORIGIN_SUFFIXES = {
-    "BBA": ":CF:BBA_{axis}_S",
+    # "BBA": ":CF:BBA_{axis}_S",
     "BCD": ":CF:BCD_{axis}_S",
     "GOLDEN": ":CF:GOLDEN_{axis}_S",
 }
@@ -175,7 +176,7 @@ class Algorithm(ABC):
             check=True,
             shell=True,
         )
-        sleep(1)
+        sleep(2)
         run(
             "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py stop",
             check=True,
@@ -230,35 +231,36 @@ class Algorithm(ABC):
         offsets = {}
         offsets[golden_pv] = caget(golden_pv)
 
-        caput(bcd_pv, 0)
-        caput(golden_pv, 0)
+        caput(bcd_pv, 0, wait=True)
+        caput(golden_pv, 0, wait=True)
         return offsets
 
     def restore_origins(self, offsets):
         """Restores offset values from offsets dictionary."""
         # return None  # For testing -> PV's dont exist in virtac.
         for key, value in offsets.items():
-            caput(key, value)
+            caput(key, value, wait=True)
         log.info("Origins Restored")
 
-    def set_bpm_offset(self, bpm, value, plane_info):
-        """Applies new offset value to the BBA offset."""
-        # TODO: Should this be in Algorithm?
+    # def set_bpm_offset(self, bpm, value, plane_info):
+    #     """Applies new offset value to the BBA offset."""
+    #     # TODO: Should this be in Algorithm?
 
-        bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
-        bba_pv = bpm_pv_root + ORIGIN_SUFFIXES["BBA"].format(axis=plane_info.axis)
+    #     bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
+    #     bba_pv = bpm_pv_root + ORIGIN_SUFFIXES["BBA"].format(axis=plane_info.axis)
 
-        current_offset = caget(bba_pv)
-        new_offset = current_offset + value
-        caput(bba_pv, new_offset)
+    #     current_offset = caget(bba_pv)
+    #     new_offset = current_offset + value
+    #     caput(bba_pv, new_offset)
 
     @abstractmethod
     def run(self, element, plane_info, max_orbit):
-        # This fbba/sbba specifc -> save into a Data object
+        # This is fbba/sbba specifc -> save into a RawData object
         return RawData
 
     @abstractmethod
     def analyse_data(self, data, plot_output, *args, **kwargs):
+        # This is fbba/sbba specifc -> save into a Results object
         return Results
 
     def apply_results(self, results):
@@ -269,21 +271,27 @@ class Algorithm(ABC):
         for key, value in results.results.items():
             offsets.append(value[0])
             errors.append(value[1])
-        offset = mean(offsets)
-        sum_error = 0
-        for error in errors:
-            sum_error += error**2
-        error = np.sqrt(sum_error)
 
-        if plane_info["axis"] == "Y":
+        mean_offset = mean(offsets)
+        sum_error = 0
+        for offset, error in zip(offsets, errors):
+            sum_error += (error / offset) ** 2
+        error = np.sqrt(sum_error) * mean_offset
+
+        if plane_info.axis == "Y":
             suffix = ":CF:BBA_Y_S"
-        elif plane_info["axis"] == "X":
+            log.info("Applying to the Y axis.")
+        elif plane_info.axis == "X":
             suffix = ":CF:BBA_X_S"
+            log.info("Applying to the X axis.")
+        else:
+            raise ValueError("Plane info incorrect.")
         setting_pv = bpm_pv_prefix + suffix
 
         current_offset = caget(setting_pv)
-        new_offset = current_offset + offset
+        new_offset = current_offset + mean_offset
         log.info(
-            f"BPM: {bpm_pv_prefix}, Old offset: {current_offset}, Delta: {offset} +- {error}, New offset: {new_offset}."
+            f"BPM: {bpm_pv_prefix}, Old offset: {current_offset}, Delta: {mean_offset} +- {error}, New offset: {new_offset}."
         )
-        caput(setting_pv, new_offset)
+        caput(setting_pv, new_offset, wait=True)
+        Sleep(0.2)
