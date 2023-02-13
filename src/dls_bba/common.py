@@ -245,10 +245,8 @@ class Algorithm(ABC):
     # def set_bpm_offset(self, bpm, value, plane_info):
     #     """Applies new offset value to the BBA offset."""
     #     # TODO: Should this be in Algorithm?
-
     #     bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
     #     bba_pv = bpm_pv_root + ORIGIN_SUFFIXES["BBA"].format(axis=plane_info.axis)
-
     #     current_offset = caget(bba_pv)
     #     new_offset = current_offset + value
     #     caput(bba_pv, new_offset)
