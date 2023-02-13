@@ -29,7 +29,7 @@ FILE_LOG_FORMAT = (
     "%(levelname)-7s: %(asctime)s — [%(filename)s:%(lineno)d] — %(message)s"
 )
 
-TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "7Feb2023")
+TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "14Feb2023")
 
 
 direction_dict = {
@@ -98,14 +98,6 @@ def parse_args():
         help="Cell test",
     )
     parser.add_argument(
-        "-f",
-        "--freq",
-        dest="freq_t",
-        action="store_true",
-        default=False,
-        help="Freq test",
-    )
-    parser.add_argument(
         "-j",
         "--honing",
         dest="honing_t",
@@ -146,7 +138,6 @@ def main():
     method = str(args.method)
     directions = direction_dict[args.directions]
     cell_test = args.cell_t
-    freq_test = args.freq_t
     honing_test = args.honing_t
     triple = args.triple_t
     running = args.running_t
@@ -196,10 +187,6 @@ def main():
         log.info("Honing Test")
         honing(algorithm, element_list[0], method, directions)
 
-    if freq_test:
-        log.info("Frequency Test")
-        frequency(algorithm, element_list[0], method, directions)
-
     if cell_test:
         log.info("Cell Test")
         cell(algorithm, cell_list, method, directions)
@@ -216,9 +203,6 @@ def main():
         log.info("Snapshot of all BBA offsets.")
         whole_offsets(algorithm)
 
-    # if full_bba:
-    #     full_machine_bba(algorithm, full_machine_quad_pvs, method, directions)
-
 
 def repeat_test(
     algorithm,
@@ -227,8 +211,8 @@ def repeat_test(
     directions_list,
     repeats,
     apply,
-    quadrupole_scalar_=0.02,
-    corrector_scalar_=2,
+    quadrupole_scalar_=0.01,
+    corrector_scalar_=1,
     cycles_=16,
     frequency_=8,
     decimated_=False,
@@ -264,121 +248,51 @@ def repeat_test(
             raw_data.save(filename_prefix, TEMP_FILEPATH_ROOT)
             results = algorithm.analyse_data(raw_data, plot, fft_)
             filename = results.save(filename_prefix, TEMP_FILEPATH_ROOT)
-            filename_store.append([filename])
+            filename_store.append(filename)
             for quad, answers in results.results.items():
                 offsets[axis] += [answers[0]]
                 errors[axis] += [answers[1]]
         if apply:
             for filename in filename_store:
-                results_filepath = os.path.join(TEMP_FILEPATH_ROOT, filename)
+                results_filepath = filename
                 results.from_file(results_filepath)
+                algorithm.apply_results(results)
         Sleep(delay_)
     return offsets, errors
 
 
 def honing(algorithm, element, method, directions_list):
     """Honing Test"""
-    repeats = 8
-    fft_ = False
-    fofb_trigger_ = False
-    current = 300
-    offsets, errors = repeat_test(
-        algorithm,
-        element,
-        method,
-        directions_list,
-        repeats,
-        apply=True,
-        fft_=fft_,
-        fofb_trigger_=fofb_trigger_,
-    )
+    quadrupole_scalar = 0.01
+    corrector_scalar = 1
 
-    matrix = np.zeros(shape=(2, repeats))
-    matrix[0, :] = offsets[direction_dict["x"]]
-    matrix[1, :] = errors[direction_dict["x"]]
-    np.savetxt(
-        f"{TEMP_FILEPATH_ROOT}/honing_{method}_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_x.csv",
-        matrix,
-        delimiter=",",
-    )
-    matrix = np.zeros(shape=(2, repeats))
-    matrix[0, :] = offsets[direction_dict["y"]]
-    matrix[1, :] = errors[direction_dict["y"]]
-    np.savetxt(
-        f"{TEMP_FILEPATH_ROOT}/honing_{method}_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_y.csv",
-        matrix,
-        delimiter=",",
-    )
+    if method == "FBBA":
+        options = {  # FFT, FOFB
+            "first": [True, True],
+            "second": [False, True],
+            "third": [True, False],
+            "fourth": [False, False],
+        }
+    elif method == "SBBA":
+        options = {  # FFT, FOFB (Cannot run FFT analysis)
+            "first": [False, True],
+            "second": [False, False],
+        }
+    else:
+        log.critical("No method selected.")
 
+    pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
+    pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
+    current_x = caget(pv_x)
+    current_y = caget(pv_y)
+    log.info(f"Start: x={current_x}, y={current_y}")
 
-def frequency(algorithm, element, method, directions_list):
-    """Frequency test"""
-    repeats = 5
-    MAX_TIME = 2  # Seconds
-    fft_ = True
-    fofb_trigger_ = True
-
-    frequency_list = [int(num) for num in range(0, 251)]
-
-    value_dictionary_x = defaultdict(list)
-    error_dictionary_x = defaultdict(list)
-    value_dictionary_y = defaultdict(list)
-    error_dictionary_y = defaultdict(list)
-
-    for freq in frequency_list:
-        cycles = int(np.floor(MAX_TIME * frequency))
-        offsets, errors = repeat_test(
-            algorithm,
-            element,
-            method,
-            directions_list,
-            repeats,
-            apply=False,
-            cycles_=cycles,
-            frequency_=freq,
-            fft_=fft_,
-            fofb_trigger_=fofb_trigger_,
-        )
-
-        value_dictionary_x[freq] = offsets[direction_dict["x"]]
-        error_dictionary_x[freq] = errors[direction_dict["x"]]
-        value_dictionary_y[freq] = offsets[direction_dict["y"]]
-        error_dictionary_y[freq] = errors[direction_dict["y"]]
-
-        matrix = np.zeros(shape=(len(frequency_list) * 2, repeats))
-        for index, freq in enumerate(frequency_list):
-            matrix[(index * 2), :] = value_dictionary_x[freq]
-            matrix[(index * 2) + 1, :] = error_dictionary_x[freq]
-        np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/frequency_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{frequency_list[0]}_{frequency_list[-1]}_x.csv",
-            matrix,
-            delimiter=",",
-        )
-
-        matrix = np.zeros(shape=(len(frequency_list) * 2, repeats))
-        for index, freq in enumerate(frequency_list):
-            matrix[(index * 2), :] = value_dictionary_y[freq]
-            matrix[(index * 2) + 1, :] = error_dictionary_y[freq]
-        np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/frequency_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{frequency_list[0]}_{frequency_list[-1]}_y.csv",
-            matrix,
-            delimiter=",",
-        )
-
-
-def triple_freq(algorithm, element, method, directions_list):
-    """Honing but for three specific frequencies."""
-
-    frequencies = [8, 83, 137, 179, 223, 269]
-    for freq in frequencies:
-        pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
-        pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
-        current_x = caget(pv_x)
-        current_y = caget(pv_y)
-        log.info(f"Freq: {freq}. Start: x={current_x}, y={current_y}")
+    for key, (fft, fofb) in options.items():
+        algorithm.toggle_fofb()  # Align for set of 8.
+        log.info(f"Key: {key}: FFT: {fft}, FOFB: {fofb}")
         repeats = 8
-        fft_ = True
-        fofb_trigger_ = True
+        cycles = 16
+        frequency = 8
         current = 300
         offsets, errors = repeat_test(
             algorithm,
@@ -386,33 +300,101 @@ def triple_freq(algorithm, element, method, directions_list):
             method,
             directions_list,
             repeats,
-            frequency_=freq,
             apply=True,
-            fft_=fft_,
-            fofb_trigger_=fofb_trigger_,
+            fft_=fft,
+            fofb_trigger_=fofb,
+            quadrupole_scalar_=quadrupole_scalar,
+            corrector_scalar_=corrector_scalar,
         )
 
         matrix = np.zeros(shape=(2, repeats))
-        matrix[0, :] = offsets[direction_dict["x"]]
-        matrix[1, :] = errors[direction_dict["x"]]
+        matrix[0, :] = offsets[direction_dict["x"][0]]
+        matrix[1, :] = errors[direction_dict["x"][0]]
         np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/triple_r8_c16_f{freq}_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_x.csv",
+            f"{TEMP_FILEPATH_ROOT}/honing_{method}_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_x.csv",
             matrix,
             delimiter=",",
         )
         matrix = np.zeros(shape=(2, repeats))
-        matrix[0, :] = offsets[direction_dict["y"]]
-        matrix[1, :] = errors[direction_dict["y"]]
+        matrix[0, :] = offsets[direction_dict["y"][0]]
+        matrix[1, :] = errors[direction_dict["y"][0]]
         np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/triple_r8_c16_f{freq}_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_y.csv",
+            f"{TEMP_FILEPATH_ROOT}/honing_{method}_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_y.csv",
             matrix,
             delimiter=",",
         )
+
         final_x = caget(pv_x)
         final_y = caget(pv_y)
         log.info(f"Final: x={final_x}, y={final_y}")
-        caput(pv_x, current_x)
-        caput(pv_y, current_y)
+        caput(pv_x, current_x, wait=True)
+        caput(pv_y, current_y, wait=True)
+        Sleep(0.2)
+        log.info(f"Reset: x={current_x}, y={current_y}")
+        Sleep(1)
+
+
+def triple_freq(algorithm, element, method, directions_list):
+    """Honing but for three specific frequencies."""
+
+    frequencies = [8, 83, 137, 179, 223, 269]
+    quadrupole_scalar = 0.01
+    corrector_scalar = 1
+    fft = True
+    fofb = False
+    MAX_TIME = 2
+
+    pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
+    pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
+    current_x = caget(pv_x)
+    current_y = caget(pv_y)
+    log.info(f"Start: x={current_x}, y={current_y}")
+
+    for freq in frequencies:
+        algorithm.toggle_fofb()  # Align for set of 8.
+        log.info(f"Freq: {freq}: FFT: {fft}, FOFB: {fofb}")
+        repeats = 8
+        cycles = 16
+        frequency = 8
+        current = 300
+        offsets, errors = repeat_test(
+            algorithm,
+            element,
+            method,
+            directions_list,
+            repeats,
+            apply=True,
+            fft_=fft,
+            fofb_trigger_=fofb,
+            frequency_=freq,
+            cycles_=int(np.floor(MAX_TIME * freq)),
+            quadrupole_scalar_=quadrupole_scalar,
+            corrector_scalar_=corrector_scalar,
+        )
+
+        matrix = np.zeros(shape=(2, repeats))
+        matrix[0, :] = offsets[direction_dict["x"][0]]
+        matrix[1, :] = errors[direction_dict["x"][0]]
+        np.savetxt(
+            f"{TEMP_FILEPATH_ROOT}/triple_FBBA_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_x.csv",
+            matrix,
+            delimiter=",",
+        )
+        matrix = np.zeros(shape=(2, repeats))
+        matrix[0, :] = offsets[direction_dict["y"][0]]
+        matrix[1, :] = errors[direction_dict["y"][0]]
+        np.savetxt(
+            f"{TEMP_FILEPATH_ROOT}/triple_FBBA_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_y.csv",
+            matrix,
+            delimiter=",",
+        )
+
+        final_x = caget(pv_x)
+        final_y = caget(pv_y)
+        log.info(f"Final: x={final_x}, y={final_y}")
+        caput(pv_x, current_x, wait=True)
+        caput(pv_y, current_y, wait=True)
+        Sleep(0.2)
         log.info(f"Reset: x={current_x}, y={current_y}")
         Sleep(1)
 
@@ -420,11 +402,10 @@ def triple_freq(algorithm, element, method, directions_list):
 def cell(algorithm, cell_list, method, directions_list):
     """Cell corrector amplitudes test"""
     repeats = 8
-    MAX_TIME = 2  # Seconds
     fft_ = True
-    fofb_trigger_ = True
+    fofb_trigger_ = False
     freq = 8
-    cycles = int(np.floor(MAX_TIME * freq))
+    cycles = 16
     apply = True
 
     results = {}
@@ -438,8 +419,8 @@ def cell(algorithm, cell_list, method, directions_list):
         log.debug(quadx, x)
         log.debug(quady, y)
 
-    correctors_list = [1, 1.5, 2]
-    quadrupole_list = [1, 1.5, 2]
+    correctors_list = [0.5, 1, 1.5]
+    quadrupole_list = [0.5, 1, 1.5]
     x_d = direction_dict["x"]
     y_d = direction_dict["y"]
     for corr in correctors_list:
@@ -476,62 +457,71 @@ def cell(algorithm, cell_list, method, directions_list):
 
             # reset bba offsets.
             for key, value in results.items():
-                caput(key, value)
+                caput(key, value, wait=True)
+            log.info("Reset BBA offsets.")
 
 
 def running_(algorithm, element, method, directions_list):
     """Repeat running of F/S BBA."""
 
-    repeats = 40
-    fft_ = True
-    apply = True
-    fofb_trigger_ = True
-    current = 300
-    delay = 40  # second
-    note = "cooling"
-    topup = "topup1"
-    for i in range(1, repeats + 1):
-        log.info(f"Run: {i}")
-        pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
-        pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
-        repeat = 8
-        current_x = caget(pv_x)
-        current_y = caget(pv_y)
-        log.info(f"Start: x={current_x}, y={current_y}")
+    quadrupole_scalar = 0.01
+    corrector_scalar = 1
+    fft = True
+    fofb = False
+
+    pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
+    pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
+    current_x = caget(pv_x)
+    current_y = caget(pv_y)
+    log.info(f"Start: x={current_x}, y={current_y}")
+    repeats = 30
+
+    for i in range(repeats):
+        log.info(f"Running: {i}")
+        algorithm.toggle_fofb()  # Align for set of 8.
+        repeats = 8
+        cycles = 16
+        frequency = 8
+        current = 300
         offsets, errors = repeat_test(
             algorithm,
             element,
             method,
             directions_list,
-            repeat,
-            apply=apply,
-            fft_=fft_,
-            fofb_trigger_=fofb_trigger_,
+            repeats,
+            apply=True,
+            fft_=fft,
+            fofb_trigger_=fofb,
+            quadrupole_scalar_=quadrupole_scalar,
+            corrector_scalar_=corrector_scalar,
         )
 
-        matrix = np.zeros(shape=(2, repeat))
-        matrix[0, :] = offsets[direction_dict["x"]]
-        matrix[1, :] = errors[direction_dict["x"]]
+        matrix = np.zeros(shape=(2, repeats))
+        matrix[0, :] = offsets[direction_dict["x"][0]]
+        matrix[1, :] = errors[direction_dict["x"][0]]
         np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_{note}_{topup}_x_{i}.csv",
+            f"{TEMP_FILEPATH_ROOT}/running_{i}_{method}_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_x.csv",
             matrix,
             delimiter=",",
         )
-        matrix = np.zeros(shape=(2, repeat))
-        matrix[0, :] = offsets[direction_dict["y"]]
-        matrix[1, :] = errors[direction_dict["y"]]
+        matrix = np.zeros(shape=(2, repeats))
+        matrix[0, :] = offsets[direction_dict["y"][0]]
+        matrix[1, :] = errors[direction_dict["y"][0]]
         np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_{note}_{topup}_y_{i}.csv",
+            f"{TEMP_FILEPATH_ROOT}/running_{i}_{method}_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_y.csv",
             matrix,
             delimiter=",",
         )
+
         final_x = caget(pv_x)
         final_y = caget(pv_y)
-        log.info(f"Final: x={final_x}, y={final_y}")
-        caput(pv_x, current_x)
-        caput(pv_y, current_y)
+        log.info(f"Final {i}: x={final_x}, y={final_y}")
+        caput(pv_x, current_x, wait=True)
+        caput(pv_y, current_y, wait=True)
+        Sleep(0.2)
         log.info(f"Reset: x={current_x}, y={current_y}")
-        Sleep(delay)
+        log.info("Waiting 30 seconds.")
+        Sleep(30)
 
 
 def whole_offsets(algorithm):
