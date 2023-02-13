@@ -15,7 +15,7 @@ QUAD_SLEW_RATE = 0.5
 NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
 SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
 SBBA_UNIT_CONVERSION = (
-    1000  # TODO: Remember to times result offset by this? SBBA matlab needs it.
+    1  # TODO: Remember to times result offset by this? SBBA matlab needs it.
 )
 
 
@@ -156,17 +156,18 @@ class SBBA(Algorithm):
             for index, value in reversed(list(enumerate(enabled_bpms))):
                 if value == 0:
                     bad_indices.append(index)
+            print(f"Disabled BPMs: {bad_indices}")
 
             # Get rid of bad bpms.
-            if metadata["plane"]["axis"] == "X":
+            if metadata["plane"].axis == "X":
                 for index, _ in enumerate(self._accelerator.bpms):
                     if self._accelerator.bpm_h_fofb_enabled[index] == 1:
                         bad_indices.append(index)
-            if metadata["plane"]["axis"] == "Y":
+            if metadata["plane"].axis == "Y":
                 for index, _ in enumerate(self._accelerator.bpms):
                     if self._accelerator.bpm_v_fofb_enabled[index] == 1:
                         bad_indices.append(index)
-
+            print(f"Disabled and bad BPMs: {bad_indices}")
             matrix = np.delete(matrix, bad_indices, axis=1)
 
             corr_step = metadata["corr_step"]
@@ -179,39 +180,51 @@ class SBBA(Algorithm):
             ]
             fit = np.polynomial.polynomial.polyfit(corrector_step_list, matrix, 1)
             p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
-
             gradients = list(p[:, 1])
-            max_gradient = abs(max(gradients, key=abs))
 
-            # Get rid of bad gradients
+            sorted_gradients = sorted(map(abs, gradients))
+            abs_gradients = [abs(value) for value in gradients]
+            second_half = sorted_gradients[len(sorted_gradients) // 2 :]
+            if len(gradients) > 5:
+                max_gradient = sorted_gradients[-5]
+            else:
+                max_gradient = sorted_gradients[-1]
+            max_gradient = max_gradient * 0.25
             bad_gradients = []
-            for gradient in gradients:
-                if abs(gradient) < max_gradient * 0.25:
-                    bad_gradients.append(gradients.index(gradient))
 
+            for index, value in enumerate(second_half):
+                # print(f"Second: {index}, {value}")
+                # print(
+                #     f"grad: {abs_gradients.index(value)}, {abs_gradients[abs_gradients.index(value)]}"
+                # )
+                if value < max_gradient:
+                    bad_gradients.append(abs_gradients.index(value))
+
+            log.debug(f"Bad gradients: {bad_gradients}")
             p = np.delete(p, bad_gradients, axis=0)
-            # gradient > 20 * BPMnoise?
 
+            log.debug(f"p: {p[:, 1]}")
+            log.debug(f"Size of p: {np.shape(p)}")
             # Remove all values that are more than 1 stdev from the mean.
-            while True:
-                log.info(f"Size of p: {np.shape(p)}")
-                counter = 0
-                offset_mean = mean(p[:, 1])
-                offset_stdev = stdev(p[:, 1])
-                std_list = []
-                for index, (offset, gradient) in enumerate(p):
-                    if (offset > offset_mean + offset_stdev) or (
-                        offset < offset_mean - offset_stdev
-                    ):
-                        counter += 1
-                        std_list.append(index)
-                p = np.delete(p, std_list, axis=0)
-                if counter == 0:
-                    break
 
+            offset_mean = mean(p[:, 1])
+            offset_stdev = stdev(p[:, 1])
+            stdev_list = []
+            max_value = offset_mean + offset_stdev
+            min_value = offset_mean - offset_stdev
+            for index, offset in enumerate(p[:, 1]):
+                if min_value < offset < max_value:
+                    pass
+                else:
+                    stdev_list.append(index)
+            p = np.delete(p, stdev_list, axis=0)
+
+            log.debug(f"p: {p[:, 1]}")
             log.info(f"Final size of p: {np.shape(p)}")
+
             if plot_output:
                 log.error("Plotting - Not implimented yet.")
+
             offset_mean = mean(p[:, 1])
             offset_stdev = stdev(p[:, 1])
             log.info(offset_mean, offset_stdev)
@@ -221,7 +234,6 @@ class SBBA(Algorithm):
 
         results = {}
         for index, _ in enumerate(offsets):
-
             quadrupole = quad_prefixs[index]
             offset = offsets[index]
             error = errors[index]
@@ -229,12 +241,5 @@ class SBBA(Algorithm):
             log.debug(f"Quad: {quad_name} offset calculated: {offset} +- {error}.")
             results[quadrupole] = [offset, error]
 
-        offset = mean(offsets)
-        sum_error = 0
-        for error in errors:
-            sum_error += error**2
-        error = np.sqrt(sum_error)
-
         bpm_pv_prefix = metadata["bpm_pv"]
-        log.info(f"BPM: {bpm_pv_prefix} offset calculated: {offset} +- {error}.")
         return Results(results, bpm_pv_prefix, metadata)
