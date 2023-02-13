@@ -199,7 +199,6 @@ class FBBA(Algorithm):
         return [high_data, low_data]
 
     def extract_freq_fft(self, data, known_freq):
-
         samplingfreq = TICKS_PER_SECOND
         length, samples = data.shape
         data = np.transpose(data)
@@ -357,7 +356,6 @@ class FBBA(Algorithm):
 
         results = {}
         for index, number in enumerate(offsets):
-
             quadrupole = quad_prefixs[index]
             offset = offsets[index]
             error = errors[index]
@@ -365,12 +363,5 @@ class FBBA(Algorithm):
             log.debug(f"Quad: {quad_name} offset calculated: {offset} +- {error}.")
             results[quadrupole] = [offset, error]
 
-        offset = mean(offsets)
-        sum_error = 0
-        for error in errors:
-            sum_error += error**2
-        error = np.sqrt(sum_error)
-
         bpm_pv_prefix = metadata["bpm_pv"]
-        log.info(f"BPM: {bpm_pv_prefix} offset calculated: {offset} +- {error}.")
         return Results(results, bpm_pv_prefix, metadata)
