@@ -146,7 +146,8 @@ class FBBA(Algorithm):
             duration = NETWORK_LAG + osc_length + SAFETY_NET + quad_lag + osc_length
 
             # Move quad high
-            self._accelerator.set_quad(quad, quad_high)
+            log.info("High Quad Step -> No movement until it works.")
+            # self._accelerator.set_quad(quad, quad_high)
             cothread.Sleep(quad_lag_s / 2)
 
             now = get_timestamp(self.decimated)
@@ -184,7 +185,8 @@ class FBBA(Algorithm):
             )
 
             # Move quad from high to low
-            self._accelerator.set_quad(quad, quad_low)
+            log.info("Low Quad Step -> No movement until it works.")
+            # self._accelerator.set_quad(quad, quad_low)
             log.info("Low Oscillation")
             low_keys = [key for key in excitation.keys() if "Low_" in key]
             excite((excitation[low_keys[0]], excitation[low_keys[1]]))
