@@ -24,14 +24,6 @@ def parse_args():
         help="Cell test",
     )
     parser.add_argument(
-        "-f",
-        "--freq",
-        dest="freq_t",
-        action="store_true",
-        default=False,
-        help="Freq test",
-    )
-    parser.add_argument(
         "-j",
         "--honing",
         dest="honing_t",
@@ -61,7 +53,6 @@ def parse_args():
 def main():
     args = parse_args()
     cell = args.cell_t
-    frequency = args.freq_t
     honing = args.honing_t
     triple = args.triple_t
     running = args.running_t
@@ -93,16 +84,12 @@ def main():
         spread_error = spread_mean * np.sqrt(sum(spread_list))
         return y_values, y_errors, spread_mean, spread_error, spread_stdev
 
-    def bba_values(rawdata, spread=3):
-        spread_mean = mean(rawdata[spread:])
-        spread_stdev = stdev(rawdata[spread:])
-        return spread_mean, spread_stdev
-
-    if cell:
-        pass
-
-    if frequency:
-        pass
+    def bba_values(data, error, spread=3):
+        spread_mean = mean(data[spread:])
+        spread_stdev = stdev(data[spread:])
+        spread_list = [(error[n] / data[n]) ** 2 for n in range(spread, 9)]
+        spread_error = spread_mean * np.sqrt(sum(spread_list))
+        return spread_mean, spread_error, spread_stdev
 
     if honing:
         repeats = 8
@@ -153,10 +140,16 @@ def main():
             )
 
         bba_f_x = [initial_x] + [value for value in []]
+        bba_f_x_e = [0] + [value for value in []]
+
         bba_t_x = [initial_x] + [value for value in []]
+        bba_t_x_e = [0] + [value for value in []]
 
         bba_f_y = [initial_y] + [value for value in []]
+        bba_f_y_e = [0] + [value for value in []]
+
         bba_t_y = [initial_y] + [value for value in []]
+        bba_t_y_e = [0] + [value for value in []]
 
         # FBBA vs BBA plot x
         for key, value in fbba_data_x:
@@ -168,28 +161,31 @@ def main():
                 x_axis,
                 y_values,
                 y_errors,
+                marker="+",
                 color=options[2],
                 label=f"FBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
             )
         # False fofb
-        average, av_stdev = bba_values(bba_f_x)
+        spread_mean, spread_error, spread_stdev = bba_values(bba_f_x, bba_f_x_e)
         options = bba_options["f"]
-        plt.plot(
+        plt.errorbar(
             x_axis,
             bba_f_x,
+            bba_f_x_e,
             linestyle=options[1],
             color=options[2],
-            label=f"BBA: fofb{options[0]}: {average} +- {av_stdev}",
+            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
         )
         # True fofb
-        average, av_stdev = bba_values(bba_t_x)
+        spread_mean, spread_error, spread_stdev = bba_values(bba_t_x, bba_t_x_e)
         options = bba_options["t"]
-        plt.plot(
+        plt.errorbar(
             x_axis,
-            bba_f_x,
+            bba_t_x,
+            bba_t_x_e,
             linestyle=options[1],
             color=options[2],
-            label=f"BBA: fofb{options[0]}: {average} +- {av_stdev}",
+            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
         )
         plt.title("Honing Test of FBBA / bba at 300mA in x.")
         plt.xlim(0, 8.1)
@@ -217,24 +213,26 @@ def main():
                 label=f"FBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
             )
         # False fofb
-        average, av_stdev = bba_values(bba_f_y)
+        spread_mean, spread_error, spread_stdev = bba_values(bba_f_y, bba_f_y_e)
         options = bba_options["f"]
-        plt.plot(
+        plt.errorbar(
             x_axis,
-            bba_f_y,
+            bba_f_x,
+            bba_f_y_e,
             linestyle=options[1],
             color=options[2],
-            label=f"BBA: fofb{options[0]}: {average} +- {av_stdev}",
+            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
         )
         # True fofb
-        average, av_stdev = bba_values(bba_t_y)
+        spread_mean, spread_error, spread_stdev = bba_values(bba_t_y, bba_t_y_e)
         options = bba_options["t"]
-        plt.plot(
+        plt.errorbar(
             x_axis,
             bba_f_y,
+            bba_t_y_e,
             linestyle=options[1],
             color=options[2],
-            label=f"BBA: fofb{options[0]}: {average} +- {av_stdev}",
+            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
         )
         plt.title("Honing Test of FBBA / bba at 300mA in y.")
         plt.xlim(0, 8.1)
@@ -265,24 +263,26 @@ def main():
                 label=f"SBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
             )
         # False fofb
-        average, av_stdev = bba_values(bba_f_x)
+        spread_mean, spread_error, spread_stdev = bba_values(bba_f_x, bba_f_x_e)
         options = bba_options["f"]
-        plt.plot(
+        plt.errorbar(
             x_axis,
             bba_f_x,
+            bba_f_x_e,
             linestyle=options[1],
             color=options[2],
-            label=f"BBA: fofb{options[0]}: {average} +- {av_stdev}",
+            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
         )
         # True fofb
-        average, av_stdev = bba_values(bba_t_x)
+        spread_mean, spread_error, spread_stdev = bba_values(bba_t_x, bba_t_x_e)
         options = bba_options["t"]
-        plt.plot(
+        plt.errorbar(
             x_axis,
-            bba_f_x,
+            bba_t_x,
+            bba_t_x_e,
             linestyle=options[1],
             color=options[2],
-            label=f"BBA: fofb{options[0]}: {average} +- {av_stdev}",
+            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
         )
         plt.title("Honing Test of SBBA / bba at 300mA in x.")
         plt.xlim(0, 8.1)
@@ -310,24 +310,26 @@ def main():
                 label=f"SBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
             )
         # False fofb
-        average, av_stdev = bba_values(bba_f_y)
+        spread_mean, spread_error, spread_stdev = bba_values(bba_f_y, bba_f_y_e)
         options = bba_options["f"]
-        plt.plot(
+        plt.errorbar(
             x_axis,
-            bba_f_y,
+            bba_f_x,
+            bba_f_x_e,
             linestyle=options[1],
             color=options[2],
-            label=f"BBA: fofb{options[0]}: {average} +- {av_stdev}",
+            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
         )
         # True fofb
-        average, av_stdev = bba_values(bba_t_y)
+        spread_mean, spread_error, spread_stdev = bba_values(bba_t_y, bba_t_y_e)
         options = bba_options["t"]
-        plt.plot(
+        plt.errorbar(
             x_axis,
-            bba_f_y,
+            bba_t_x,
+            bba_t_y_e,
             linestyle=options[1],
             color=options[2],
-            label=f"BBA: fofb{options[0]}: {average} +- {av_stdev}",
+            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
         )
         plt.title("Honing Test of SBBA / bba at 300mA in y.")
         plt.xlim(0, 8.1)
@@ -370,24 +372,26 @@ def main():
                 label=f"SBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
             )
         # False fofb
-        average, av_stdev = bba_values(bba_f_x)
+        spread_mean, spread_error, spread_stdev = bba_values(bba_f_x, bba_f_x_e)
         options = bba_options["f"]
-        plt.plot(
+        plt.errorbar(
             x_axis,
             bba_f_x,
+            bba_f_x_e,
             linestyle=options[1],
             color=options[2],
-            label=f"BBA: fofb{options[0]}: {average} +- {av_stdev}",
+            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
         )
         # True fofb
-        average, av_stdev = bba_values(bba_t_x)
+        spread_mean, spread_error, spread_stdev = bba_values(bba_t_x, bba_t_x_e)
         options = bba_options["t"]
-        plt.plot(
+        plt.errorbar(
             x_axis,
-            bba_f_x,
+            bba_t_x,
+            bba_t_x_e,
             linestyle=options[1],
             color=options[2],
-            label=f"BBA: fofb{options[0]}: {average} +- {av_stdev}",
+            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
         )
         plt.title("Honing Test of FBBA / bba at 300mA in x.")
         plt.xlim(0, 8.1)
@@ -427,24 +431,26 @@ def main():
                 label=f"SBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
             )
         # False fofb
-        average, av_stdev = bba_values(bba_f_y)
+        spread_mean, spread_error, spread_stdev = bba_values(bba_f_y, bba_f_y_e)
         options = bba_options["f"]
-        plt.plot(
+        plt.errorbar(
             x_axis,
             bba_f_y,
+            bba_f_y_e,
             linestyle=options[1],
             color=options[2],
-            label=f"BBA: fofb{options[0]}: {average} +- {av_stdev}",
+            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
         )
         # True fofb
-        average, av_stdev = bba_values(bba_t_y)
+        spread_mean, spread_error, spread_stdev = bba_values(bba_t_y, bba_t_y_e)
         options = bba_options["t"]
-        plt.plot(
+        plt.errorbar(
             x_axis,
-            bba_f_y,
+            bba_t_y,
+            bba_t_y_e,
             linestyle=options[1],
             color=options[2],
-            label=f"BBA: fofb{options[0]}: {average} +- {av_stdev}",
+            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
         )
         plt.title("Honing Test of FBBA / bba at 300mA in y.")
         plt.xlim(0, 8.1)
@@ -457,67 +463,6 @@ def main():
             bbox_inches="tight",
             dpi=1200,
         )
-        plt.close()
-
-    if triple:
-        pass
-
-    if running:
-        pass
-
-    if frequency:
-        # Incomplete: Unsure if needed.
-        repeats = 5
-        fft_ = True
-        fofb_trigger_ = True
-        frequency_list = [int(num) for num in range(0, 251)]
-        start_x = 0
-        # start_y = 0
-
-        for freq in frequency_list:
-            data_x = np.genfromtxt(
-                f"{TEMP_FILEPATH_ROOT}/frequency_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{frequency_list[0]}_{frequency_list[-1]}_x.csv",
-                delimiter=",",
-            )
-            y_change = np.cumsum((data_x[0])[0, :])
-            y_values = [start_x] + [value + start_x for value in y_change]
-            y_errors = [0] + [value for value in (value[0])[1, :]]
-            spread_mean = mean(y_values[spread_index:])
-            spread_list = [
-                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
-            ]
-            spread_error = spread_mean * np.sqrt(sum(spread_list))
-            plt.errorbar(
-                x_axis,
-                y_values,
-                y_errors,
-                marker=".",
-                capsize=5,
-                # color=freq_dict[freq],
-                linestyle="-",
-                label=f"FBBA x: fft:{fft_}, fofb:{fofb_trigger_},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
-            )
-        plt.hlines(
-            y=start_x,
-            xmin=0,
-            xmax=250.1,
-            color="gray",
-            linestyles="--",
-            label=f"x initial: {start_x}",
-        )
-
-        plt.title("Frequency Plot fft, fofb on: x")
-        plt.xlim(0, 250.1)
-        plt.xlabel("Run number")
-        plt.ylabel("Offset Value (mm)")
-        plt.grid(which="both", axis="both")
-        plt.legend()
-        plt.savefig(
-            f"{TEMP_FILEPATH_ROOT}/frequency_r10_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{frequency_list[0]}_{frequency_list[-1]}_x.png",
-            bbox_inches="tight",
-            dpi=1200,
-        )
-        # plt.show()
         plt.close()
 
     if triple:

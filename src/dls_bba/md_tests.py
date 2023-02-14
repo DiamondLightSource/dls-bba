@@ -228,6 +228,7 @@ def repeat_test(
     errors = defaultdict(list)
 
     for i in range(repeats):
+        log.info(f"Repeat number {i} of {repeats}")
         filename_store = []
         for axis in directions_list:
             filename_prefix = get_filename_prefix(method)
@@ -354,8 +355,7 @@ def triple_freq(algorithm, element, method, directions_list):
         algorithm.toggle_fofb()  # Align for set of 8.
         log.info(f"Freq: {freq}: FFT: {fft}, FOFB: {fofb}")
         repeats = 8
-        cycles = 16
-        frequency = 8
+        cycles = int(np.floor(MAX_TIME * freq))
         current = 300
         offsets, errors = repeat_test(
             algorithm,
@@ -367,7 +367,7 @@ def triple_freq(algorithm, element, method, directions_list):
             fft_=fft,
             fofb_trigger_=fofb,
             frequency_=freq,
-            cycles_=int(np.floor(MAX_TIME * freq)),
+            cycles_=cycles,
             quadrupole_scalar_=quadrupole_scalar,
             corrector_scalar_=corrector_scalar,
         )
@@ -376,7 +376,7 @@ def triple_freq(algorithm, element, method, directions_list):
         matrix[0, :] = offsets[direction_dict["x"][0]]
         matrix[1, :] = errors[direction_dict["x"][0]]
         np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/triple_FBBA_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_x.csv",
+            f"{TEMP_FILEPATH_ROOT}/triple_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_x.csv",
             matrix,
             delimiter=",",
         )
@@ -384,7 +384,7 @@ def triple_freq(algorithm, element, method, directions_list):
         matrix[0, :] = offsets[direction_dict["y"][0]]
         matrix[1, :] = errors[direction_dict["y"][0]]
         np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/triple_FBBA_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_y.csv",
+            f"{TEMP_FILEPATH_ROOT}/triple_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_y.csv",
             matrix,
             delimiter=",",
         )

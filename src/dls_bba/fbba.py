@@ -30,8 +30,8 @@ class FBBA(Algorithm):
 
     def configure(
         self,
-        quadrupole_scalar=0.02,
-        corrector_scalar=2,
+        quadrupole_scalar=0.01,
+        corrector_scalar=1,
         cycles=16,
         frequency=8,
         decimated=False,
