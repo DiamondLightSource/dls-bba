@@ -129,8 +129,8 @@ class FBBA(Algorithm):
             )
             key_list = [key for key in quad_metadata.keys() if metadata_key in key]
 
-            # self.toggle_feedbacks(max_orbit)
-            # original_offsets = self.zero_origins(bpm)
+            self.toggle_feedbacks(max_orbit)
+            original_offsets = self.zero_origins(bpm)
 
             quad_sp = self._accelerator.measure_quad(quad)
             quad_step = quad_metadata[key_list[0]]["quad_step"]
@@ -207,7 +207,8 @@ class FBBA(Algorithm):
                     "Low": selected_data[1],
                 }
 
-            self._accelerator.set_quad(quad, quad_sp)
+            # self._accelerator.set_quad(quad, quad_sp)
+
             cothread.Sleep(quad_lag_s / 2)
             self.restore_origins(original_offsets)
 
