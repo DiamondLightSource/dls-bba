@@ -185,7 +185,7 @@ class Algorithm(ABC):
             check=True,
             shell=True,
         )
-        sleep(2)
+        sleep(3)
         run(
             "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py stop",
             check=True,
