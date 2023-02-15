@@ -242,6 +242,7 @@ class Algorithm(ABC):
 
         caput(bcd_pv, 0, wait=True)
         caput(golden_pv, 0, wait=True)
+        Sleep(0.2)
         return offsets
 
     def restore_origins(self, offsets):
@@ -249,16 +250,8 @@ class Algorithm(ABC):
         # return None  # For testing -> PV's dont exist in virtac.
         for key, value in offsets.items():
             caput(key, value, wait=True)
+        Sleep(0.2)
         log.info("Origins Restored")
-
-    # def set_bpm_offset(self, bpm, value, plane_info):
-    #     """Applies new offset value to the BBA offset."""
-    #     # TODO: Should this be in Algorithm?
-    #     bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
-    #     bba_pv = bpm_pv_root + ORIGIN_SUFFIXES["BBA"].format(axis=plane_info.axis)
-    #     current_offset = caget(bba_pv)
-    #     new_offset = current_offset + value
-    #     caput(bba_pv, new_offset)
 
     @abstractmethod
     def run(self, element, plane_info, max_orbit):

@@ -99,31 +99,23 @@ class SBBA(Algorithm):
             quad_pv_root = self._accelerator.element_to_pv_prefix(quad).replace(
                 "-", "_"
             )
+            for movement, quad_h_l in [("High", quad_high), ("Low", quad_low)]:
+                log.info(f"Quad movement: {movement}")
+                self._accelerator.set_quad(quad, quad_h_l)
+                cothread.Sleep(quad_lag_s / 2)
 
-            for index, step in enumerate(corrector_step_list):
-                log.info(f"Index: {index}, Step: {step}")
-                # Step the corrector to the value.
-                self._accelerator.set_corrector(
-                    corrector, plane_info, corrector_sp + step
-                )
-                # cothread.Sleep(NETWORK_LAG + ((Cycle/freq) * ticks) + SAFETY_NET) / TICKS_PER_SECOND)
-                cothread.Sleep(0.1)
-                # High quad step
-                self._accelerator.set_quad(quad, quad_high)
-                cothread.Sleep(quad_lag_s / 2)
-                log.info(f"Quad High Measurement for corrector step {index}.")
-                high_bpms = self._accelerator.measure_bpms(plane_info)
-                # Low quad step
-                self._accelerator.set_quad(quad, quad_low)
-                cothread.Sleep(quad_lag_s)
-                log.info(f"Quad Low Measurement for corrector step {index}.")
-                low_bpms = self._accelerator.measure_bpms(plane_info)
-                cothread.Sleep(quad_lag_s / 2)
-                # Change in step.
-                raw_data[f"{quad_pv_root}_{index}_High"] = high_bpms
-                raw_data[f"{quad_pv_root}_{index}_Low"] = low_bpms
+                for index, step in enumerate(corrector_step_list, start=1):
+                    log.info(f"Corrector movement: {index}, Step: {step}")
+                    # Step the corrector to the value.
+                    self._accelerator.set_corrector(
+                        corrector, plane_info, corrector_sp + step
+                    )
+                    cothread.Sleep(0.1)
+                    measured_bpms = self._accelerator.measure_bpms(plane_info)
+                    raw_data[f"{quad_pv_root}_{index}_{movement}"] = measured_bpms
 
             # Reset magnets
+            log.info("Reset corrector and quad")
             self._accelerator.set_corrector(corrector, plane_info, corrector_sp)
             self._accelerator.set_quad(quad, quad_sp)
             self.restore_origins(original_offsets)
@@ -146,7 +138,7 @@ class SBBA(Algorithm):
 
         for quad in quad_prefixs:
             matrix = np.zeros(shape=(5, len(enabled_bpms)))
-            for index in range(5):
+            for index in range(1, 6):
                 high = data[f"{quad}_{index}_High"]
                 low = data[f"{quad}_{index}_Low"]
                 matrix[index, :] = np.subtract(high, low)
@@ -203,7 +195,6 @@ class SBBA(Algorithm):
             log.debug(f"Bad gradients: {bad_gradients}")
             p = np.delete(p, bad_gradients, axis=0)
 
-            log.debug(f"p: {p[:, 1]}")
             log.debug(f"Size of p: {np.shape(p)}")
             # Remove all values that are more than 1 stdev from the mean.
 
@@ -219,7 +210,6 @@ class SBBA(Algorithm):
                     stdev_list.append(index)
             p = np.delete(p, stdev_list, axis=0)
 
-            log.debug(f"p: {p[:, 1]}")
             log.info(f"Final size of p: {np.shape(p)}")
 
             if plot_output:
