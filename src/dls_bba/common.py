@@ -39,16 +39,19 @@ class RawData:
     # TODO: asdict, make all shared attributes not in metadata.
 
     def save(self, time_prefix, filepath):
+        metadata = self.metadata
+        raw_data = self.raw_data
+        algorithm = self.algorithm
         filename = "{}/{}-{}-{}-rawdata.mat".format(
-            filepath, time_prefix, self.metadata["bpm_pv"], self.metadata["plane"].axis
+            filepath, time_prefix, metadata["bpm_pv"], metadata["plane"].axis
         )
-        self.metadata["plane"] = self.metadata[
+        metadata["plane"] = metadata[
             "plane"
         ]._asdict()  # NamedTuple not supported in .mat file.
         dct = {
-            "raw_data": self.raw_data,
-            "algorithm": self.algorithm,
-            "metadata": self.metadata,
+            "raw_data": raw_data,
+            "algorithm": algorithm,
+            "metadata": metadata,
         }
         io.savemat(filename, dct, oned_as="row")
         log.info(f"Saved raw data as {filename}")
@@ -68,16 +71,22 @@ class Results:
     metadata: Dict[str, Any]
 
     def save(self, time_prefix, filepath):
+        metadata = self.metadata
+        bpm_pv_prefix = self.bpm_pv_prefix
+        results = self.results
+        metadata["plane"] = metadata[
+            "plane"
+        ]._asdict()  # NamedTuple not supported in .mat file.
         filename = "{}/{}-{}-{}-results.mat".format(
             filepath,
             time_prefix,
-            self.metadata["bpm_pv"],
-            self.metadata["plane"]["axis"],
+            metadata["bpm_pv"],
+            metadata["plane"].axis,
         )
         dct = {
-            "results": self.results,
-            "bpm_pv_prefix": self.bpm_pv_prefix,
-            "metadata": self.metadata,
+            "results": results,
+            "bpm_pv_prefix": bpm_pv_prefix,
+            "metadata": metadata,
         }
         io.savemat(filename, dct, oned_as="row")
         log.info(f"Saved results as {filename}")

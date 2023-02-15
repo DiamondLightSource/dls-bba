@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 
 from dls_bba import accelerator as acc
-from dls_bba.common import PLANE_VALUES, Algorithm
+from dls_bba.common import PLANE_VALUES, Algorithm, Results
 from dls_bba.fbba import FBBA
 from dls_bba.sbba import SBBA
 
@@ -159,7 +159,7 @@ def main():
         if apply:
             for filename in filename_store:
                 results_filepath = os.path.join(filepath, filename)
-                results.from_file(results_filepath)
+                results = Results.from_file(results_filepath)
                 algorithm.apply_results(results)
 
 

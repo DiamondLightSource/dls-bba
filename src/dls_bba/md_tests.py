@@ -20,7 +20,7 @@ from cothread import Sleep
 from cothread.catools import caget, caput
 
 from dls_bba import accelerator as acc
-from dls_bba.common import PLANE_VALUES, Algorithm
+from dls_bba.common import PLANE_VALUES, Algorithm, Results
 from dls_bba.fbba import FBBA
 from dls_bba.sbba import SBBA
 
@@ -256,7 +256,7 @@ def repeat_test(
         if apply:
             for filename in filename_store:
                 results_filepath = filename
-                results.from_file(results_filepath)
+                results = Results.from_file(results_filepath)
                 algorithm.apply_results(results)
         Sleep(delay_)
     return offsets, errors
