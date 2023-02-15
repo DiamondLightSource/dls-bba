@@ -10,6 +10,11 @@ import numpy as np
 
 from dls_bba.md_tests import direction_dict
 
+# import scienceplots
+
+
+# plt.style.use(["science", "no-latex"])
+
 TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "14Feb2023")
 
 
@@ -59,8 +64,8 @@ def main():
 
     x_axis = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
-    initial_x = 0.750
-    initial_y = 0.450
+    initial_x = 0.7890
+    initial_y = 0.4230
 
     def fbba_values(rawdata, initial, spread=3):
         values = np.cumsum(rawdata[0, :])
@@ -71,6 +76,10 @@ def main():
         spread_stdev = stdev(y_values[spread:])
         spread_list = [(y_errors[n] / y_values[n]) ** 2 for n in range(spread, 9)]
         spread_error = spread_mean * np.sqrt(sum(spread_list))
+
+        spread_mean = str(spread_mean)[:6]
+        spread_error = str(spread_error)[:6]
+        spread_stdev = str(spread_stdev)[:6]
         return y_values, y_errors, spread_mean, spread_error, spread_stdev
 
     def sbba_values(rawdata, initial, spread=3):
@@ -82,6 +91,10 @@ def main():
         spread_stdev = stdev(y_values[spread:])
         spread_list = [(y_errors[n] / y_values[n]) ** 2 for n in range(spread, 9)]
         spread_error = spread_mean * np.sqrt(sum(spread_list))
+
+        spread_mean = str(spread_mean)[:6]
+        spread_error = str(spread_error)[:6]
+        spread_stdev = str(spread_stdev)[:6]
         return y_values, y_errors, spread_mean, spread_error, spread_stdev
 
     def bba_values(data, error, spread=3):
@@ -89,6 +102,10 @@ def main():
         spread_stdev = stdev(data[spread:])
         spread_list = [(error[n] / data[n]) ** 2 for n in range(spread, 9)]
         spread_error = spread_mean * np.sqrt(sum(spread_list))
+
+        spread_mean = str(spread_mean)[:6]
+        spread_error = str(spread_error)[:6]
+        spread_stdev = str(spread_stdev)[:6]
         return spread_mean, spread_error, spread_stdev
 
     if honing:
@@ -106,8 +123,8 @@ def main():
             "fourth": [False, False, "darkblue"],
         }
         sbba_options = {  # fofb, color
-            "first": [False, "darkred"],
-            "second": [True, "red"],
+            "first": [False, False, "darkred"],
+            "second": [False, True, "red"],
         }
         bba_options = {  # fofb, linestyle, color
             "f": [False, "--", "darkgreen"],
@@ -127,32 +144,88 @@ def main():
             )
 
         sbba_data_x = {}
-        for key, (fofb, _) in sbba_options.items():
+        for key, (_, fofb, _) in sbba_options.items():
             sbba_data_x[key] = np.genfromtxt(
                 f"{TEMP_FILEPATH_ROOT}/honing_SBBA_r{repeats}_c{cycles}_f{frequency}_qs{qs}_cs{cs}_fftFalse_fofb{fofb}_{current}_x.csv",
                 delimiter=",",
             )
         sbba_data_y = {}
-        for key, (fofb, _) in sbba_options.items():
+        for key, (_, fofb, _) in sbba_options.items():
             sbba_data_y[key] = np.genfromtxt(
                 f"{TEMP_FILEPATH_ROOT}/honing_SBBA_r{repeats}_c{cycles}_f{frequency}_qs{qs}_cs{cs}_fftFalse_fofb{fofb}_{current}_y.csv",
                 delimiter=",",
             )
 
-        bba_f_x = [initial_x] + [value for value in []]
-        bba_f_x_e = [0] + [value for value in []]
+        bba_f_x = [initial_x] + [
+            value
+            for value in [
+                0.7800,
+                0.7950,
+                0.7850,
+                0.7900,
+                0.7840,
+                0.7790,
+                0.7810,
+                0.7860,
+            ]
+        ]
+        bba_f_x_e = [0] + [
+            value for value in [0.002, 0.004, 0.001, 0.002, 0.002, 0.002, 0.002, 0.001]
+        ]
 
-        bba_t_x = [initial_x] + [value for value in []]
-        bba_t_x_e = [0] + [value for value in []]
+        bba_t_x = [initial_x] + [
+            value
+            for value in [
+                0.7890,
+                0.7870,
+                0.7860,
+                0.7840,
+                0.7890,
+                0.7890,
+                0.7870,
+                0.7860,
+            ]
+        ]
+        bba_t_x_e = [0] + [
+            value for value in [0.002, 0.002, 0.001, 0.001, 0.001, 0.001, 0.004, 0.002]
+        ]
 
-        bba_f_y = [initial_y] + [value for value in []]
-        bba_f_y_e = [0] + [value for value in []]
+        bba_f_y = [initial_y] + [
+            value
+            for value in [
+                0.4070,
+                0.4070,
+                0.4070,
+                0.4070,
+                0.4050,
+                0.4050,
+                0.4050,
+                0.4040,
+            ]
+        ]
+        bba_f_y_e = [0] + [
+            value for value in [0.001, 0.000, 0.000, 0.000, 0.001, 0.000, 0.001, 0.001]
+        ]
 
-        bba_t_y = [initial_y] + [value for value in []]
-        bba_t_y_e = [0] + [value for value in []]
+        bba_t_y = [initial_y] + [
+            value
+            for value in [
+                0.4020,
+                0.4060,
+                0.4050,
+                0.4060,
+                0.4060,
+                0.4060,
+                0.4130,
+                0.4060,
+            ]
+        ]
+        bba_t_y_e = [0] + [
+            value for value in [0.000, 0.000, 0.001, 0.000, 0.000, 0.000, 0.000, 0.000]
+        ]
 
         # FBBA vs BBA plot x
-        for key, value in fbba_data_x:
+        for key, value in fbba_data_x.items():
             y_values, y_errors, spread_mean, spread_error, spread_stdev = fbba_values(
                 value, initial_x
             )
@@ -161,7 +234,8 @@ def main():
                 x_axis,
                 y_values,
                 y_errors,
-                marker="+",
+                marker=".",
+                capsize=5,
                 color=options[2],
                 label=f"FBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
             )
@@ -172,6 +246,8 @@ def main():
             x_axis,
             bba_f_x,
             bba_f_x_e,
+            marker=".",
+            capsize=5,
             linestyle=options[1],
             color=options[2],
             label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
@@ -183,6 +259,8 @@ def main():
             x_axis,
             bba_t_x,
             bba_t_x_e,
+            marker=".",
+            capsize=5,
             linestyle=options[1],
             color=options[2],
             label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
@@ -192,7 +270,7 @@ def main():
         plt.xlabel("Run number")
         plt.ylabel("Offset Value (mm)")
         plt.grid(which="both", axis="both")
-        plt.legend()
+        plt.legend(fontsize="x-small")
         plt.savefig(
             f"{TEMP_FILEPATH_ROOT}/honing_fbba_and_bba_300mA_comparison_x.png",
             bbox_inches="tight",
@@ -200,7 +278,7 @@ def main():
         )
         plt.close()
         # FBBA vs BBA plot y
-        for key, value in fbba_data_y:
+        for key, value in fbba_data_y.items():
             y_values, y_errors, spread_mean, spread_error, spread_stdev = fbba_values(
                 value, initial_y
             )
@@ -209,6 +287,8 @@ def main():
                 x_axis,
                 y_values,
                 y_errors,
+                marker=".",
+                capsize=5,
                 color=options[2],
                 label=f"FBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
             )
@@ -217,8 +297,10 @@ def main():
         options = bba_options["f"]
         plt.errorbar(
             x_axis,
-            bba_f_x,
+            bba_f_y,
             bba_f_y_e,
+            marker=".",
+            capsize=5,
             linestyle=options[1],
             color=options[2],
             label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
@@ -230,6 +312,8 @@ def main():
             x_axis,
             bba_f_y,
             bba_t_y_e,
+            marker=".",
+            capsize=5,
             linestyle=options[1],
             color=options[2],
             label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
@@ -239,7 +323,7 @@ def main():
         plt.xlabel("Run number")
         plt.ylabel("Offset Value (mm)")
         plt.grid(which="both", axis="both")
-        plt.legend()
+        plt.legend(fontsize="x-small")
         plt.savefig(
             f"{TEMP_FILEPATH_ROOT}/honing_fbba_and_bba_300mA_comparison_y.png",
             bbox_inches="tight",
@@ -250,7 +334,7 @@ def main():
         """"""
 
         # SBBA vs BBA plot x
-        for key, value in sbba_data_x:
+        for key, value in sbba_data_x.items():
             y_values, y_errors, spread_mean, spread_error, spread_stdev = sbba_values(
                 value, initial_x
             )
@@ -259,6 +343,8 @@ def main():
                 x_axis,
                 y_values,
                 y_errors,
+                marker=".",
+                capsize=5,
                 color=options[2],
                 label=f"SBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
             )
@@ -269,6 +355,8 @@ def main():
             x_axis,
             bba_f_x,
             bba_f_x_e,
+            marker=".",
+            capsize=5,
             linestyle=options[1],
             color=options[2],
             label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
@@ -280,6 +368,8 @@ def main():
             x_axis,
             bba_t_x,
             bba_t_x_e,
+            marker=".",
+            capsize=5,
             linestyle=options[1],
             color=options[2],
             label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
@@ -289,7 +379,7 @@ def main():
         plt.xlabel("Run number")
         plt.ylabel("Offset Value (mm)")
         plt.grid(which="both", axis="both")
-        plt.legend()
+        plt.legend(fontsize="x-small")
         plt.savefig(
             f"{TEMP_FILEPATH_ROOT}/honing_sbba_and_bba_300mA_comparison_x.png",
             bbox_inches="tight",
@@ -297,7 +387,7 @@ def main():
         )
         plt.close()
         # SBBA vs BBA plot y
-        for key, value in sbba_data_y:
+        for key, value in sbba_data_y.items():
             y_values, y_errors, spread_mean, spread_error, spread_stdev = sbba_values(
                 value, initial_y
             )
@@ -306,127 +396,8 @@ def main():
                 x_axis,
                 y_values,
                 y_errors,
-                color=options[2],
-                label=f"SBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
-            )
-        # False fofb
-        spread_mean, spread_error, spread_stdev = bba_values(bba_f_y, bba_f_y_e)
-        options = bba_options["f"]
-        plt.errorbar(
-            x_axis,
-            bba_f_x,
-            bba_f_x_e,
-            linestyle=options[1],
-            color=options[2],
-            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
-        )
-        # True fofb
-        spread_mean, spread_error, spread_stdev = bba_values(bba_t_y, bba_t_y_e)
-        options = bba_options["t"]
-        plt.errorbar(
-            x_axis,
-            bba_t_x,
-            bba_t_y_e,
-            linestyle=options[1],
-            color=options[2],
-            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
-        )
-        plt.title("Honing Test of SBBA / bba at 300mA in y.")
-        plt.xlim(0, 8.1)
-        plt.xlabel("Run number")
-        plt.ylabel("Offset Value (mm)")
-        plt.grid(which="both", axis="both")
-        plt.legend()
-        plt.savefig(
-            f"{TEMP_FILEPATH_ROOT}/honing_sbba_and_bba_300mA_comparison_y.png",
-            bbox_inches="tight",
-            dpi=1200,
-        )
-        plt.close()
-
-        """"""
-
-        # FBBA vs SBBA vs BBA x
-        for key, value in fbba_data_x:
-            y_values, y_errors, spread_mean, spread_error, spread_stdev = fbba_values(
-                value, initial_x
-            )
-            options = fbba_options[key]
-            plt.errorbar(
-                x_axis,
-                y_values,
-                y_errors,
-                color=options[2],
-                label=f"FBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
-            )
-        for key, value in sbba_data_x:
-            y_values, y_errors, spread_mean, spread_error, spread_stdev = sbba_values(
-                value, initial_x
-            )
-            options = sbba_options[key]
-            plt.errorbar(
-                x_axis,
-                y_values,
-                y_errors,
-                color=options[2],
-                label=f"SBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
-            )
-        # False fofb
-        spread_mean, spread_error, spread_stdev = bba_values(bba_f_x, bba_f_x_e)
-        options = bba_options["f"]
-        plt.errorbar(
-            x_axis,
-            bba_f_x,
-            bba_f_x_e,
-            linestyle=options[1],
-            color=options[2],
-            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
-        )
-        # True fofb
-        spread_mean, spread_error, spread_stdev = bba_values(bba_t_x, bba_t_x_e)
-        options = bba_options["t"]
-        plt.errorbar(
-            x_axis,
-            bba_t_x,
-            bba_t_x_e,
-            linestyle=options[1],
-            color=options[2],
-            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
-        )
-        plt.title("Honing Test of FBBA / bba at 300mA in x.")
-        plt.xlim(0, 8.1)
-        plt.xlabel("Run number")
-        plt.ylabel("Offset Value (mm)")
-        plt.grid(which="both", axis="both")
-        plt.legend()
-        plt.savefig(
-            f"{TEMP_FILEPATH_ROOT}/honing_fbba_sbba_bba_300mA_comparison_x.png",
-            bbox_inches="tight",
-            dpi=1200,
-        )
-        plt.close()
-        # FBBA vs SBBA vs BBA y
-        for key, value in fbba_data_y:
-            y_values, y_errors, spread_mean, spread_error, spread_stdev = fbba_values(
-                value, initial_y
-            )
-            options = fbba_options[key]
-            plt.errorbar(
-                x_axis,
-                y_values,
-                y_errors,
-                color=options[2],
-                label=f"FBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
-            )
-        for key, value in sbba_data_y:
-            y_values, y_errors, spread_mean, spread_error, spread_stdev = sbba_values(
-                value, initial_y
-            )
-            options = sbba_options[key]
-            plt.errorbar(
-                x_axis,
-                y_values,
-                y_errors,
+                marker=".",
+                capsize=5,
                 color=options[2],
                 label=f"SBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
             )
@@ -437,6 +408,8 @@ def main():
             x_axis,
             bba_f_y,
             bba_f_y_e,
+            marker=".",
+            capsize=5,
             linestyle=options[1],
             color=options[2],
             label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
@@ -448,6 +421,145 @@ def main():
             x_axis,
             bba_t_y,
             bba_t_y_e,
+            marker=".",
+            capsize=5,
+            linestyle=options[1],
+            color=options[2],
+            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
+        )
+        plt.title("Honing Test of SBBA / bba at 300mA in y.")
+        plt.xlim(0, 8.1)
+        plt.xlabel("Run number")
+        plt.ylabel("Offset Value (mm)")
+        plt.grid(which="both", axis="both")
+        plt.legend(fontsize="x-small")
+        plt.savefig(
+            f"{TEMP_FILEPATH_ROOT}/honing_sbba_and_bba_300mA_comparison_y.png",
+            bbox_inches="tight",
+            dpi=1200,
+        )
+        plt.close()
+
+        """"""
+
+        # FBBA vs SBBA vs BBA x
+        for key, value in fbba_data_x.items():
+            y_values, y_errors, spread_mean, spread_error, spread_stdev = fbba_values(
+                value, initial_x
+            )
+            options = fbba_options[key]
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=options[2],
+                label=f"FBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
+            )
+        for key, value in sbba_data_x.items():
+            y_values, y_errors, spread_mean, spread_error, spread_stdev = sbba_values(
+                value, initial_x
+            )
+            options = sbba_options[key]
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=options[2],
+                label=f"SBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
+            )
+        # False fofb
+        spread_mean, spread_error, spread_stdev = bba_values(bba_f_x, bba_f_x_e)
+        options = bba_options["f"]
+        plt.errorbar(
+            x_axis,
+            bba_f_x,
+            bba_f_x_e,
+            marker=".",
+            capsize=5,
+            linestyle=options[1],
+            color=options[2],
+            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
+        )
+        # True fofb
+        spread_mean, spread_error, spread_stdev = bba_values(bba_t_x, bba_t_x_e)
+        options = bba_options["t"]
+        plt.errorbar(
+            x_axis,
+            bba_t_x,
+            bba_t_x_e,
+            marker=".",
+            capsize=5,
+            linestyle=options[1],
+            color=options[2],
+            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
+        )
+        plt.title("Honing Test of FBBA / bba at 300mA in x.")
+        plt.xlim(0, 8.1)
+        plt.xlabel("Run number")
+        plt.ylabel("Offset Value (mm)")
+        plt.grid(which="both", axis="both")
+        plt.legend(fontsize="x-small")
+        plt.savefig(
+            f"{TEMP_FILEPATH_ROOT}/honing_fbba_sbba_bba_300mA_comparison_x.png",
+            bbox_inches="tight",
+            dpi=1200,
+        )
+        plt.close()
+        # FBBA vs SBBA vs BBA y
+        for key, value in fbba_data_y.items():
+            y_values, y_errors, spread_mean, spread_error, spread_stdev = fbba_values(
+                value, initial_y
+            )
+            options = fbba_options[key]
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=options[2],
+                label=f"FBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
+            )
+        for key, value in sbba_data_y.items():
+            y_values, y_errors, spread_mean, spread_error, spread_stdev = sbba_values(
+                value, initial_y
+            )
+            options = sbba_options[key]
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=options[2],
+                label=f"SBBA: fft{options[0]}, fofb{options[1]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
+            )
+        # False fofb
+        spread_mean, spread_error, spread_stdev = bba_values(bba_f_y, bba_f_y_e)
+        options = bba_options["f"]
+        plt.errorbar(
+            x_axis,
+            bba_f_y,
+            bba_f_y_e,
+            marker=".",
+            capsize=5,
+            linestyle=options[1],
+            color=options[2],
+            label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
+        )
+        # True fofb
+        spread_mean, spread_error, spread_stdev = bba_values(bba_t_y, bba_t_y_e)
+        options = bba_options["t"]
+        plt.errorbar(
+            x_axis,
+            bba_t_y,
+            bba_t_y_e,
+            marker=".",
+            capsize=5,
             linestyle=options[1],
             color=options[2],
             label=f"BBA: fofb{options[0]}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
@@ -457,7 +569,7 @@ def main():
         plt.xlabel("Run number")
         plt.ylabel("Offset Value (mm)")
         plt.grid(which="both", axis="both")
-        plt.legend()
+        plt.legend(fontsize="x-small")
         plt.savefig(
             f"{TEMP_FILEPATH_ROOT}/honing_fbba_sbba_bba_300mA_comparison_y.png",
             bbox_inches="tight",
@@ -466,15 +578,15 @@ def main():
         plt.close()
 
     if triple:
-        frequencies = [8, 83, 137, 179, 223, 269]
+        frequencies = [8, 83, 137, 179]
         fft_ = True
-        fofb_trigger_ = True
+        fofb_trigger_ = False
         current = 300
         x_axis = [0, 1, 2, 3, 4, 5, 6, 7, 8]
         spread_index = 3
 
-        initial_x_300 = 0
-        initial_y_300 = 0
+        initial_x = 0.7890
+        initial_y = 0.4230
 
         freq_dict = {
             8: "darkred",
@@ -484,42 +596,47 @@ def main():
             223: "darkgreen",
             269: "dodgerblue",
         }
-        bba_300_dict = {
-            "data_x_300_BBA_fofbT": [
-                data_x_300_BBA_fofbT,
-                data_x_300_BBA_fofbT_error,
-                "x",
-                "True",
-                "chocolate",
-                "-",
-            ],
-            "data_y_300_BBA_fofbT": [
-                data_y_300_BBA_fofbT,
-                data_y_300_BBA_fofbT_error,
-                "y",
-                "True",
-                "chocolate",
-                "--",
-            ],
-        }
+        bba_f_x = [initial_x] + [
+            value
+            for value in [
+                0.7800,
+                0.7950,
+                0.7850,
+                0.7900,
+                0.7840,
+                0.7790,
+                0.7810,
+                0.7860,
+            ]
+        ]
+        bba_f_x_e = [0] + [
+            value for value in [0.002, 0.004, 0.001, 0.002, 0.002, 0.002, 0.002, 0.001]
+        ]
+        bba_f_y = [initial_y] + [
+            value
+            for value in [
+                0.4070,
+                0.4070,
+                0.4070,
+                0.4070,
+                0.4050,
+                0.4050,
+                0.4050,
+                0.4040,
+            ]
+        ]
+        bba_f_y_e = [0] + [
+            value for value in [0.001, 0.000, 0.000, 0.000, 0.001, 0.000, 0.001, 0.001]
+        ]
 
         for freq in frequencies:
-            data_x = np.genfromtxt(
-                f"{TEMP_FILEPATH_ROOT}/triple_r8_c16_f{freq}_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_x.csv",
+            data = np.genfromtxt(
+                f"{TEMP_FILEPATH_ROOT}/triple_FBBA_r8_c{int(np.floor(2*freq))}_f{freq}_qs0.01_cs1_fft{fft_}_fofb{fofb_trigger_}_{current}_x.csv",
                 delimiter=",",
             )
-            data_y = np.genfromtxt(
-                f"{TEMP_FILEPATH_ROOT}/triple_r8_c16_f{freq}_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_y.csv",
-                delimiter=",",
+            y_values, y_errors, spread_mean, spread_error, spread_stdev = fbba_values(
+                data, initial_x
             )
-            y_change = np.cumsum((data_x[0])[0, :])
-            y_values = [initial_x_300] + [value + initial_x_300 for value in y_change]
-            y_errors = [0] + [value for value in (value[0])[1, :]]
-            spread_mean = mean(y_values[spread_index:])
-            spread_list = [
-                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
-            ]
-            spread_error = spread_mean * np.sqrt(sum(spread_list))
             plt.errorbar(
                 x_axis,
                 y_values,
@@ -527,72 +644,77 @@ def main():
                 marker=".",
                 capsize=5,
                 color=freq_dict[freq],
-                linestyle="-",
-                label=f"FBBA x: fft:{fft_}, fofb:{fofb_trigger_},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
+                label=f"FBBA: freq {freq}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
             )
-            y_change = np.cumsum((data_y[0])[0, :])
-            y_values = [initial_x_300] + [value + initial_x_300 for value in y_change]
-            y_errors = [0] + [value for value in (value[0])[1, :]]
-            spread_mean = mean(y_values[spread_index:])
-            spread_list = [
-                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
-            ]
-            spread_error = spread_mean * np.sqrt(sum(spread_list))
-            plt.errorbar(
-                x_axis,
-                y_values,
-                y_errors,
-                marker=".",
-                capsize=5,
-                color=freq_dict[freq],
-                linestyle="--",
-                label=f"FBBA x: fft:{fft_}, fofb:{fofb_trigger_},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
-            )
-
-        for key, value in bba_300_dict:
-            y_values = value[0]
-            y_errors = [0] + [v for v in value[1]]
-            spread_mean = mean(y_values[spread_index:])
-            spread_list = [
-                (y_errors[n] / y_values[n]) ** 2 for n in range(spread_index, 9)
-            ]
-            spread_error = spread_mean * np.sqrt(sum(spread_list))
-            plt.errorbar(
-                x_axis,
-                y_values,
-                y_errors,
-                marker=".",
-                capsize=5,
-                color=value[4],
-                linestyle=value[5],
-                label=f"BBA {value[2]}: fofb:{value[3]},  Spread:{str(spread_mean)[:6]} +- {str(spread_error)[:6]}",
-            )
-
-        plt.hlines(
-            y=initial_x_300,
-            xmin=0,
-            xmax=8.1,
-            color="black",
-            linestyles="--",
-            label=f"x initial: {initial_x_300}",
-        )
-        plt.hlines(
-            y=initial_y_300,
-            xmin=0,
-            xmax=8.1,
-            color="gray",
-            linestyles="--",
-            label=f"y initial: {initial_y_300}",
+        # False fofb
+        spread_mean, spread_error, spread_stdev = bba_values(bba_f_x, bba_f_x_e)
+        plt.errorbar(
+            x_axis,
+            bba_f_x,
+            bba_f_x_e,
+            marker=".",
+            capsize=5,
+            linestyle="--",
+            color="k",
+            label=f"BBA: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
         )
 
-        plt.title(f"FBBA / BBA frequency comparison at {current}mA, fofb and fft on.")
+        plt.title(
+            f"FBBA/BBA frequency comparison at {current}mA, fofb off and fft on x."
+        )
         plt.xlim(0, 8.1)
         plt.xlabel("Run number")
         plt.ylabel("Offset Value (mm)")
         plt.grid(which="both", axis="both")
-        plt.legend()
+        plt.legend(fontsize="x-small")
         plt.savefig(
-            f"{TEMP_FILEPATH_ROOT}/triple_frequency_comparison_{current}_fftT_fofbT.png",
+            f"{TEMP_FILEPATH_ROOT}/triple_frequency_comparison_fftT_fofbF_x.png",
+            bbox_inches="tight",
+            dpi=1200,
+        )
+        # plt.show()
+        plt.close()
+
+        for freq in frequencies:
+            data = np.genfromtxt(
+                f"{TEMP_FILEPATH_ROOT}/triple_FBBA_r8_c{int(np.floor(2*freq))}_f{freq}_qs0.01_cs1_fft{fft_}_fofb{fofb_trigger_}_{current}_y.csv",
+                delimiter=",",
+            )
+            y_values, y_errors, spread_mean, spread_error, spread_stdev = fbba_values(
+                data, initial_y
+            )
+            plt.errorbar(
+                x_axis,
+                y_values,
+                y_errors,
+                marker=".",
+                capsize=5,
+                color=freq_dict[freq],
+                label=f"FBBA: freq {freq}: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
+            )
+        # False fofb
+        spread_mean, spread_error, spread_stdev = bba_values(bba_f_y, bba_f_y_e)
+        plt.errorbar(
+            x_axis,
+            bba_f_y,
+            bba_f_y_e,
+            marker=".",
+            capsize=5,
+            linestyle="--",
+            color="k",
+            label=f"BBA: {spread_mean} +- ep {spread_error} or stdev {spread_stdev}",
+        )
+
+        plt.title(
+            f"FBBA/BBA frequency comparison at {current}mA, fofb off and fft on y."
+        )
+        plt.xlim(0, 8.1)
+        plt.xlabel("Run number")
+        plt.ylabel("Offset Value (mm)")
+        plt.grid(which="both", axis="both")
+        plt.legend(fontsize="x-small")
+        plt.savefig(
+            f"{TEMP_FILEPATH_ROOT}/triple_frequency_comparison_fftT_fofbF_y.png",
             bbox_inches="tight",
             dpi=1200,
         )
