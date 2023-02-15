@@ -35,7 +35,7 @@ TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "14Feb2023")
 direction_dict = {
     "x": ["HORIZONTAL"],
     "y": ["VERTICAL"],
-    "both": ["HORIZONTAL", "VERTICAL"],
+    "both": ["VERTICAL", "HORIZONTAL"],
 }
 
 
@@ -266,6 +266,7 @@ def honing(algorithm, element, method, directions_list):
     """Honing Test"""
     quadrupole_scalar = 0.01
     corrector_scalar = 1
+    offset = 0.1  # 100 microns
 
     if method == "FBBA":
         options = {  # FFT, FOFB
@@ -287,6 +288,13 @@ def honing(algorithm, element, method, directions_list):
     current_x = caget(pv_x)
     current_y = caget(pv_y)
     log.info(f"Start: x={current_x}, y={current_y}")
+
+    caput(pv_x, current_x + offset, wait=True)
+    caput(pv_y, current_y + offset, wait=True)
+    Sleep(0.2)
+    offset_x = caget(pv_x)
+    offset_y = caget(pv_y)
+    log.info(f"Offset applied: x={offset_x}, y={offset_y}")
 
     for key, (fft, fofb) in options.items():
         algorithm.toggle_fofb()  # Align for set of 8.
@@ -312,7 +320,7 @@ def honing(algorithm, element, method, directions_list):
         matrix[0, :] = offsets[direction_dict["x"][0]]
         matrix[1, :] = errors[direction_dict["x"][0]]
         np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/honing_{method}_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_x.csv",
+            f"{TEMP_FILEPATH_ROOT}/honing_{method}_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_x_offset.csv",
             matrix,
             delimiter=",",
         )
@@ -320,7 +328,7 @@ def honing(algorithm, element, method, directions_list):
         matrix[0, :] = offsets[direction_dict["y"][0]]
         matrix[1, :] = errors[direction_dict["y"][0]]
         np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/honing_{method}_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_y.csv",
+            f"{TEMP_FILEPATH_ROOT}/honing_{method}_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_y_offset.csv",
             matrix,
             delimiter=",",
         )
@@ -338,7 +346,7 @@ def honing(algorithm, element, method, directions_list):
 def triple_freq(algorithm, element, method, directions_list):
     """Honing but for three specific frequencies."""
 
-    frequencies = [8, 83, 137, 179, 223, 269]
+    frequencies = [8, 83, 137, 179]
     quadrupole_scalar = 0.01
     corrector_scalar = 1
     fft = True
@@ -376,7 +384,7 @@ def triple_freq(algorithm, element, method, directions_list):
         matrix[0, :] = offsets[direction_dict["x"][0]]
         matrix[1, :] = errors[direction_dict["x"][0]]
         np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/triple_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_x.csv",
+            f"{TEMP_FILEPATH_ROOT}/triple_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_x_swap.csv",
             matrix,
             delimiter=",",
         )
@@ -384,7 +392,7 @@ def triple_freq(algorithm, element, method, directions_list):
         matrix[0, :] = offsets[direction_dict["y"][0]]
         matrix[1, :] = errors[direction_dict["y"][0]]
         np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/triple_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_y.csv",
+            f"{TEMP_FILEPATH_ROOT}/triple_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_y_swap.csv",
             matrix,
             delimiter=",",
         )
