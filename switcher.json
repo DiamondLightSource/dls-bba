@@ -8,10 +8,6 @@
     "url": "https://DiamondLightSource.github.io/dls-bba/snapshot-2023-02-14-md/"
   },
   {
-    "version": "0.0.5",
-    "url": "https://DiamondLightSource.github.io/dls-bba/0.0.5/"
-  },
-  {
     "version": "0.0.4",
     "url": "https://DiamondLightSource.github.io/dls-bba/0.0.4/"
   },
@@ -26,6 +22,10 @@
   {
     "version": "0.0.1",
     "url": "https://DiamondLightSource.github.io/dls-bba/0.0.1/"
+  },
+  {
+    "version": "0.0.5",
+    "url": "https://DiamondLightSource.github.io/dls-bba/0.0.5/"
   },
   {
     "version": "features-md",
