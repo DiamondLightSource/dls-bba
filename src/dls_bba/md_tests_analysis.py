@@ -15,7 +15,7 @@ from dls_bba.md_tests import direction_dict
 
 # plt.style.use(["science", "no-latex"])
 
-TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "14Feb2023")
+TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "21Feb2023")
 
 
 def parse_args():
@@ -310,7 +310,7 @@ def main():
         options = bba_options["t"]
         plt.errorbar(
             x_axis,
-            bba_f_y,
+            bba_t_y,
             bba_t_y_e,
             marker=".",
             capsize=5,
