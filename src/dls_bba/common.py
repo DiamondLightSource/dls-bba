@@ -250,25 +250,30 @@ class Algorithm(ABC):
             self.toggle_fofb()
         self.toggle_tune()
 
-    def zero_origins(self, bpm, plane_info) -> Dict[str, Any]:
+    def zero_origins(self) -> Dict[str, Any]:
         """Zeros BCD and Golden offsets. Also stores current Golden offset value for restoring later."""
-        # return None  # For testing -> PV's dont exist in virtac.
         log.info("Origins Zeroed")
-        bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
-        bcd_pv = bpm_pv_root + ORIGIN_SUFFIXES["BCD"].format(axis=plane_info.axis)
-        golden_pv = bpm_pv_root + ORIGIN_SUFFIXES["GOLDEN"].format(axis=plane_info.axis)
-
         offsets = {}
-        offsets[golden_pv] = caget(golden_pv)
+        for bpm in self._accelerator.bpms:
+            for direction in ["HORIZONTAL", "VERTICAL"]:
+                bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
+                bcd_pv = bpm_pv_root + ORIGIN_SUFFIXES["BCD"].format(
+                    axis=PLANE_VALUES[direction].axis
+                )
+                golden_pv = bpm_pv_root + ORIGIN_SUFFIXES["GOLDEN"].format(
+                    axis=PLANE_VALUES[direction].axis
+                )
 
-        caput(bcd_pv, 0, wait=True)
-        caput(golden_pv, 0, wait=True)
+                offsets[golden_pv] = caget(golden_pv)
+
+                caput(bcd_pv, 0, wait=True)
+                caput(golden_pv, 0, wait=True)
         Sleep(0.2)
+        log.debug(offsets)
         return offsets
 
     def restore_origins(self, offsets):
         """Restores offset values from offsets dictionary."""
-        # return None  # For testing -> PV's dont exist in virtac.
         for key, value in offsets.items():
             caput(key, value, wait=True)
         Sleep(0.2)
