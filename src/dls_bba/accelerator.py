@@ -132,6 +132,14 @@ class Accelerator:
             for bpm in self.bpms:
                 if self.element_to_pv_prefix(bpm) == pv_prefix:
                     element = bpm
+        elif plane.axis == "X":
+            for hstr in self.hstrs:
+                if self.element_to_pv_prefix(hstr, plane) == pv_prefix:
+                    element = hstr
+        elif plane.axis == "Y":
+            for vstr in self.vstrs:
+                if self.element_to_pv_prefix(vstr, plane) == pv_prefix:
+                    element = vstr
         else:
             ValueError(f"Not Implimented yet for: {pv_prefix}")
         return element

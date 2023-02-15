@@ -129,8 +129,8 @@ class FBBA(Algorithm):
             )
             key_list = [key for key in quad_metadata.keys() if metadata_key in key]
 
-            self.toggle_feedbacks(max_orbit)
-            original_offsets = self.zero_origins(bpm)
+            # self.toggle_feedbacks(max_orbit)
+            # original_offsets = self.zero_origins(bpm)
 
             quad_sp = self._accelerator.measure_quad(quad)
             quad_step = quad_metadata[key_list[0]]["quad_step"]
@@ -155,23 +155,29 @@ class FBBA(Algorithm):
             high_start = now + NETWORK_LAG
             fa_buffer = Buffer(bpm_list, high_start, duration, self.decimated)
             low_start = high_start + osc_length + SAFETY_NET + quad_lag
-
             excitation = {}
             for key in key_list:
+                plane_info = quad_metadata[key]["plane"]
+                corrector_key_dash = quad_metadata[key]["corrector"].replace("_", "-")
+                corrector = self._accelerator.pv_prefix_to_element(
+                    corrector_key_dash, plane_info
+                )
+                log.info(f"In: {quad_metadata[key]['corrector']}, Out: {corrector}")
+
                 axis = quad_metadata[key]["plane"].axis
                 excitation[f"High_{axis}"] = Excitation(
-                    quad_metadata[key]["corrector"],
+                    corrector,
                     quad_metadata[key]["osc"],
                     high_start,
                     self._accelerator,
                 )
                 excitation[f"Low_{axis}"] = Excitation(
-                    quad_metadata[key]["corrector"],
+                    corrector,
                     quad_metadata[key]["osc"],
                     low_start,
                     self._accelerator,
                 )
-
+            log.info(excitation)
             log.info("High Oscillation")
             high_keys = [key for key in excitation.keys() if "High_" in key]
             log.debug(excitation[high_keys[0]])
