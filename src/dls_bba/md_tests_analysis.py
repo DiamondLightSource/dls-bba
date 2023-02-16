@@ -14,6 +14,7 @@ from dls_bba.md_tests import direction_dict
 
 
 # plt.style.use(["science", "no-latex"])
+# box plots?
 
 TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "21Feb2023")
 
@@ -115,6 +116,7 @@ def main():
         qs = 0.01
         cs = 1
         current = 300
+        offset = 0  # 0.1
 
         fbba_options = {  # fft, fofb, color
             "first": [True, True, "cyan"],
@@ -133,26 +135,26 @@ def main():
         fbba_data_x = {}
         for key, (fft, fofb, _) in fbba_options.items():
             fbba_data_x[key] = np.genfromtxt(
-                f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r{repeats}_c{cycles}_f{frequency}_qs{qs}_cs{cs}_fft{fft}_fofb{fofb}_{current}_x.csv",
+                f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r{repeats}_c{cycles}_f{frequency}_qs{qs}_cs{cs}_fft{fft}_fofb{fofb}_{current}_x_offset{offset}.csv",
                 delimiter=",",
             )
         fbba_data_y = {}
         for key, (fft, fofb, _) in fbba_options.items():
             fbba_data_y[key] = np.genfromtxt(
-                f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r{repeats}_c{cycles}_f{frequency}_qs{qs}_cs{cs}_fft{fft}_fofb{fofb}_{current}_y.csv",
+                f"{TEMP_FILEPATH_ROOT}/honing_FBBA_r{repeats}_c{cycles}_f{frequency}_qs{qs}_cs{cs}_fft{fft}_fofb{fofb}_{current}_y_offset{offset}.csv",
                 delimiter=",",
             )
 
         sbba_data_x = {}
         for key, (_, fofb, _) in sbba_options.items():
             sbba_data_x[key] = np.genfromtxt(
-                f"{TEMP_FILEPATH_ROOT}/honing_SBBA_r{repeats}_c{cycles}_f{frequency}_qs{qs}_cs{cs}_fftFalse_fofb{fofb}_{current}_x.csv",
+                f"{TEMP_FILEPATH_ROOT}/honing_SBBA_r{repeats}_c{cycles}_f{frequency}_qs{qs}_cs{cs}_fftFalse_fofb{fofb}_{current}_x_offset{offset}.csv",
                 delimiter=",",
             )
         sbba_data_y = {}
         for key, (_, fofb, _) in sbba_options.items():
             sbba_data_y[key] = np.genfromtxt(
-                f"{TEMP_FILEPATH_ROOT}/honing_SBBA_r{repeats}_c{cycles}_f{frequency}_qs{qs}_cs{cs}_fftFalse_fofb{fofb}_{current}_y.csv",
+                f"{TEMP_FILEPATH_ROOT}/honing_SBBA_r{repeats}_c{cycles}_f{frequency}_qs{qs}_cs{cs}_fftFalse_fofb{fofb}_{current}_y_offset{offset}.csv",
                 delimiter=",",
             )
 
