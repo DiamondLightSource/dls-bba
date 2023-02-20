@@ -218,6 +218,11 @@ class SBBA(Algorithm):
             offset_mean = mean(p[:, 1])
             offset_stdev = stdev(p[:, 1])
             log.info(offset_mean, offset_stdev)
+
+            # Testing if negative x for sbba focuses in.
+            if metadata["plane"].axis == "X":
+                offset_mean = -offset_mean
+
             # Change results to mm.
             offsets.append(offset_mean / SBBA_UNIT_CONVERSION)
             errors.append(offset_stdev / SBBA_UNIT_CONVERSION)
