@@ -149,6 +149,7 @@ def main():
             while True:
                 if fofb_trigger:
                     algorithm.toggle_fofb()
+                    algorithm.toggle_tune()
                 raw_data = algorithm.run(element, PLANE_VALUES[axis], max_orbit)
                 if algorithm.check_beam_current(initial_current):
                     break
