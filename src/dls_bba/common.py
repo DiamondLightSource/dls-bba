@@ -9,6 +9,7 @@ from typing import Any, Dict, NamedTuple
 
 import numpy as np
 import scipy.io as io
+from cothread import Sleep
 from cothread.catools import caget, caput
 
 MAXIMUM_CURRENT_DROP = 20  # mA
@@ -193,6 +194,26 @@ class Algorithm(ABC):
             ValueError("Unexpected element: Only quadrupoles and bpms are allowed.")
         return bpm, quad, corrector_x, corrector_y
 
+    def toggle_tune(self, tolerance=0.0005):
+        tune_approved = False
+        target_x = caget("SR-CS-TFB-01:TUNE:H")
+        target_y = caget("SR-CS-TFB-01:TUNE:V")
+        log.debug(f"Target tunes: X {target_x}, Y {target_y}")
+
+        while not tune_approved:
+            tune_x = caget("SR23C-DI-TMBF-01:TUNE:TUNE")
+            tune_y = caget("SR23C-DI-TMBF-02:TUNE:TUNE")
+            log.debug(f"Measured tunes: X {tune_x}, Y {tune_y}")
+            if (target_x - tolerance < tune_x < target_x + tolerance) and (
+                target_y - tolerance < tune_y < target_y + tolerance
+            ):
+                tune_approved = True
+            else:
+                log.debug("Correcting tune.")
+                caput("SR-CS-TFB-01:ONOFF", 1, wait=True)
+                Sleep(2)
+                caput("SR-CS-TFB-01:ONOFF", 0, wait=True)
+
     def toggle_fofb(self):
         log.warn("Correcting orbit with FOFB.")
         run(
@@ -200,13 +221,13 @@ class Algorithm(ABC):
             check=True,
             shell=True,
         )
-        sleep(1)
+        sleep(3)
         run(
             "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py stop",
             check=True,
             shell=True,
         )
-        sleep(1)
+        sleep(3)
 
     def toggle_feedbacks(self, max_orbit):
         """Confirms that all feedbacks are off, and toggles FOFB to realign if needed."""
@@ -243,6 +264,7 @@ class Algorithm(ABC):
         # value in mm, max_orbit in um.
         if float(max_value * 1000) >= float(max_orbit):
             self.toggle_fofb()
+            self.toggle_tune()
 
     def zero_origins(self, bpm) -> Dict[str, Any]:
         """Zeros BCD and Golden offsets. Also stores current Golden offset value for restoring later."""
