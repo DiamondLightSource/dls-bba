@@ -256,41 +256,18 @@ class FBBA(Algorithm):
         data = np.transpose(data)
 
         # Add hanning window.
-        for i in range(0, samples):
-            hanning_list = np.hanning(len(data[:, i]))
-            data[:, i] = [x + y for x, y in zip(data[:, i], hanning_list)]
+        data = data * np.hanning(data.shape[1])
 
         yf = rfft(data) / length
         xf = rfftfreq(length, 1 / samplingfreq)
-        peak_intensity = []
-        peak_frequency = []
-        for i in range(0, samples):
-            y_data = np.abs(np.transpose(np.real(yf[i])))
-            peaks, _ = find_peaks(y_data)
-            peak_max = peaks[np.argmax(y_data[peaks])]
-            xmax = xf[peak_max]
-            peak_intensity.append(peak_max)
-            peak_frequency.append(xmax)
 
-        peak_int_freq = [int(freq) for freq in peak_frequency]
-        most_frequent = np.argmax(np.bincount(peak_int_freq))
+        indices = np.abs(yf) < 300
+        yf_clean = indices * yf
 
-        if most_frequent != known_freq:
-            print(
-                f"Calculated frequency {most_frequent} does not match expected frequency {known_freq}. Results are likely to be untrustworthly."
-            )
-            log.info(
-                f"Calculated frequency {most_frequent} does not match expected frequency {known_freq}."
-            )
-
-        temp_yf = yf
-        yf_abs = np.abs(temp_yf)
-        indices = yf_abs < 300
-        yf_clean = indices * temp_yf
-
-        # Isolate the useful frequency.
-        xf_list = [int(value) for value in xf]
-        freq_index = xf_list.index(known_freq)
+        # Isolate the frequency closest to the known frequency.
+        freq_index, freq_value = min(
+            enumerate(xf), key=lambda x: abs(known_freq - x[1])
+        )
         for bpm_index, dataset in enumerate(yf_clean):
             for index, value in enumerate(dataset):
                 if index != freq_index:
@@ -299,20 +276,21 @@ class FBBA(Algorithm):
         clean = np.transpose(irfft(yf_clean))
         return clean
 
-    def extract_freq_excite(self, data, freq):
-        data_length = data.shape[0]
-        num_oscs = 1.0 * data_length * freq / TICKS_PER_SECOND
-        num_oscs = num_oscs * 10 if self.decimated else num_oscs
+    def extract_freq_excite(self, data, known_freq):
+        # Synchronous Detector Method
 
-        osc = np.exp(np.linspace(0, 2j * np.pi * num_oscs, data_length))
-        osc = np.tile(osc, (data.shape[1], 1)).T
-        data_es = np.mean(data * osc, 0)
-
-        reverse_osc = np.exp(np.linspace(0, -2j * np.pi * num_oscs, data_length))
-        reverse_osc = np.tile(reverse_osc, (data.shape[1], 1)).T
-        # Force the phase to zero by using only the imaginary part of the mean
-        answer = 2 * np.real(reverse_osc * 1j * np.imag(data_es))
-        return answer
+        data_lemgth = len(data)
+        # The mixing function creates a clean waveform at the appropriate frequency
+        mix = np.exp(
+            2j * np.pi * np.arange(0, data_lemgth) * known_freq / TICKS_PER_SECOND
+        )
+        # The reason for axis manipulation is that numpy incorrectly multiplies arrays by default to the first axis.
+        mix = mix[:, None]  #
+        hmix = 2 * mix * np.hanning(len(mix))[:, None]
+        detect = (hmix * data).mean(0)[None, :]
+        # Multiplying a complex number by the complex conjugate makes the number real.
+        clean = 2 * (detect * np.conj(mix)).real
+        return clean
 
     def analyse_data(self, raw_data, plot_output=False, use_fft=False, *args, **kwargs):
         data = raw_data.raw_data
