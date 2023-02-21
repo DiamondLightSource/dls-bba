@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
 from scipy.fft import irfft, rfft, rfftfreq
-from scipy.signal import find_peaks
 
 from dls_bba.common import PLANE_VALUES, Algorithm, RawData, Results
 from dls_bba.excite import Excitation, Oscillation, excite
