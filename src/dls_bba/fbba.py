@@ -211,9 +211,10 @@ class FBBA(Algorithm):
         indices = np.abs(yf) < 300
         yf_clean = indices * yf
 
-        # Isolate the useful frequency.
-        xf_list = [int(value) for value in xf]
-        freq_index = xf_list.index(known_freq)
+        # Isolate the frequency closest to the known frequency.
+        freq_index, freq_value = min(
+            enumerate(xf), key=lambda x: abs(known_freq - x[1])
+        )
         for bpm_index, dataset in enumerate(yf_clean):
             for index, value in enumerate(dataset):
                 if index != freq_index:
@@ -222,20 +223,21 @@ class FBBA(Algorithm):
         clean = np.transpose(irfft(yf_clean))
         return clean
 
-    def extract_freq_excite(self, data, freq):
-        data_length = data.shape[0]
-        num_oscs = 1.0 * data_length * freq / TICKS_PER_SECOND
-        num_oscs = num_oscs * 10 if self.decimated else num_oscs
+    def extract_freq_excite(self, data, known_freq):
+        # Synchronous Detector Method
 
-        osc = np.exp(np.linspace(0, 2j * np.pi * num_oscs, data_length))
-        osc = np.tile(osc, (data.shape[1], 1)).T
-        data_es = np.mean(data * osc, 0)
-
-        reverse_osc = np.exp(np.linspace(0, -2j * np.pi * num_oscs, data_length))
-        reverse_osc = np.tile(reverse_osc, (data.shape[1], 1)).T
-        # Force the phase to zero by using only the imaginary part of the mean
-        answer = 2 * np.real(reverse_osc * 1j * np.imag(data_es))
-        return answer
+        data_lemgth = len(data)
+        # The mixing function creates a clean waveform at the appropriate frequency
+        mix = np.exp(
+            2j * np.pi * np.arange(0, data_lemgth) * known_freq / TICKS_PER_SECOND
+        )
+        # The reason for axis manipulation is that numpy incorrectly multiplies arrays by default to the first axis.
+        mix = mix[:, None]  #
+        hmix = 2 * mix * np.hanning(len(mix))[:, None]
+        detect = (hmix * data).mean(0)[None, :]
+        # Multiplying a complex number by the complex conjugate makes the number real.
+        clean = 2 * (detect * np.conj(mix)).real
+        return clean
 
     def analyse_data(self, raw_data, plot_output=False, use_fft=False, *args, **kwargs):
         data = raw_data.raw_data
