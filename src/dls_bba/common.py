@@ -211,7 +211,7 @@ class Algorithm(ABC):
             check=True,
             shell=True,
         )
-        sleep(1)
+        sleep(3)
 
     def toggle_feedbacks(self, max_orbit):
         """Confirms that all feedbacks are off, and toggles FOFB to realign if needed."""
@@ -274,8 +274,8 @@ class Algorithm(ABC):
 
     def restore_origins(self, offsets):
         """Restores offset values from offsets dictionary."""
-        for key, value in offsets.items():
-            caput(key, value, wait=True)
+        # for key, value in offsets.items():
+        #     caput(key, value, wait=True)
         Sleep(0.2)
         log.info("Origins Restored")
 
