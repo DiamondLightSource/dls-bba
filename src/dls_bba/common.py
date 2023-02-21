@@ -248,7 +248,7 @@ class Algorithm(ABC):
         # value in mm, max_orbit in um.
         if float(max_value * 1000) >= float(max_orbit):
             self.toggle_fofb()
-        self.toggle_tune()
+            self.toggle_tune()
 
     def zero_origins(self) -> Dict[str, Any]:
         """Zeros BCD and Golden offsets. Also stores current Golden offset value for restoring later."""
