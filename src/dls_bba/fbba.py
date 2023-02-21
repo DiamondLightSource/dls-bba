@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
 from scipy.fft import irfft, rfft, rfftfreq
-from scipy.signal import find_peaks
 
 from dls_bba.common import Algorithm, RawData, Results
 from dls_bba.excite import Excitation, Oscillation, excite
@@ -204,37 +203,13 @@ class FBBA(Algorithm):
         data = np.transpose(data)
 
         # Add hanning window.
-        for i in range(0, samples):
-            hanning_list = np.hanning(len(data[:, i]))
-            data[:, i] = [x + y for x, y in zip(data[:, i], hanning_list)]
+        data = data * np.hanning(data.shape[1])
 
         yf = rfft(data) / length
         xf = rfftfreq(length, 1 / samplingfreq)
-        peak_intensity = []
-        peak_frequency = []
-        for i in range(0, samples):
-            y_data = np.abs(np.transpose(np.real(yf[i])))
-            peaks, _ = find_peaks(y_data)
-            peak_max = peaks[np.argmax(y_data[peaks])]
-            xmax = xf[peak_max]
-            peak_intensity.append(peak_max)
-            peak_frequency.append(xmax)
 
-        peak_int_freq = [int(freq) for freq in peak_frequency]
-        most_frequent = np.argmax(np.bincount(peak_int_freq))
-
-        if most_frequent != known_freq:
-            print(
-                f"Calculated frequency {most_frequent} does not match expected frequency {known_freq}. Results are likely to be untrustworthly."
-            )
-            log.info(
-                f"Calculated frequency {most_frequent} does not match expected frequency {known_freq}."
-            )
-
-        temp_yf = yf
-        yf_abs = np.abs(temp_yf)
-        indices = yf_abs < 300
-        yf_clean = indices * temp_yf
+        indices = np.abs(yf) < 300
+        yf_clean = indices * yf
 
         # Isolate the useful frequency.
         xf_list = [int(value) for value in xf]
