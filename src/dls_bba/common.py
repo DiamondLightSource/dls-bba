@@ -178,42 +178,34 @@ class Algorithm(ABC):
             ValueError("Unexpected element: Only quadrupoles and bpms are allowed.")
         return bpm, quad, corrector
 
-    def toggle_tune(self, tolerance=0.0005):
-        tune_approved = False
+    def report_tune(self):
         target_x = caget("SR-CS-TFB-01:TUNE:H")
         target_y = caget("SR-CS-TFB-01:TUNE:V")
         log.debug(f"Target tunes: X {target_x}, Y {target_y}")
+        tune_x = caget("SR23C-DI-TMBF-01:TUNE:TUNE")
+        tune_y = caget("SR23C-DI-TMBF-02:TUNE:TUNE")
+        log.debug(f"Measured tunes: X {tune_x}, Y {tune_y}")
 
-        while not tune_approved:
-            tune_x = caget("SR23C-DI-TMBF-01:TUNE:TUNE")
-            tune_y = caget("SR23C-DI-TMBF-02:TUNE:TUNE")
-            log.debug(f"Measured tunes: X {tune_x}, Y {tune_y}")
-            if (target_x - tolerance < tune_x < target_x + tolerance) and (
-                target_y - tolerance < tune_y < target_y + tolerance
-            ):
-                tune_approved = True
-            else:
-                log.debug("Correcting tune.")
-                caput("SR-CS-TFB-01:ONOFF", 1, wait=True)
-                Sleep(5)
-                caput("SR-CS-TFB-01:ONOFF", 0, wait=True)
-
-    def toggle_fofb(self):
+    def apply_feedbacks(self, runtime=3, waittime=3):
         log.warn("Correcting orbit with FOFB.")
         run(
             "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py start",
             check=True,
             shell=True,
         )
-        sleep(3)
+        self.report_tune()
+        caput("SR-CS-TFB-01:ONOFF", 1, wait=True)
+        Sleep(runtime)
+        caput("SR-CS-TFB-01:ONOFF", 0, wait=True)
+        self.report_tune()
         run(
             "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py stop",
             check=True,
             shell=True,
         )
-        sleep(3)
+        sleep(waittime)
 
-    def toggle_feedbacks(self, max_orbit):
+    def check_feedbacks(self, max_orbit):
         """Confirms that all feedbacks are off, and toggles FOFB to realign if needed."""
         feedbacks = {
             "Fast Orbit Feedback": ["SR01A-CS-FOFB-01:RUN", 0],
@@ -247,8 +239,7 @@ class Algorithm(ABC):
         max_value = abs(max(bpm_values, key=abs))
         # value in mm, max_orbit in um.
         if float(max_value * 1000) >= float(max_orbit):
-            self.toggle_fofb()
-            self.toggle_tune()
+            self.apply_feedbacks()
 
     def zero_origins(self) -> Dict[str, Any]:
         """Zeros BCD and Golden offsets. Also stores current Golden offset value for restoring later."""
