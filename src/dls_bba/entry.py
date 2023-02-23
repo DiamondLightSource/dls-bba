@@ -97,14 +97,6 @@ def parse_args():
         help="Plot the results?",
     )
     parser.add_argument(
-        "-f",
-        "-fft",
-        dest="fft",
-        action="store_true",
-        default=False,
-        help="Use fft analysis?",
-    )
-    parser.add_argument(
         "-b",
         "-fofb",
         dest="fofb",
@@ -124,7 +116,6 @@ def main():
     max_orbit: int = args.max_orbit  # type: ignore
     apply: bool = args.apply  # type: ignore
     plot: bool = args.plot  # type: ignore
-    fft: bool = args.fft  # type: ignore
     fofb_trigger: bool = args.fofb  # type: ignore
 
     get_new_logger(method, filepath)
@@ -154,7 +145,7 @@ def main():
                 if algorithm.check_beam_current(initial_current):
                     break
             raw_data.save(filename_prefix, filepath)
-            results = algorithm.analyse_data(raw_data, plot, fft)
+            results = algorithm.analyse_data(raw_data, plot)
             filename = results.save(filename_prefix, filepath)
             filename_store.append([filename])
         if apply:

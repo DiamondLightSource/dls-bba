@@ -8,7 +8,6 @@ import cothread
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
-from scipy.fft import irfft, rfft, rfftfreq
 
 from dls_bba.common import Algorithm, RawData, Results
 from dls_bba.excite import Excitation, Oscillation, excite
@@ -197,49 +196,49 @@ class FBBA(Algorithm):
         assert high_data.shape == low_data.shape
         return [high_data, low_data]
 
-    def extract_freq_fft(self, data, known_freq):
-        samplingfreq = TICKS_PER_SECOND
-        length, samples = data.shape
-        data = np.transpose(data)
-
-        # Add hanning window.
-        data = data * np.hanning(data.shape[1])
-
-        yf = rfft(data) / length
-        xf = rfftfreq(length, 1 / samplingfreq)
-
-        indices = np.abs(yf) < 300
-        yf_clean = indices * yf
-
-        # Isolate the frequency closest to the known frequency.
-        freq_index, freq_value = min(
-            enumerate(xf), key=lambda x: abs(known_freq - x[1])
-        )
-        for bpm_index, dataset in enumerate(yf_clean):
-            for index, value in enumerate(dataset):
-                if index != freq_index:
-                    yf_clean[bpm_index][index] = 0
-
-        clean = np.transpose(irfft(yf_clean))
-        return clean
-
-    def extract_freq_excite(self, data, known_freq):
+    def extract_freq_excite(self, data, known_freq, bpm_index=None, window=True):
         # Synchronous Detector Method
 
-        data_lemgth = len(data)
+        # Incoming data arranged as [Time, Axis]
         # The mixing function creates a clean waveform at the appropriate frequency
         mix = np.exp(
-            2j * np.pi * np.arange(0, data_lemgth) * known_freq / TICKS_PER_SECOND
+            2j * np.pi * np.arange(0, len(data)) * known_freq / TICKS_PER_SECOND
         )
-        # The reason for axis manipulation is that numpy incorrectly multiplies arrays by default to the first axis.
-        mix = mix[:, None]  #
-        hmix = 2 * mix * np.hanning(len(mix))[:, None]
-        detect = (hmix * data).mean(0)[None, :]
-        # Multiplying a complex number by the complex conjugate makes the number real.
-        clean = 2 * (detect * np.conj(mix)).real
+
+        # Create dummy Axis dimension so mix is arranged as [Time, Axis] to preserve shape through the following numpy operations
+        mix = mix[:, None]
+        # By default window the data to avoid edge effects
+        if window:
+            hmix = 2 * mix * np.hanning(len(mix))[:, None]
+        else:
+            hmix = mix
+
+        # offset : [Axis]
+        offset = data.mean(0)
+        # For numerical stability subtract any DC offset from the data before running detect
+        data = data - offset
+
+        # Run the mixing waveform over each axis of the data, shape is now [Axis]
+        # hmix : [Time, 1], data : [Time, Axis], detect : [Axis]
+        detect = (np.conj(hmix) * data).mean(0)
+
+        if bpm_index is None:
+            phase_adjust = 1
+        else:
+            # Use phase of the target BPM to zero the phase of our capture
+            phase_adjust = np.exp(-1j * np.angle(detect[bpm_index]))
+
+        # Add dummy time axis back in for reconstruction step
+        detect = detect[None, :]
+
+        # Reconstruct detected sine wave with appropriate magnitude and phase
+        # At this point the shapes matter, we have detect.shape = (1, Axes),
+        # mix.shape : (Time, 1) and data.shape : [Time, Axis].
+        # Restore DC offset at this point
+        clean = 2 * (detect * phase_adjust * mix).real + offset
         return clean
 
-    def analyse_data(self, raw_data, plot_output=False, use_fft=False, *args, **kwargs):
+    def analyse_data(self, raw_data, plot_output=False, window=True, *args, **kwargs):
         data = raw_data.raw_data
         # algorithm = raw_data["algorithm"] -> Not used.
         metadata = raw_data.metadata
@@ -269,23 +268,13 @@ class FBBA(Algorithm):
             q_low = data[low_key][:, enabled_bpms] * 1e-3
             q_high = data[high_key][:, enabled_bpms] * 1e-3
 
-            # Extract the DC componenet of the orbit, and add it to the excitation
-            q_high_dc = q_high.mean(0)
-            q_low_dc = q_low.mean(0)
-            if use_fft:
-                q_high_clean = np.add(
-                    self.extract_freq_fft(q_high - q_high_dc, freq), q_high_dc
-                )
-                q_low_clean = np.add(
-                    self.extract_freq_fft(q_low - q_low_dc, freq), q_low_dc
-                )
-            else:
-                q_high_clean = np.add(
-                    self.extract_freq_excite(q_high - q_high_dc, freq), q_high_dc
-                )
-                q_low_clean = np.add(
-                    self.extract_freq_excite(q_low - q_low_dc, freq), q_low_dc
-                )
+            # Clean the data using the synchronous detector method
+            q_high_clean = self.extract_freq_excite(
+                q_high, freq, bpm_index, window=window
+            )
+            q_low_clean = self.extract_freq_excite(
+                q_low, freq, bpm_index, window=window
+            )
 
             # Take the difference between fits
             q_diff = q_high_clean - q_low_clean
