@@ -195,7 +195,7 @@ class Algorithm(ABC):
             else:
                 log.debug("Correcting tune.")
                 caput("SR-CS-TFB-01:ONOFF", 1, wait=True)
-                Sleep(2)
+                Sleep(5)
                 caput("SR-CS-TFB-01:ONOFF", 0, wait=True)
 
     def toggle_fofb(self):
