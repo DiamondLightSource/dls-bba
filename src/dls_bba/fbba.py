@@ -33,6 +33,8 @@ class FBBA(Algorithm):
         cycles=16,
         frequency=8,
         decimated=False,
+        runtime=3,
+        waittime=3,
         *args,
         **kwargs,
     ):
@@ -42,6 +44,9 @@ class FBBA(Algorithm):
         self.cycles = cycles
         self.frequency = frequency
         self.decimated = decimated
+        self.runtime = runtime
+        self.waittime = waittime
+
         log.debug(
             f"Configuration: Cycles: {self.cycles}, Frequency: {self.frequency}, Quadrupole Scalar: {self.quadrupole_scalar}, Corrector Scalar: {self.corrector_scalar}, Decimated: {self.decimated}"
         )
@@ -76,7 +81,7 @@ class FBBA(Algorithm):
             "corrector_scalar": self.corrector_scalar,
         }
         for quad in quad_list:
-            self.check_feedbacks(max_orbit)
+            self.check_feedbacks(max_orbit, self.runtime, self.waittime)
             original_offsets = self.zero_origins()
 
             quad_step = self._accelerator.measure_quad(quad) * self.quadrupole_scalar
@@ -226,6 +231,7 @@ class FBBA(Algorithm):
             phase_adjust = 1
         else:
             # Use phase of the target BPM to zero the phase of our capture
+
             phase_adjust = np.exp(-1j * np.angle(detect[bpm_index]))
 
         # Add dummy time axis back in for reconstruction step

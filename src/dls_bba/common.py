@@ -205,7 +205,7 @@ class Algorithm(ABC):
         )
         sleep(waittime)
 
-    def check_feedbacks(self, max_orbit):
+    def check_feedbacks(self, max_orbit, runtime, waittime):
         """Confirms that all feedbacks are off, and toggles FOFB to realign if needed."""
         feedbacks = {
             "Fast Orbit Feedback": ["SR01A-CS-FOFB-01:RUN", 0],
@@ -239,7 +239,7 @@ class Algorithm(ABC):
         max_value = abs(max(bpm_values, key=abs))
         # value in mm, max_orbit in um.
         if float(max_value * 1000) >= float(max_orbit):
-            self.apply_feedbacks()
+            self.apply_feedbacks(runtime, waittime)
 
     def zero_origins(self) -> Dict[str, Any]:
         """Zeros BCD and Golden offsets. Also stores current Golden offset value for restoring later."""

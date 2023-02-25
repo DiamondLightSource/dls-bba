@@ -29,6 +29,8 @@ class SBBA(Algorithm):
         quadrupole_scalar=0.01,
         corrector_scalar=1,
         decimated=False,
+        runtime=3,
+        waittime=3,
         *args,
         **kwargs,
     ):
@@ -36,6 +38,8 @@ class SBBA(Algorithm):
         self.quadrupole_scalar = quadrupole_scalar
         self.corrector_scalar = float(corrector_scalar)
         self.decimated = decimated
+        self.runtime = runtime
+        self.waittime = waittime
         log.debug(
             f"Configuration: Quadrupole Scalar: {self.quadrupole_scalar}, Corrector Scalar: {self.corrector_scalar}, Decimated: {self.decimated}"
         )
@@ -70,7 +74,7 @@ class SBBA(Algorithm):
             "corrector_scalar": self.corrector_scalar,
         }
         for quad in quad_list:
-            self.check_feedbacks(max_orbit)
+            self.check_feedbacks(max_orbit, self.runtime, self.waittime)
             original_offsets = self.zero_origins()
 
             quad_step = self._accelerator.measure_quad(quad) * self.quadrupole_scalar
