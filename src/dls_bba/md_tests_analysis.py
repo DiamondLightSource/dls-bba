@@ -73,7 +73,9 @@ initial_offset = {"x": 0.8890, "y": 0.5230}
 def bba_stats(values, spread=spread_value):
     spread_mean = str(np.round(mean(values[spread:]) * 1000, 1))
     spread_stdev = str(np.round(stdev(values[spread:]) * 1000, 1))
-    stats = f"{spread_mean} $\pm$ {spread_stdev} $\mu$m"
+    pm = r"$\pm$"
+    um = r"$\mu$m"
+    stats = f"{spread_mean} {pm} {spread_stdev} {um}"
     return stats
 
 
