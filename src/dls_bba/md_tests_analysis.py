@@ -1,21 +1,18 @@
 """MD Tests analysis."""
 
 import argparse
-import json
 import os
 from statistics import mean, stdev
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dls_bba.md_tests import direction_dict
-
 # import scienceplots
 
 
 # plt.style.use(["science", "no-latex"])
 
-TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "21Feb2023")
+TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "28Feb2023")
 
 
 def parse_args():
@@ -37,20 +34,28 @@ def parse_args():
         help="honing simple test",
     )
     parser.add_argument(
-        "-t",
-        "--triple",
-        dest="triple_t",
-        action="store_true",
-        default=False,
-        help="triple frequency test",
-    )
-    parser.add_argument(
         "-r",
         "--running",
         dest="running_t",
         action="store_true",
         default=False,
         help="Running test",
+    )
+    parser.add_argument(
+        "-f",
+        "--feedback",
+        dest="feedbacks_t",
+        action="store_true",
+        default=False,
+        help="feedbacks test",
+    )
+    parser.add_argument(
+        "-w",
+        "--swap",
+        dest="swap_t",
+        action="store_true",
+        default=False,
+        help="swap test",
     )
     return parser.parse_args()
 
@@ -72,143 +77,102 @@ def bba_stats(values, spread=spread_value):
     return stats
 
 
-def find_honing_indices(
-    honing_dict,
-    method=["BBA", "FBBA", "SBBA"],
-    axis=["x", "y"],
-    offset=[0, 0.1],
-    fofb=[False, True],
-    fft=[False, True],
-):
-    options = list(range(len(honing_dict)))
-    for key, value in honing_dict.items():
-        remove = False
-        if value[0] not in method:
-            remove = True
-        if value[1] not in axis:
-            remove = True
-        if value[2] not in offset:
-            remove = True
-        if value[3] not in fofb:
-            remove = True
-        if value[4] not in fft:
-            remove = True
-        if remove:
-            options.remove(key)
-    return options
-
-
-def plot_setup(method, fofb, fft=False):
-    if method == "FBBA":
-        line = "-"
-        if fofb is True and fft is True:
-            color = "cyan"
-        if fofb is False and fft is True:
-            color = "dodgerblue"
-        if fofb is True and fft is False:
-            color = "blue"
-        if fofb is False and fft is False:
-            color = "darkblue"
-    if method == "SBBA":
-        line = "-"
-        if fofb is True and fft is False:
-            color = "red"
-        if fofb is False and fft is False:
-            color = "darkred"
-    if method == "BBA":
-        line = "--"
-        if fofb is True and fft is False:
-            color = "green"
-        if fofb is False and fft is False:
-            color = "darkgreen"
-    return line, color
-
-
-def plot_honing(honing_dict, key):
-    data_info = honing_dict[key]
-    line, color = plot_setup(data_info[0], data_info[3], data_info[4])
-    plt.errorbar(
-        x_axis,
-        data_info[5],
-        data_info[6],
-        marker=".",
-        linestyle=line,
-        capsize=5,
-        color=color,
-        label=f"{data_info[0]}, fofb{data_info[3]}, fft{data_info[4]}: {bba_stats(data_info[5])}",
-    )
-
-
-def finalise_honing(title):
-    lower_title = title.lower()
-    filename = lower_title.replace(" ", "_")
-    plt.xlim(0, 8)
-    plt.xlabel("Run Number")
-    plt.ylabel("Offset Value (mm)")
-    plt.grid(which="major", axis="both")
-    plt.legend("xx-small")
-    plt.savefig(f"{TEMP_FILEPATH_ROOT}/{filename}.png", bbox_inches="tight", dpi=300)
-    plt.close()
-
-
 def main():
     args = parse_args()
-    cell = args.cell_t
     honing = args.honing_t
-    triple = args.triple_t
+    time = args.timing_t
     running = args.running_t
+    feedbacks = args.feedbacks_t
+    swap = args.swap_t
+
+    if feedbacks:
+        runtime_values = [2, 3, 4]
+        waittime_values = [1, 3, 5]
+        repeats = 16
+        x = np.arange(0, repeats)
+        quadrupole_scalar = 0.01
+        corrector_scalar = 1
+        cycles = 16
+        frequency = 8
+        data = {}
+
+        for run in runtime_values:
+            for wait in waittime_values:
+                d = np.genfromtxt(
+                    f"{TEMP_FILEPATH_ROOT}/feedbacks_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_x_run{run}_wait{wait}.csv",
+                    delimiter=",",
+                )
+                data[f"{run},{wait}_x"] = [d[0, :], d[1, :]]
+                d = np.genfromtxt(
+                    f"{TEMP_FILEPATH_ROOT}/feedbacks_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_y_run{run}_wait{wait}.csv",
+                    delimiter=",",
+                )
+                data[f"{run},{wait}_y"] = [d[0, :], d[1, :]]
+
+        for key, (values, errors) in data.items():
+            init = initial_offset[key[-1]]
+            cum_values = np.cumsum(values)
+            y_values = [init] + [value + init for value in cum_values]
+            y_errors = [0] + [e for e in errors]
+            data[key] = [y_values, y_errors]
+
+        for axis in ["x", "y"]:
+            fig, axs = plt.subplots(
+                ncols=len(runtime_values),
+                nrows=len(waittime_values),
+                sharex=True,
+                sharey=True,
+                layout="constrained",
+            )
+
+            for row, run in enumerate(runtime_values):
+                for col, wait in enumerate(waittime_values):
+                    values, errors = data[f"{run},{wait}_{axis}"]
+                    axs[row, col].errorbar(
+                        x, values, errors, label=f"{bba_stats(values)}"
+                    )
+                    axs[row, col].legend(fontsize="xx-small", loc=1)
+                    axs[row, col].grid(which="both", axis="both")
+                    axs[row, col].set_xlim(0, len(values))
+                    if row == len(runtime_values) - 1:
+                        plt.setp(axs[row, col], xlabel=f"{wait}")
+                    if col == 0:
+                        plt.setp(axs[row, col], ylabel=f"{run}")
+            fig.suptitle(f"Feedback timings with 100micron offset {axis}")
+            fig.supxlabel("Run time (s)")
+            fig.supylabel("Wait time (s)")
+            plt.savefig(
+                f"{TEMP_FILEPATH_ROOT}/feedbacks_test_plot_{axis}.png",
+                bbox_inches="tight",
+                dpi=300,
+            )
+            plt.close()
 
     if honing:
-        repeats = 8
+        repeats = 20
         cycles = 16
         frequency = 8
         qs = 0.01
         cs = 1
-        current = 300
 
         # 0 micron offset
-
-        honing_dict = {  # method, axis, offset, fofb, fft, values, errors
+        honing_dict = {  # method, axis, offset, colour, linestyle, values, errors
             # 0 micron offset
-            1: ["BBA", "x", 0, False, False, [], []],
-            2: ["BBA", "y", 0, False, False, [], []],
-            3: ["BBA", "x", 0, True, False, [], []],
-            4: ["BBA", "y", 0, True, False, [], []],
-            5: ["FBBA", "x", 0, False, False],
-            6: ["FBBA", "y", 0, False, False],
-            7: ["FBBA", "x", 0, True, False],
-            8: ["FBBA", "y", 0, True, False],
-            9: ["FBBA", "x", 0, False, True],
-            10: ["FBBA", "y", 0, False, True],
-            11: ["FBBA", "x", 0, True, True],
-            12: ["FBBA", "y", 0, True, True],
-            13: ["SBBA", "x", 0, False, False],
-            14: ["SBBA", "y", 0, False, False],
-            15: ["SBBA", "x", 0, True, False],
-            16: ["SBBA", "y", 0, True, False],
+            1: ["BBA", "x", 0, "green", "-", [], []],
+            2: ["BBA", "y", 0, "green", "--", [], []],
+            3: ["FBBA", "x", 0, "blue", "-"],
+            4: ["FBBA", "y", 0, "red", "--"],
             # 0.1 micron offset
-            17: ["BBA", "x", 0.1, False, False, [], []],
-            18: ["BBA", "y", 0.1, False, False, [], []],
-            19: ["BBA", "x", 0.1, True, False, [], []],
-            20: ["BBA", "y", 0.1, True, False, [], []],
-            21: ["FBBA", "x", 0.1, False, False],
-            22: ["FBBA", "y", 0.1, False, False],
-            23: ["FBBA", "x", 0.1, True, False],
-            24: ["FBBA", "y", 0.1, True, False],
-            25: ["FBBA", "x", 0.1, False, True],
-            26: ["FBBA", "y", 0.1, False, True],
-            27: ["FBBA", "x", 0.1, True, True],
-            28: ["FBBA", "y", 0.1, True, True],
-            29: ["SBBA", "x", 0.1, False, False],
-            30: ["SBBA", "y", 0.1, False, False],
-            31: ["SBBA", "x", 0.1, True, False],
-            32: ["SBBA", "y", 0.1, True, False],
+            5: ["BBA", "x", 0.1, "darkgreen", "-", [], []],
+            6: ["BBA", "y", 0.1, "darkgreen", "--", [], []],
+            7: ["FBBA", "x", 0.1, "darkblue", "-"],
+            8: ["FBBA", "y", 0.1, "darkred", "--"],
         }
 
         for key, values in honing_dict.items():
             if values[0] != "BBA":
                 data = np.genfromtxt(
-                    f"{TEMP_FILEPATH_ROOT}/honing_{values[0]}_r{repeats}_c{cycles}_f{frequency}_qs{qs}_cs{cs}_fft{values[4]}_fofb{values[3]}_{current}_{values[1]}_offset{values[2]}.csv",
+                    f"{TEMP_FILEPATH_ROOT}/honing_{values[0]}_r{repeats}_c{cycles}_f{frequency}_qs{qs}_cs{cs}_{values[1]}_offset{values[2]}.csv",
                     delimiter=",",
                 )
                 if values[2] == 0:
@@ -224,216 +188,235 @@ def main():
                 honing_dict[key].append(y_values)
                 honing_dict[key].append(y_errors)
 
-        # FBBA vs BBA plot x
-        indices = find_honing_indices(
-            honing_dict, method=["FBBA", "BBA"], axis=["x"], offset=[0]
-        )
+        def find_honing_indices(
+            method=["BBA", "FBBA"], axis=["x", "y"], offset=[0, 0.1]
+        ):
+            options = list(range(len(honing_dict)))
+            for key, value in honing_dict.items():
+                remove = False
+                if value[0] not in method:
+                    remove = True
+                if value[1] not in axis:
+                    remove = True
+                if value[2] not in offset:
+                    remove = True
+                if remove:
+                    options.remove(key)
+            return options
+
+        def plot_honing(key):
+            data_info = honing_dict[key]
+            plt.errorbar(
+                x_axis,
+                data_info[4],
+                data_info[5],
+                marker=".",
+                linestyle=data_info[4],
+                capsize=5,
+                color=data_info[3],
+                label=f"{data_info[0]} in {data_info[1]} at {data_info[2]}: {bba_stats(data_info[4])}",
+            )
+
+        def finalise_honing(title):
+            lower_title = title.lower()
+            filename = f"honing_{lower_title.replace(' ', '_')}"
+            plt.xlim(0, 8)
+            plt.xlabel("Run Number")
+            plt.ylabel("Offset Value (mm)")
+            plt.grid(which="major", axis="both")
+            plt.legend("xx-small")
+            plt.savefig(
+                f"{TEMP_FILEPATH_ROOT}/{filename}.png", bbox_inches="tight", dpi=300
+            )
+            plt.close()
+
+        # FBBA vs BBA plot for each axis.
+        for axis in ["x", "y"]:
+            indices = find_honing_indices(axis=[axis])
+            for i in indices:
+                plot_honing(i)
+            finalise_honing(f"FBBA vs BBA in {axis}")
+
+        # FBBA vs BBA for each offset
+        for offset in [0, 0.1]:
+            indices = find_honing_indices(offset=[offset])
+            for i in indices:
+                plot_honing(i)
+            finalise_honing(f"FBBA vs BBA at {offset}")
+
+        # FBBA vs BBA all options.
+        indices = find_honing_indices()
         for i in indices:
-            plot_honing(honing_dict, i)
-        finalise_honing("FBBA vs BBA in X at 0 Offset")
+            plot_honing(i)
+        finalise_honing("FBBA vs BBA all options")
 
-        # False fofb
+    if time:
+        repeats = 10
+        frequencies = [8, 37, 83, 107, 137, 179]
+        total_time = [0.5, 1, 1.5, 2]
+        quadrupole_scalar = 0.01
+        corrector_scalar = 1
+        repeats = 10
+        offset = 0.1
+        data = {}
 
-        # FBBA vs BBA plot y
+        for time in total_time:
+            for freq in frequencies:
+                for axis in ["x", "y"]:
+                    cycles = int(np.floor(time * freq))
+                    d = np.genfromtxt(
+                        f"{TEMP_FILEPATH_ROOT}/time_freq_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_{axis}_offset{offset}.csv",
+                        delimiter=",",
+                    )
+                    data[f"{time},{freq}_{axis}"] = [d[0, :], d[1, :]]
 
-        # False fofb
+        for key, (values, errors) in data.items():
+            init = initial_offset[key[-1]]
+            cum_values = np.cumsum(values)
+            y_values = [init] + [value + init for value in cum_values]
+            y_errors = [0] + [e for e in errors]
+            data[key] = [y_values, y_errors]
 
-        # True fofb
+        for axis in ["x", "y"]:
+            fig, axs = plt.subplots(
+                ncols=len(total_time),
+                nrows=len(frequencies),
+                sharex=True,
+                sharey=True,
+                layout="constrained",
+            )
 
-        # SBBA vs BBA plot x
+            for row, time in enumerate(total_time):
+                for col, freq in enumerate(frequencies):
+                    values, errors = data[f"{time},{freq}_{axis}"]
+                    axs[row, col].errorbar(
+                        x, values, errors, label=f"{bba_stats(values)}"
+                    )
+                    axs[row, col].legend(fontsize="xx-small", loc=1)
+                    axs[row, col].grid(which="both", axis="both")
+                    axs[row, col].set_xlim(0, len(values))
+                    if row == len(total_time) - 1:
+                        plt.setp(axs[row, col], xlabel=f"{freq}")
+                    if col == 0:
+                        plt.setp(axs[row, col], ylabel=f"{time}")
+            fig.suptitle(
+                f"Time of measurement and Frequency with 100micron offset {axis}"
+            )
+            fig.supxlabel("Aquisition time (s)")
+            fig.supylabel("Frequency (Hz)")
+            plt.savefig(
+                f"{TEMP_FILEPATH_ROOT}/frequency_time_plot_{axis}.png",
+                bbox_inches="tight",
+                dpi=300,
+            )
+            plt.close()
 
-        # False fofb
-
-        # True fofb
-
-        # SBBA vs BBA plot y
-
-        # False fofb
-
-        # True fofb
-
-        # FBBA vs SBBA vs BBA x
-
-        # False fofb
-
-        # True fofb
-
-        # FBBA vs SBBA vs BBA y
-
-        # False fofb
-
-        # True fofb
-
-    if triple:
-        frequencies = [8, 83, 137, 179]
-        fft_ = True
-        fofb_trigger_ = False
-        current = 300
-        x_axis = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-        spread_index = 3
-
-        initial_x = 0.7890
-        initial_y = 0.4230
-
-        freq_dict = {
-            8: "darkred",
-            83: "red",
-            137: "darkorange",
-            179: "lime",
-            223: "darkgreen",
-            269: "dodgerblue",
-        }
-
-    if cell:
-        cell_pv_list = [
-            "SR01A-PC-Q1D-01",
-            "SR01A-PC-Q2D-02",
-            "SR01A-PC-Q3D-03",
-            "SR01A-PC-Q2AD-04",
-            "SR01A-PC-Q1AD-05",
-            "SR01A-PC-Q1AB-06",
-            "SR01A-PC-Q2AB-07",
-            "SR01A-PC-Q3B-08",
-            "SR01A-PC-Q2B-09",
-            "SR01A-PC-Q1B-10",
-        ]
-        # correctors_list = [0.5, 1, 1.5]
-        # quadrupole_list = [0.5, 1, 1.5]
-        x_d = direction_dict["x"]
-        # y_d = direction_dict["y"]
-        x = np.arange(1, 11)
-
-        def cell_comparison(result_dict, starting_value, average=3):
-            values = []
-            errors = []
-            for index, _ in enumerate(cell_pv_list):
-                y = result_dict[f"{index},{x_d},value"]
-                y_err = result_dict[f"{index},{x_d},error"]
-
-                y_change = np.cumsum(y)
-                y_values = [starting_value] + [
-                    value + starting_value for value in y_change
-                ]
-                y_errors = [0] + [value for value in y_err]
-                spread_mean = mean(y_values[average:])
-                spread_list = [
-                    (y_errors[n] / y_values[n]) ** 2 for n in range(average, 5)
-                ]
-                spread_error = spread_mean * np.sqrt(sum(spread_list))
-                values.append(spread_mean)
-                errors.append(spread_error)
-            return values, errors
-
-        axis = "x"
-        starting_x = 0
-        # starting_y = 0
-
-        filename_x_c1_q1 = f"cell_c1_q1_{x}_f8_c16_FFT_FOFB_5repeats.json"
-        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c1_q1)) as f:
-            data_dict_x_c1_q1 = json.load(f)
-            c1_q1 = cell_comparison(data_dict_x_c1_q1, starting_x, average=3)
-        filename_x_c15_q1 = f"cell_c1.5_q1_{x}_f8_c16_FFT_FOFB_5repeats.json"
-        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c15_q1)) as f:
-            data_dict_x_c15_q1 = json.load(f)
-            c15_q1 = cell_comparison(data_dict_x_c15_q1, starting_x, average=3)
-        filename_x_c2_q1 = f"cell_c2_q1_{x}_f8_c16_FFT_FOFB_5repeats.json"
-        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c2_q1)) as f:
-            data_dict_x_c2_q1 = json.load(f)
-            c2_q1 = cell_comparison(data_dict_x_c2_q1, starting_x, average=3)
-        filename_x_c1_q15 = f"cell_c1_q1.5_{x}_f8_c16_FFT_FOFB_5repeats.json"
-        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c1_q15)) as f:
-            data_dict_x_c1_q15 = json.load(f)
-            c1_q15 = cell_comparison(data_dict_x_c1_q15, starting_x, average=3)
-        filename_x_c15_q15 = f"cell_c1.5_q1.5_{x}_f8_c16_FFT_FOFB_5repeats.json"
-        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c15_q15)) as f:
-            data_dict_x_c15_q15 = json.load(f)
-            c15_q15 = cell_comparison(data_dict_x_c15_q15, starting_x, average=3)
-        filename_x_c2_q15 = f"cell_c2_q1.5_{x}_f8_c16_FFT_FOFB_5repeats.json"
-        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c2_q15)) as f:
-            data_dict_x_c2_q15 = json.load(f)
-            c2_q15 = cell_comparison(data_dict_x_c2_q15, starting_x, average=3)
-        filename_x_c1_q2 = f"cell_c1_q2_{x}_f8_c16_FFT_FOFB_5repeats.json"
-        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c1_q2)) as f:
-            data_dict_x_c1_q2 = json.load(f)
-            c1_q2 = cell_comparison(data_dict_x_c1_q2, starting_x, average=3)
-        filename_x_c15_q2 = f"cell_c1.5_q2_{x}_f8_c16_FFT_FOFB_5repeats.json"
-        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c15_q2)) as f:
-            data_dict_x_c15_q2 = json.load(f)
-            c15_q2 = cell_comparison(data_dict_x_c15_q2, starting_x, average=3)
-        filename_x_c2_q2 = f"cell_c2_q2_{x}_f8_c16_FFT_FOFB_5repeats.json"
-        with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x_c2_q2)) as f:
-            data_dict_x_c2_q2 = json.load(f)
-            c2_q2 = cell_comparison(data_dict_x_c2_q2, starting_x, average=3)
-
-        figure, axis = plt.subplot(3, 3, sharex=True, sharey=True)
-        figure.suptitle(
-            "Change in BBA values across Cell 1 due to quadrupole/corrector amplitudes."
-        )
-        # axis[correctors, quads]
-        axis[2, 0].errorbar(x, c1_q1[0], c1_q1[1])
-        axis[2, 0].set_title("Quad:1, Corr:1")
-
-        axis[2, 1].errorbar(x, c15_q1[0], c15_q1[1])
-        axis[2, 1].set_title("Quad:1, Corr:1.5")
-
-        axis[2, 2].errorbar(x, c2_q1[0], c2_q1[1])
-        axis[2, 2].set_title("Quad:1, Corr:2")
-
-        axis[1, 0].errorbar(x, c1_q15[0], c15_q1[1])
-        axis[1, 0].set_title("Quad:1.5, Corr:1")
-
-        axis[1, 1].errorbar(x, c15_q15[0], c15_q15[1])
-        axis[1, 1].set_title("Quad:1.5, Corr:1.5")
-
-        axis[1, 2].errorbar(x, c2_q15[0], c2_q15[1])
-        axis[1, 2].set_title("Quad:1.5, Corr:2")
-
-        axis[0, 0].errorbar(x, c1_q2[0], c1_q2[1])
-        axis[0, 0].set_title("Quad:2, Corr:1")
-
-        axis[0, 1].errorbar(x, c15_q2[0], c15_q2[1])
-        axis[0, 1].set_title("Quad:2, Corr:1.5")
-
-        axis[0, 2].errorbar(x, c2_q2[0], c2_q2[1])
-        axis[0, 2].set_title("Quad:2, Corr:2")
-
-        plt.grid(which="both", axis="both")
-        plt.legend()
-        plt.savefig(
-            f"{TEMP_FILEPATH_ROOT}/cell1_comparison_x.png",
-            bbox_inches="tight",
-            dpi=1200,
-        )
-        plt.close()
+        pass
 
     if running:
-        fft_ = True
-        fofb_trigger_ = True
-        current = 300
-        delay = 40
-        # x_axis = [int(num) for num in range(0, 30+1)]
-        spread_index = 3
-        initial_x_300 = [0]
-        initial_y_300 = [0]
-        # note = "warming"
-        note = "cooling"
-        topup = "topup1"
+        situation = ["baseline", "cooling", "warming"]
 
-        data_x = np.genfromtxt(
-            f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_{note}_{topup}_x_{i}.csv",
-            delimiter=",",
-        )
-        data_y = np.genfromtxt(
-            f"{TEMP_FILEPATH_ROOT}/running_r8_c16_f8_qs0.02_cs2_fft{fft_}_fofb{fofb_trigger_}_{current}_delay{delay}_{note}_{topup}_y_{i}.csv",
-            delimiter=",",
-        )
+        freq = 8
+        quadrupole_scalar = 0.01
+        corrector_scalar = 1
+        cycles = 16
+        repeats = 30
+        x = np.arange(0, repeats)
+
+        data = {}
+        for sit in situation:
+            for axis in ["x", "y"]:
+                d = np.genfromtxt(
+                    f"{TEMP_FILEPATH_ROOT}/running_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_{axis}_{situation}.csv",
+                    delimiter=",",
+                )
+                data[f"{sit},{axis}"] = [d[0, :], d[1, :]]
+
+        for key, (values, errors) in data.items():
+            init = initial_offset[key[-1]]
+            cum_values = np.cumsum(values)
+            y_values = [init] + [value + init for value in cum_values]
+            y_errors = [0] + [e for e in errors]
+            data[key] = [y_values, y_errors]
+
+        for axis in ["x", "y"]:
+            for key, (values, errors) in data.items():
+                plt.errorbar(
+                    x,
+                    values,
+                    errors,
+                    marker=".",
+                    capsize=5,
+                    label=f"{key}: {bba_stats(values)}",
+                )
+            plt.ylabel("Offset Value (mm)")
+            plt.xlabel("Run Number")
+            plt.xlim(0, repeats)
+            plt.grid(which="major", axis="both")
+            plt.legend("xx-small")
+            plt.savefig(
+                f"{TEMP_FILEPATH_ROOT}/running_{axis}.png", bbox_inches="tight", dpi=300
+            )
+            plt.close()
+
         plt.savefig(
             f"{TEMP_FILEPATH_ROOT}/running_cooling_down_plot.png",
             bbox_inches="tight",
             dpi=1200,
         )
-        # plt.show()
         plt.close()
+
+    if swap:
+        quadrupole_scalar = 0.01
+        corrector_scalar = 1
+        offset = 0.1
+        repeats = 16
+        x = np.arange(0, repeats)
+        cycles = 16
+        frequency = 8
+        directions = [["HORIZONTAL", "VERTICAL"], ["VERTICAL", "HORIZONTAL"]]
+        data = {}
+
+        for order in directions:
+            for axis in ["x", "y"]:
+                d = np.genfromtxt(
+                    f"{TEMP_FILEPATH_ROOT}/swap_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_{axis}_order_{order[0]}.csv",
+                    delimiter=",",
+                )
+                data[f"{order[0]},{axis}"] = [d[0, :], d[1, :]]
+
+        for key, (values, errors) in data.items():
+            init = initial_offset[key[-1]]
+            cum_values = np.cumsum(values)
+            y_values = [init] + [value + init for value in cum_values]
+            y_errors = [0] + [e for e in errors]
+            data[key] = [y_values, y_errors]
+
+        for key, (values, errors) in data.items():
+            if key[-1] == "x":
+                linestyle = "-"
+            else:
+                linestyle = "--"
+            plt.errorbar(
+                x,
+                values,
+                errors,
+                capsize=5,
+                marker=".",
+                linestyle=linestyle,
+                label=f"Order: {key}, {bba_stats(values)}",
+            )
+        plt.ylabel("Offset Value (mm)")
+        plt.xlabel("Run Number")
+        plt.xlim(0, repeats)
+        plt.grid(which="major", axis="both")
+        plt.legend("xx-small")
+        plt.savefig(
+            f"{TEMP_FILEPATH_ROOT}/swapped_order.png", bbox_inches="tight", dpi=300
+        )
+        plt.close()
+
+        pass
 
 
 if __name__ == "__main__":

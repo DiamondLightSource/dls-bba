@@ -1,13 +1,5 @@
 """MD Tests."""
-# frequency_scan(accelerator, quad, plane)
-# cycle_scan(accelerator, quad, plane)
-# repeatability_scan(accelerator, quad, plane, counts)
-# compare_decimated_data(accelerator, quad, plane)
-# scan_cell(accelerator, cell)
-# scan_amplitudes(accelerator, quad, plane, scale_quad=True, scale_corr=True)
-
 import argparse
-import json
 import logging as log
 import os
 from collections import defaultdict
@@ -29,7 +21,7 @@ FILE_LOG_FORMAT = (
     "%(levelname)-7s: %(asctime)s — [%(filename)s:%(lineno)d] — %(message)s"
 )
 
-TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "21Feb2023")
+TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "28Feb2023")
 
 
 direction_dict = {
@@ -90,28 +82,12 @@ def parse_args():
         help="The maximum orbit size to invoke FOFB in um.",
     )
     parser.add_argument(
-        "-c",
-        "--cell",
-        dest="cell_t",
-        action="store_true",
-        default=False,
-        help="Cell test",
-    )
-    parser.add_argument(
         "-j",
         "--honing",
         dest="honing_t",
         action="store_true",
         default=False,
         help="honing simple test",
-    )
-    parser.add_argument(
-        "-t",
-        "--triple",
-        dest="triple_t",
-        action="store_true",
-        default=False,
-        help="triple frequency test",
     )
     parser.add_argument(
         "-r",
@@ -122,20 +98,28 @@ def parse_args():
         help="Running test",
     )
     parser.add_argument(
-        "-w",
-        "--whole",
-        dest="whole_t",
-        action="store_true",
-        default=False,
-        help="Whole machine bba offsets",
-    )
-    parser.add_argument(
         "-y",
         "--yestime",
         dest="time_t",
         action="store_true",
         default=False,
         help="Time test",
+    )
+    parser.add_argument(
+        "-c",
+        "--swaptest",
+        dest="swaptest",
+        action="store_true",
+        default=False,
+        help="Swapping axis test",
+    )
+    parser.add_argument(
+        "-f",
+        "--feedbacks",
+        dest="feedbacks",
+        action="store_true",
+        default=False,
+        help="feedbacks test",
     )
     return parser.parse_args()
 
@@ -145,12 +129,11 @@ def main():
     args = parse_args()
     method = str(args.method)
     directions = direction_dict[args.directions]
-    cell_test = args.cell_t
     honing_test = args.honing_t
-    triple = args.triple_t
     running = args.running_t
-    whole = args.whole_t
     time = args.time_t
+    swaptest = args.swaptest
+    feedbacks = args.feedbacks
 
     get_new_logger(method, TEMP_FILEPATH_ROOT)
 
@@ -196,14 +179,6 @@ def main():
         log.info("Honing Test")
         honing(algorithm, element_list[0], method, directions)
 
-    if cell_test:
-        log.info("Cell Test")
-        cell(algorithm, cell_list, method, directions)
-
-    if triple:
-        log.info("Triple frequency Test")
-        triple_freq(algorithm, element_list[0], method, directions)
-
     if time:
         log.info("Time test.")
         time_freq(algorithm, element_list[0], method, directions)
@@ -212,9 +187,13 @@ def main():
         log.info("Running Test")
         running_(algorithm, element_list[0], method, directions)
 
-    if whole:
-        log.info("Snapshot of all BBA offsets.")
-        whole_offsets(algorithm)
+    if swaptest:
+        log.info("Swap test")
+        swap_test(algorithm, element_list[0], method, directions)
+
+    if feedbacks:
+        log.info("Feedbacks Test")
+        feedbacks_test()
 
 
 def repeat_test(
@@ -229,9 +208,10 @@ def repeat_test(
     cycles_=16,
     frequency_=8,
     decimated_=False,
-    fft_=True,
     fofb_trigger_=True,
     delay_=0,
+    runtime_=3,
+    waittime_=3,
 ):
     """For repeating BBA a number of times with the same arguments."""
     log.info(f"Starting repeats: {repeats}, with apply: {apply}.")
@@ -251,17 +231,18 @@ def repeat_test(
                 cycles=cycles_,
                 frequency=frequency_,
                 decimated=decimated_,
+                runtime=runtime_,
+                waittime=waittime_,
             )
             initial_current = algorithm._accelerator.get_beam_current()
             while True:
                 if fofb_trigger_:
-                    algorithm.toggle_fofb()
-                    algorithm.toggle_tune()
+                    algorithm.apply_feedbacks(runtime_, waittime_)
                 raw_data = algorithm.run(element, PLANE_VALUES[axis], max_orbit)
                 if algorithm.check_beam_current(initial_current):
                     break
             raw_data.save(filename_prefix, TEMP_FILEPATH_ROOT)
-            results = algorithm.analyse_data(raw_data, plot, fft_)
+            results = algorithm.analyse_data(raw_data, plot)
             filename = results.save(filename_prefix, TEMP_FILEPATH_ROOT)
             filename_store.append(filename)
             for quad, answers in results.results.items():
@@ -280,44 +261,25 @@ def honing(algorithm, element, method, directions_list):
     """Honing Test"""
     quadrupole_scalar = 0.01
     corrector_scalar = 1
-    offset = 0  # 0.1  # 100 microns
-
-    if method == "FBBA":
-        options = {  # FFT, FOFB
-            "first": [True, True],
-            "second": [False, True],
-            "third": [True, False],
-            "fourth": [False, False],
-        }
-    elif method == "SBBA":
-        options = {  # FFT, FOFB (Cannot run FFT analysis)
-            "first": [False, True],
-            "second": [False, False],
-        }
-    else:
-        log.critical("No method selected.")
+    repeats = 20
+    cycles = 16
+    frequency = 8
 
     pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
     pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
     current_x = caget(pv_x)
     current_y = caget(pv_y)
     log.info(f"Start: x={current_x}, y={current_y}")
+    for offset in [0, 0.1]:
+        caput(pv_x, current_x + offset, wait=True)
+        caput(pv_y, current_y + offset, wait=True)
+        Sleep(0.2)
+        offset_x = caget(pv_x)
+        offset_y = caget(pv_y)
+        log.info(f"Offset applied: x={offset_x}, y={offset_y}")
 
-    caput(pv_x, current_x + offset, wait=True)
-    caput(pv_y, current_y + offset, wait=True)
-    Sleep(0.2)
-    offset_x = caget(pv_x)
-    offset_y = caget(pv_y)
-    log.info(f"Offset applied: x={offset_x}, y={offset_y}")
-
-    for key, (fft, fofb) in options.items():
-        algorithm.toggle_fofb()  # Align for set of 8.
-        algorithm.toggle_tune()
-        log.info(f"Key: {key}: FFT: {fft}, FOFB: {fofb}")
-        repeats = 8
-        cycles = 16
-        frequency = 8
-        current = 300
+        algorithm.apply_feedbacks(10, 10)  # Align for set of 8.
+        log.info(f"Offset: {offset}")
         offsets, errors = repeat_test(
             algorithm,
             element,
@@ -325,8 +287,6 @@ def honing(algorithm, element, method, directions_list):
             directions_list,
             repeats,
             apply=True,
-            fft_=fft,
-            fofb_trigger_=fofb,
             quadrupole_scalar_=quadrupole_scalar,
             corrector_scalar_=corrector_scalar,
         )
@@ -335,7 +295,7 @@ def honing(algorithm, element, method, directions_list):
         matrix[0, :] = offsets[direction_dict["x"][0]]
         matrix[1, :] = errors[direction_dict["x"][0]]
         np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/honing_{method}_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_x_offset{offset}.csv",
+            f"{TEMP_FILEPATH_ROOT}/honing_{method}_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_x_offset{offset}.csv",
             matrix,
             delimiter=",",
         )
@@ -343,7 +303,7 @@ def honing(algorithm, element, method, directions_list):
         matrix[0, :] = offsets[direction_dict["y"][0]]
         matrix[1, :] = errors[direction_dict["y"][0]]
         np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/honing_{method}_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_y_offset{offset}.csv",
+            f"{TEMP_FILEPATH_ROOT}/honing_{method}_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_y_offset{offset}.csv",
             matrix,
             delimiter=",",
         )
@@ -358,41 +318,40 @@ def honing(algorithm, element, method, directions_list):
         Sleep(1)
 
 
-def triple_freq(algorithm, element, method, directions_list):
-    """Honing but for three specific frequencies."""
-
-    frequencies = [8, 83, 137]
+def swap_test(algorithm, element, method, directions_list):
     quadrupole_scalar = 0.01
     corrector_scalar = 1
-    fft = True
-    fofb = True
-    MAX_TIME = 2
-    directions_list = ["VERTICAL", "HORIZONTAL"]
+    offset = 0.1
+    repeats = 16
+    cycles = 16
+    frequency = 8
 
     pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
     pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
     current_x = caget(pv_x)
     current_y = caget(pv_y)
     log.info(f"Start: x={current_x}, y={current_y}")
+    offset_x = caget(pv_x)
+    offset_y = caget(pv_y)
+    log.info(f"Offset applied: x={offset_x}, y={offset_y}")
+    directions = [["HORIZONTAL", "VERTICAL"], ["VERTICAL", "HORIZONTAL"]]
 
-    for freq in frequencies:
-        algorithm.toggle_fofb()  # Align for set of 8.
-        algorithm.toggle_tune()
-        log.info(f"Freq: {freq}: FFT: {fft}, FOFB: {fofb}")
-        repeats = 8
-        cycles = int(np.floor(MAX_TIME * freq))
-        current = 300
+    for order in directions:
+        caput(pv_x, current_x + offset, wait=True)
+        caput(pv_y, current_y + offset, wait=True)
+        Sleep(0.2)
+        offset_x = caget(pv_x)
+        offset_y = caget(pv_y)
+        log.info(f"Offset applied: x={offset_x}, y={offset_y}")
+        algorithm.apply_feedbacks(10, 10)  # Align for set of 8.
+        log.info(f"Order: {order}")
         offsets, errors = repeat_test(
             algorithm,
             element,
             method,
-            directions_list,
+            order,
             repeats,
             apply=True,
-            fft_=fft,
-            fofb_trigger_=fofb,
-            frequency_=freq,
-            cycles_=cycles,
             quadrupole_scalar_=quadrupole_scalar,
             corrector_scalar_=corrector_scalar,
         )
@@ -401,7 +360,7 @@ def triple_freq(algorithm, element, method, directions_list):
         matrix[0, :] = offsets[direction_dict["x"][0]]
         matrix[1, :] = errors[direction_dict["x"][0]]
         np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/triple_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_x_swap.csv",
+            f"{TEMP_FILEPATH_ROOT}/swap_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_x_order_{order[0]}.csv",
             matrix,
             delimiter=",",
         )
@@ -409,7 +368,7 @@ def triple_freq(algorithm, element, method, directions_list):
         matrix[0, :] = offsets[direction_dict["y"][0]]
         matrix[1, :] = errors[direction_dict["y"][0]]
         np.savetxt(
-            f"{TEMP_FILEPATH_ROOT}/triple_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_y_swap.csv",
+            f"{TEMP_FILEPATH_ROOT}/swap_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_y_order_{order[0]}.csv",
             matrix,
             delimiter=",",
         )
@@ -431,8 +390,7 @@ def time_freq(algorithm, element, method, directions_list):
     total_time = [0.5, 1, 1.5, 2]
     quadrupole_scalar = 0.01
     corrector_scalar = 1
-    fft = True
-    fofb = True
+    repeats = 10
     offset = 0.1
 
     pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
@@ -443,12 +401,16 @@ def time_freq(algorithm, element, method, directions_list):
 
     for time in total_time:
         for freq in frequencies:
-            algorithm.toggle_fofb()  # Align for set of 8.
-            algorithm.toggle_tune()
-            log.info(f"Time: {time}, Freq: {freq}: FFT: {fft}, FOFB: {fofb}")
-            repeats = 8
+            caput(pv_x, current_x + offset, wait=True)
+            caput(pv_y, current_y + offset, wait=True)
+            Sleep(0.2)
+            offset_x = caget(pv_x)
+            offset_y = caget(pv_y)
+            log.info(f"Offset applied: x={offset_x}, y={offset_y}")
+            algorithm.apply_feedbacks(10, 10)  # Align for set of 8.
+            log.info(f"Time: {time}, Freq: {freq}")
             cycles = int(np.floor(time * freq))
-            current = 300
+
             offsets, errors = repeat_test(
                 algorithm,
                 element,
@@ -456,8 +418,6 @@ def time_freq(algorithm, element, method, directions_list):
                 directions_list,
                 repeats,
                 apply=True,
-                fft_=fft,
-                fofb_trigger_=fofb,
                 frequency_=freq,
                 cycles_=cycles,
                 quadrupole_scalar_=quadrupole_scalar,
@@ -468,7 +428,7 @@ def time_freq(algorithm, element, method, directions_list):
             matrix[0, :] = offsets[direction_dict["x"][0]]
             matrix[1, :] = errors[direction_dict["x"][0]]
             np.savetxt(
-                f"{TEMP_FILEPATH_ROOT}/time_freq_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_x_offset{offset}.csv",
+                f"{TEMP_FILEPATH_ROOT}/time_freq_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_x_offset{offset}.csv",
                 matrix,
                 delimiter=",",
             )
@@ -476,7 +436,7 @@ def time_freq(algorithm, element, method, directions_list):
             matrix[0, :] = offsets[direction_dict["y"][0]]
             matrix[1, :] = errors[direction_dict["y"][0]]
             np.savetxt(
-                f"{TEMP_FILEPATH_ROOT}/time_freq_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_{current}_y_offset{offset}.csv",
+                f"{TEMP_FILEPATH_ROOT}/time_freq_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_y_offset{offset}.csv",
                 matrix,
                 delimiter=",",
             )
@@ -491,90 +451,31 @@ def time_freq(algorithm, element, method, directions_list):
             Sleep(1)
 
 
-def cell(algorithm, cell_list, method, directions_list):
-    """Cell corrector amplitudes test"""
-    repeats = 8
-    fft_ = True
-    fofb_trigger_ = False
-    freq = 8
-    cycles = 16
-    apply = True
-
-    results = {}
-    for quad in cell_list:
-        quadx = quad + ":CF:BBA_X_S"
-        quady = quad + ":CF:BBA_Y_S"
-        x = caget(quadx)
-        y = caget(quady)
-        results[quadx] = x
-        results[quady] = y
-        log.debug(quadx, x)
-        log.debug(quady, y)
-
-    correctors_list = [0.5, 1, 1.5]
-    quadrupole_list = [0.5, 1, 1.5]
-    x_d = direction_dict["x"]
-    y_d = direction_dict["y"]
-    for corr in correctors_list:
-        for quad in quadrupole_list:
-            data_dict_x = defaultdict(list)
-            data_dict_y = defaultdict(list)
-            for index, element in enumerate(cell_list):
-                offsets, errors = repeat_test(
-                    algorithm,
-                    element,
-                    method,
-                    directions_list,
-                    repeats,
-                    apply=apply,
-                    cycles_=cycles,
-                    frequency_=freq,
-                    corrector_scalar_=corr,
-                    quadrupole_scalar_=quad,
-                    fft_=fft_,
-                    fofb_trigger_=fofb_trigger_,
-                )
-                data_dict_x[f"{index},{x_d},value"] = offsets[x_d]
-                data_dict_x[f"{index},{x_d},error"] = errors[x_d]
-                data_dict_y[f"{index},{y_d},value"] = offsets[y_d]
-                data_dict_y[f"{index},{y_d},error"] = errors[y_d]
-
-            filename_x = f"cell_c{corr}_q{quad}_x_f8_c16_FFT_FOFB_5repeats.json"
-            with open(os.path.join(TEMP_FILEPATH_ROOT, filename_x), "w") as outfile:
-                json.dump(data_dict_x, outfile, indent=4, ensure_ascii=False)
-
-            filename_y = f"cell_c{corr}_q{quad}_y_f8_c16_FFT_FOFB_5repeats.json"
-            with open(os.path.join(TEMP_FILEPATH_ROOT, filename_y), "w") as outfile:
-                json.dump(data_dict_y, outfile, indent=4, ensure_ascii=False)
-
-            # reset bba offsets.
-            for key, value in results.items():
-                caput(key, value, wait=True)
-            log.info("Reset BBA offsets.")
-
-
 def running_(algorithm, element, method, directions_list):
     """Repeat running of F/S BBA."""
 
     freq = 8
     quadrupole_scalar = 0.01
     corrector_scalar = 1
-    fft = True
-    fofb = True
-    sitation = "baseline"  # "baseline" "cooling" "warming"
+    cycles = 16
+    repeats = 30
+    situation = ["baseline", "cooling", "warming"]
+    situation = situation[0]
+    offset = 0.1
 
     pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
     pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
     current_x = caget(pv_x)
     current_y = caget(pv_y)
     log.info(f"Start: x={current_x}, y={current_y}")
+    caput(pv_x, current_x + offset, wait=True)
+    caput(pv_y, current_y + offset, wait=True)
+    Sleep(0.2)
+    offset_x = caget(pv_x)
+    offset_y = caget(pv_y)
+    log.info(f"Offset applied: x={offset_x}, y={offset_y}")
 
-    algorithm.toggle_fofb()  # Align for set
-    algorithm.toggle_tune()
-    log.info(f"Freq: {freq}: FFT: {fft}, FOFB: {fofb}")
-    repeats = 30
-    cycles = 16
-
+    algorithm.apply_feedbacks(10, 10)  # Align for set
     offsets, errors = repeat_test(
         algorithm,
         element,
@@ -582,8 +483,6 @@ def running_(algorithm, element, method, directions_list):
         directions_list,
         repeats,
         apply=True,
-        fft_=fft,
-        fofb_trigger_=fofb,
         frequency_=freq,
         cycles_=cycles,
         quadrupole_scalar_=quadrupole_scalar,
@@ -594,7 +493,7 @@ def running_(algorithm, element, method, directions_list):
     matrix[0, :] = offsets[direction_dict["x"][0]]
     matrix[1, :] = errors[direction_dict["x"][0]]
     np.savetxt(
-        f"{TEMP_FILEPATH_ROOT}/running_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_x_{sitation}.csv",
+        f"{TEMP_FILEPATH_ROOT}/running_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_x_{situation}.csv",
         matrix,
         delimiter=",",
     )
@@ -602,7 +501,7 @@ def running_(algorithm, element, method, directions_list):
     matrix[0, :] = offsets[direction_dict["y"][0]]
     matrix[1, :] = errors[direction_dict["y"][0]]
     np.savetxt(
-        f"{TEMP_FILEPATH_ROOT}/running_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_fft{fft}_fofb{fofb}_y_{sitation}.csv",
+        f"{TEMP_FILEPATH_ROOT}/running_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_y_{situation}.csv",
         matrix,
         delimiter=",",
     )
@@ -616,43 +515,71 @@ def running_(algorithm, element, method, directions_list):
     log.info(f"Reset: x={current_x}, y={current_y}")
 
 
-def whole_offsets(algorithm):
-    x = []
-    y = []
-    bpm_pvs = algorithm._accelerator.lattice.get_element_pv_names("BPM", "x", pytac.RB)
-    now = datetime.now()
-    datestring = now.strftime("%Y-%m-%dT%H-%M-%S")
-    for bpm in bpm_pvs:
-        root_pv = bpm.split(":")[0]
-        x_value = caget(root_pv + ":CF:BBA_X_S")
-        y_value = caget(root_pv + ":CF:BBA_Y_S")
-        x.append(x_value)
-        y.append(y_value)
-    matrix = np.zeros(shape=(2, len(x)))
-    matrix[0, :] = x
-    matrix[1, :] = y
-    np.savetxt(
-        f"{TEMP_FILEPATH_ROOT}/all_bpm_offsets_{datestring}.csv",
-        matrix,
-        delimiter=",",
-    )
-    length = len(x)
-    x_axis = list(np.arange(1, length + 1))
-    plt.plot(x_axis, x, label="x")
-    plt.plot(x_axis, y, label="y")
-    plt.legend()
-    plt.xlim(0, x_axis[-1] + 1)
-    # plt.ylim(-2, 2)
-    plt.xlabel("BPM number")
-    plt.title("BPM BBA Offsets")
-    plt.ylabel("Offset in mm")
-    plt.grid(which="both", axis="both")
-    plt.savefig(
-        f"{TEMP_FILEPATH_ROOT}/whole_offsets_{datestring}.png",
-        bbox_inches="tight",
-        dpi=1200,
-    )
-    plt.close()
+def feedbacks_test(algorithm, element, method, directions_list):
+    runtime_values = [2, 3, 4]
+    waittime_values = [1, 3, 5]
+    quadrupole_scalar = 0.01
+    corrector_scalar = 1
+    repeats = 16
+    cycles = 16
+    frequency = 8
+    offset = 0.1
+
+    pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
+    pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
+    current_x = caget(pv_x)
+    current_y = caget(pv_y)
+    log.info(f"Start: x={current_x}, y={current_y}")
+
+    for runtime in runtime_values:
+        for waittime in waittime_values:
+            caput(pv_x, current_x + offset, wait=True)
+            caput(pv_y, current_y + offset, wait=True)
+            Sleep(0.2)
+            offset_x = caget(pv_x)
+            offset_y = caget(pv_y)
+            log.info(f"Offset applied: x={offset_x}, y={offset_y}")
+            algorithm.apply_feedbacks(10, 10)
+            log.info(f"Runtime: {runtime}, Waittime: {waittime}")
+            offsets, errors = repeat_test(
+                algorithm,
+                element,
+                method,
+                directions_list,
+                repeats,
+                apply=True,
+                fofb_trigger_=True,
+                quadrupole_scalar_=quadrupole_scalar,
+                corrector_scalar_=corrector_scalar,
+                runtime_=runtime,
+                waittime_=waittime,
+            )
+
+            matrix = np.zeros(shape=(2, repeats))
+            matrix[0, :] = offsets[direction_dict["x"][0]]
+            matrix[1, :] = errors[direction_dict["x"][0]]
+            np.savetxt(
+                f"{TEMP_FILEPATH_ROOT}/feedbacks_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_x_run{runtime}_wait{waittime}.csv",
+                matrix,
+                delimiter=",",
+            )
+            matrix = np.zeros(shape=(2, repeats))
+            matrix[0, :] = offsets[direction_dict["y"][0]]
+            matrix[1, :] = errors[direction_dict["y"][0]]
+            np.savetxt(
+                f"{TEMP_FILEPATH_ROOT}/feedbacks_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_y_run{runtime}_wait{waittime}.csv",
+                matrix,
+                delimiter=",",
+            )
+
+            final_x = caget(pv_x)
+            final_y = caget(pv_y)
+            log.info(f"Final: x={final_x}, y={final_y}")
+            caput(pv_x, current_x, wait=True)
+            caput(pv_y, current_y, wait=True)
+            Sleep(0.2)
+            log.info(f"Reset: x={current_x}, y={current_y}")
+            Sleep(1)
 
 
 if __name__ == "__main__":
