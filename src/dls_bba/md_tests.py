@@ -407,6 +407,17 @@ def time_freq(algorithm, element, method, directions_list):
             offset_x = caget(pv_x)
             offset_y = caget(pv_y)
             log.info(f"Offset applied: x={offset_x}, y={offset_y}")
+
+            accepted = False
+            while not accepted:
+                input_value = input(
+                    "Check if beam needs topup. 'y' when ready to continue. If not then cancel. : "
+                )
+                if input_value == "y":
+                    accepted = True
+                else:
+                    print("Try again: ")
+
             algorithm.apply_feedbacks(10, 10)  # Align for set of 8.
             log.info(f"Time: {time}, Freq: {freq}")
             cycles = int(np.floor(time * freq))
@@ -539,6 +550,17 @@ def feedbacks_test(algorithm, element, method, directions_list):
             offset_x = caget(pv_x)
             offset_y = caget(pv_y)
             log.info(f"Offset applied: x={offset_x}, y={offset_y}")
+
+            accepted = False
+            while not accepted:
+                input_value = input(
+                    "Check if beam needs topup. 'y' when ready to continue. If not then cancel. : "
+                )
+                if input_value == "y":
+                    accepted = True
+                else:
+                    print("Try again: ")
+
             algorithm.apply_feedbacks(10, 10)
             log.info(f"Runtime: {runtime}, Waittime: {waittime}")
             offsets, errors = repeat_test(
