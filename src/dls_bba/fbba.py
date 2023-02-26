@@ -201,48 +201,44 @@ class FBBA(Algorithm):
         assert high_data.shape == low_data.shape
         return [high_data, low_data]
 
-    def extract_freq_excite(self, data, known_freq, bpm_index=None, window=True):
+    def extract_freq_excite(self, data, known_freq, bpm_index):
         # Synchronous Detector Method
 
         # Incoming data arranged as [Time, Axis]
-        # The mixing function creates a clean waveform at the appropriate frequency
+
+        # The mixing function creates a clean waveform at the known frequency
+        # A dummy axis must be created to preserve shape through numpy operations
+        # mix aranged as [Time, 1]
         mix = np.exp(
-            2j * np.pi * np.arange(0, len(data)) * known_freq / TICKS_PER_SECOND
+            2j * np.pi * known_freq / TICKS_PER_SECOND * np.arange(0, len(data)).T
         )
-
-        # Create dummy Axis dimension so mix is arranged as [Time, Axis] to preserve shape through the following numpy operations
         mix = mix[:, None]
-        # By default window the data to avoid edge effects
-        if window:
-            hmix = 2 * mix * np.hanning(len(mix))[:, None]
-        else:
-            hmix = mix
 
-        # offset : [Axis]
-        offset = data.mean(0)
-        # For numerical stability subtract any DC offset from the data before running detect
-        data = data - offset
+        # Run the mixing waveform over the data, aongside a hanning window
+        # detector aranged as [Axis, 1]
+        detector = 4 * (data * mix * np.hanning(len(mix))[:, None]).mean(0)
 
-        # Run the mixing waveform over each axis of the data, shape is now [Axis]
-        # hmix : [Time, 1], data : [Time, Axis], detect : [Axis]
-        detect = (np.conj(hmix) * data).mean(0)
+        # Find the phase of each axis; aranged as [Axis, 1]
+        angle = np.angle(detector)
 
-        if bpm_index is None:
-            phase_adjust = 1
-        else:
-            # Use phase of the target BPM to zero the phase of our capture
+        # smodpi function to align the phases
+        def smodpi(x):
+            return np.mod(x + (np.pi / 2), np.pi) - (np.pi / 2)
 
-            phase_adjust = np.exp(-1j * np.angle(detect[bpm_index]))
+        # Find the phase of the chosen BPM
+        phase_bpm = angle[bpm_index]
 
-        # Add dummy time axis back in for reconstruction step
-        detect = detect[None, :]
+        # Fix the angle of all BPMs to the chosen BPM
+        # dector_fixed aranged as [Axis, 1]
+        angle_fixed = smodpi(angle - phase_bpm)
+        detector_fixed = detector * np.exp(-1j * (angle_fixed + phase_bpm))
 
-        # Reconstruct detected sine wave with appropriate magnitude and phase
-        # At this point the shapes matter, we have detect.shape = (1, Axes),
-        # mix.shape : (Time, 1) and data.shape : [Time, Axis].
-        # Restore DC offset at this point
-        clean = 2 * (detect * phase_adjust * mix).real + offset
-        return clean
+        # Find the DC offset; aranged as [Axis, 1]
+        dc_offset = detector_fixed.mean(0)
+
+        # Reconstruct the clean wave; aranged as [Time, Axis]
+        clean_wave = np.real(np.conj(detector_fixed) * mix) + dc_offset
+        return clean_wave
 
     def analyse_data(self, raw_data, plot_output=False, window=True, *args, **kwargs):
         data = raw_data.raw_data
