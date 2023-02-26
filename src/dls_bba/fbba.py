@@ -240,7 +240,7 @@ class FBBA(Algorithm):
         clean_wave = np.real(np.conj(detector_fixed) * mix) + dc_offset
         return clean_wave
 
-    def analyse_data(self, raw_data, plot_output=False, window=True, *args, **kwargs):
+    def analyse_data(self, raw_data, plot_output=False, *args, **kwargs):
         data = raw_data.raw_data
         # algorithm = raw_data["algorithm"] -> Not used.
         metadata = raw_data.metadata
@@ -271,12 +271,8 @@ class FBBA(Algorithm):
             q_high = data[high_key][:, enabled_bpms] * 1e-3
 
             # Clean the data using the synchronous detector method
-            q_high_clean = self.extract_freq_excite(
-                q_high, freq, bpm_index, window=window
-            )
-            q_low_clean = self.extract_freq_excite(
-                q_low, freq, bpm_index, window=window
-            )
+            q_high_clean = self.extract_freq_excite(q_high, freq, bpm_index)
+            q_low_clean = self.extract_freq_excite(q_low, freq, bpm_index)
 
             # Take the difference between fits
             q_diff = q_high_clean - q_low_clean
