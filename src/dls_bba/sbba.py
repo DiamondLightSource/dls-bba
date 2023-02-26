@@ -41,10 +41,11 @@ class SBBA(Algorithm):
         )
 
     def run(self, element, plane_info, max_orbit) -> RawData:
-        method = "SBBA"
-        log.info(f"{method} process started in plane {plane_info.axis}.")
+        method = {"SBBA": "SBBA"}  # Chnage made for typing.
+        temp_method = "SBBA"
+        log.info(f"{temp_method} process started in plane {plane_info.axis}.")
 
-        bpm, quad_list, corrector = self.select_elements(element, plane_info)
+        bpm, quad_list, corrector, _ = self.select_elements(element)
         quad_pv_list = [
             self._accelerator.element_to_pv_prefix(quad_element)
             for quad_element in quad_list
@@ -58,7 +59,7 @@ class SBBA(Algorithm):
         )
         raw_data = {}
         metadata = {
-            "method": method,
+            "method": temp_method,
             "plane": plane_info,
             "quad": quad_pv_list,
             "bpm_pv": bpm_pv_prefix,
