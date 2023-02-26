@@ -60,9 +60,6 @@ def parse_args():
     return parser.parse_args()
 
 
-spread_value = 3
-x_axis = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-
 initial = {
     "x": 0.7890,
     "y": 0.4230,
@@ -70,7 +67,7 @@ initial = {
 initial_offset = {"x": 0.8890, "y": 0.5230}
 
 
-def bba_stats(values, spread=spread_value):
+def bba_stats(values, spread=3):
     spread_mean = str(np.round(mean(values[spread:]) * 1000, 1))
     spread_stdev = str(np.round(stdev(values[spread:]) * 1000, 1))
     pm = r"$\pm$"
@@ -156,6 +153,7 @@ def main():
         frequency = 8
         qs = 0.01
         cs = 1
+        x = np.arange(0, repeats)
 
         # 0 micron offset
         honing_dict = {  # method, axis, offset, colour, linestyle, values, errors
@@ -209,7 +207,7 @@ def main():
         def plot_honing(key):
             data_info = honing_dict[key]
             plt.errorbar(
-                x_axis,
+                x,
                 data_info[4],
                 data_info[5],
                 marker=".",
@@ -222,11 +220,11 @@ def main():
         def finalise_honing(title):
             lower_title = title.lower()
             filename = f"honing_{lower_title.replace(' ', '_')}"
-            plt.xlim(0, 8)
+            plt.xlim(0, repeats)
             plt.xlabel("Run Number")
             plt.ylabel("Offset Value (mm)")
             plt.grid(which="major", axis="both")
-            plt.legend("xx-small")
+            plt.legend(fontsize="xx-small")
             plt.savefig(
                 f"{TEMP_FILEPATH_ROOT}/{filename}.png", bbox_inches="tight", dpi=300
             )
@@ -260,6 +258,7 @@ def main():
         corrector_scalar = 1
         repeats = 10
         offset = 0.1
+        x = np.arange(0, repeats)
         data = {}
 
         for time in total_time:
@@ -355,18 +354,11 @@ def main():
             plt.xlabel("Run Number")
             plt.xlim(0, repeats)
             plt.grid(which="major", axis="both")
-            plt.legend("xx-small")
+            plt.legend(fontsize="xx-small")
             plt.savefig(
                 f"{TEMP_FILEPATH_ROOT}/running_{axis}.png", bbox_inches="tight", dpi=300
             )
             plt.close()
-
-        plt.savefig(
-            f"{TEMP_FILEPATH_ROOT}/running_cooling_down_plot.png",
-            bbox_inches="tight",
-            dpi=1200,
-        )
-        plt.close()
 
     if swap:
         quadrupole_scalar = 0.01
@@ -412,7 +404,7 @@ def main():
         plt.xlabel("Run Number")
         plt.xlim(0, repeats)
         plt.grid(which="major", axis="both")
-        plt.legend("xx-small")
+        plt.legend(fontsize="xx-small")
         plt.savefig(
             f"{TEMP_FILEPATH_ROOT}/swapped_order.png", bbox_inches="tight", dpi=300
         )
