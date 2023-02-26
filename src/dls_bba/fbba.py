@@ -9,7 +9,6 @@ import cothread
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
-from scipy.fft import irfft, rfft, rfftfreq
 
 from dls_bba.common import PLANE_VALUES, Algorithm, RawData, Results
 from dls_bba.excite import Excitation, Oscillation, excite
@@ -145,8 +144,7 @@ class FBBA(Algorithm):
             duration = NETWORK_LAG + osc_length + SAFETY_NET + quad_lag + osc_length
 
             # Move quad high
-            log.info("High Quad Step -> No movement until it works.")
-            # self._accelerator.set_quad(quad, quad_high)
+            self._accelerator.set_quad(quad, quad_high)
             cothread.Sleep(quad_lag_s / 2)
 
             now = get_timestamp(self.decimated)
@@ -190,8 +188,7 @@ class FBBA(Algorithm):
             )
 
             # Move quad from high to low
-            log.info("Low Quad Step -> No movement until it works.")
-            # self._accelerator.set_quad(quad, quad_low)
+            self._accelerator.set_quad(quad, quad_low)
             log.info("Low Oscillation")
             low_keys = [key for key in excitation.keys() if "Low_" in key]
             excite((excitation[low_keys[0]], excitation[low_keys[1]]))
@@ -206,7 +203,7 @@ class FBBA(Algorithm):
                     "Low": selected_data[1],
                 }
 
-            # self._accelerator.set_quad(quad, quad_sp)
+            self._accelerator.set_quad(quad, quad_sp)
 
             cothread.Sleep(quad_lag_s / 2)
             self.restore_origins(original_offsets)
@@ -249,49 +246,46 @@ class FBBA(Algorithm):
         assert high_data.shape == low_data.shape
         return [high_data, low_data]
 
-    def extract_freq_fft(self, data, known_freq):
-        samplingfreq = TICKS_PER_SECOND
-        length, samples = data.shape
-        data = np.transpose(data)
-
-        # Add hanning window.
-        data = data * np.hanning(data.shape[1])
-
-        yf = rfft(data) / length
-        xf = rfftfreq(length, 1 / samplingfreq)
-
-        indices = np.abs(yf) < 300
-        yf_clean = indices * yf
-
-        # Isolate the frequency closest to the known frequency.
-        freq_index, freq_value = min(
-            enumerate(xf), key=lambda x: abs(known_freq - x[1])
-        )
-        for bpm_index, dataset in enumerate(yf_clean):
-            for index, value in enumerate(dataset):
-                if index != freq_index:
-                    yf_clean[bpm_index][index] = 0
-
-        clean = np.transpose(irfft(yf_clean))
-        return clean
-
-    def extract_freq_excite(self, data, known_freq):
+    def extract_freq_excite(self, data, known_freq, bpm_index):
         # Synchronous Detector Method
 
-        data_lemgth = len(data)
-        # The mixing function creates a clean waveform at the appropriate frequency
-        mix = np.exp(
-            2j * np.pi * np.arange(0, data_lemgth) * known_freq / TICKS_PER_SECOND
-        )
-        # The reason for axis manipulation is that numpy incorrectly multiplies arrays by default to the first axis.
-        mix = mix[:, None]  #
-        hmix = 2 * mix * np.hanning(len(mix))[:, None]
-        detect = (hmix * data).mean(0)[None, :]
-        # Multiplying a complex number by the complex conjugate makes the number real.
-        clean = 2 * (detect * np.conj(mix)).real
-        return clean
+        # Incoming data arranged as [Time, Axis]
 
-    def analyse_data(self, raw_data, plot_output=False, use_fft=False, *args, **kwargs):
+        # The mixing function creates a clean waveform at the known frequency
+        # A dummy axis must be created to preserve shape through numpy operations
+        # mix aranged as [Time, 1]
+        mix = np.exp(
+            2j * np.pi * known_freq / TICKS_PER_SECOND * np.arange(0, len(data)).T
+        )
+        mix = mix[:, None]
+
+        # Run the mixing waveform over the data, aongside a hanning window
+        # detector aranged as [Axis, 1]
+        detector = 4 * (data * mix * np.hanning(len(mix))[:, None]).mean(0)
+
+        # Find the phase of each axis; aranged as [Axis, 1]
+        angle = np.angle(detector)
+
+        # smodpi function to align the phases
+        def smodpi(x):
+            return np.mod(x + (np.pi / 2), np.pi) - (np.pi / 2)
+
+        # Find the phase of the chosen BPM
+        phase_bpm = angle[bpm_index]
+
+        # Fix the angle of all BPMs to the chosen BPM
+        # dector_fixed aranged as [Axis, 1]
+        angle_fixed = smodpi(angle - phase_bpm)
+        detector_fixed = detector * np.exp(-1j * (angle_fixed + phase_bpm))
+
+        # Find the DC offset; aranged as [Axis, 1]
+        dc_offset = detector_fixed.mean(0)
+
+        # Reconstruct the clean wave; aranged as [Time, Axis]
+        clean_wave = np.real(np.conj(detector_fixed) * mix) + dc_offset
+        return clean_wave
+
+    def analyse_data(self, raw_data, plot_output=False, *args, **kwargs):
         data = raw_data.raw_data
         # algorithm = raw_data["algorithm"] -> Not used.
         metadata = raw_data.metadata
@@ -320,35 +314,12 @@ class FBBA(Algorithm):
                 q_low = data[key]["Low"][:, enabled_bpms] * 1e-3
                 q_high = data[key]["High"][:, enabled_bpms] * 1e-3
 
-                # Extract the DC componenet of the orbit, and add it to the excitation
-                q_high_dc = q_high.mean(0)
-                q_low_dc = q_low.mean(0)
-                if use_fft:
-                    q_high_clean = np.add(
-                        self.extract_freq_fft(
-                            q_high - q_high_dc, quad_metadata[key]["frequency"]
-                        ),
-                        q_high_dc,
-                    )
-                    q_low_clean = np.add(
-                        self.extract_freq_fft(
-                            q_low - q_low_dc, quad_metadata[key]["frequency"]
-                        ),
-                        q_low_dc,
-                    )
-                else:
-                    q_high_clean = np.add(
-                        self.extract_freq_excite(
-                            q_high - q_high_dc, quad_metadata[key]["frequency"]
-                        ),
-                        q_high_dc,
-                    )
-                    q_low_clean = np.add(
-                        self.extract_freq_excite(
-                            q_low - q_low_dc, quad_metadata[key]["frequency"]
-                        ),
-                        q_low_dc,
-                    )
+                q_high_clean = self.extract_freq_excite(
+                    q_high, quad_metadata[key]["frequency"], bpm_index
+                )
+                q_low_clean = self.extract_freq_excite(
+                    q_low, quad_metadata[key]["frequency"], bpm_index
+                )
 
                 # Take the difference between fits
                 q_diff = q_high_clean - q_low_clean
