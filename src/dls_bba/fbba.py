@@ -29,11 +29,13 @@ class FBBA(Algorithm):
 
     def configure(
         self,
-        quadrupole_scalar=0.02,
-        corrector_scalar=2,
+        quadrupole_scalar=0.01,
+        corrector_scalar=1,
         cycles=[22, 26],
         frequency=[11, 13],
         decimated=False,
+        runtime=3,
+        waittime=3,
         *args,
         **kwargs,
     ):
@@ -43,6 +45,8 @@ class FBBA(Algorithm):
         self.cycles = cycles
         self.frequency = frequency
         self.decimated = decimated
+        self.runtime = runtime
+        self.waittime = waittime
         log.debug(
             f"Configuration: Cycles: {self.cycles}, Frequency: {self.frequency}, Quadrupole Scalar: {self.quadrupole_scalar}, Corrector Scalar: {self.corrector_scalar}, Decimated: {self.decimated}"
         )
@@ -127,8 +131,8 @@ class FBBA(Algorithm):
             )
             key_list = [key for key in quad_metadata.keys() if metadata_key in key]
 
-            self.toggle_feedbacks(max_orbit)
-            original_offsets = self.zero_origins(bpm)
+            self.check_feedbacks(max_orbit, self.runtime, self.waittime)
+            original_offsets = self.zero_origins()
 
             quad_sp = self._accelerator.measure_quad(quad)
             quad_step = quad_metadata[key_list[0]]["quad_step"]

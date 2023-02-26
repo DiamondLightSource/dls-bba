@@ -194,42 +194,34 @@ class Algorithm(ABC):
             ValueError("Unexpected element: Only quadrupoles and bpms are allowed.")
         return bpm, quad, corrector_x, corrector_y
 
-    def toggle_tune(self, tolerance=0.0005):
-        tune_approved = False
+    def report_tune(self):
         target_x = caget("SR-CS-TFB-01:TUNE:H")
         target_y = caget("SR-CS-TFB-01:TUNE:V")
         log.debug(f"Target tunes: X {target_x}, Y {target_y}")
+        tune_x = caget("SR23C-DI-TMBF-01:TUNE:TUNE")
+        tune_y = caget("SR23C-DI-TMBF-02:TUNE:TUNE")
+        log.debug(f"Measured tunes: X {tune_x}, Y {tune_y}")
 
-        while not tune_approved:
-            tune_x = caget("SR23C-DI-TMBF-01:TUNE:TUNE")
-            tune_y = caget("SR23C-DI-TMBF-02:TUNE:TUNE")
-            log.debug(f"Measured tunes: X {tune_x}, Y {tune_y}")
-            if (target_x - tolerance < tune_x < target_x + tolerance) and (
-                target_y - tolerance < tune_y < target_y + tolerance
-            ):
-                tune_approved = True
-            else:
-                log.debug("Correcting tune.")
-                caput("SR-CS-TFB-01:ONOFF", 1, wait=True)
-                Sleep(2)
-                caput("SR-CS-TFB-01:ONOFF", 0, wait=True)
-
-    def toggle_fofb(self):
+    def apply_feedbacks(self, runtime=3, waittime=3):
         log.warn("Correcting orbit with FOFB.")
         run(
             "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py start",
             check=True,
             shell=True,
         )
-        sleep(3)
+        self.report_tune()
+        caput("SR-CS-TFB-01:ONOFF", 1, wait=True)
+        Sleep(runtime)
+        caput("SR-CS-TFB-01:ONOFF", 0, wait=True)
+        self.report_tune()
         run(
             "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py stop",
             check=True,
             shell=True,
         )
-        sleep(3)
+        sleep(waittime)
 
-    def toggle_feedbacks(self, max_orbit):
+    def check_feedbacks(self, max_orbit, runtime, waittime):
         """Confirms that all feedbacks are off, and toggles FOFB to realign if needed."""
         feedbacks = {
             "Fast Orbit Feedback": ["SR01A-CS-FOFB-01:RUN", 0],
@@ -263,32 +255,35 @@ class Algorithm(ABC):
         max_value = abs(max(bpm_values, key=abs))
         # value in mm, max_orbit in um.
         if float(max_value * 1000) >= float(max_orbit):
-            self.toggle_fofb()
-            self.toggle_tune()
+            self.apply_feedbacks(runtime, waittime)
 
-    def zero_origins(self, bpm) -> Dict[str, Any]:
+    def zero_origins(self) -> Dict[str, Any]:
         """Zeros BCD and Golden offsets. Also stores current Golden offset value for restoring later."""
-        # return None  # For testing -> PV's dont exist in virtac.
+        log.info("Origins Zeroed")
         offsets = {}
-        for values in PLANE_VALUES.values():
-            log.info(f"Origins Zeroed for {values.axis}")
-            bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
-            bcd_pv = bpm_pv_root + ORIGIN_SUFFIXES["BCD"].format(axis=values.axis)
-            golden_pv = bpm_pv_root + ORIGIN_SUFFIXES["GOLDEN"].format(axis=values.axis)
+        for bpm in self._accelerator.bpms:
+            for direction in ["HORIZONTAL", "VERTICAL"]:
+                bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
+                bcd_pv = bpm_pv_root + ORIGIN_SUFFIXES["BCD"].format(
+                    axis=PLANE_VALUES[direction].axis
+                )
+                golden_pv = bpm_pv_root + ORIGIN_SUFFIXES["GOLDEN"].format(
+                    axis=PLANE_VALUES[direction].axis
+                )
 
-            offsets[golden_pv] = caget(golden_pv)
-            log.debug(f"Golden offset for {golden_pv}: {offsets[golden_pv]}")
+                offsets[golden_pv] = caget(golden_pv)
 
-            caput(bcd_pv, 0)
-            caput(golden_pv, 0)
+                caput(bcd_pv, 0, wait=True)
+                caput(golden_pv, 0, wait=True)
+        Sleep(0.2)
+        log.debug(offsets)
         return offsets
 
     def restore_origins(self, offsets):
         """Restores offset values from offsets dictionary."""
-        # return None  # For testing -> PV's dont exist in virtac.
-        for key, value in offsets.items():
-            caput(key, value)
-            log.debug(f"Offset restored {key}: {value}")
+        # for key, value in offsets.items():
+        #     caput(key, value, wait=True)
+        Sleep(0.2)
         log.info("Origins Restored")
 
     def get_offsets(self, bpm_pv_prefix):
@@ -306,7 +301,8 @@ class Algorithm(ABC):
 
         current_offset = caget(bba_pv)
         new_offset = current_offset + value
-        caput(bba_pv, new_offset)
+        caput(bba_pv, new_offset, wait=True)
+        Sleep(0.2)
 
     @abstractmethod
     def run(self, element, plane_info, max_orbit):
@@ -348,4 +344,5 @@ class Algorithm(ABC):
             log.info(
                 f"BPM: {bpm_pv_prefix}, Old offset: {current_offset}, Delta: {offset} +- {error}, New offset: {new_offset}."
             )
-            caput(setting_pv, new_offset)
+            caput(setting_pv, new_offset, wait=True)
+            Sleep(0.2)

@@ -71,8 +71,8 @@ class SBBA(Algorithm):
             "corrector_scalar": self.corrector_scalar,
         }
         for quad in quad_list:
-            self.toggle_feedbacks(max_orbit)
-            original_offsets = self.zero_origins(bpm)
+            self.check_feedbacks(max_orbit, 3, 3)
+            original_offsets = self.zero_origins()
 
             quad_step = self._accelerator.measure_quad(quad) * self.quadrupole_scalar
             corr_step = (
