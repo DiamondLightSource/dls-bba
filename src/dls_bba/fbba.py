@@ -286,7 +286,7 @@ class FBBA(Algorithm):
         dc_offset = detector_fixed.mean(0)
 
         # Reconstruct the clean wave; aranged as [Time, Axis]
-        clean_wave = np.real(np.conj(detector_fixed) * mix) + dc_offset
+        clean_wave = np.real(np.conj(detector_fixed) * mix) + np.real(dc_offset)
         return clean_wave
 
     def analyse_data(self, raw_data, plot_output=False, *args, **kwargs):
