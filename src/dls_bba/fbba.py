@@ -18,7 +18,7 @@ SAFETY_NET_S = 0.1
 QUAD_SLEW_RATE = 0.5
 NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
 SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
-FBBA_UNIT_CONVERSION = 1000
+FBBA_UNIT_CONVERSION = 1000000
 
 
 class FBBA(Algorithm):
@@ -210,7 +210,7 @@ class FBBA(Algorithm):
         # A dummy axis must be created to preserve shape through numpy operations
         # mix aranged as [Time, 1]
         mix = np.exp(
-            2j * np.pi * known_freq / TICKS_PER_SECOND * np.arange(0, len(data)).T
+            2j * np.pi * known_freq / TICKS_PER_SECOND * np.arange(1, len(data) + 1).T
         )
         mix = mix[:, None]
 
@@ -234,10 +234,10 @@ class FBBA(Algorithm):
         detector_fixed = detector * np.exp(-1j * (angle_fixed + phase_bpm))
 
         # Find the DC offset; aranged as [Axis, 1]
-        dc_offset = detector_fixed.mean(0)
+        dc_offset = data.mean(0)
 
         # Reconstruct the clean wave; aranged as [Time, Axis]
-        clean_wave = np.real(np.conj(detector_fixed) * mix) + dc_offset
+        clean_wave = np.real(np.conj(detector_fixed) * mix) + np.real(dc_offset)
         return clean_wave
 
     def analyse_data(self, raw_data, plot_output=False, *args, **kwargs):
@@ -266,9 +266,9 @@ class FBBA(Algorithm):
             low_key = quad + "_Low"
             high_key = quad + "_High"
 
-            # Remove bad BPMs and change units to um
-            q_low = data[low_key][:, enabled_bpms] * 1e-3
-            q_high = data[high_key][:, enabled_bpms] * 1e-3
+            # Remove bad BPMs
+            q_low = data[low_key][:, enabled_bpms]
+            q_high = data[high_key][:, enabled_bpms]
 
             # Clean the data using the synchronous detector method
             q_high_clean = self.extract_freq_excite(q_high, freq, bpm_index)
