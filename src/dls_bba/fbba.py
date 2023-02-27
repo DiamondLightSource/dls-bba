@@ -19,7 +19,7 @@ SAFETY_NET_S = 0.1
 QUAD_SLEW_RATE = 0.5
 NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
 SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
-FBBA_UNIT_CONVERSION = 1000
+FBBA_UNIT_CONVERSION = 1000000
 
 
 class FBBA(Algorithm):
@@ -314,9 +314,9 @@ class FBBA(Algorithm):
             for values in PLANE_VALUES.values():
                 key = f"{quad}_{values.axis}"
 
-                # Remove bad BPMs and change units to um
-                q_low = data[key]["Low"][:, enabled_bpms] * 1e-3
-                q_high = data[key]["High"][:, enabled_bpms] * 1e-3
+                # Remove bad BPMs
+                q_low = data[key]["Low"][:, enabled_bpms]
+                q_high = data[key]["High"][:, enabled_bpms]
 
                 q_high_clean = self.extract_freq_excite(
                     q_high, quad_metadata[key]["frequency"], bpm_index
