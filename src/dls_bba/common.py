@@ -12,6 +12,8 @@ import scipy.io as io
 from cothread import Sleep
 from cothread.catools import caget, caput
 
+from dls_bba.excite import Oscillation
+
 MAXIMUM_CURRENT_DROP = 20  # mA
 MINIMUM_CURRENT_DROP = 5  # mA
 
@@ -39,24 +41,25 @@ class RawData:
     # TODO: asdict, make all shared attributes not in metadata.
 
     def save(self, time_prefix, filepath):
-        filename = "{}/{}-{}-{}-rawdata.mat".format(
-            filepath, time_prefix, self.metadata["bpm_pv"], self.metadata["plane"].axis
+        filename = "{}/{}-{}-sim-rawdata.mat".format(
+            filepath, time_prefix, self.metadata["bpm_pv"]
         )
-        # NamedTuple not supported in .mat file.
-        self.metadata["plane"] = self.metadata[
-            "plane"
-        ]._asdict()  # NamedTuple not supported in .mat file.
-        for key in self.quad_metadata.keys():
-            self.quad_metadata[key]["plane"] = self.quad_metadata[key][
-                "plane"
-            ]._asdict()
-            self.quad_metadata[key]["osc"]["plane"] = self.quad_metadata[key]["osc"][
-                "plane"
-            ]._asdict()
+        quad_metadata = self.quad_metadata
+        for key in quad_metadata.keys():
+            quad_metadata[key]["plane"] = quad_metadata[key]["plane"]._asdict()
+            osc_dict = {}
+            for field, values in zip(
+                quad_metadata[key]["osc"]._fields, quad_metadata[key]["osc"]
+            ):
+                if field != "plane":
+                    osc_dict[field] = values
+                else:
+                    osc_dict[field] = values._asdict()
+            quad_metadata[key]["osc"] = osc_dict
 
         dct = {
             "raw_data": self.raw_data,
-            "quad_metadata": self.quad_metadata,
+            "quad_metadata": quad_metadata,
             "metadata": self.metadata,
         }
         io.savemat(filename, dct, oned_as="row")
@@ -65,15 +68,12 @@ class RawData:
     @classmethod
     def from_file(cls, filename):
         dct = io.loadmat(filename, simplify_cells=True)
-        metadata = dct["metadata"]
-        metadata["plane"] = PlaneValues(**metadata["plane"])
+
         quad_metadata = dct["quad_metadata"]
         for key in quad_metadata.keys():
             quad_metadata[key]["plane"] = PlaneValues(**quad_metadata[key]["plane"])
-            quad_metadata[key]["osc"]["plane"] = PlaneValues(
-                **quad_metadata[key]["osc"]["plane"]
-            )
-        return cls(dct["raw_data"], quad_metadata, metadata)
+            quad_metadata[key]["osc"] = Oscillation(**quad_metadata[key]["osc"])
+        return cls(dct["raw_data"], quad_metadata, dct["metadata"])
 
 
 @dataclass
@@ -83,11 +83,10 @@ class Results:
     metadata: Dict[str, Any]
 
     def save(self, time_prefix, filepath):
-        filename = "{}/{}-{}-{}-results.mat".format(
+        filename = "{}/{}-{}-sim-results.mat".format(
             filepath,
             time_prefix,
             self.metadata["bpm_pv"],
-            self.metadata["plane"]["axis"],
         )
         dct = {
             "results": self.results,
@@ -102,7 +101,7 @@ class Results:
     def from_file(cls, filename):
         dct = io.loadmat(filename, simplify_cells=True)
         metadata = dct["metadata"]
-        metadata["plane"] = PlaneValues(**metadata["plane"])
+        # metadata["plane"] = PlaneValues(**metadata["plane"])
         return cls(dct["results"], dct["bpm_pv_prefix"], metadata)
 
 
