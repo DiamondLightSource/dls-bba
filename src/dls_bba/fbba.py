@@ -259,7 +259,7 @@ class FBBA(Algorithm):
         # A dummy axis must be created to preserve shape through numpy operations
         # mix aranged as [Time, 1]
         mix = np.exp(
-            2j * np.pi * known_freq / TICKS_PER_SECOND * np.arange(0, len(data)).T
+            2j * np.pi * known_freq / TICKS_PER_SECOND * np.arange(1, len(data) + 1).T
         )
         mix = mix[:, None]
 
@@ -283,7 +283,7 @@ class FBBA(Algorithm):
         detector_fixed = detector * np.exp(-1j * (angle_fixed + phase_bpm))
 
         # Find the DC offset; aranged as [Axis, 1]
-        dc_offset = detector_fixed.mean(0)
+        dc_offset = data.mean(0)
 
         # Reconstruct the clean wave; aranged as [Time, Axis]
         clean_wave = np.real(np.conj(detector_fixed) * mix) + np.real(dc_offset)
