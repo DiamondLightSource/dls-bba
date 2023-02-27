@@ -80,6 +80,14 @@ def parse_args():
         default=False,
         help="honing test",
     )
+    parser.add_argument(
+        "-f",
+        "--freq",
+        dest="freq_test",
+        action="store_true",
+        default=False,
+        help="freq test",
+    )
     return parser.parse_args()
 
 
@@ -89,6 +97,7 @@ def main():
     method = str(args.method)
 
     honing_test = args.honing_test
+    freq_tests = args.freq_test
 
     get_new_logger("SIM", TEMP_FILEPATH_ROOT)
     pv_list = ["SR01A-PC-Q2AB-07"]  # Single BPM
@@ -113,6 +122,10 @@ def main():
     if honing_test:
         log.info("Starting honing test")
         honing(algorithm, element_list[0], method)
+
+    if freq_tests:
+        log.info("Starting frequency test")
+        frequency_test(algorithm, element_list[0], method)
 
 
 def repeat_test(
@@ -228,6 +241,87 @@ def honing(algorithm, element, method):
         caput(pv_y, current_y, wait=True)
         Sleep(0.2)
         log.info(f"Reset: x={current_x}, y={current_y}")
+
+
+def cycles_from_freq(freq, time=2):
+    return int(np.floor(time * freq))
+
+
+def frequency_test(algorithm, element, method):
+    frequency1 = [11, 13, 137, 179]
+    frequency2 = [13, 41, 139, 181]
+
+    quadrupole_scalar = 0.01
+    corrector_scalar = 1
+    repeats = 20
+    offset = 0.1
+    max_time = 2
+
+    pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
+    pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
+    current_x = caget(pv_x)
+    current_y = caget(pv_y)
+    log.info(f"Start = x: {current_x}, y: {current_y}")
+
+    for freq1 in frequency1:
+        for freq2 in frequency2:
+            caput(pv_x, current_x + offset, wait=True)
+            caput(pv_y, current_y + offset, wait=True)
+            Sleep(0.2)
+            offset_x = caget(pv_x)
+            offset_y = caget(pv_y)
+            log.info(f"Offset applied: x={offset_x}, y={offset_y}")
+
+            accepted = False
+            while not accepted:
+                input_value = input(
+                    "Check if topup required. 'y'  when ready to continue. : "
+                )
+                if input_value == "y":
+                    accepted = True
+                else:
+                    print("Try again˝")
+
+            frequencies = [freq1, freq2]
+            cycles = []
+            for freq in frequencies:
+                cycles.append(int(np.floor(max_time * freq)))
+
+            algorithm.apply_feedback(10, 10)
+            offsets, errors = repeat_test(
+                algorithm,
+                element,
+                method,
+                repeats,
+                apply=True,
+                frequency=frequencies,
+                cycles=cycles,
+                quadrupole_scalar=quadrupole_scalar,
+                corrector_scalar=corrector_scalar,
+            )
+
+            matrix = np.zeroes(shape=(2, repeats))
+            matrix[0, :] = offsets["x"]
+            matrix[1, :] = errors["x"]
+            np.savetxt(
+                f"{TEMP_FILEPATH_ROOT}/SIM_freq_r{repeats}_f{frequencies[0]}_{frequencies[1]}_c{cycles[0]}_{cycles[1]}_qs{quadrupole_scalar}_cs{corrector_scalar}_x.csv"
+            )
+
+            matrix = np.zeroes(shape=(2, repeats))
+            matrix[0, :] = offsets["y"]
+            matrix[1, :] = errors["y"]
+            np.savetxt(
+                f"{TEMP_FILEPATH_ROOT}/SIM_freq_r{repeats}_f{frequencies[0]}_{frequencies[1]}_c{cycles[0]}_{cycles[1]}_qs{quadrupole_scalar}_cs{corrector_scalar}_y.csv"
+            )
+
+            final_x = caget(pv_x)
+            final_y = caget(pv_y)
+            log.info(f"Final: x={final_x}, y={final_y}")
+            caput(pv_x, current_x, wait=True)
+            caput(pv_y, current_y, wait=True)
+            Sleep(0.2)
+            log.info(f"Reset: x={current_x}, y={current_y}")
+            Sleep(1)
 
 
 if __name__ == "__main__":
