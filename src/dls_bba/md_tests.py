@@ -121,6 +121,14 @@ def parse_args():
         default=False,
         help="feedbacks test",
     )
+    parser.add_argument(
+        "-q",
+        "--quadcorr",
+        dest="quadcorr",
+        action="store_true",
+        default=False,
+        help="quadcorr test",
+    )
     return parser.parse_args()
 
 
@@ -134,6 +142,7 @@ def main():
     time = args.time_t
     swaptest = args.swaptest
     feedbacks = args.feedbacks
+    quadcorrect = args.quadcorr
 
     get_new_logger(method, TEMP_FILEPATH_ROOT)
 
@@ -194,6 +203,10 @@ def main():
     if feedbacks:
         log.info("Feedbacks Test")
         feedbacks_test()
+
+    if quadcorrect:
+        log.info("Quad Corr Test")
+        quad_corr(algorithm, element_list[0], method, directions)
 
 
 def repeat_test(
@@ -322,7 +335,7 @@ def swap_test(algorithm, element, method, directions_list):
     quadrupole_scalar = 0.01
     corrector_scalar = 1
     offset = 0.1
-    repeats = 16
+    repeats = 8
     cycles = 16
     frequency = 8
 
@@ -386,11 +399,11 @@ def swap_test(algorithm, element, method, directions_list):
 def time_freq(algorithm, element, method, directions_list):
     """Honing but for three specific frequencies."""
 
-    frequencies = [8, 37, 83, 107, 137, 179]
-    total_time = [0.5, 1, 1.5, 2]
+    frequencies = [8, 37, 83, 137, 179]
+    total_time = [0.5, 1, 2, 5, 10, 0.2]
     quadrupole_scalar = 0.01
     corrector_scalar = 1
-    repeats = 10
+    repeats = 20
     offset = 0.1
 
     pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
@@ -590,6 +603,84 @@ def feedbacks_test(algorithm, element, method, directions_list):
             matrix[1, :] = errors[direction_dict["y"][0]]
             np.savetxt(
                 f"{TEMP_FILEPATH_ROOT}/feedbacks_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_y_run{runtime}_wait{waittime}.csv",
+                matrix,
+                delimiter=",",
+            )
+
+            final_x = caget(pv_x)
+            final_y = caget(pv_y)
+            log.info(f"Final: x={final_x}, y={final_y}")
+            caput(pv_x, current_x, wait=True)
+            caput(pv_y, current_y, wait=True)
+            Sleep(0.2)
+            log.info(f"Reset: x={current_x}, y={current_y}")
+            Sleep(1)
+
+
+def quad_corr(algorithm, element, method, directions_list):
+    """Honing but for three specific frequencies."""
+
+    corrector_scalars = [1, 0.75, 0.5, 0.25]
+    quadrupole_scalars = [0.01, 0.0075, 0.0050, 0.0025]
+    offset = 0.1
+    freq = 8
+    cycles = 16
+    repeats = 16
+
+    pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
+    pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
+    current_x = caget(pv_x)
+    current_y = caget(pv_y)
+    log.info(f"Start: x={current_x}, y={current_y}")
+
+    for quad_sc in quadrupole_scalars:
+        for corr_sc in corrector_scalars:
+            caput(pv_x, current_x + offset, wait=True)
+            caput(pv_y, current_y + offset, wait=True)
+            Sleep(0.2)
+            offset_x = caget(pv_x)
+            offset_y = caget(pv_y)
+            log.info(f"Offset applied: x={offset_x}, y={offset_y}")
+
+            accepted = False
+            while not accepted:
+                input_value = input(
+                    "Check if beam needs topup. 'y' when ready to continue. If not then cancel. : "
+                )
+                if input_value == "y":
+                    accepted = True
+                else:
+                    print("Try again: ")
+
+            algorithm.apply_feedbacks(10, 10)  # Align for set of 8.
+            log.info(f"Quad: {quad_sc}, Corr: {corr_sc}")
+
+            offsets, errors = repeat_test(
+                algorithm,
+                element,
+                method,
+                directions_list,
+                repeats,
+                apply=True,
+                frequency_=freq,
+                cycles_=cycles,
+                quadrupole_scalar_=quad_sc,
+                corrector_scalar_=corr_sc,
+            )
+
+            matrix = np.zeros(shape=(2, repeats))
+            matrix[0, :] = offsets[direction_dict["x"][0]]
+            matrix[1, :] = errors[direction_dict["x"][0]]
+            np.savetxt(
+                f"{TEMP_FILEPATH_ROOT}/quad_corr_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quad_sc}_cs{corr_sc}_x.csv",
+                matrix,
+                delimiter=",",
+            )
+            matrix = np.zeros(shape=(2, repeats))
+            matrix[0, :] = offsets[direction_dict["y"][0]]
+            matrix[1, :] = errors[direction_dict["y"][0]]
+            np.savetxt(
+                f"{TEMP_FILEPATH_ROOT}/quad_corr_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quad_sc}_cs{corr_sc}_y.csv",
                 matrix,
                 delimiter=",",
             )

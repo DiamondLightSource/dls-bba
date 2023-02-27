@@ -57,6 +57,14 @@ def parse_args():
         default=False,
         help="swap test",
     )
+    parser.add_argument(
+        "-q",
+        "--quadcorr",
+        dest="quadcorr_t",
+        action="store_true",
+        default=False,
+        help="quadcorr test",
+    )
     return parser.parse_args()
 
 
@@ -83,6 +91,7 @@ def main():
     running = args.running_t
     feedbacks = args.feedbacks_t
     swap = args.swap_t
+    quadcorr = args.quadcorr_t
 
     if feedbacks:
         runtime_values = [2, 3, 4]
@@ -251,12 +260,11 @@ def main():
         finalise_honing("FBBA vs BBA all options")
 
     if time:
-        repeats = 10
-        frequencies = [8, 37, 83, 107, 137, 179]
-        total_time = [0.5, 1, 1.5, 2]
+        frequencies = [8, 37, 83, 137, 179]
+        total_time = [0.5, 1, 2, 5, 10, 0.2]
         quadrupole_scalar = 0.01
         corrector_scalar = 1
-        repeats = 10
+        repeats = 20
         offset = 0.1
         x = np.arange(0, repeats)
         data = {}
@@ -312,8 +320,6 @@ def main():
             )
             plt.close()
 
-        pass
-
     if running:
         situation = ["baseline", "cooling", "warming"]
 
@@ -364,7 +370,7 @@ def main():
         quadrupole_scalar = 0.01
         corrector_scalar = 1
         offset = 0.1
-        repeats = 16
+        repeats = 8
         x = np.arange(0, repeats)
         cycles = 16
         frequency = 8
@@ -410,7 +416,68 @@ def main():
         )
         plt.close()
 
-        pass
+    if quadcorr:
+        corrector_scalars = [1, 0.75, 0.5, 0.25]
+        quadrupole_scalars = [0.01, 0.0075, 0.0050, 0.0025]
+        frequencies = [8, 37, 83, 137, 179]
+        total_time = [0.5, 1, 2, 5, 10, 0.2]
+        repeats = 16
+        freq = 8
+        cycles = 16
+        x = np.arange(0, repeats)
+        data = {}
+
+        for quad_sc in quadrupole_scalars:
+            for corr_sc in corrector_scalars:
+                for axis in ["x", "y"]:
+                    d = np.genfromtxt(
+                        f"{TEMP_FILEPATH_ROOT}/quad_corr_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quad_sc}_cs{corr_sc}_{axis}.csv",
+                        delimiter=",",
+                    )
+                    data[f"{quad_sc},{corr_sc}_{axis}"] = [d[0, :], d[1, :]]
+
+        for key, (values, errors) in data.items():
+            init = initial_offset[key[-1]]
+            cum_values = np.cumsum(values)
+            y_values = [init] + [value + init for value in cum_values]
+            y_errors = [0] + [e for e in errors]
+            data[key] = [y_values, y_errors]
+
+        for axis in ["x", "y"]:
+            fig, axs = plt.subplots(
+                ncols=len(quadrupole_scalars),
+                nrows=len(corrector_scalars),
+                sharex=True,
+                sharey=True,
+                layout="constrained",
+            )
+
+            for row, quad_sc in enumerate(quadrupole_scalars):
+                for col, corr_sc in enumerate(corrector_scalars):
+                    values, errors = data[f"{quad_sc},{corr_sc}_{axis}"]
+                    axs[row, col].errorbar(
+                        x, values, errors, label=f"{bba_stats(values)}"
+                    )
+                    axs[row, col].legend(fontsize="xx-small", loc=1)
+                    axs[row, col].grid(which="both", axis="both")
+                    axs[row, col].set_xlim(0, len(values))
+                    if row == len(quadrupole_scalars) - 1:
+                        plt.setp(axs[row, col], xlabel=f"{corr_sc}")
+                    if col == 0:
+                        plt.setp(axs[row, col], ylabel=f"{quad_sc}")
+            fig.suptitle(
+                f"Effect of quadrupole / corrector step size with 100micron offset {axis}"
+            )
+            fig.supxlabel("Quadrupole Step Size (A as '%' of current)")  # x axis = quad
+            fig.supylabel(
+                "Currector Step Size (Multiplier of current for 20urad)"
+            )  # y axis = corrector
+            plt.savefig(
+                f"{TEMP_FILEPATH_ROOT}/quad_corr_plot_{axis}.png",
+                bbox_inches="tight",
+                dpi=300,
+            )
+            plt.close()
 
 
 if __name__ == "__main__":
