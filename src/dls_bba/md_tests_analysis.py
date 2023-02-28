@@ -108,8 +108,8 @@ def honing():
 
 
 def frequency():
-    frequency1 = [11, 37, 137, 179]  # X
-    frequency2 = [13, 41, 139, 181]  # Y
+    frequency1 = [11, 137, 179]  # X
+    frequency2 = [13, 139, 181]  # Y
     max_time = [0.5, 2, 5]
     repeats = 20
     max_time = 2

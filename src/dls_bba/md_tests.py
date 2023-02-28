@@ -249,8 +249,8 @@ def cycles_from_freq(freq, time=2):
 
 def frequency_test(algorithm, element, method):
     max_time = [0.5, 2, 5]
-    frequency1 = [11, 37, 137, 179]
-    frequency2 = [13, 41, 139, 181]
+    frequency1 = [11, 137, 179]
+    frequency2 = [13, 139, 181]
 
     quadrupole_scalar = 0.01
     corrector_scalar = 1
