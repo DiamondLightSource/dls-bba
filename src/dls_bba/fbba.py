@@ -80,6 +80,10 @@ class FBBA(Algorithm):
             "quadrupole_scalar": self.quadrupole_scalar,
             "corrector_scalar": self.corrector_scalar,
         }
+        diagnostics_dict = self.diagnostics()
+        for key, value in diagnostics_dict.items():
+            metadata[key] = value
+
         for quad in quad_list:
             self.check_feedbacks(max_orbit, self.runtime, self.waittime)
             original_offsets = self.zero_origins()
