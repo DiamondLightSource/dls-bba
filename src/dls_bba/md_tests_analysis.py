@@ -260,8 +260,8 @@ def main():
         finalise_honing("FBBA vs BBA all options")
 
     if time:
-        frequencies = [8, 37, 83, 137, 179]
-        total_time = [0.5, 1, 2, 5, 10, 0.2]
+        frequencies = [8, 83, 137, 179]
+        total_time = [0.5, 1, 2, 5]
         quadrupole_scalar = 0.01
         corrector_scalar = 1
         repeats = 20
