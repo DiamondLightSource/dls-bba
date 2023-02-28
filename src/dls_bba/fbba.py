@@ -95,6 +95,10 @@ class FBBA(Algorithm):
         metadata["quadrupole_scalar"] = self.quadrupole_scalar
         metadata["corrector_scalar"] = self.corrector_scalar
 
+        diagnostics_dict = self.diagnostics()
+        for key, value in diagnostics_dict.items():
+            metadata[key] = value
+
         for quad in quad_list:
             for values in PLANE_VALUES.values():
                 quad_pv = self._accelerator.element_to_pv_prefix(quad).replace("-", "_")

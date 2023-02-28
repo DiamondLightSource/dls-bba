@@ -193,6 +193,23 @@ class Algorithm(ABC):
             ValueError("Unexpected element: Only quadrupoles and bpms are allowed.")
         return bpm, quad, corrector_x, corrector_y
 
+    def diagnostics(self):
+        diagnostics_dict = {
+            "emittance": caget("SR-DI-EMIT-01:EMITTANCE"),
+            "x_emittance": [
+                caget("SR-DI-EMIT-01:HEMIT"),
+                caget("SR-DI-EMIT-01:HERROR"),
+            ],
+            "y_emittance": [
+                caget("SR-DI-EMIT-01:VEMIT"),
+                caget("SR-DI-EMIT-01:VERROR"),
+            ],
+            "coupling": caget("SR-DI-EMIT-01:COUPLING"),
+            "current": caget("SR-DI-DCCT-01:SIGNAL"),
+            "lifetime": caget("SR-DI-DCCT-01:LIFETIME"),
+        }
+        return diagnostics_dict
+
     def report_tune(self):
         target_x = caget("SR-CS-TFB-01:TUNE:H")
         target_y = caget("SR-CS-TFB-01:TUNE:V")
