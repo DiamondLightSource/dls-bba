@@ -203,9 +203,15 @@ class FBBA(Algorithm):
 
             # This will block until all data has been retrieved.
 
+            data_list = [
+                [excitation[high_keys[0]], excitation[low_keys[0]]],
+                [excitation[high_keys[1]], excitation[low_keys[1]]],
+            ]
+
             fa_data = fa_buffer.get_data()
             for values in PLANE_VALUES.values():
-                selected_data = self.select_data(fa_data, values)
+                exc_data = data_list[values.index]
+                selected_data = self.select_data(fa_data, values, exc_data)
                 raw_data[f"{metadata_key}_{values.axis}"] = {
                     "High": selected_data[0],
                     "Low": selected_data[1],
@@ -218,36 +224,34 @@ class FBBA(Algorithm):
 
         return RawData(raw_data, quad_metadata, metadata)
 
-    def select_data(self, data, plane_info):
+    def select_data(self, data, plane_info, exc_data):
         """Extract FA data that covers the excitations exc_high and exc_low.
 
         The input data array should cover the full length of both excitations.
 
         """
         # Note: array data must include the timestamps.
+        exc_high, exc_low = exc_data
+        decimated = False
         log.debug("Raw data shape: {}".format(data.shape))
         log.debug(
             "Timestamp range in raw data: {} - {}".format(data[0, 0, 0], data[-1, 0, 0])
         )
-        log.debug("Excitation length: {}".format(self.exc_high.count))
+        log.debug("Excitation length: {}".format(exc_high.count))
         log.debug(
             "Trailing data to crop: {}.".format(
-                data[-1, 0, 0] - (self.exc_low.start_time + self.exc_low.count)
+                data[-1, 0, 0] - (exc_low.start_time + exc_low.count)
             )
         )
-        assert (
-            self.exc_high.count == self.exc_low.count
-        ), "Excitations different lengths"
+        assert exc_high.count == exc_low.count, "Excitations different lengths"
         # Extract timestamps from data
         times = data[:, 0, 0]
         data = data[:, 1:, :]
-        high_start = np.searchsorted(times, self.exc_high.start_time)
-        low_start = np.searchsorted(times, self.exc_low.start_time)
+        high_start = np.searchsorted(times, exc_high.start_time)
+        low_start = np.searchsorted(times, exc_low.start_time)
         log.debug("Searched start times: %s, %s", high_start, low_start)
         # Ensure we include the entire oscillation if using decimated data.
-        length = (
-            ceil(self.exc_high.count / 10) if self.decimated else self.exc_high.count
-        )
+        length = ceil(exc_high.count / 10) if decimated else exc_high.count
         high_data = data[high_start : high_start + length, :, plane_info.index]
         low_data = data[low_start : low_start + length, :, plane_info.index]
         log.debug("Selected data shape: {} {}".format(high_data.shape, low_data.shape))
