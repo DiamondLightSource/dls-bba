@@ -136,7 +136,7 @@ class FBBA(Algorithm):
             key_list = [key for key in quad_metadata.keys() if metadata_key in key]
 
             self.check_feedbacks(max_orbit, self.runtime, self.waittime)
-            original_offsets = self.zero_origins()
+            # original_offsets = self.zero_origins()
 
             quad_sp = self._accelerator.measure_quad(quad)
             quad_step = quad_metadata[key_list[0]]["quad_step"]
@@ -186,7 +186,7 @@ class FBBA(Algorithm):
             log.info("High Oscillation")
             high_keys = [key for key in excitation.keys() if "High_" in key]
             log.debug(excitation[high_keys[0]])
-            excite((excitation[high_keys[0]], excitation[high_keys[0]]))
+            excite((excitation[high_keys[0]], excitation[high_keys[1]]))
 
             # Sleep for first excitation. SAFETY_NET ensures that we don't start
             # moving the quad before the excitation has finished.
@@ -220,7 +220,7 @@ class FBBA(Algorithm):
             self._accelerator.set_quad(quad, quad_sp)
 
             cothread.Sleep(quad_lag_s / 2)
-            self.restore_origins(original_offsets)
+            # self.restore_origins(original_offsets)
 
         return RawData(raw_data, quad_metadata, metadata)
 
