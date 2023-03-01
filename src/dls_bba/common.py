@@ -45,6 +45,11 @@ class RawData:
             filepath, time_prefix, self.metadata["bpm_pv"]
         )
         quad_metadata = self.quad_metadata
+        metadata = self.metadata
+
+        metadata["corrector_X"] = metadata["corrector_X"][1]
+        metadata["corrector_Y"] = metadata["corrector_Y"][1]
+
         for key in quad_metadata.keys():
             quad_metadata[key]["plane"] = quad_metadata[key]["plane"]._asdict()
             osc_dict = {}
@@ -60,7 +65,7 @@ class RawData:
         dct = {
             "raw_data": self.raw_data,
             "quad_metadata": quad_metadata,
-            "metadata": self.metadata,
+            "metadata": metadata,
         }
         io.savemat(filename, dct, oned_as="row")
         log.info(f"Saved raw data as {filename}")
@@ -338,7 +343,7 @@ class Algorithm(ABC):
             "Y,error": [],
         }
         for key, values in results.results.items():
-            axis = key.split("_")[:-1]
+            axis = key.split("_")[-1]
             apply[f"{axis},value"].append(values[0])
             apply[f"{axis},error"].append(values[1])
 

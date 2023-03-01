@@ -172,7 +172,7 @@ def repeat_test(
         results = algorithm.analyse_data(raw_data, plot)
         filename = results.save(filename_prefix, TEMP_FILEPATH_ROOT)  # noqa
         for key, values in results.results.items():
-            axis = key.split("_"[:-1])
+            axis = key.split("_")[-1]
             offsets[axis] += [values[0]]
             errors[axis] += [values[1]]
         if apply:
@@ -220,14 +220,14 @@ def honing(algorithm, element, method):
             corrector_scalar=corrector_scalar,
         )
 
-        matrix = np.zeroes(shape=(2, repeats))
+        matrix = np.zeros(shape=(2, repeats))
         matrix[0, :] = offsets["x"]
         matrix[1, :] = errors["x"]
         np.savetxt(
             f"{TEMP_FILEPATH_ROOT}/SIM_honing_r{repeats}_qs{quadrupole_scalar}_cs{corrector_scalar}_offset{offset}_x.csv"
         )
 
-        matrix = np.zeroes(shape=(2, repeats))
+        matrix = np.zeros(shape=(2, repeats))
         matrix[0, :] = offsets["y"]
         matrix[1, :] = errors["y"]
         np.savetxt(
@@ -248,13 +248,13 @@ def cycles_from_freq(freq, time=2):
 
 
 def frequency_test(algorithm, element, method):
-    max_time = [0.5, 2, 5]
+    time = 2
     frequency1 = [11, 137, 179]
     frequency2 = [13, 139, 181]
 
     quadrupole_scalar = 0.01
     corrector_scalar = 1
-    repeats = 20
+    repeats = 16
     offset = 0.1
     max_time = 2
 
@@ -263,67 +263,59 @@ def frequency_test(algorithm, element, method):
     current_x = caget(pv_x)
     current_y = caget(pv_y)
     log.info(f"Start = x: {current_x}, y: {current_y}")
-    for time in max_time:
-        for freq1 in frequency1:
-            for freq2 in frequency2:
-                caput(pv_x, current_x + offset, wait=True)
-                caput(pv_y, current_y + offset, wait=True)
-                Sleep(0.2)
-                offset_x = caget(pv_x)
-                offset_y = caget(pv_y)
-                log.info(f"Offset applied: x={offset_x}, y={offset_y}")
+    for freq1 in frequency1:
+        for freq2 in frequency2:
+            caput(pv_x, current_x + offset, wait=True)
+            caput(pv_y, current_y + offset, wait=True)
+            Sleep(0.2)
+            offset_x = caget(pv_x)
+            offset_y = caget(pv_y)
+            log.info(f"Offset applied: x={offset_x}, y={offset_y}")
 
-                accepted = False
-                while not accepted:
-                    input_value = input(
-                        "Check if topup required. 'y'  when ready to continue. : "
-                    )
-                    if input_value == "y":
-                        accepted = True
-                    else:
-                        print("Try again˝")
+            frequencies = [freq1, freq2]
+            cycles = []
+            for freq in frequencies:
+                cycles.append(int(np.floor(time * freq)))
+            print(f"Freq: {frequencies}, Cycles: {cycles}: Time: {time}")
 
-                frequencies = [freq1, freq2]
-                cycles = []
-                for freq in frequencies:
-                    cycles.append(int(np.floor(time * freq)))
-                print(f"Freq: {frequencies}, Cycles: {cycles}: Time: {time}")
+            algorithm.apply_feedbacks(10, 10)
+            offsets, errors = repeat_test(
+                algorithm,
+                element,
+                method,
+                repeats,
+                apply=True,
+                frequency=frequencies,
+                cycles=cycles,
+                quadrupole_scalar=quadrupole_scalar,
+                corrector_scalar=corrector_scalar,
+            )
+            matrix = np.zeros(shape=(2, repeats))
+            matrix[0, :] = offsets["X"]
+            matrix[1, :] = errors["X"]
+            np.savetxt(
+                f"{TEMP_FILEPATH_ROOT}/SIM_freq_r{repeats}_f{frequencies[0]}_{frequencies[1]}_c{cycles[0]}_{cycles[1]}_t{time}_x.csv",
+            matrix,
+            delimiter=",",
+            )
 
-                algorithm.apply_feedback(10, 10)
-                offsets, errors = repeat_test(
-                    algorithm,
-                    element,
-                    method,
-                    repeats,
-                    apply=True,
-                    frequency=frequencies,
-                    cycles=cycles,
-                    quadrupole_scalar=quadrupole_scalar,
-                    corrector_scalar=corrector_scalar,
-                )
+            matrix = np.zeros(shape=(2, repeats))
+            matrix[0, :] = offsets["Y"]
+            matrix[1, :] = errors["Y"]
+            np.savetxt(
+                f"{TEMP_FILEPATH_ROOT}/SIM_freq_r{repeats}_f{frequencies[0]}_{frequencies[1]}_c{cycles[0]}_{cycles[1]}_t{time}_y.csv",
+            matrix,
+            delimiter=",",
+            )
 
-                matrix = np.zeroes(shape=(2, repeats))
-                matrix[0, :] = offsets["x"]
-                matrix[1, :] = errors["x"]
-                np.savetxt(
-                    f"{TEMP_FILEPATH_ROOT}/SIM_freq_r{repeats}_f{frequencies[0]}_{frequencies[1]}_c{cycles[0]}_{cycles[1]}_t{time}_x.csv"
-                )
-
-                matrix = np.zeroes(shape=(2, repeats))
-                matrix[0, :] = offsets["y"]
-                matrix[1, :] = errors["y"]
-                np.savetxt(
-                    f"{TEMP_FILEPATH_ROOT}/SIM_freq_r{repeats}_f{frequencies[0]}_{frequencies[1]}_c{cycles[0]}_{cycles[1]}_t{time}_y.csv"
-                )
-
-                final_x = caget(pv_x)
-                final_y = caget(pv_y)
-                log.info(f"Final: x={final_x}, y={final_y}")
-                caput(pv_x, current_x, wait=True)
-                caput(pv_y, current_y, wait=True)
-                Sleep(0.2)
-                log.info(f"Reset: x={current_x}, y={current_y}")
-                Sleep(1)
+            final_x = caget(pv_x)
+            final_y = caget(pv_y)
+            log.info(f"Final: x={final_x}, y={final_y}")
+            caput(pv_x, current_x, wait=True)
+            caput(pv_y, current_y, wait=True)
+            Sleep(0.2)
+            log.info(f"Reset: x={current_x}, y={current_y}")
+            Sleep(1)
 
 
 if __name__ == "__main__":

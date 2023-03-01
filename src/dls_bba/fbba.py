@@ -6,6 +6,7 @@ from statistics import mean, stdev
 from typing import Any, Dict
 
 import cothread
+from cothread import Sleep
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
@@ -35,7 +36,7 @@ class FBBA(Algorithm):
         frequency=[11, 13],
         decimated=False,
         runtime=3,
-        waittime=3,
+        waittime=5,
         *args,
         **kwargs,
     ):
@@ -58,7 +59,7 @@ class FBBA(Algorithm):
         raw_data: Dict[str, Any] = {}
 
         metadata["algorithm"] = "FBBA"
-        metadata["plane"] = plane_info
+        metadata["plane"] = 0
         log.info(f"{(metadata['algorithm'])} process started in {metadata['plane']}.")
 
         bpm, quad_list, corrector_x, corrector_y = self.select_elements(element)
@@ -108,7 +109,7 @@ class FBBA(Algorithm):
 
                 quad_metadata[f"{quad_pv}_{values.axis}"] = {
                     "plane": values,
-                    "quadrupole": quad,
+                    "quadrupole": quad_pv,
                     "quad_step": quad_step,
                     "frequency": self.frequency[values.index],
                     "period": TICKS_PER_SECOND // self.frequency[values.index],
@@ -134,8 +135,8 @@ class FBBA(Algorithm):
                 "-", "_"
             )
             key_list = [key for key in quad_metadata.keys() if metadata_key in key]
-
-            self.check_feedbacks(max_orbit, self.runtime, self.waittime)
+            Sleep(2)
+            self.check_feedbacks(max_orbit, 3, 5)
             # original_offsets = self.zero_origins()
 
             quad_sp = self._accelerator.measure_quad(quad)
