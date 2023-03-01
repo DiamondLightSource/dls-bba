@@ -403,7 +403,7 @@ def time_freq(algorithm, element, method, directions_list):
     total_time = [0.5, 1, 2, 5]
     quadrupole_scalar = 0.01
     corrector_scalar = 1
-    repeats = 20
+    repeats = 16
     offset = 0.1
 
     pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
@@ -421,15 +421,15 @@ def time_freq(algorithm, element, method, directions_list):
             offset_y = caget(pv_y)
             log.info(f"Offset applied: x={offset_x}, y={offset_y}")
 
-            accepted = False
-            while not accepted:
-                input_value = input(
-                    "Check if beam needs topup. 'y' when ready to continue. If not then cancel. : "
-                )
-                if input_value == "y":
-                    accepted = True
-                else:
-                    print("Try again: ")
+            #accepted = False
+            #while not accepted:
+            #    input_value = input(
+            #        "Check if beam needs topup. 'y' when ready to continue. If not then cancel. : "
+            #    )
+            #    if input_value == "y":
+            #        accepted = True
+            #    else:
+            #        print("Try again: ")
 
             algorithm.apply_feedbacks(10, 10)  # Align for set of 8.
             log.info(f"Time: {time}, Freq: {freq}")

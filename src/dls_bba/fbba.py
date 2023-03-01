@@ -86,7 +86,7 @@ class FBBA(Algorithm):
 
         for quad in quad_list:
             self.check_feedbacks(max_orbit, self.runtime, self.waittime)
-            original_offsets = self.zero_origins()
+            #original_offsets = self.zero_origins()
 
             quad_step = self._accelerator.measure_quad(quad) * self.quadrupole_scalar
             corr_amp = (
@@ -165,7 +165,7 @@ class FBBA(Algorithm):
 
             self._accelerator.set_quad(quad, quad_sp)
             cothread.Sleep(quad_lag_s / 2)
-            self.restore_origins(original_offsets)
+            #self.restore_origins(original_offsets)
 
         return RawData(raw_data, method, metadata)
 

@@ -87,11 +87,11 @@ def bba_stats(values, spread=3):
 def main():
     args = parse_args()
     honing = args.honing_t
-    time = args.timing_t
     running = args.running_t
     feedbacks = args.feedbacks_t
     swap = args.swap_t
     quadcorr = args.quadcorr_t
+    time=True
 
     if feedbacks:
         runtime_values = [2, 3, 4]
@@ -261,12 +261,12 @@ def main():
 
     if time:
         frequencies = [8, 83, 137, 179]
-        total_time = [0.5, 1, 2, 5]
+        total_time = [0.5, 1, 2]
         quadrupole_scalar = 0.01
         corrector_scalar = 1
-        repeats = 20
+        repeats = 16
         offset = 0.1
-        x = np.arange(0, repeats)
+        x = np.arange(0, repeats+1)
         data = {}
 
         for time in total_time:
@@ -288,8 +288,8 @@ def main():
 
         for axis in ["x", "y"]:
             fig, axs = plt.subplots(
-                ncols=len(total_time),
-                nrows=len(frequencies),
+                ncols=len(frequencies),
+                nrows=len(total_time),
                 sharex=True,
                 sharey=True,
                 layout="constrained",
@@ -297,6 +297,7 @@ def main():
 
             for row, time in enumerate(total_time):
                 for col, freq in enumerate(frequencies):
+                    print(row, col)
                     values, errors = data[f"{time},{freq}_{axis}"]
                     axs[row, col].errorbar(
                         x, values, errors, label=f"{bba_stats(values)}"
@@ -371,7 +372,7 @@ def main():
         corrector_scalar = 1
         offset = 0.1
         repeats = 8
-        x = np.arange(0, repeats)
+        x = np.arange(0, repeats+1)
         cycles = 16
         frequency = 8
         directions = [["HORIZONTAL", "VERTICAL"], ["VERTICAL", "HORIZONTAL"]]
