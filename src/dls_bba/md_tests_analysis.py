@@ -111,63 +111,62 @@ def frequency():
     frequency1 = [11, 137, 179]  # X
     frequency2 = [13, 139, 181]  # Y
     max_time = [0.5, 2, 5]
-    repeats = 20
-    max_time = 2
-    x = np.arange(0, repeats)
+    repeats = 16
+    time = 2
+    x = np.arange(0, repeats+1)
     data = {}
 
-    for time in max_time:
-        for freq1 in frequency1:
-            for freq2 in frequency2:
-                for axis in ["x", "y"]:
-                    cycles1 = int(np.floor(max_time * freq1))
-                    cycles2 = int(np.floor(max_time * freq2))
-                    d = np.genfromtxt(
-                        f"{TEMP_FILEPATH_ROOT}/SIM_freq_r{repeats}_f{freq1}_{freq2}_c{cycles1}_{cycles2}_t{time}_{axis}.csv",
-                        delimiter=",",
-                    )
-                    data[f"{freq1},{freq2}_{axis}"] = [d[0, :], d[1, :]]
+    for freq1 in frequency1:
+        for freq2 in frequency2:
+            for axis in ["x", "y"]:
+                cycles1 = int(np.floor(time * freq1))
+                cycles2 = int(np.floor(time * freq2))
+                d = np.genfromtxt(
+                    f"{TEMP_FILEPATH_ROOT}/SIM_freq_r{repeats}_f{freq1}_{freq2}_c{cycles1}_{cycles2}_t{time}_{axis}.csv",
+                    delimiter=",",
+                )
+                data[f"{freq1},{freq2}_{axis}"] = [d[0, :], d[1, :]]
 
-        for key, (values, errors) in data.items():
-            init = initial_offset[key[-1]]
-            cum_values = np.cumsum(values)
-            y_values = [init] + [value + init for value in cum_values]
-            y_errors = [0] + [e for e in errors]
-            data[key] = [y_values, y_errors]
+    for key, (values, errors) in data.items():
+        init = initial_offset[key[-1]]
+        cum_values = np.cumsum(values)
+        y_values = [init] + [value + init for value in cum_values]
+        y_errors = [0] + [e for e in errors]
+        data[key] = [y_values, y_errors]
 
-        for axis in ["x", "y"]:
-            fig, axs = plt.subplots(
-                ncols=len(frequency1),
-                nrows=len(frequency2),
-                sharex=True,
-                sharey=True,
-                layout="constrained",
-            )
+    for axis in ["x", "y"]:
+        fig, axs = plt.subplots(
+            ncols=len(frequency1),
+            nrows=len(frequency2),
+            sharex=True,
+            sharey=True,
+            layout="constrained",
+        )
 
-            for row, freq1 in enumerate(frequency1):
-                for col, freq2 in enumerate(frequency2):
-                    values, errors = data[f"{freq1},{freq2}_{axis}"]
-                    axs[row, col].errorbar(
-                        x, values, errors, label=f"{bba_stats(values)}"
-                    )
-                    axs[row, col].legend(fontsize="xx-small", loc=1)
-                    axs[row, col].grid(which="both", axis="both")
-                    axs[row, col].set_xlim(0, len(values))
-                    if row == len(frequency1) - 1:
-                        plt.setp(axs[row, col], xlabel=f"{freq2}")
-                    if col == 0:
-                        plt.setp(axs[row, col], ylabel=f"{freq1}")
-            fig.suptitle(
-                f"Time of measurement and Frequency with 100micron offset {axis}"
-            )
-            fig.supxlabel("Y Frequency (Hz)")
-            fig.supylabel("X Frequency (Hz)")
-            plt.savefig(
-                f"{TEMP_FILEPATH_ROOT}/sim_frequency_time_plot_{axis}.png",
-                bbox_inches="tight",
-                dpi=300,
-            )
-            plt.close()
+        for row, freq1 in enumerate(frequency1):
+            for col, freq2 in enumerate(frequency2):
+                values, errors = data[f"{freq1},{freq2}_{axis}"]
+                axs[row, col].errorbar(
+                    x, values, errors, label=f"{bba_stats(values)}"
+                )
+                axs[row, col].legend(fontsize="xx-small", loc=1)
+                axs[row, col].grid(which="both", axis="both")
+                axs[row, col].set_xlim(0, len(values))
+                if row == len(frequency1) - 1:
+                    plt.setp(axs[row, col], xlabel=f"{freq2}")
+                if col == 0:
+                    plt.setp(axs[row, col], ylabel=f"{freq1}")
+        fig.suptitle(
+            f"Time of measurement and Frequency with 100micron offset {axis}"
+        )
+        fig.supxlabel("Y Frequency (Hz)")
+        fig.supylabel("X Frequency (Hz)")
+        plt.savefig(
+            f"{TEMP_FILEPATH_ROOT}/sim_frequency_time_plot_{axis}.png",
+            bbox_inches="tight",
+            dpi=300,
+        )
+        plt.close()
 
 
 if __name__ == "__main__":
