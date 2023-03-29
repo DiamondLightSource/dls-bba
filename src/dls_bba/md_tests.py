@@ -421,8 +421,8 @@ def time_freq(algorithm, element, method, directions_list):
             offset_y = caget(pv_y)
             log.info(f"Offset applied: x={offset_x}, y={offset_y}")
 
-            #accepted = False
-            #while not accepted:
+            # accepted = False
+            # while not accepted:
             #    input_value = input(
             #        "Check if beam needs topup. 'y' when ready to continue. If not then cancel. : "
             #    )

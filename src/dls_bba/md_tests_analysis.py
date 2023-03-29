@@ -91,7 +91,7 @@ def main():
     feedbacks = args.feedbacks_t
     swap = args.swap_t
     quadcorr = args.quadcorr_t
-    time=True
+    time = True
 
     if feedbacks:
         runtime_values = [2, 3, 4]
@@ -266,7 +266,7 @@ def main():
         corrector_scalar = 1
         repeats = 16
         offset = 0.1
-        x = np.arange(0, repeats+1)
+        x = np.arange(0, repeats + 1)
         data = {}
 
         for time in total_time:
@@ -372,7 +372,7 @@ def main():
         corrector_scalar = 1
         offset = 0.1
         repeats = 8
-        x = np.arange(0, repeats+1)
+        x = np.arange(0, repeats + 1)
         cycles = 16
         frequency = 8
         directions = [["HORIZONTAL", "VERTICAL"], ["VERTICAL", "HORIZONTAL"]]

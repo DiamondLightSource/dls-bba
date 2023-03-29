@@ -74,10 +74,10 @@ class Results:
         metadata = self.metadata
         bpm_pv_prefix = self.bpm_pv_prefix
         results = self.results
-        #print(metadata["plane"])
-        #metadata["plane"] = metadata[
+        # print(metadata["plane"])
+        # metadata["plane"] = metadata[
         #    "plane"
-        #]._asdict()  # NamedTuple not supported in .mat file.
+        # ]._asdict()  # NamedTuple not supported in .mat file.
         filename = "{}/{}-{}-{}-results.mat".format(
             filepath,
             time_prefix,
