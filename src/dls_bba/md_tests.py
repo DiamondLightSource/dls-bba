@@ -1,22 +1,18 @@
 """MD Tests."""
-# frequency_scan(accelerator, quad, plane)
-# cycle_scan(accelerator, quad, plane)
-# repeatability_scan(accelerator, quad, plane, counts)
-# compare_decimated_data(accelerator, quad, plane)
-# scan_cell(accelerator, cell)
-# scan_amplitudes(accelerator, quad, plane, scale_quad=True, scale_corr=True)
-
 import argparse
 import logging as log
-import os.path as osp
+import os
 from collections import defaultdict
 from datetime import datetime
 
 import matplotlib.pyplot as plt  # noqa
 import numpy as np
+import pytac
+from cothread import Sleep
+from cothread.catools import caget, caput
 
 from dls_bba import accelerator as acc
-from dls_bba.common import PLANE_VALUES, Algorithm
+from dls_bba.common import PLANE_VALUES, Algorithm, Results
 from dls_bba.fbba import FBBA
 from dls_bba.sbba import SBBA
 
@@ -25,7 +21,14 @@ FILE_LOG_FORMAT = (
     "%(levelname)-7s: %(asctime)s — [%(filename)s:%(lineno)d] — %(message)s"
 )
 
-TEMP_FILEPATH_ROOT = osp.join("/dls", "physics", "owr68555", "13Jan2023")
+TEMP_FILEPATH_ROOT = os.path.join("/dls", "physics", "owr68555", "28Feb2023")
+
+
+direction_dict = {
+    "x": ["HORIZONTAL"],
+    "y": ["VERTICAL"],
+    "both": ["HORIZONTAL", "VERTICAL"],
+}
 
 
 def get_filename_prefix(method):
@@ -35,7 +38,7 @@ def get_filename_prefix(method):
     return "{}-{}".format(method, datestring)
 
 
-def get_new_logger(method, filepath="data"):
+def get_new_logger(method, filepath):
     logger = log.getLogger()
     logger.setLevel(log.NOTSET)
     filename = "{}/{}.log".format(filepath, get_filename_prefix(method))
@@ -63,6 +66,14 @@ def parse_args():
         help="Which BBA method to use",
     )
     parser.add_argument(
+        "-d",
+        "--direction",
+        dest="directions",
+        choices=direction_dict.keys(),
+        default=list(direction_dict)[2],
+        help="The directions that bba will be performed in.",
+    )
+    parser.add_argument(
         "-o",
         "--orbit",
         dest="max_orbit",
@@ -71,52 +82,52 @@ def parse_args():
         help="The maximum orbit size to invoke FOFB in um.",
     )
     parser.add_argument(
-        "-c",
-        "--cycle",
-        dest="cycle",
-        action="store_true",
-        default=False,
-        help="Cycle test",
-    )
-    parser.add_argument(
-        "-f",
-        "--freq",
-        dest="freq",
-        action="store_true",
-        default=False,
-        help="Freq test",
-    )
-    parser.add_argument(
-        "-q",
-        "--quads",
-        dest="quads_amp_test",
-        action="store_true",
-        default=False,
-        help="Quad test",
-    )
-    parser.add_argument(
-        "-k",
-        "--corrector",
-        dest="corr_amp_test",
-        action="store_true",
-        default=False,
-        help="Corrector test",
-    )
-    parser.add_argument(
         "-j",
         "--honing",
-        dest="honing_test",
+        dest="honing_t",
         action="store_true",
         default=False,
         help="honing simple test",
     )
     parser.add_argument(
-        "-s",
-        "--special",
-        dest="combi",
+        "-r",
+        "--running",
+        dest="running_t",
         action="store_true",
         default=False,
-        help="combination test",
+        help="Running test",
+    )
+    parser.add_argument(
+        "-y",
+        "--yestime",
+        dest="time_t",
+        action="store_true",
+        default=False,
+        help="Time test",
+    )
+    parser.add_argument(
+        "-c",
+        "--swaptest",
+        dest="swaptest",
+        action="store_true",
+        default=False,
+        help="Swapping axis test",
+    )
+    parser.add_argument(
+        "-f",
+        "--feedbacks",
+        dest="feedbacks",
+        action="store_true",
+        default=False,
+        help="feedbacks test",
+    )
+    parser.add_argument(
+        "-q",
+        "--quadcorr",
+        dest="quadcorr",
+        action="store_true",
+        default=False,
+        help="quadcorr test",
     )
     return parser.parse_args()
 
@@ -125,30 +136,38 @@ def main():
     # Sort arguments
     args = parse_args()
     method = str(args.method)
+    directions = direction_dict[args.directions]
+    honing_test = args.honing_t
+    running = args.running_t
+    time = args.time_t
+    swaptest = args.swaptest
+    feedbacks = args.feedbacks
+    quadcorrect = args.quadcorr
 
-    cycle_test = args.cycle
-    freq_test = args.freq
-    corr_test = args.corr_amp_test
-    quad_test = args.quads_amp_test
-    honing_test = args.honing_test
-    combination_test = args.combi
+    get_new_logger(method, TEMP_FILEPATH_ROOT)
 
-    get_new_logger(method)
-
-    # TODO: System that will accept a number of quads (or cell).
-    # TODO: System that will accept bpm selection.
-
-    # pv_list = ['SR01C-DI-EBPM-01'] # First BPM
-    # pv_list = ["SR24C-DI-EBPM-07"] # Last BPM
     pv_list = ["SR01A-PC-Q2AB-07"]  # Single BPM
+    cell_pv_list = [
+        "SR01A-PC-Q1D-01",
+        "SR01A-PC-Q2D-02",
+        "SR01A-PC-Q3D-03",
+        "SR01A-PC-Q2AD-04",
+        "SR01A-PC-Q1AD-05",
+        "SR01A-PC-Q1AB-06",
+        "SR01A-PC-Q2AB-07",
+        "SR01A-PC-Q3B-08",
+        "SR01A-PC-Q2B-09",
+        "SR01A-PC-Q1B-10",
+    ]
 
     accelerator = acc.Accelerator(ringmode=None)
 
     element_list = []
     for pv in pv_list:
         element_list.append(accelerator.pv_prefix_to_element(pv))
-
-    # TODO: fbba or sbba selection system in UI.
+    cell_list = []
+    for item in cell_pv_list:
+        cell_list.append(accelerator.pv_prefix_to_element(item))
 
     fbba = FBBA(accelerator)
     sbba = SBBA(accelerator)
@@ -158,396 +177,522 @@ def main():
     elif method == "SBBA":
         algorithm: Algorithm = sbba  # type: ignore
 
+    quad_pvs = algorithm._accelerator.lattice.get_element_pv_names(
+        "quadrupole", "b1", pytac.RB
+    )
+    full_machine_quad_pvs = [quad[:-2] for quad in quad_pvs]  # noqa
+
     log.info("Starting Test")
-    # Note: All tests occur in the x-axis only.
-    axis = "HORIZONTAL"
-
-    if cycle_test:
-        repeats = 20
-        cycle_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-        cycle_scan(algorithm, element_list[0], method, axis, repeats, False, cycle_list)
-
-    if freq_test:
-        repeats = 10
-        frequency_list = [
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9,
-            10,
-            11,
-            12,
-            13,
-            14,
-            15,
-            16,
-            17,
-            18,
-            19,
-            20,
-            21,
-            22,
-            23,
-            24,
-            25,
-            26,
-            27,
-            28,
-            29,
-            30,
-        ]
-        frequency_scan(
-            algorithm, element_list[0], method, axis, repeats, False, frequency_list
-        )
-
-    if corr_test:
-        repeats = 10
-        # As a multiplier (default 1)
-        corr_amp_list = [
-            0.1,
-            0.2,
-            0.3,
-            0.4,
-            0.5,
-            0.6,
-            0.7,
-            0.8,
-            0.9,
-            1,
-            1.20,
-            1.4,
-            1.6,
-            1.8,
-            2,
-            2.25,
-            2.5,
-            3,
-            3.5,
-            4,
-            4.5,
-            5,
-        ]
-        corrector_amplitude_scan(
-            algorithm, element_list[0], method, axis, repeats, False, corr_amp_list
-        )
-
-    if quad_test:
-        repeats = 10
-        # As a multiplier (default 0.01 for 1% of current value)
-        quad_amp_list = [
-            0.001,
-            0.005,
-            0.01,
-            0.015,
-            0.02,
-            0.025,
-            0.03,
-            0.035,
-            0.04,
-            0.045,
-            0.05,
-        ]
-        quadrupole_amplitude_scan(
-            algorithm, element_list[0], method, axis, repeats, False, quad_amp_list
-        )
 
     if honing_test:
-        # Simple honing test.
-        repeats = 5
-        cycles = 1
-        frequency = 8
-        quad_scalar = 0.01
-        corr_scalar = 1
-        honing_simple(
-            algorithm,
-            element_list[0],
-            method,
-            axis,
-            repeats,
-            quadrupole_scalar=quad_scalar,
-            corrector_scalar=corr_scalar,
-            cycles=cycles,
-            frequency=frequency,
-        )
+        log.info("Honing Test")
+        honing(algorithm, element_list[0], method, directions)
 
-    if combination_test:
-        # cycles and corr_amp test
-        repeats = 5
-        corr_amps = [
-            0.1,
-            0.2,
-            0.3,
-            0.4,
-            0.5,
-            0.6,
-            0.7,
-            0.8,
-            0.9,
-            1,
-            1.20,
-            1.4,
-            1.6,
-            1.8,
-            2,
-            2.25,
-            2.5,
-            3,
-            3.5,
-            4,
-            4.5,
-            5,
-        ]
-        cycles_list = [1, 10, 20]
-        combination(
-            algorithm,
-            element_list[0],
-            method,
-            axis,
-            repeats,
-            False,
-            cycles_list,
-            corr_amps,
-        )
+    if time:
+        log.info("Time test.")
+        time_freq(algorithm, element_list[0], method, directions)
+
+    if running:
+        log.info("Running Test")
+        running_(algorithm, element_list[0], method, directions)
+
+    if swaptest:
+        log.info("Swap test")
+        swap_test(algorithm, element_list[0], method, directions)
+
+    if feedbacks:
+        log.info("Feedbacks Test")
+        feedbacks_test()
+
+    if quadcorrect:
+        log.info("Quad Corr Test")
+        quad_corr(algorithm, element_list[0], method, directions)
 
 
 def repeat_test(
     algorithm,
     element,
     method,
-    axis,
+    directions_list,
     repeats,
     apply,
     quadrupole_scalar_=0.01,
     corrector_scalar_=1,
-    cycles_=1,
+    cycles_=16,
     frequency_=8,
     decimated_=False,
+    fofb_trigger_=True,
+    delay_=0,
+    runtime_=3,
+    waittime_=3,
 ):
     """For repeating BBA a number of times with the same arguments."""
     log.info(f"Starting repeats: {repeats}, with apply: {apply}.")
     plot = False
     max_orbit = 15
-    offsets = []
-    errors = []
+    offsets = defaultdict(list)
+    errors = defaultdict(list)
 
     for i in range(repeats):
-        filename_prefix = get_filename_prefix(method)
-        algorithm.configure(
-            quadrupole_scalar=quadrupole_scalar_,
-            corrector_scalar=corrector_scalar_,
-            cycles=cycles_,
-            frequency=frequency_,
-            decimated=decimated_,
-        )
-        raw_data = algorithm.run(element, PLANE_VALUES[axis], max_orbit)
-        raw_data.save(filename_prefix)
-        results = algorithm.analyse_data(raw_data, plot)
-        results.save(filename_prefix)
+        log.info(f"Repeat number {i} of {repeats}")
+        filename_store = []
+        for axis in directions_list:
+            filename_prefix = get_filename_prefix(method)
+            algorithm.configure(
+                quadrupole_scalar=quadrupole_scalar_,
+                corrector_scalar=corrector_scalar_,
+                cycles=cycles_,
+                frequency=frequency_,
+                decimated=decimated_,
+                runtime=runtime_,
+                waittime=waittime_,
+            )
+            initial_current = algorithm._accelerator.get_beam_current()
+            while True:
+                if fofb_trigger_:
+                    algorithm.apply_feedbacks(runtime_, waittime_)
+                raw_data = algorithm.run(element, PLANE_VALUES[axis], max_orbit)
+                if algorithm.check_beam_current(initial_current):
+                    break
+            raw_data.save(filename_prefix, TEMP_FILEPATH_ROOT)
+            results = algorithm.analyse_data(raw_data, plot)
+            filename = results.save(filename_prefix, TEMP_FILEPATH_ROOT)
+            filename_store.append(filename)
+            for quad, answers in results.results.items():
+                offsets[axis] += [answers[0]]
+                errors[axis] += [answers[1]]
         if apply:
-            algorithm.apply_results(results)
-        for quad, answers in results.results.items():
-            offsets += [answers[0]]
-            errors += [answers[1]]
+            for filename in filename_store:
+                results_filepath = filename
+                results = Results.from_file(results_filepath)
+                algorithm.apply_results(results)
+        Sleep(delay_)
     return offsets, errors
 
 
-def cycle_scan(algorithm, element, method, axis, repeats, apply, cycle_list):
-    """For repeating FBBA for different numbers of cycles."""
-    value_dictionary = defaultdict(list)
-    error_dictionary = defaultdict(list)
+def honing(algorithm, element, method, directions_list):
+    """Honing Test"""
+    quadrupole_scalar = 0.01
+    corrector_scalar = 1
+    repeats = 20
+    cycles = 16
+    frequency = 8
 
-    for cycle in cycle_list:
-        cycle_values, cycle_errors = repeat_test(
-            algorithm, element, method, axis, repeats, apply, cycles_=cycle
-        )
-        value_dictionary[cycle] = cycle_values
-        error_dictionary[cycle] = cycle_errors
+    pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
+    pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
+    current_x = caget(pv_x)
+    current_y = caget(pv_y)
+    log.info(f"Start: x={current_x}, y={current_y}")
+    for offset in [0, 0.1]:
+        caput(pv_x, current_x + offset, wait=True)
+        caput(pv_y, current_y + offset, wait=True)
+        Sleep(0.2)
+        offset_x = caget(pv_x)
+        offset_y = caget(pv_y)
+        log.info(f"Offset applied: x={offset_x}, y={offset_y}")
 
-    matrix = np.zeros(shape=(len(cycle_list) * 2, repeats))
-    for index, cycle in enumerate(cycle_list):
-        matrix[(index * 2), :] = value_dictionary[cycle]
-        matrix[(index * 2) + 1, :] = error_dictionary[cycle]
-    np.savetxt(
-        f"cycle_scan_repeats_{repeats}_len_{len(cycle_list)}.csv", matrix, delimiter=","
-    )
-
-
-def frequency_scan(algorithm, element, method, axis, repeats, apply, frequency_list):
-    # For repeating FBBA for different frequencies.
-
-    value_dictionary = defaultdict(list)
-    error_dictionary = defaultdict(list)
-
-    for frequency in frequency_list:
-        frequency_values, frequency_errors = repeat_test(
-            algorithm, element, method, axis, repeats, apply, frequency_=frequency
-        )
-        value_dictionary[frequency] = frequency_values
-        error_dictionary[frequency] = frequency_errors
-
-    matrix = np.zeros(shape=(len(frequency_list) * 2, repeats))
-    for index, frequency in enumerate(frequency_list):
-        matrix[(index * 2), :] = value_dictionary[frequency]
-        matrix[(index * 2) + 1, :] = error_dictionary[frequency]
-    np.savetxt(
-        f"frequency_scan_repeats_{repeats}_len_{len(frequency_list)}.csv",
-        matrix,
-        delimiter=",",
-    )
-
-
-def corrector_amplitude_scan(
-    algorithm, element, method, axis, repeats, apply, corr_amplitude_list
-):
-    # For repeating FBBA at different amplitudes.
-
-    value_dictionary = defaultdict(list)
-    error_dictionary = defaultdict(list)
-
-    for amplitude in corr_amplitude_list:
-        amp_values, amp_errors = repeat_test(
+        algorithm.apply_feedbacks(10, 10)  # Align for set of 8.
+        log.info(f"Offset: {offset}")
+        offsets, errors = repeat_test(
             algorithm,
             element,
             method,
-            axis,
+            directions_list,
             repeats,
-            apply,
-            corrector_scalar_=amplitude,
+            apply=True,
+            quadrupole_scalar_=quadrupole_scalar,
+            corrector_scalar_=corrector_scalar,
         )
-        value_dictionary[amplitude] = amp_values
-        error_dictionary[amplitude] = amp_errors
 
-    matrix = np.zeros(shape=(len(corr_amplitude_list) * 2, repeats))
-    for index, amplitude in enumerate(corr_amplitude_list):
-        matrix[(index * 2), :] = value_dictionary[amplitude]
-        matrix[(index * 2) + 1, :] = error_dictionary[amplitude]
-    np.savetxt(
-        f"corr_amp_scan_repeats_{repeats}_len_{len(corr_amplitude_list)}.csv",
-        matrix,
-        delimiter=",",
-    )
-
-
-def quadrupole_amplitude_scan(
-    algorithm, element, method, axis, repeats, apply, quad_amplitude_list
-):
-    # For repeating FBBA at different amplitudes.
-
-    value_dictionary = defaultdict(list)
-    error_dictionary = defaultdict(list)
-
-    for amplitude in quad_amplitude_list:
-        amp_values, amp_errors = repeat_test(
-            algorithm,
-            element,
-            method,
-            axis,
-            repeats,
-            apply,
-            quadrupole_scalar_=amplitude,
-        )
-        value_dictionary[amplitude] = amp_values
-        error_dictionary[amplitude] = amp_errors
-
-    matrix = np.zeros(shape=(len(quad_amplitude_list) * 2, repeats))
-    for index, amplitude in enumerate(quad_amplitude_list):
-        matrix[(index * 2), :] = value_dictionary[amplitude]
-        matrix[(index * 2) + 1, :] = error_dictionary[amplitude]
-    np.savetxt(
-        f"quad_amp_scan_repeats_{repeats}_len_{len(quad_amplitude_list)}.csv",
-        matrix,
-        delimiter=",",
-    )
-
-
-def decimated_scan():
-    # For comparing decimated FBBA against non decimated FBBA.
-    pass
-
-
-def honing_simple(
-    algorithm,
-    element,
-    method,
-    axis,
-    repeats,
-    quadrupole_scalar=0.01,
-    corrector_scalar=1,
-    cycles=1,
-    frequency=8,
-):
-    # Applying the first calculated value. Repeats refers to the # of times run.
-    apply = True
-
-    value_list = []
-    error_list = []
-
-    value_list, error_list = repeat_test(
-        algorithm,
-        element,
-        method,
-        axis,
-        repeats,
-        apply,
-        quadrupole_scalar_=quadrupole_scalar,
-        corrector_scalar_=corrector_scalar,
-        cycles_=cycles,
-        frequency_=frequency,
-    )  # Can add other args here.
-    matrix = np.zeros(shape=(2, repeats))
-    matrix[0, :] = value_list
-    matrix[1, :] = error_list
-    np.savetxt(
-        f"honing_simple_repeats_{repeats}_c{cycles}_f{frequency}_q{quadrupole_scalar}_cs{corrector_scalar}.csv",
-        matrix,
-        delimiter=",",
-    )
-
-
-def honing_average():
-    # apply = True
-    # Showing the honing ability of BBA if each step is repeated before being applied.
-    pass
-
-
-def combination(
-    algorithm, element, method, axis, repeats, apply, cycle_list, corr_amplitude_list
-):
-    # Something that can do multiple tests at once. eg. corrector_amp and cycles.
-    # Saved in terms of the cycle list for all amplitudes.
-
-    value_dictionary = defaultdict(list)
-    error_dictionary = defaultdict(list)
-    for cycle in cycle_list:
-        for corr_amp in corr_amplitude_list:
-            value_list, error_list = repeat_test(
-                algorithm,
-                element,
-                method,
-                axis,
-                repeats,
-                apply,
-                corrector_scalar_=corr_amp,
-                cycles_=cycle,
-            )
-            value_dictionary[f"c_{cycle},a_{corr_amp}"] = value_list
-            error_dictionary[f"c_{cycle},a_{corr_amp}"] = error_list
-
-    for cycle in cycle_list:
-        matrix = np.zeros(shape=(len(corr_amplitude_list) * 2, repeats))
-        for index, corr_amp in enumerate(corr_amplitude_list):
-            matrix[(index * 2), :] = value_dictionary[f"c_{cycle},a_{corr_amp}"]
-            matrix[(index * 2) + 1, :] = error_dictionary[f"c_{cycle},a_{corr_amp}"]
+        matrix = np.zeros(shape=(2, repeats))
+        matrix[0, :] = offsets[direction_dict["x"][0]]
+        matrix[1, :] = errors[direction_dict["x"][0]]
         np.savetxt(
-            f"combination_scan_repeats_{repeats}_cycle_{cycle}.csv",
+            f"{TEMP_FILEPATH_ROOT}/honing_{method}_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_x_offset{offset}.csv",
             matrix,
             delimiter=",",
         )
+        matrix = np.zeros(shape=(2, repeats))
+        matrix[0, :] = offsets[direction_dict["y"][0]]
+        matrix[1, :] = errors[direction_dict["y"][0]]
+        np.savetxt(
+            f"{TEMP_FILEPATH_ROOT}/honing_{method}_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_y_offset{offset}.csv",
+            matrix,
+            delimiter=",",
+        )
+
+        final_x = caget(pv_x)
+        final_y = caget(pv_y)
+        log.info(f"Final: x={final_x}, y={final_y}")
+        caput(pv_x, current_x, wait=True)
+        caput(pv_y, current_y, wait=True)
+        Sleep(0.2)
+        log.info(f"Reset: x={current_x}, y={current_y}")
+        Sleep(1)
+
+
+def swap_test(algorithm, element, method, directions_list):
+    quadrupole_scalar = 0.01
+    corrector_scalar = 1
+    offset = 0.1
+    repeats = 8
+    cycles = 16
+    frequency = 8
+
+    pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
+    pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
+    current_x = caget(pv_x)
+    current_y = caget(pv_y)
+    log.info(f"Start: x={current_x}, y={current_y}")
+    offset_x = caget(pv_x)
+    offset_y = caget(pv_y)
+    log.info(f"Offset applied: x={offset_x}, y={offset_y}")
+    directions = [["HORIZONTAL", "VERTICAL"], ["VERTICAL", "HORIZONTAL"]]
+
+    for order in directions:
+        caput(pv_x, current_x + offset, wait=True)
+        caput(pv_y, current_y + offset, wait=True)
+        Sleep(0.2)
+        offset_x = caget(pv_x)
+        offset_y = caget(pv_y)
+        log.info(f"Offset applied: x={offset_x}, y={offset_y}")
+        algorithm.apply_feedbacks(10, 10)  # Align for set of 8.
+        log.info(f"Order: {order}")
+        offsets, errors = repeat_test(
+            algorithm,
+            element,
+            method,
+            order,
+            repeats,
+            apply=True,
+            quadrupole_scalar_=quadrupole_scalar,
+            corrector_scalar_=corrector_scalar,
+        )
+
+        matrix = np.zeros(shape=(2, repeats))
+        matrix[0, :] = offsets[direction_dict["x"][0]]
+        matrix[1, :] = errors[direction_dict["x"][0]]
+        np.savetxt(
+            f"{TEMP_FILEPATH_ROOT}/swap_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_x_order_{order[0]}.csv",
+            matrix,
+            delimiter=",",
+        )
+        matrix = np.zeros(shape=(2, repeats))
+        matrix[0, :] = offsets[direction_dict["y"][0]]
+        matrix[1, :] = errors[direction_dict["y"][0]]
+        np.savetxt(
+            f"{TEMP_FILEPATH_ROOT}/swap_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_y_order_{order[0]}.csv",
+            matrix,
+            delimiter=",",
+        )
+
+        final_x = caget(pv_x)
+        final_y = caget(pv_y)
+        log.info(f"Final: x={final_x}, y={final_y}")
+        caput(pv_x, current_x, wait=True)
+        caput(pv_y, current_y, wait=True)
+        Sleep(0.2)
+        log.info(f"Reset: x={current_x}, y={current_y}")
+        Sleep(1)
+
+
+def time_freq(algorithm, element, method, directions_list):
+    """Honing but for three specific frequencies."""
+
+    frequencies = [8, 83, 137, 179]
+    total_time = [0.5, 1, 2, 5]
+    quadrupole_scalar = 0.01
+    corrector_scalar = 1
+    repeats = 16
+    offset = 0.1
+
+    pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
+    pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
+    current_x = caget(pv_x)
+    current_y = caget(pv_y)
+    log.info(f"Start: x={current_x}, y={current_y}")
+
+    for time in total_time:
+        for freq in frequencies:
+            caput(pv_x, current_x + offset, wait=True)
+            caput(pv_y, current_y + offset, wait=True)
+            Sleep(0.2)
+            offset_x = caget(pv_x)
+            offset_y = caget(pv_y)
+            log.info(f"Offset applied: x={offset_x}, y={offset_y}")
+
+            #accepted = False
+            #while not accepted:
+            #    input_value = input(
+            #        "Check if beam needs topup. 'y' when ready to continue. If not then cancel. : "
+            #    )
+            #    if input_value == "y":
+            #        accepted = True
+            #    else:
+            #        print("Try again: ")
+
+            algorithm.apply_feedbacks(10, 10)  # Align for set of 8.
+            log.info(f"Time: {time}, Freq: {freq}")
+            cycles = int(np.floor(time * freq))
+
+            offsets, errors = repeat_test(
+                algorithm,
+                element,
+                method,
+                directions_list,
+                repeats,
+                apply=True,
+                frequency_=freq,
+                cycles_=cycles,
+                quadrupole_scalar_=quadrupole_scalar,
+                corrector_scalar_=corrector_scalar,
+            )
+
+            matrix = np.zeros(shape=(2, repeats))
+            matrix[0, :] = offsets[direction_dict["x"][0]]
+            matrix[1, :] = errors[direction_dict["x"][0]]
+            np.savetxt(
+                f"{TEMP_FILEPATH_ROOT}/time_freq_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_x_offset{offset}.csv",
+                matrix,
+                delimiter=",",
+            )
+            matrix = np.zeros(shape=(2, repeats))
+            matrix[0, :] = offsets[direction_dict["y"][0]]
+            matrix[1, :] = errors[direction_dict["y"][0]]
+            np.savetxt(
+                f"{TEMP_FILEPATH_ROOT}/time_freq_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_y_offset{offset}.csv",
+                matrix,
+                delimiter=",",
+            )
+
+            final_x = caget(pv_x)
+            final_y = caget(pv_y)
+            log.info(f"Final: x={final_x}, y={final_y}")
+            caput(pv_x, current_x, wait=True)
+            caput(pv_y, current_y, wait=True)
+            Sleep(0.2)
+            log.info(f"Reset: x={current_x}, y={current_y}")
+            Sleep(1)
+
+
+def running_(algorithm, element, method, directions_list):
+    """Repeat running of F/S BBA."""
+
+    freq = 8
+    quadrupole_scalar = 0.01
+    corrector_scalar = 1
+    cycles = 16
+    repeats = 30
+    situation = ["baseline", "cooling", "warming"]
+    situation = situation[0]
+    offset = 0.1
+
+    pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
+    pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
+    current_x = caget(pv_x)
+    current_y = caget(pv_y)
+    log.info(f"Start: x={current_x}, y={current_y}")
+    caput(pv_x, current_x + offset, wait=True)
+    caput(pv_y, current_y + offset, wait=True)
+    Sleep(0.2)
+    offset_x = caget(pv_x)
+    offset_y = caget(pv_y)
+    log.info(f"Offset applied: x={offset_x}, y={offset_y}")
+
+    algorithm.apply_feedbacks(10, 10)  # Align for set
+    offsets, errors = repeat_test(
+        algorithm,
+        element,
+        method,
+        directions_list,
+        repeats,
+        apply=True,
+        frequency_=freq,
+        cycles_=cycles,
+        quadrupole_scalar_=quadrupole_scalar,
+        corrector_scalar_=corrector_scalar,
+    )
+
+    matrix = np.zeros(shape=(2, repeats))
+    matrix[0, :] = offsets[direction_dict["x"][0]]
+    matrix[1, :] = errors[direction_dict["x"][0]]
+    np.savetxt(
+        f"{TEMP_FILEPATH_ROOT}/running_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_x_{situation}.csv",
+        matrix,
+        delimiter=",",
+    )
+    matrix = np.zeros(shape=(2, repeats))
+    matrix[0, :] = offsets[direction_dict["y"][0]]
+    matrix[1, :] = errors[direction_dict["y"][0]]
+    np.savetxt(
+        f"{TEMP_FILEPATH_ROOT}/running_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quadrupole_scalar}_cs{corrector_scalar}_y_{situation}.csv",
+        matrix,
+        delimiter=",",
+    )
+
+    final_x = caget(pv_x)
+    final_y = caget(pv_y)
+    log.info(f"Final: x={final_x}, y={final_y}")
+    caput(pv_x, current_x, wait=True)
+    caput(pv_y, current_y, wait=True)
+    Sleep(0.2)
+    log.info(f"Reset: x={current_x}, y={current_y}")
+
+
+def feedbacks_test(algorithm, element, method, directions_list):
+    runtime_values = [2, 3, 4]
+    waittime_values = [1, 3, 5]
+    quadrupole_scalar = 0.01
+    corrector_scalar = 1
+    repeats = 16
+    cycles = 16
+    frequency = 8
+    offset = 0.1
+
+    pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
+    pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
+    current_x = caget(pv_x)
+    current_y = caget(pv_y)
+    log.info(f"Start: x={current_x}, y={current_y}")
+
+    for runtime in runtime_values:
+        for waittime in waittime_values:
+            caput(pv_x, current_x + offset, wait=True)
+            caput(pv_y, current_y + offset, wait=True)
+            Sleep(0.2)
+            offset_x = caget(pv_x)
+            offset_y = caget(pv_y)
+            log.info(f"Offset applied: x={offset_x}, y={offset_y}")
+
+            accepted = False
+            while not accepted:
+                input_value = input(
+                    "Check if beam needs topup. 'y' when ready to continue. If not then cancel. : "
+                )
+                if input_value == "y":
+                    accepted = True
+                else:
+                    print("Try again: ")
+
+            algorithm.apply_feedbacks(10, 10)
+            log.info(f"Runtime: {runtime}, Waittime: {waittime}")
+            offsets, errors = repeat_test(
+                algorithm,
+                element,
+                method,
+                directions_list,
+                repeats,
+                apply=True,
+                fofb_trigger_=True,
+                quadrupole_scalar_=quadrupole_scalar,
+                corrector_scalar_=corrector_scalar,
+                runtime_=runtime,
+                waittime_=waittime,
+            )
+
+            matrix = np.zeros(shape=(2, repeats))
+            matrix[0, :] = offsets[direction_dict["x"][0]]
+            matrix[1, :] = errors[direction_dict["x"][0]]
+            np.savetxt(
+                f"{TEMP_FILEPATH_ROOT}/feedbacks_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_x_run{runtime}_wait{waittime}.csv",
+                matrix,
+                delimiter=",",
+            )
+            matrix = np.zeros(shape=(2, repeats))
+            matrix[0, :] = offsets[direction_dict["y"][0]]
+            matrix[1, :] = errors[direction_dict["y"][0]]
+            np.savetxt(
+                f"{TEMP_FILEPATH_ROOT}/feedbacks_r{repeats}_c{cycles}_f{frequency}_qs{quadrupole_scalar}_cs{corrector_scalar}_y_run{runtime}_wait{waittime}.csv",
+                matrix,
+                delimiter=",",
+            )
+
+            final_x = caget(pv_x)
+            final_y = caget(pv_y)
+            log.info(f"Final: x={final_x}, y={final_y}")
+            caput(pv_x, current_x, wait=True)
+            caput(pv_y, current_y, wait=True)
+            Sleep(0.2)
+            log.info(f"Reset: x={current_x}, y={current_y}")
+            Sleep(1)
+
+
+def quad_corr(algorithm, element, method, directions_list):
+    """Honing but for three specific frequencies."""
+
+    corrector_scalars = [1, 0.75, 0.5, 0.25]
+    quadrupole_scalars = [0.01, 0.0075, 0.0050, 0.0025]
+    offset = 0.1
+    freq = 8
+    cycles = 16
+    repeats = 16
+
+    pv_x = "SR01C-DI-EBPM-05:CF:BBA_X_S"
+    pv_y = "SR01C-DI-EBPM-05:CF:BBA_Y_S"
+    current_x = caget(pv_x)
+    current_y = caget(pv_y)
+    log.info(f"Start: x={current_x}, y={current_y}")
+
+    for quad_sc in quadrupole_scalars:
+        for corr_sc in corrector_scalars:
+            caput(pv_x, current_x + offset, wait=True)
+            caput(pv_y, current_y + offset, wait=True)
+            Sleep(0.2)
+            offset_x = caget(pv_x)
+            offset_y = caget(pv_y)
+            log.info(f"Offset applied: x={offset_x}, y={offset_y}")
+
+            accepted = False
+            while not accepted:
+                input_value = input(
+                    "Check if beam needs topup. 'y' when ready to continue. If not then cancel. : "
+                )
+                if input_value == "y":
+                    accepted = True
+                else:
+                    print("Try again: ")
+
+            algorithm.apply_feedbacks(10, 10)  # Align for set of 8.
+            log.info(f"Quad: {quad_sc}, Corr: {corr_sc}")
+
+            offsets, errors = repeat_test(
+                algorithm,
+                element,
+                method,
+                directions_list,
+                repeats,
+                apply=True,
+                frequency_=freq,
+                cycles_=cycles,
+                quadrupole_scalar_=quad_sc,
+                corrector_scalar_=corr_sc,
+            )
+
+            matrix = np.zeros(shape=(2, repeats))
+            matrix[0, :] = offsets[direction_dict["x"][0]]
+            matrix[1, :] = errors[direction_dict["x"][0]]
+            np.savetxt(
+                f"{TEMP_FILEPATH_ROOT}/quad_corr_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quad_sc}_cs{corr_sc}_x.csv",
+                matrix,
+                delimiter=",",
+            )
+            matrix = np.zeros(shape=(2, repeats))
+            matrix[0, :] = offsets[direction_dict["y"][0]]
+            matrix[1, :] = errors[direction_dict["y"][0]]
+            np.savetxt(
+                f"{TEMP_FILEPATH_ROOT}/quad_corr_FBBA_r{repeats}_c{cycles}_f{freq}_qs{quad_sc}_cs{corr_sc}_y.csv",
+                matrix,
+                delimiter=",",
+            )
+
+            final_x = caget(pv_x)
+            final_y = caget(pv_y)
+            log.info(f"Final: x={final_x}, y={final_y}")
+            caput(pv_x, current_x, wait=True)
+            caput(pv_y, current_y, wait=True)
+            Sleep(0.2)
+            log.info(f"Reset: x={current_x}, y={current_y}")
+            Sleep(1)
 
 
 if __name__ == "__main__":

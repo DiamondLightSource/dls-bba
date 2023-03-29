@@ -9,6 +9,7 @@ from typing import Any, Dict, NamedTuple
 
 import numpy as np
 import scipy.io as io
+from cothread import Sleep
 from cothread.catools import caget, caput
 
 MAXIMUM_CURRENT_DROP = 20  # mA
@@ -23,7 +24,7 @@ PLANE_VALUES = {
 }
 
 ORIGIN_SUFFIXES = {
-    "BBA": ":CF:BBA_{axis}_S",
+    # "BBA": ":CF:BBA_{axis}_S",
     "BCD": ":CF:BCD_{axis}_S",
     "GOLDEN": ":CF:GOLDEN_{axis}_S",
 }
@@ -38,16 +39,19 @@ class RawData:
     # TODO: asdict, make all shared attributes not in metadata.
 
     def save(self, time_prefix, filepath):
+        metadata = self.metadata
+        raw_data = self.raw_data
+        algorithm = self.algorithm
         filename = "{}/{}-{}-{}-rawdata.mat".format(
-            filepath, time_prefix, self.metadata["bpm_pv"], self.metadata["plane"].axis
+            filepath, time_prefix, metadata["bpm_pv"], metadata["plane"].axis
         )
-        self.metadata["plane"] = self.metadata[
+        metadata["plane"] = metadata[
             "plane"
         ]._asdict()  # NamedTuple not supported in .mat file.
         dct = {
-            "raw_data": self.raw_data,
-            "algorithm": self.algorithm,
-            "metadata": self.metadata,
+            "raw_data": raw_data,
+            "algorithm": algorithm,
+            "metadata": metadata,
         }
         io.savemat(filename, dct, oned_as="row")
         log.info(f"Saved raw data as {filename}")
@@ -67,16 +71,23 @@ class Results:
     metadata: Dict[str, Any]
 
     def save(self, time_prefix, filepath):
+        metadata = self.metadata
+        bpm_pv_prefix = self.bpm_pv_prefix
+        results = self.results
+        #print(metadata["plane"])
+        #metadata["plane"] = metadata[
+        #    "plane"
+        #]._asdict()  # NamedTuple not supported in .mat file.
         filename = "{}/{}-{}-{}-results.mat".format(
             filepath,
             time_prefix,
-            self.metadata["bpm_pv"],
-            self.metadata["plane"]["axis"],
+            metadata["bpm_pv"],
+            metadata["plane"]["axis"],
         )
         dct = {
-            "results": self.results,
-            "bpm_pv_prefix": self.bpm_pv_prefix,
-            "metadata": self.metadata,
+            "results": results,
+            "bpm_pv_prefix": bpm_pv_prefix,
+            "metadata": metadata,
         }
         io.savemat(filename, dct, oned_as="row")
         log.info(f"Saved results as {filename}")
@@ -168,22 +179,51 @@ class Algorithm(ABC):
             ValueError("Unexpected element: Only quadrupoles and bpms are allowed.")
         return bpm, quad, corrector
 
-    def toggle_fofb(self):
+    def diagnostics(self):
+        diagnostics_dict = {
+            "emittance": caget("SR-DI-EMIT-01:EMITTANCE"),
+            "x_emittance": [
+                caget("SR-DI-EMIT-01:HEMIT"),
+                caget("SR-DI-EMIT-01:HERROR"),
+            ],
+            "y_emittance": [
+                caget("SR-DI-EMIT-01:VEMIT"),
+                caget("SR-DI-EMIT-01:VERROR"),
+            ],
+            "coupling": caget("SR-DI-EMIT-01:COUPLING"),
+            "current": caget("SR-DI-DCCT-01:SIGNAL"),
+            "lifetime": caget("SR-DI-DCCT-01:LIFETIME"),
+        }
+        return diagnostics_dict
+
+    def report_tune(self):
+        target_x = caget("SR-CS-TFB-01:TUNE:H")
+        target_y = caget("SR-CS-TFB-01:TUNE:V")
+        log.debug(f"Target tunes: X {target_x}, Y {target_y}")
+        tune_x = caget("SR23C-DI-TMBF-01:TUNE:TUNE")
+        tune_y = caget("SR23C-DI-TMBF-02:TUNE:TUNE")
+        log.debug(f"Measured tunes: X {tune_x}, Y {tune_y}")
+
+    def apply_feedbacks(self, runtime=3, waittime=3):
         log.warn("Correcting orbit with FOFB.")
         run(
             "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py start",
             check=True,
             shell=True,
         )
-        sleep(1)
+        self.report_tune()
+        caput("SR-CS-TFB-01:ONOFF", 1, wait=True)
+        Sleep(runtime)
+        caput("SR-CS-TFB-01:ONOFF", 0, wait=True)
+        self.report_tune()
         run(
             "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py stop",
             check=True,
             shell=True,
         )
-        sleep(1)
+        sleep(waittime)
 
-    def toggle_feedbacks(self, max_orbit):
+    def check_feedbacks(self, max_orbit, runtime, waittime):
         """Confirms that all feedbacks are off, and toggles FOFB to realign if needed."""
         feedbacks = {
             "Fast Orbit Feedback": ["SR01A-CS-FOFB-01:RUN", 0],
@@ -217,48 +257,45 @@ class Algorithm(ABC):
         max_value = abs(max(bpm_values, key=abs))
         # value in mm, max_orbit in um.
         if float(max_value * 1000) >= float(max_orbit):
-            self.toggle_fofb()
+            self.apply_feedbacks(runtime, waittime)
 
-    def zero_origins(self, bpm, plane_info) -> Dict[str, Any]:
+    def zero_origins(self) -> Dict[str, Any]:
         """Zeros BCD and Golden offsets. Also stores current Golden offset value for restoring later."""
-        # return None  # For testing -> PV's dont exist in virtac.
         log.info("Origins Zeroed")
-        bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
-        bcd_pv = bpm_pv_root + ORIGIN_SUFFIXES["BCD"].format(axis=plane_info.axis)
-        golden_pv = bpm_pv_root + ORIGIN_SUFFIXES["GOLDEN"].format(axis=plane_info.axis)
-
         offsets = {}
-        offsets[golden_pv] = caget(golden_pv)
+        for bpm in self._accelerator.bpms:
+            for direction in ["HORIZONTAL", "VERTICAL"]:
+                bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
+                bcd_pv = bpm_pv_root + ORIGIN_SUFFIXES["BCD"].format(
+                    axis=PLANE_VALUES[direction].axis
+                )
+                golden_pv = bpm_pv_root + ORIGIN_SUFFIXES["GOLDEN"].format(
+                    axis=PLANE_VALUES[direction].axis
+                )
 
-        caput(bcd_pv, 0)
-        caput(golden_pv, 0)
+                offsets[golden_pv] = caget(golden_pv)
+
+                caput(bcd_pv, 0, wait=True)
+                caput(golden_pv, 0, wait=True)
+        Sleep(0.2)
+        log.debug(offsets)
         return offsets
 
     def restore_origins(self, offsets):
         """Restores offset values from offsets dictionary."""
-        # return None  # For testing -> PV's dont exist in virtac.
-        for key, value in offsets.items():
-            caput(key, value)
+        # for key, value in offsets.items():
+        #     caput(key, value, wait=True)
+        Sleep(0.2)
         log.info("Origins Restored")
-
-    def set_bpm_offset(self, bpm, value, plane_info):
-        """Applies new offset value to the BBA offset."""
-        # TODO: Should this be in Algorithm?
-
-        bpm_pv_root = self._accelerator.element_to_pv_prefix(bpm)
-        bba_pv = bpm_pv_root + ORIGIN_SUFFIXES["BBA"].format(axis=plane_info.axis)
-
-        current_offset = caget(bba_pv)
-        new_offset = current_offset + value
-        caput(bba_pv, new_offset)
 
     @abstractmethod
     def run(self, element, plane_info, max_orbit):
-        # This fbba/sbba specifc -> save into a Data object
+        # This is fbba/sbba specifc -> save into a RawData object
         return RawData
 
     @abstractmethod
     def analyse_data(self, data, plot_output, *args, **kwargs):
+        # This is fbba/sbba specifc -> save into a Results object
         return Results
 
     def apply_results(self, results):
@@ -269,21 +306,27 @@ class Algorithm(ABC):
         for key, value in results.results.items():
             offsets.append(value[0])
             errors.append(value[1])
-        offset = mean(offsets)
-        sum_error = 0
-        for error in errors:
-            sum_error += error**2
-        error = np.sqrt(sum_error)
 
-        if plane_info["axis"] == "Y":
+        mean_offset = mean(offsets)
+        sum_error = 0
+        for offset, error in zip(offsets, errors):
+            sum_error += (error / offset) ** 2
+        error = np.sqrt(sum_error) * mean_offset
+
+        if plane_info.axis == "Y":
             suffix = ":CF:BBA_Y_S"
-        elif plane_info["axis"] == "X":
+            log.info("Applying to the Y axis.")
+        elif plane_info.axis == "X":
             suffix = ":CF:BBA_X_S"
+            log.info("Applying to the X axis.")
+        else:
+            raise ValueError("Plane info incorrect.")
         setting_pv = bpm_pv_prefix + suffix
 
         current_offset = caget(setting_pv)
-        new_offset = current_offset + offset
+        new_offset = current_offset + mean_offset
         log.info(
-            f"BPM: {bpm_pv_prefix}, Old offset: {current_offset}, Delta: {offset} +- {error}, New offset: {new_offset}."
+            f"BPM: {bpm_pv_prefix}, Old offset: {current_offset}, Delta: {mean_offset} +- {error}, New offset: {new_offset}."
         )
-        caput(setting_pv, new_offset)
+        caput(setting_pv, new_offset, wait=True)
+        Sleep(0.2)

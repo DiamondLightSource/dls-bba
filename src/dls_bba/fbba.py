@@ -8,8 +8,6 @@ import cothread
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
-from scipy.fft import irfft, rfft, rfftfreq
-from scipy.signal import find_peaks
 
 from dls_bba.common import Algorithm, RawData, Results
 from dls_bba.excite import Excitation, Oscillation, excite
@@ -20,7 +18,7 @@ SAFETY_NET_S = 0.1
 QUAD_SLEW_RATE = 0.5
 NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
 SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
-FBBA_UNIT_CONVERSION = 1000
+FBBA_UNIT_CONVERSION = 1000000
 
 
 class FBBA(Algorithm):
@@ -30,11 +28,13 @@ class FBBA(Algorithm):
 
     def configure(
         self,
-        quadrupole_scalar=0.02,
-        corrector_scalar=2,
+        quadrupole_scalar=0.01,
+        corrector_scalar=1,
         cycles=16,
         frequency=8,
         decimated=False,
+        runtime=3,
+        waittime=3,
         *args,
         **kwargs,
     ):
@@ -44,6 +44,9 @@ class FBBA(Algorithm):
         self.cycles = cycles
         self.frequency = frequency
         self.decimated = decimated
+        self.runtime = runtime
+        self.waittime = waittime
+
         log.debug(
             f"Configuration: Cycles: {self.cycles}, Frequency: {self.frequency}, Quadrupole Scalar: {self.quadrupole_scalar}, Corrector Scalar: {self.corrector_scalar}, Decimated: {self.decimated}"
         )
@@ -77,9 +80,13 @@ class FBBA(Algorithm):
             "quadrupole_scalar": self.quadrupole_scalar,
             "corrector_scalar": self.corrector_scalar,
         }
+        diagnostics_dict = self.diagnostics()
+        for key, value in diagnostics_dict.items():
+            metadata[key] = value
+
         for quad in quad_list:
-            self.toggle_feedbacks(max_orbit)
-            original_offsets = self.zero_origins(bpm, plane_info)
+            self.check_feedbacks(max_orbit, self.runtime, self.waittime)
+            #original_offsets = self.zero_origins()
 
             quad_step = self._accelerator.measure_quad(quad) * self.quadrupole_scalar
             corr_amp = (
@@ -158,7 +165,7 @@ class FBBA(Algorithm):
 
             self._accelerator.set_quad(quad, quad_sp)
             cothread.Sleep(quad_lag_s / 2)
-            self.restore_origins(original_offsets)
+            #self.restore_origins(original_offsets)
 
         return RawData(raw_data, method, metadata)
 
@@ -198,71 +205,46 @@ class FBBA(Algorithm):
         assert high_data.shape == low_data.shape
         return [high_data, low_data]
 
-    def extract_freq_fft(self, data, known_freq):
-        samplingfreq = TICKS_PER_SECOND
-        length, samples = data.shape
-        data = np.transpose(data)
+    def extract_freq_excite(self, data, known_freq, bpm_index):
+        # Synchronous Detector Method
 
-        # Add hanning window.
-        for i in range(0, samples):
-            hanning_list = np.hanning(len(data[:, i]))
-            data[:, i] = [x + y for x, y in zip(data[:, i], hanning_list)]
+        # Incoming data arranged as [Time, Axis]
 
-        yf = rfft(data) / length
-        xf = rfftfreq(length, 1 / samplingfreq)
-        peak_intensity = []
-        peak_frequency = []
-        for i in range(0, samples):
-            y_data = np.abs(np.transpose(np.real(yf[i])))
-            peaks, _ = find_peaks(y_data)
-            peak_max = peaks[np.argmax(y_data[peaks])]
-            xmax = xf[peak_max]
-            peak_intensity.append(peak_max)
-            peak_frequency.append(xmax)
+        # The mixing function creates a clean waveform at the known frequency
+        # A dummy axis must be created to preserve shape through numpy operations
+        # mix aranged as [Time, 1]
+        mix = np.exp(
+            2j * np.pi * known_freq / TICKS_PER_SECOND * np.arange(1, len(data) + 1).T
+        )
+        mix = mix[:, None]
 
-        peak_int_freq = [int(freq) for freq in peak_frequency]
-        most_frequent = np.argmax(np.bincount(peak_int_freq))
+        # Run the mixing waveform over the data, aongside a hanning window
+        # detector aranged as [Axis, 1]
+        detector = 4 * (data * mix * np.hanning(len(mix))[:, None]).mean(0)
 
-        if most_frequent != known_freq:
-            print(
-                f"Calculated frequency {most_frequent} does not match expected frequency {known_freq}. Results are likely to be untrustworthly."
-            )
-            log.info(
-                f"Calculated frequency {most_frequent} does not match expected frequency {known_freq}."
-            )
+        # Find the phase of each axis; aranged as [Axis, 1]
+        angle = np.angle(detector)
 
-        temp_yf = yf
-        yf_abs = np.abs(temp_yf)
-        indices = yf_abs < 300
-        yf_clean = indices * temp_yf
+        # smodpi function to align the phases
+        def smodpi(x):
+            return np.mod(x + (np.pi / 2), np.pi) - (np.pi / 2)
 
-        # Isolate the useful frequency.
-        xf_list = [int(value) for value in xf]
-        freq_index = xf_list.index(known_freq)
-        for bpm_index, dataset in enumerate(yf_clean):
-            for index, value in enumerate(dataset):
-                if index != freq_index:
-                    yf_clean[bpm_index][index] = 0
+        # Find the phase of the chosen BPM
+        phase_bpm = angle[bpm_index]
 
-        clean = np.transpose(irfft(yf_clean))
-        return clean
+        # Fix the angle of all BPMs to the chosen BPM
+        # dector_fixed aranged as [Axis, 1]
+        angle_fixed = smodpi(angle - phase_bpm)
+        detector_fixed = detector * np.exp(-1j * (angle_fixed + phase_bpm))
 
-    def extract_freq_excite(self, data, freq):
-        data_length = data.shape[0]
-        num_oscs = 1.0 * data_length * freq / TICKS_PER_SECOND
-        num_oscs = num_oscs * 10 if self.decimated else num_oscs
+        # Find the DC offset; aranged as [Axis, 1]
+        dc_offset = data.mean(0)
 
-        osc = np.exp(np.linspace(0, 2j * np.pi * num_oscs, data_length))
-        osc = np.tile(osc, (data.shape[1], 1)).T
-        data_es = np.mean(data * osc, 0)
+        # Reconstruct the clean wave; aranged as [Time, Axis]
+        clean_wave = np.real(np.conj(detector_fixed) * mix) + np.real(dc_offset)
+        return clean_wave
 
-        reverse_osc = np.exp(np.linspace(0, -2j * np.pi * num_oscs, data_length))
-        reverse_osc = np.tile(reverse_osc, (data.shape[1], 1)).T
-        # Force the phase to zero by using only the imaginary part of the mean
-        answer = 2 * np.real(reverse_osc * 1j * np.imag(data_es))
-        return answer
-
-    def analyse_data(self, raw_data, plot_output=False, use_fft=False, *args, **kwargs):
+    def analyse_data(self, raw_data, plot_output=False, *args, **kwargs):
         data = raw_data.raw_data
         # algorithm = raw_data["algorithm"] -> Not used.
         metadata = raw_data.metadata
@@ -288,27 +270,13 @@ class FBBA(Algorithm):
             low_key = quad + "_Low"
             high_key = quad + "_High"
 
-            # Remove bad BPMs and change units to um
-            q_low = data[low_key][:, enabled_bpms] * 1e-3
-            q_high = data[high_key][:, enabled_bpms] * 1e-3
+            # Remove bad BPMs
+            q_low = data[low_key][:, enabled_bpms]
+            q_high = data[high_key][:, enabled_bpms]
 
-            # Extract the DC componenet of the orbit, and add it to the excitation
-            q_high_dc = q_high.mean(0)
-            q_low_dc = q_low.mean(0)
-            if use_fft:
-                q_high_clean = np.add(
-                    self.extract_freq_fft(q_high - q_high_dc, freq), q_high_dc
-                )
-                q_low_clean = np.add(
-                    self.extract_freq_fft(q_low - q_low_dc, freq), q_low_dc
-                )
-            else:
-                q_high_clean = np.add(
-                    self.extract_freq_excite(q_high - q_high_dc, freq), q_high_dc
-                )
-                q_low_clean = np.add(
-                    self.extract_freq_excite(q_low - q_low_dc, freq), q_low_dc
-                )
+            # Clean the data using the synchronous detector method
+            q_high_clean = self.extract_freq_excite(q_high, freq, bpm_index)
+            q_low_clean = self.extract_freq_excite(q_low, freq, bpm_index)
 
             # Take the difference between fits
             q_diff = q_high_clean - q_low_clean
@@ -363,12 +331,5 @@ class FBBA(Algorithm):
             log.debug(f"Quad: {quad_name} offset calculated: {offset} +- {error}.")
             results[quadrupole] = [offset, error]
 
-        offset = mean(offsets)
-        sum_error = 0
-        for error in errors:
-            sum_error += error**2
-        error = np.sqrt(sum_error)
-
         bpm_pv_prefix = metadata["bpm_pv"]
-        log.info(f"BPM: {bpm_pv_prefix} offset calculated: {offset} +- {error}.")
         return Results(results, bpm_pv_prefix, metadata)

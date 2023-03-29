@@ -15,7 +15,7 @@ QUAD_SLEW_RATE = 0.5
 NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
 SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
 SBBA_UNIT_CONVERSION = (
-    1000  # TODO: Remember to times result offset by this? SBBA matlab needs it.
+    1  # TODO: Remember to times result offset by this? SBBA matlab needs it.
 )
 
 
@@ -26,9 +26,11 @@ class SBBA(Algorithm):
 
     def configure(
         self,
-        quadrupole_scalar=0.02,
-        corrector_scalar=2,
+        quadrupole_scalar=0.01,
+        corrector_scalar=1,
         decimated=False,
+        runtime=3,
+        waittime=3,
         *args,
         **kwargs,
     ):
@@ -36,6 +38,8 @@ class SBBA(Algorithm):
         self.quadrupole_scalar = quadrupole_scalar
         self.corrector_scalar = float(corrector_scalar)
         self.decimated = decimated
+        self.runtime = runtime
+        self.waittime = waittime
         log.debug(
             f"Configuration: Quadrupole Scalar: {self.quadrupole_scalar}, Corrector Scalar: {self.corrector_scalar}, Decimated: {self.decimated}"
         )
@@ -70,8 +74,8 @@ class SBBA(Algorithm):
             "corrector_scalar": self.corrector_scalar,
         }
         for quad in quad_list:
-            self.toggle_feedbacks(max_orbit)
-            original_offsets = self.zero_origins(bpm, plane_info)
+            self.check_feedbacks(max_orbit, self.runtime, self.waittime)
+            original_offsets = self.zero_origins()
 
             quad_step = self._accelerator.measure_quad(quad) * self.quadrupole_scalar
             corr_step = (
@@ -99,31 +103,23 @@ class SBBA(Algorithm):
             quad_pv_root = self._accelerator.element_to_pv_prefix(quad).replace(
                 "-", "_"
             )
+            for movement, quad_h_l in [("High", quad_high), ("Low", quad_low)]:
+                log.info(f"Quad movement: {movement}")
+                self._accelerator.set_quad(quad, quad_h_l)
+                cothread.Sleep(quad_lag_s / 2)
 
-            for index, step in enumerate(corrector_step_list):
-                log.info(f"Index: {index}, Step: {step}")
-                # Step the corrector to the value.
-                self._accelerator.set_corrector(
-                    corrector, plane_info, corrector_sp + step
-                )
-                # cothread.Sleep(NETWORK_LAG + ((Cycle/freq) * ticks) + SAFETY_NET) / TICKS_PER_SECOND)
-                cothread.Sleep(0.1)
-                # High quad step
-                self._accelerator.set_quad(quad, quad_high)
-                cothread.Sleep(quad_lag_s / 2)
-                log.info(f"Quad High Measurement for corrector step {index}.")
-                high_bpms = self._accelerator.measure_bpms(plane_info)
-                # Low quad step
-                self._accelerator.set_quad(quad, quad_low)
-                cothread.Sleep(quad_lag_s)
-                log.info(f"Quad Low Measurement for corrector step {index}.")
-                low_bpms = self._accelerator.measure_bpms(plane_info)
-                cothread.Sleep(quad_lag_s / 2)
-                # Change in step.
-                raw_data[f"{quad_pv_root}_{index}_High"] = high_bpms
-                raw_data[f"{quad_pv_root}_{index}_Low"] = low_bpms
+                for index, step in enumerate(corrector_step_list, start=1):
+                    log.info(f"Corrector movement: {index}, Step: {step}")
+                    # Step the corrector to the value.
+                    self._accelerator.set_corrector(
+                        corrector, plane_info, corrector_sp + step
+                    )
+                    cothread.Sleep(0.1)
+                    measured_bpms = self._accelerator.measure_bpms(plane_info)
+                    raw_data[f"{quad_pv_root}_{index}_{movement}"] = measured_bpms
 
             # Reset magnets
+            log.info("Reset corrector and quad")
             self._accelerator.set_corrector(corrector, plane_info, corrector_sp)
             self._accelerator.set_quad(quad, quad_sp)
             self.restore_origins(original_offsets)
@@ -146,7 +142,7 @@ class SBBA(Algorithm):
 
         for quad in quad_prefixs:
             matrix = np.zeros(shape=(5, len(enabled_bpms)))
-            for index in range(5):
+            for index in range(1, 6):
                 high = data[f"{quad}_{index}_High"]
                 low = data[f"{quad}_{index}_Low"]
                 matrix[index, :] = np.subtract(high, low)
@@ -156,17 +152,18 @@ class SBBA(Algorithm):
             for index, value in reversed(list(enumerate(enabled_bpms))):
                 if value == 0:
                     bad_indices.append(index)
+            print(f"Disabled BPMs: {bad_indices}")
 
             # Get rid of bad bpms.
-            if metadata["plane"]["axis"] == "X":
+            if metadata["plane"].axis == "X":
                 for index, _ in enumerate(self._accelerator.bpms):
                     if self._accelerator.bpm_h_fofb_enabled[index] == 1:
                         bad_indices.append(index)
-            if metadata["plane"]["axis"] == "Y":
+            if metadata["plane"].axis == "Y":
                 for index, _ in enumerate(self._accelerator.bpms):
                     if self._accelerator.bpm_v_fofb_enabled[index] == 1:
                         bad_indices.append(index)
-
+            print(f"Disabled and bad BPMs: {bad_indices}")
             matrix = np.delete(matrix, bad_indices, axis=1)
 
             corr_step = metadata["corr_step"]
@@ -179,42 +176,57 @@ class SBBA(Algorithm):
             ]
             fit = np.polynomial.polynomial.polyfit(corrector_step_list, matrix, 1)
             p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
-
             gradients = list(p[:, 1])
-            max_gradient = abs(max(gradients, key=abs))
 
-            # Get rid of bad gradients
+            sorted_gradients = sorted(map(abs, gradients))
+            abs_gradients = [abs(value) for value in gradients]
+            second_half = sorted_gradients[len(sorted_gradients) // 2 :]
+            if len(gradients) > 5:
+                max_gradient = sorted_gradients[-5]
+            else:
+                max_gradient = sorted_gradients[-1]
+            max_gradient = max_gradient * 0.25
             bad_gradients = []
-            for gradient in gradients:
-                if abs(gradient) < max_gradient * 0.25:
-                    bad_gradients.append(gradients.index(gradient))
 
+            for index, value in enumerate(second_half):
+                # print(f"Second: {index}, {value}")
+                # print(
+                #     f"grad: {abs_gradients.index(value)}, {abs_gradients[abs_gradients.index(value)]}"
+                # )
+                if value < max_gradient:
+                    bad_gradients.append(abs_gradients.index(value))
+
+            log.debug(f"Bad gradients: {bad_gradients}")
             p = np.delete(p, bad_gradients, axis=0)
-            # gradient > 20 * BPMnoise?
 
+            log.debug(f"Size of p: {np.shape(p)}")
             # Remove all values that are more than 1 stdev from the mean.
-            while True:
-                log.info(f"Size of p: {np.shape(p)}")
-                counter = 0
-                offset_mean = mean(p[:, 1])
-                offset_stdev = stdev(p[:, 1])
-                std_list = []
-                for index, (offset, gradient) in enumerate(p):
-                    if (offset > offset_mean + offset_stdev) or (
-                        offset < offset_mean - offset_stdev
-                    ):
-                        counter += 1
-                        std_list.append(index)
-                p = np.delete(p, std_list, axis=0)
-                if counter == 0:
-                    break
+
+            offset_mean = mean(p[:, 1])
+            offset_stdev = stdev(p[:, 1])
+            stdev_list = []
+            max_value = offset_mean + offset_stdev
+            min_value = offset_mean - offset_stdev
+            for index, offset in enumerate(p[:, 1]):
+                if min_value < offset < max_value:
+                    pass
+                else:
+                    stdev_list.append(index)
+            p = np.delete(p, stdev_list, axis=0)
 
             log.info(f"Final size of p: {np.shape(p)}")
+
             if plot_output:
                 log.error("Plotting - Not implimented yet.")
+
             offset_mean = mean(p[:, 1])
             offset_stdev = stdev(p[:, 1])
             log.info(offset_mean, offset_stdev)
+
+            # Testing if negative x for sbba focuses in.
+            if metadata["plane"].axis == "X":
+                offset_mean = -offset_mean
+
             # Change results to mm.
             offsets.append(offset_mean / SBBA_UNIT_CONVERSION)
             errors.append(offset_stdev / SBBA_UNIT_CONVERSION)
@@ -228,12 +240,5 @@ class SBBA(Algorithm):
             log.debug(f"Quad: {quad_name} offset calculated: {offset} +- {error}.")
             results[quadrupole] = [offset, error]
 
-        offset = mean(offsets)
-        sum_error = 0
-        for error in errors:
-            sum_error += error**2
-        error = np.sqrt(sum_error)
-
         bpm_pv_prefix = metadata["bpm_pv"]
-        log.info(f"BPM: {bpm_pv_prefix} offset calculated: {offset} +- {error}.")
         return Results(results, bpm_pv_prefix, metadata)

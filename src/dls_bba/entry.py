@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 
 from dls_bba import accelerator as acc
-from dls_bba.common import PLANE_VALUES, Algorithm
+from dls_bba.common import PLANE_VALUES, Algorithm, Results
 from dls_bba.fbba import FBBA
 from dls_bba.sbba import SBBA
 
@@ -97,14 +97,6 @@ def parse_args():
         help="Plot the results?",
     )
     parser.add_argument(
-        "-f",
-        "-fft",
-        dest="fft",
-        action="store_true",
-        default=False,
-        help="Use fft analysis?",
-    )
-    parser.add_argument(
         "-b",
         "-fofb",
         dest="fofb",
@@ -124,7 +116,6 @@ def main():
     max_orbit: int = args.max_orbit  # type: ignore
     apply: bool = args.apply  # type: ignore
     plot: bool = args.plot  # type: ignore
-    fft: bool = args.fft  # type: ignore
     fofb_trigger: bool = args.fofb  # type: ignore
 
     get_new_logger(method, filepath)
@@ -148,18 +139,18 @@ def main():
             initial_current = algorithm._accelerator.get_beam_current()
             while True:
                 if fofb_trigger:
-                    algorithm.toggle_fofb()
+                    algorithm.apply_feedbacks()
                 raw_data = algorithm.run(element, PLANE_VALUES[axis], max_orbit)
                 if algorithm.check_beam_current(initial_current):
                     break
             raw_data.save(filename_prefix, filepath)
-            results = algorithm.analyse_data(raw_data, plot, fft)
+            results = algorithm.analyse_data(raw_data, plot)
             filename = results.save(filename_prefix, filepath)
             filename_store.append([filename])
         if apply:
             for filename in filename_store:
                 results_filepath = os.path.join(filepath, filename)
-                results.from_file(results_filepath)
+                results = Results.from_file(results_filepath)
                 algorithm.apply_results(results)
 
 
