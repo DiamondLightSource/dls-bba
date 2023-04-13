@@ -7,6 +7,7 @@ import numpy as np
 import pytac
 import scipy.io as io
 from cothread.catools import DBR_STRING, ca_nothing, caget
+from pytac import cothread_cs
 
 TRIES = 3  # Attempts to get BPM values before failing.
 DATAROOT = "/dls_sw/work/common/matlab/mml/machine/diamondopsdata"
@@ -44,12 +45,12 @@ class Accelerator:
     def __init__(self, ringmode=None):
         """Initialising the accelerator model."""
         self.ringmode = self.get_ring_mode(ringmode)
-        self.lattice = pytac.load_csv.load(self.ringmode)
 
-        # Required to stop timeout on the machine.
-        self.lattice._data_source_manager._data_sources[pytac.LIVE]._devices[
-            "beam_current"
-        ]._cs._timeout = 10.0
+        # Required to stop timout and to wait for caputs.
+        _cs = cothread_cs.CothreadControlSystem(timeout=10.0, wait=True)
+
+        log.debug(f"Loading pytac lattice: {self.ringmode}")
+        self.lattice = pytac.load_csv.load(self.ringmode, _cs)
 
         self.bpms = self.lattice.get_elements("BPM")
         # self.enabled_bpms = self.lattice.get_element_values("BPM", "enabled")
