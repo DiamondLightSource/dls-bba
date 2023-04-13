@@ -18,7 +18,7 @@ dependencies = [
     "fa-archiver",
     "matplotlib",
     "numpy",
-    "pytac",
+    "pytac>=0.6.0",
     "PyQt5",
     "scipy",
     "setuptools>=60.0.0",
