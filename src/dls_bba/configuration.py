@@ -23,6 +23,7 @@ LATTICE_SETTINGS = (  # Requires update to lattice and associated components
     "FOFB_NOGUI_PATH",
     "ORBIT_RESPONSE_MATRIX_PATH",
     "CORRECTORS_TXT_PATH",
+    "CORRECTOR_IOCS",
     "BPM2QUAD_SPECIAL_CASES",
     "BPM2QUAD_EXCEPTIONS",
     "QUAD2BPM_SPECIAL_CASES",

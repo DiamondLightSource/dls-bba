@@ -1,29 +1,19 @@
 import logging as log
 import os
-from typing import NamedTuple, Union
-from datetime import datetime
+
 from dls_bba.algorithm import Algorithm, FastBBA, SimFastBBA, SlowBBA
 from dls_bba.lattice import Lattice
 from dls_bba.logger import get_new_logger
-
-ISO_TIME_FORMAT_STRING: str = "%Y%m%dT%H%M%S"
-"""ISO 8601 in the format YYYYMMDDThhmmss. Note. T seperates date and time."""
+from dls_bba.isotime import get_isotime
 
 ALGORITHMS: dict[str, type[Algorithm]] = {
-    "Slow BBA": SlowBBA,
-    "Fast BBA": FastBBA,
-    "Sim Fast BBA": SimFastBBA,
+    "SlowBBA": SlowBBA,
+    "FastBBA": FastBBA,
+    "SimFastBBA": SimFastBBA,
 }
 
 
-def get_isotime():
-    """"""
-    now = datetime.now()
-    isotime = now.strftime(ISO_TIME_FORMAT_STRING)
-    return isotime
-
-
-def entrypoints(elements: list[str], method: str):
+def entrypoints(elements: list[str], method: str, **kwargs):
     """"""
     # Setup folders and lattice.
     folderpath = setup_folders(method)
@@ -33,10 +23,10 @@ def entrypoints(elements: list[str], method: str):
     # TODO: Need to create a dictionary with cli/gui args, which is passed into lattice when Lattice is created.
     lattice = Lattice()
 
-    element_tuple_list = []
+    component_pair_list = []
     for element in elements:
-        tuples = lattice.generate_bba_namedtuples(element)
-        element_tuple_list.append(tuples)
+        component_pair = lattice.generate_component_pairings(element)
+        component_pair_list.append(component_pair)
 
     lattice.zero_origins()
 
@@ -47,20 +37,9 @@ def entrypoints(elements: list[str], method: str):
         log.critical(message)
         raise e
 
-    # if method == "Slow BBA":
-    #     algorithm: Algorithm = SlowBBA(lattice)  # type: ignore
-    # elif method == "Fast BBA":
-    #     algorithm: Algorithm = FastBBA(lattice)  # type: ignore
-    # elif method == "Sim Fast BBA":
-    #     algorithm: Algorithm = SimFastBBA(lattice)  # type: ignore
-    # else:
-    #     message = "Invalid method selected."
-    #     log.critical(message)
-    #     raise ValueError(message)
-
     results = {}
-    for element_tuple_pair in element_tuple_list:
-        results_list = beam_based_alignment(algorithm, element_tuple_pair, folderpath)
+    for component_pair in component_pair_list:
+        results_list = bba(algorithm, component_pair_list, folderpath)
         # TODO sort unpacking
         for key, value in results_list:
             results[key] = value
@@ -106,7 +85,7 @@ def bba(algorithm, element_tuple, folderpath, save=False):
     """"""
     # TODO: Has to handle multiple tuples?
     algorithm._lattice.check_beam_current(start=True)
-    algorithm._lattice.apply_feedbacks()
+    algorithm._lattice.check_feedbacks()
     while True:
         rawdata = algorithm.run(element_tuple)  # run x y together but seperately .
         if algorithm._lattice.check_beam_current(end=True):

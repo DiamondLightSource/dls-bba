@@ -8,7 +8,7 @@ TICKS_PER_SECOND = 10072
 
 
 def get_timestamp(decimated):
-    # If faa timestamp is larger than 2**32 - 1 hour,
+    # TODO: If faa timestamp is larger than 2**32 - 1 hour,
     # then the power supply IOC will reject the oscillation.
     s = falib.subscription([0], decimated=decimated)
     x = s.read(1)

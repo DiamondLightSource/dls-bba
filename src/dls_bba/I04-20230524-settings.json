@@ -7,6 +7,32 @@
     "FOFB_NOGUI_PATH": "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py",
     "ORBIT_RESPONSE_MATRIX_PATH": "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/I04/GoldenBPMResp.mat",
     "CORRECTORS_TXT_PATH": "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/correctors.txt",
+    "CORRECTOR_IOCS": [
+        "SR01A-CS-FOFB-01",
+        "SR02A-CS-FOFB-01",
+        "SR03A-CS-FOFB-01",
+        "SR04A-CS-FOFB-01",
+        "SR05A-CS-FOFB-01",
+        "SR06A-CS-FOFB-01",
+        "SR07A-CS-FOFB-01",
+        "SR08A-CS-FOFB-01",
+        "SR09A-CS-FOFB-01",
+        "SR10A-CS-FOFB-01",
+        "SR11A-CS-FOFB-01",
+        "SR12A-CS-FOFB-01",
+        "SR13A-CS-FOFB-01",
+        "SR14A-CS-FOFB-01",
+        "SR15A-CS-FOFB-01",
+        "SR16A-CS-FOFB-01",
+        "SR17A-CS-FOFB-01",
+        "SR18A-CS-FOFB-01",
+        "SR19A-CS-FOFB-01",
+        "SR20A-CS-FOFB-01",
+        "SR21A-CS-FOFB-01",
+        "SR22A-CS-FOFB-01",
+        "SR23A-CS-FOFB-01",
+        "SR24A-CS-FOFB-01"
+    ],
     "BPM2QUAD_SPECIAL_CASES": {
         "SR02C-DI-EBPM-01": [
             "SR02A-PC-Q1BE-01"

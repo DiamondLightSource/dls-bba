@@ -1,72 +1,84 @@
-import collections
+from dataclasses import dataclass
 
 import cothread
 import numpy as np
 from cothread.catools import caput
 
-from dls_bba import faa
+from dls_bba.components import Components
+from dls_bba.faa import TICKS_PER_SECOND
 
-CORRECTORS_TXT = (
-    "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/correctors.txt"
-)
-
-IOCS = [
-    "SR%02dA-CS-FOFB-01" % i for i in range(1, 25)
-]  # Number of cells - ie one IOC per cell.
-
-Oscillation = collections.namedtuple("Oscillation", ["amp", "plane", "freq", "cycles"])
-FofbCorrector = collections.namedtuple(
-    "FofbCorrector", ["num", "ioc", "corr", "is_slow"]
-)
+NETWORK_LAG_S = 0.5
+SAFETY_NET_S = 0.1
+QUAD_SLEW_RATE = 0.5  # Amps/Second
+NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
+SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
 
 
-def get_corrector_table():
-    with open(CORRECTORS_TXT, "r", encoding="utf8", newline="") as file:
+@dataclass
+class FofbCorrector:
+    index: int
+    ioc: str
+    fofb_index: int
+    slow: int
+
+
+@dataclass
+class Oscillation:
+    amplitude: float
+    plane: Components
+    frequency: int
+    cycles: int
+
+    # Length of time of excitation in s
+    dwell: float
+    # Length of time of excitation in FOFB ticks
+    count: int
+    # Phase advance per tick per revoloution
+    delta: int
+    # Duration of all oscillations.
+    duration: float
+
+    @classmethod
+    def from_values(cls, amplitude, plane, frequency, cycles):
+        dwell = cycles / frequency
+        count = int(np.ceil(dwell * TICKS_PER_SECOND))
+        delta = int(np.floor(frequency * 2**32 / TICKS_PER_SECOND))
+        duration = (2 * count) + NETWORK_LAG + SAFETY_NET
+        return cls(amplitude, plane, frequency, cycles, dwell, count, delta, duration)
+
+
+def get_corrector_table(lattice):
+    correctors_txt = lattice._config["CORRECTORS_TXT_PATH"]
+    with open(correctors_txt, "r", encoding="utf8", newline="") as file:
         data = np.genfromtxt(file, names=True, dtype=None, encoding="UTF-8")
     return data
 
 
-def get_fofb_corrector(accelerator, pytac_element, plane):
+def get_fofb_corrector(lattice, component):
     """Create FofbCorrector tuple from pytac element."""
     table = get_corrector_table()
-    kick_field = plane.kick
-    name = pytac_element.get_device(kick_field).name
-    index = int(table["epics"].tolist().index(name))
-    special_correctors = accelerator.special_correctors(plane)
-    if name in special_correctors:
-        slow = 1
-    else:
-        slow = 0
-    return FofbCorrector(
-        pytac_element.index + 1,
-        table["ioc"][index],
-        int(table["farow"][index]),
-        slow,
-    )
+    name = component.corrector_name
+    index = int(table["epics"].tolist().index(name)) + 1
+    ioc = table["ioc"][index]
+    fofb_index = int(table["farow"][index])
+    slow_correctors = lattice._get_slow_correctors()
+    slow = 1 if name in slow_correctors else 0
+    return FofbCorrector(index, ioc, fofb_index, slow)
 
 
 class Excitation(object):
     """An excitation performed on a corrector."""
 
-    def __init__(self, corrector, oscillation, start_time, accelerator):
-        self.corrector = corrector
+    def __init__(self, lattice, component, oscillation, start_time):
+        self.corrector = component.corrector
         self.oscillation = oscillation
         self.start_time = start_time
+        self.count = oscillation.count
 
-        # Length of time of excitation in s
-        self.dwell = self.oscillation.cycles / self.oscillation.freq
-        # Length of time of excitation in FOFB ticks
-        self.count = int(np.round(self.dwell * faa.TICKS_PER_SECOND))
-        # Phase advance per tick per revoloution
-        self.delta = int(
-            np.floor(self.oscillation.freq * 2**32 / faa.TICKS_PER_SECOND)
-        )
-
-        fofb_corrector = get_fofb_corrector(
-            accelerator, self.corrector, oscillation.plane
-        )
+        fofb_corrector = lattice.get_fofb_corrector(component)
         self.ioc = fofb_corrector.ioc
         self.fofb_index = fofb_corrector.corr
+        self.iocs = lattice._config["CORRECTOR_IOCS"]
 
 
 def excite(excitations):
@@ -77,7 +89,10 @@ def excite(excitations):
     N = MAX_CORRECTORS * PLANES
 
     # Zero all timestamps
-    caput([f"{ioc}:EXCITE:START_TIMES" for ioc in IOCS], [[0] * N] * len(IOCS))
+    caput(
+        [f"{ioc}:EXCITE:START_TIMES" for ioc in excitations.iocs],
+        [[0] * N] * len(excitations.iocs),
+    )
 
     # Create dict of PVs to put
     for e in excitations:
@@ -100,4 +115,6 @@ def excite(excitations):
         caput(key, values)
     # Ensure all values are put, then reset the reset the IOCs
     cothread.Yield()
-    caput([f"{ioc}:EXCITE:PRIME" for ioc in IOCS], [1] * len(IOCS))
+    caput(
+        [f"{ioc}:EXCITE:PRIME" for ioc in excitations.iocs], [1] * len(excitations.iocs)
+    )
