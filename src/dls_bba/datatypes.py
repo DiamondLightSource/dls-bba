@@ -52,3 +52,29 @@ class Results:
     def from_file(cls, filepath):
         dct = io.loadmat(filepath, simplify_cells=True)
         return cls(dct["results"], dct["metadata"])
+
+    def sort(self) -> Tuple[str, list[list[float]]]:
+        """"""
+        # These are the changes in BBA value relative to current position.
+        results = self.results
+        metadata = self.metadata
+        bpm_name = metadata["bpm_name"]
+
+        sorted_results = []
+
+        for axis in ["x", "y"]:
+            keys = [key for key in results.keys() if axis in key]
+
+            values, errors = [], []
+            for key in keys:
+                values.append(results[key][0])
+                errors.append(results[key][1])
+
+            sum_error = 0
+            mean_value = np.mean(values)
+            for value, error in zip(values, errors):
+                sum_error += (error / value) ** 2
+            total_error = np.sqrt(sum_error) * mean_value
+
+            sorted_results.append([mean_value, total_error])
+        return bpm_name, sorted_results

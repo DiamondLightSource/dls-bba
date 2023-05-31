@@ -575,13 +575,19 @@ class Lattice:
         quad_low = quad_setpoint - quad_step
         return quad_start_high, quad_high, quad_low, quad_setpoint
 
-    def apply_bba(self, results):
+    def confirm_results(self):
+        accepted_bba = {}
+        # TODO: Input full bba list, draw plots for all.
+        # TODO: If accepted, add to new dictionary and parse to apply bba.
+        self.apply_bba(accepted_bba)
+
+    def apply_bba(self, results: dict[str, list[float]]):
         """"""
-        # TODO
-        # TODO should be where the human readable .txt is created too.
-        # lists before/after values.
-        # TODO should pop up with a plot asking y or n for each thing to apply.
-        pass
+        for key, (value, error) in results.items():
+            caput(key, value, wait=True)
+            message = f"Caput value {value} +- {error} on {key}"
+            log.debug(message)
+        Sleep(0.2)
 
     def hysteresis(
         self,
