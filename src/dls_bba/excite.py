@@ -13,6 +13,10 @@ QUAD_SLEW_RATE = 0.5  # Amps/Second
 NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
 SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
 
+PLANES = 2
+MAX_CORRECTORS = 9
+N = MAX_CORRECTORS * PLANES
+
 
 @dataclass
 class FofbCorrector:
@@ -84,9 +88,6 @@ class Excitation(object):
 def excite(excitations):
     """Completes caputs which will start the excitation."""
     pvs = {}
-    PLANES = 2
-    MAX_CORRECTORS = 9
-    N = MAX_CORRECTORS * PLANES
 
     # Zero all timestamps
     caput(
@@ -118,3 +119,29 @@ def excite(excitations):
     caput(
         [f"{ioc}:EXCITE:PRIME" for ioc in excitations.iocs], [1] * len(excitations.iocs)
     )
+
+
+def cancel_all_oscillations(config):
+    """"""
+    # Set all to 0, then prime for all IOCS.
+    iocs = config["CORRECTOR_IOCS"]
+    pvs = {}
+
+    # TODO: Confirm this works?
+
+    for ioc in iocs:
+        for corr_index in range(N + 1):
+            try:
+                pvs.setdefault(f"{ioc}:EXCITE:START_TIMES", [0] * N)[corr_index] = 0
+                pvs.setdefault(f"{ioc}:EXCITE:AMPS", [0] * N)[corr_index] = 0
+                pvs.setdefault(f"{ioc}:EXCITE:DELTAS", [0] * N)[corr_index] = 0
+                pvs.setdefault(f"{ioc}:EXCITE:TICKS", [0] * N)[corr_index] = 0
+            except Exception:
+                pass
+
+    for key, values in pvs.items():
+        caput(key, values)
+
+    # Ensure all values are put, then reset the reset the IOCs
+    cothread.Yield()
+    caput([f"{ioc}:EXCITE:PRIME" for ioc in iocs], [1] * len(iocs))
