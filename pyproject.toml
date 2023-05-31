@@ -49,6 +49,7 @@ dev = [
 
 [project.scripts]
 dls-bba = "dls_bba.__main__:main"
+dls-bba-gui = "dls_bba.__main__:gui_main"
 
 [project.urls]
 GitHub = "https://github.com/DiamondLightSource/dls-bba"
