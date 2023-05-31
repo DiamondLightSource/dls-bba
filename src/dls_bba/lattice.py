@@ -456,19 +456,22 @@ class Lattice:
 
     def apply_feedbacks(self):
         """"""
-        fofb_trigger = self.settings["FOFB_NOGUI_PATH"]
-        tune_trigger = "SR-CS-TFB-01:ONOFF"
-        waittime = self.config["FEEDBACK_WAITTIME"]
-        runtime = self.config["FEEDBACK_RUNTIME"]
+        feedbacks_bool = self._config["FEEDBACKS"]
 
-        log.warn("Correcting orbit with FOFB and Tune Feedbacks")
+        if feedbacks_bool:
+            fofb_trigger = self._config["FOFB_NOGUI_PATH"]
+            tune_trigger = "SR-CS-TFB-01:ONOFF"
+            waittime = self._config["FEEDBACK_WAITTIME"]
+            runtime = self._config["FEEDBACK_RUNTIME"]
 
-        run(f"{fofb_trigger} start", check=True, shell=True)
-        caput(tune_trigger, 1, wait=True)
-        Sleep(runtime)
-        caput(tune_trigger, 0, wait=True)
-        run(f"{fofb_trigger} stop", check=True, shell=True)
-        Sleep(waittime)
+            log.warn("Correcting orbit with FOFB and Tune Feedbacks")
+
+            run(f"{fofb_trigger} start", check=True, shell=True)
+            caput(tune_trigger, 1, wait=True)
+            Sleep(runtime)
+            caput(tune_trigger, 0, wait=True)
+            run(f"{fofb_trigger} stop", check=True, shell=True)
+            Sleep(waittime)
 
     def check_feedbacks(self, max_orbit=None):
         """"""
