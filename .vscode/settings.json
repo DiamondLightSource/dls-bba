@@ -11,6 +11,5 @@
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
         "source.organizeImports": true
-    },
-    "python.analysis.typeCheckingMode": "off"
+    }
 }
