@@ -161,9 +161,9 @@ class Lattice:
         self.cell_dictionary = cell_dictionary
         # Primaries and Source Points.
         psps = []
-        for cell, indices in PSPdict:
+        for cell, indices in PSPdict.items():
             for index in indices:
-                psps.append(self.cell_dictionary[cell][index])
+                psps.append(self.cell_dictionary[cell][int(index)])
         self.psps = psps
 
     def _load_b2q_q2b(self):
@@ -276,7 +276,7 @@ class Lattice:
         # returns in mm.
         return self._lattice.get_element_values("BPM", f"{axis}", pytac.RB)
 
-    def get_element_from_pv(self, name):
+    def get_element_from_name(self, name):
         """"""
         if "-DI-EBPM-" in name:
             element = self.bpms[self.bpms_names.index(name)]
@@ -344,7 +344,7 @@ class Lattice:
         correctors = self._effective_corrector[bpm]
         if isinstance(bpm, pytac.element.EpicsElement):
             correctors = [
-                self.get_element_from_pv(corrector) for corrector in correctors
+                self.get_element_from_name(corrector) for corrector in correctors
             ]
         return correctors
 
@@ -362,13 +362,13 @@ class Lattice:
             raise BBAComponentException(message)
 
         hor_corr, ver_corr = self.effective_correctors(bpm)
-        horizontal_elements = Components.from_pv_prefixes(
+        horizontal_components = Components.from_pv_prefixes(
             self._lattice, bpm, quads, hor_corr, "x", "x_kick"
         )
-        vertical_elements = Components.from_pv_prefixes(
+        vertical_components = Components.from_pv_prefixes(
             self._lattice, bpm, quads, ver_corr, "y", "y_kick"
         )
-        return [horizontal_elements, vertical_elements]
+        return [horizontal_components, vertical_components]
 
     def corrector_kick(self, components: Components) -> float:
         """PV ONLY"""
@@ -474,7 +474,7 @@ class Lattice:
             run(f"{fofb_trigger} stop", check=True, shell=True)
             Sleep(waittime)
 
-    def check_feedbacks(self, max_orbit=None):
+    def check_feedbacks(self):
         """"""
         max_orbit = self.config["MAX_ORBIT_CORRECTION_MICRONS"]
 
@@ -515,14 +515,14 @@ class Lattice:
             # The 2 is a magic number from the old BBA setup.
             Sleep(abs(start_current - value) / QUAD_SLEW_RATE / 2)
 
-    def get_corrector_setpoint(self, component: Components):
+    def get_corrector_setpoint(self, components: Components):
         """"""
-        return float(component.corrector.get_value(component.kick))
+        return float(components.corrector.get_value(components.kick))
 
-    def get_slow_bba_corrector_steps(self, component: Components):
+    def get_slow_bba_corrector_steps(self, components: Components):
         """"""
-        setpoint = self.get_corrector_setpoint(component)
-        step = self.corrector_kick(component)
+        setpoint = self.get_corrector_setpoint(components)
+        step = self.corrector_kick(components)
         corrector_steps = [
             setpoint + step,
             setpoint + (step / 2),
@@ -533,10 +533,10 @@ class Lattice:
         return corrector_steps
 
     def set_corrector_setpoint(
-        self, component: Components, value: Union[float, int]
+        self, components: Components, value: Union[float, int]
     ) -> None:
         """"""
-        component.corrector.set_value(component.kick, value)
+        components.corrector.set_value(components.kick, value)
 
     def zero_origins(self):
         """"""

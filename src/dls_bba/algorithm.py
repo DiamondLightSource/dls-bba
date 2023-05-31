@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 import numpy as np
 from cothread import Sleep
 
-from dls_bba.isotime import get_isotime
 from dls_bba.components import Components
 from dls_bba.datatypes import RawData, Results
 from dls_bba.excite import (
@@ -16,6 +15,7 @@ from dls_bba.excite import (
     excite,
 )
 from dls_bba.faa import TICKS_PER_SECOND, Buffer, get_timestamp
+from dls_bba.isotime import get_isotime
 from dls_bba.lattice import Lattice
 
 
@@ -36,18 +36,18 @@ class SlowBBA(Algorithm):
     def __init__(self, lattice: Lattice):
         super().__init__(lattice)
 
-    def run(self, component_pair: list[Components]) -> RawData:
+    def run(self, components_pair: list[Components]) -> RawData:
         rawdata = {}
         metadata = {}
         metadata.update(self._lattice._config)
         metadata["method"] = "SlowBBA"
         metadata["isotime"] = get_isotime()
         metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()
-        metadata["bpm_prefix"] = component_pair[0].bpm_name
+        metadata["bpm_name"] = components_pair[0].bpm_name
 
-        for component in component_pair:
+        for components in components_pair:
             for quadrupole, quad_pv_prefix in zip(
-                component.quadrupoles, component.quadrupoles_names
+                components.quadrupoles, components.quadrupoles_names
             ):
                 # TODO: Feedbacks first?
                 # self._lattice.check_feedbacks()
@@ -58,7 +58,7 @@ class SlowBBA(Algorithm):
                     quad_sp,
                 ) = self._lattice.calculate_quad_setpoints(quadrupole)
                 corrector_step_list = self._lattice.get_slow_bba_corrector_steps(
-                    component.corrector
+                    components.corrector
                 )
 
                 # Always overshoot the high quad step and work down and keep direction
@@ -77,14 +77,14 @@ class SlowBBA(Algorithm):
                     self._lattice.set_quad_setpoint(quadrupole, quad_movement, True)
 
                     for index, step in enumerate(corrector_step_list, start=1):
-                        self._lattice.set_corrector_setpoint(component.corrector, step)
+                        self._lattice.set_corrector_setpoint(components.corrector, step)
                         Sleep(0.1)  # Fixed time for orbit to stabilise.
-                        measured_bpms = self._lattice.measure_bpms(component.axis)
+                        measured_bpms = self._lattice.measure_bpms(components.axis)
 
-                        key = f"{quad_pv_prefix}_{component.axis}_{movement}_{index}"
+                        key = f"{quad_pv_prefix}_{components.axis}_{movement}_{index}"
                         rawdata[key] = measured_bpms
                         metadata[key] = {
-                            "components": component.as_dict(),
+                            "components": components.as_dict(),
                             "quad_start_high_low_sp": [
                                 quad_start,
                                 quad_high,
@@ -96,11 +96,11 @@ class SlowBBA(Algorithm):
 
                     # Reset the corrector after the steps before moving the quadrupole.
                     self._lattice.set_corrector_setpoint(
-                        component.corrector, corrector_step_list[2]
+                        components.corrector, corrector_step_list[2]
                     )
                 # Reset Quad and Corrector once finished.
                 self._lattice.set_corrector_setpoint(
-                    component.corrector, corrector_step_list[2]
+                    components.corrector, corrector_step_list[2]
                 )
                 self._lattice.set_quad_setpoint(quadrupole, quad_sp, True)
             # run feedbacks after each axis.
@@ -209,19 +209,19 @@ class FastBBA(Algorithm):
     def __init__(self, lattice):
         super().__init__(lattice)
 
-    def run(self, component_pair: list[Components]) -> RawData:
+    def run(self, components_pair: list[Components]) -> RawData:
         rawdata = {}
         metadata = {}
         metadata.update(self._lattice._config)
         metadata["method"] = "FastBBA"
         metadata["isotime"] = get_isotime()
         metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()
-        metadata["bpm_prefix"] = component_pair[0].bpm_name
+        metadata["bpm_name"] = components_pair[0].bpm_name
         decimated = self._lattice._config["DECIMATED"]
 
-        for component in component_pair:
+        for components in components_pair:
             for quadrupole, quad_name in zip(
-                component.quadrupoles, component.quadrupoles_names
+                components.quadrupoles, components.quadrupoles_names
             ):
                 # TODO: Feedbacks first?
                 # self._lattice.check_feedbacks()
@@ -232,12 +232,12 @@ class FastBBA(Algorithm):
                     quad_sp,
                 ) = self._lattice.calculate_quad_setpoints(quadrupole)
 
-                corr_kick = self._lattice.corrector_kick(component)
-                corr_sp = self._lattice.get_corrector_setpoint(component)
+                corr_kick = self._lattice.corrector_kick(components)
+                corr_sp = self._lattice.get_corrector_setpoint(components)
 
-                key = f"{quad_name}_{component.axis}"
+                key = f"{quad_name}_{components.axis}"
                 metadata[key] = {
-                    "components": component.as_dict(),
+                    "components": components.as_dict(),
                     "quad_start_high_low_sp": [
                         quad_start,
                         quad_high,
@@ -258,11 +258,11 @@ class FastBBA(Algorithm):
                     self._lattice.set_quad_setpoint(quadrupole, quad_start, True)
 
                 # Setup Oscillations
-                frequency_key = f"{component.axis.upper()}_FREQUENCY"
+                frequency_key = f"{components.axis.upper()}_FREQUENCY"
                 frequency = self._lattice._config[frequency_key]
-                cycles_key = f"{component.axis.upper()}_CYCLES"
+                cycles_key = f"{components.axis.upper()}_CYCLES"
                 cycles = self._lattice._config[cycles_key]
-                osc = Oscillation.from_values(component, corr_kick, frequency, cycles)
+                osc = Oscillation.from_values(components, corr_kick, frequency, cycles)
 
                 quad_lag_s = (quad_sp - quad_low) / QUAD_SLEW_RATE
                 quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
@@ -278,8 +278,8 @@ class FastBBA(Algorithm):
                     self._lattice.faa_bpm_list, high_start, osc.duration, decimated
                 )
 
-                exc_high = Excitation(self._lattice, component, osc, high_start)
-                exc_low = Excitation(self._lattice, component, osc, low_start)
+                exc_high = Excitation(self._lattice, components, osc, high_start)
+                exc_low = Excitation(self._lattice, components, osc, low_start)
                 # Sleep for first excitation. SAFETY_NET ensures that we don't start
                 # moving the quad before the excitation has finished.
                 excite((exc_high,))
@@ -290,11 +290,11 @@ class FastBBA(Algorithm):
                 excite((exc_low,))
                 # This will block until all data has been retrieved.
                 fa_data = fa_buffer.get_data()
-                selected_data = self.select_data(fa_data, component.axis)
+                selected_data = self.select_data(fa_data, components.axis)
 
-                key = f"{quad_name}_{component.axis}_High"
+                key = f"{quad_name}_{components.axis}_High"
                 rawdata[key] = selected_data[0]
-                key = f"{quad_name}_{component.axis}_Low"
+                key = f"{quad_name}_{components.axis}_Low"
                 rawdata[key] = selected_data[1]
 
                 self._lattice.set_quad_setpoint(quadrupole, quad_sp)
@@ -387,7 +387,9 @@ class FastBBA(Algorithm):
         metadata = rawdata.metadata
 
         enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
-        bpm_number = Components.from_dict(self._lattice, metadata[0]["Components"])
+        bpm_number = Components.from_dict(
+            self._lattice, metadata[0]["Components"]
+        ).bpm_index
         bpm_index = bpm_number - np.sum(
             enabled_bpms[:bpm_number] == False  # noqa false positive
         )
@@ -468,18 +470,18 @@ class SimFastBBA(Algorithm):
     def __init__(self, lattice):
         super().__init__(lattice)
 
-    def run(self, component_pair: list[Components]) -> RawData:
+    def run(self, components_pair: list[Components]) -> RawData:
         rawdata = {}
         metadata = {}
         metadata.update(self._lattice._config)
         metadata["method"] = "SimFastBBA"
         metadata["isotime"] = get_isotime()
         metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()
-        metadata["bpm_prefix"] = component_pair[0].bpm_name
+        metadata["bpm_name"] = components_pair[0].bpm_name
         decimated = self._lattice._config["DECIMATED"]
 
         for quadrupole, quad_name in zip(
-            component_pair[0].quadrupoles, component_pair[0].quadrupoles_names
+            components_pair[0].quadrupoles, components_pair[0].quadrupoles_names
         ):
             (
                 quad_start,
@@ -488,11 +490,15 @@ class SimFastBBA(Algorithm):
                 quad_sp,
             ) = self._lattice.calculate_quad_setpoints(quadrupole)
 
-            hcorr_kick = self._lattice.corrector_kick(component_pair[0].corrector)
-            hcorr_sp = self._lattice.get_corrector_setpoint(component_pair[0].corrector)
+            hcorr_kick = self._lattice.corrector_kick(components_pair[0].corrector)
+            hcorr_sp = self._lattice.get_corrector_setpoint(
+                components_pair[0].corrector
+            )
 
-            vcorr_kick = self._lattice.corrector_kick(component_pair[1].corrector)
-            vcorr_sp = self._lattice.get_corrector_setpoint(component_pair[1].corrector)
+            vcorr_kick = self._lattice.corrector_kick(components_pair[1].corrector)
+            vcorr_sp = self._lattice.get_corrector_setpoint(
+                components_pair[1].corrector
+            )
 
             kick = {"x": hcorr_kick, "y": vcorr_kick}
             setpoint = {"x": hcorr_sp, "y": vcorr_sp}
@@ -500,8 +506,8 @@ class SimFastBBA(Algorithm):
             key = f"{quad_name}"
             metadata[key] = {
                 "components": [
-                    component_pair[0].as_dict(),
-                    component_pair[1].as_dict(),
+                    components_pair[0].as_dict(),
+                    components_pair[1].as_dict(),
                 ],
                 "quad_start_high_low_sp": [
                     quad_start,
@@ -525,12 +531,12 @@ class SimFastBBA(Algorithm):
             # Setup Oscillations
             oscillations = {}
             for index, axis in enumerate(["x", "y"]):
-                frequency_key = f"{component_pair[index].axis.upper()}_FREQUENCY"
+                frequency_key = f"{components_pair[index].axis.upper()}_FREQUENCY"
                 frequency = self._lattice._config[frequency_key]
-                cycles_key = f"{component_pair[index].axis.upper()}_CYCLES"
+                cycles_key = f"{components_pair[index].axis.upper()}_CYCLES"
                 cycles = self._lattice._config[cycles_key]
                 oscillations[axis] = Oscillation.from_values(
-                    component_pair[index], kick[axis], frequency, cycles
+                    components_pair[index], kick[axis], frequency, cycles
                 )
             # TODO: X and Y oscillations must be same tick length.
 
@@ -555,10 +561,10 @@ class SimFastBBA(Algorithm):
             excitations = {}
             for index, (osc, axis) in enumerate(zip(oscillations, ["x", "y"])):
                 excitations[f"High_{axis}"] = Excitation(
-                    self._lattice, component_pair[index], osc, high_start
+                    self._lattice, components_pair[index], osc, high_start
                 )
                 excitations[f"Low_{axis}"] = Excitation(
-                    self._lattice, component_pair[index], osc, low_start
+                    self._lattice, components_pair[index], osc, low_start
                 )
 
             high_keys = [key for key in excitations.keys() if "High_" in key]
@@ -673,7 +679,9 @@ class SimFastBBA(Algorithm):
         metadata = rawdata.metadata
 
         enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
-        bpm_number = Components.from_dict(self._lattice, metadata[0]["Components"])
+        bpm_number = Components.from_dict(
+            self._lattice, metadata[0]["Components"]
+        ).bpm_index
         bpm_index = bpm_number - np.sum(
             enabled_bpms[:bpm_number] == False  # noqa false positive
         )

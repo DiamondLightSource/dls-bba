@@ -54,10 +54,10 @@ def get_corrector_table(lattice):
     return data
 
 
-def get_fofb_corrector(lattice, component):
+def get_fofb_corrector(lattice, components: Components):
     """Create FofbCorrector tuple from pytac element."""
-    table = get_corrector_table()
-    name = component.corrector_name
+    table = get_corrector_table(lattice)
+    name = components.corrector_name
     index = int(table["epics"].tolist().index(name)) + 1
     ioc = table["ioc"][index]
     fofb_index = int(table["farow"][index])
@@ -69,13 +69,13 @@ def get_fofb_corrector(lattice, component):
 class Excitation(object):
     """An excitation performed on a corrector."""
 
-    def __init__(self, lattice, component, oscillation, start_time):
-        self.corrector = component.corrector
+    def __init__(self, lattice, components, oscillation, start_time):
+        self.corrector = components.corrector
         self.oscillation = oscillation
         self.start_time = start_time
         self.count = oscillation.count
 
-        fofb_corrector = lattice.get_fofb_corrector(component)
+        fofb_corrector = lattice.get_fofb_corrector(components)
         self.ioc = fofb_corrector.ioc
         self.fofb_index = fofb_corrector.corr
         self.iocs = lattice._config["CORRECTOR_IOCS"]

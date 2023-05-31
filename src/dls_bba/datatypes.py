@@ -1,9 +1,9 @@
 import os
 from dataclasses import dataclass
+from typing import Tuple
 
+import numpy as np
 import scipy.io as io
-
-# setup folders + logger in here?
 
 
 @dataclass
@@ -12,13 +12,14 @@ class RawData:
     metadata: dict
 
     def save(self, folder_path):
+        """"""
         rawdata = self.rawdata
         metadata = self.metadata
 
         method = metadata["method"]
         isotime = metadata["isotime"]
-        bpm_prefix = metadata["bpm_prefix"]
-        filename = f"{method}-{isotime}-{bpm_prefix}-rawdata.mat"
+        bpm_name = metadata["bpm_name"]
+        filename = f"{method}-{isotime}-{bpm_name}-rawdata.mat"
 
         dct = {"rawdata": rawdata, "metadata": metadata}
         # TODO: Cannot load this in matlab as object contains strings with - instead of _.
@@ -26,6 +27,7 @@ class RawData:
 
     @classmethod
     def from_file(cls, filepath):
+        """"""
         dct = io.loadmat(filepath, simplify_cells=True)
         return cls(dct["rawdata"], dct["metadata"])
 
@@ -36,20 +38,22 @@ class Results:
     metadata: dict
 
     def save(self, folder_path):
+        """"""
         results = self.results
         metadata = self.metadata
 
         method = metadata["method"]
         isotime = metadata["isotime"]
-        bpm_prefix = metadata["bpm_prefix"]
-        filename = f"{method}-{isotime}-{bpm_prefix}-results.mat"
+        bpm_name = metadata["bpm_name"]
+        filename = f"{method}-{isotime}-{bpm_name}-results.mat"
 
         dct = {"results": results, "metadata": metadata}
         # TODO: Cannot load this in matlab as object contains strings with - instead of _.
         io.savemat(os.path.join(folder_path, filename), dct, oned_as="row")
 
     @classmethod
-    def from_file(cls, filepath):
+    def from_file(cls, filepath: str):
+        """"""
         dct = io.loadmat(filepath, simplify_cells=True)
         return cls(dct["results"], dct["metadata"])
 
