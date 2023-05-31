@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 from dataclasses import asdict, dataclass
+from typing import TYPE_CHECKING
 
 from pytac.element import EpicsElement
 
-from dls_bba.lattice import Lattice
+if TYPE_CHECKING:
+    from dls_bba.lattice import Lattice
 
 
 @dataclass
