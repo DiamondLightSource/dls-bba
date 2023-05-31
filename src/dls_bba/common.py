@@ -1,10 +1,15 @@
 import logging as log
 import os
+from typing import Any, Optional
+
+from cothread.catools import caget
 
 from dls_bba.algorithm import Algorithm, FastBBA, SimFastBBA, SlowBBA
-from dls_bba.lattice import Lattice
-from dls_bba.logger import get_new_logger
+from dls_bba.components import Components
+from dls_bba.datatypes import Results
 from dls_bba.isotime import get_isotime
+from dls_bba.lattice import ORIGIN_SUFFIXES, Lattice
+from dls_bba.logger import get_new_logger
 
 ALGORITHMS: dict[str, type[Algorithm]] = {
     "SlowBBA": SlowBBA,
@@ -13,22 +18,40 @@ ALGORITHMS: dict[str, type[Algorithm]] = {
 }
 
 
-def entrypoints(elements: list[str], method: str, **kwargs):
+def setup_folders(method: str, folder_path: Optional[str] = None) -> str:
     """"""
-    # Setup folders and lattice.
-    folderpath = setup_folders(method)
+    foldername = f"{method}-{get_isotime()}"
+    file = os.getcwd() if folder_path is None else folder_path
+    bba_folderpath = os.path.join(file, foldername)
+    os.makedirs(bba_folderpath)
+    get_new_logger(bba_folderpath)
+    return bba_folderpath
 
-    # kwargs = parse_args(...)
-    # lattice = Lattice(kwargs)
-    # TODO: Need to create a dictionary with cli/gui args, which is passed into lattice when Lattice is created.
-    lattice = Lattice()
 
-    component_pair_list = []
-    for element in elements:
-        component_pair = lattice.generate_component_pairings(element)
-        component_pair_list.append(component_pair)
+def cli_show_bpm_options(
+    extra_config_files: list[str],
+    additional_options: dict[str, Any],
+):
+    """"""
+    lattice = Lattice(extra_config_files, additional_options)
+    print(lattice.bpms_names)
 
-    lattice.zero_origins()
+
+def cli_entrypoint(
+    method: str,
+    element: str,
+    folder_path: str,
+    extra_config_files: list[str],
+    additional_options: dict[str, Any],
+):
+    """"""
+
+    lattice = Lattice(extra_config_files, additional_options)
+    save_location = setup_folders(method, folder_path)
+
+    # TODO: Can be moved inside setup_beam_based_alignment.
+    # Currently outside so setup will work with multiple component pairs.
+    components_pair_list = [lattice.generate_component_pairings(element)]
 
     try:
         algorithm: Algorithm = ALGORITHMS[method](lattice)
@@ -37,62 +60,74 @@ def entrypoints(elements: list[str], method: str, **kwargs):
         log.critical(message)
         raise e
 
-    results = {}
-    for component_pair in component_pair_list:
-        results_list = bba(algorithm, component_pair_list, folderpath)
-        # TODO sort unpacking
-        for key, value in results_list:
-            results[key] = value
+    setup_beam_based_alignment(lattice, algorithm, components_pair_list, save_location)
 
-    lattice.apply_bba(results)
+
+def setup_beam_based_alignment(
+    lattice: Lattice,
+    algorithm: Algorithm,
+    components_pairs: list[list[Components]],
+    save_location: str,
+):
+    """"""
+    results_list = []
+    lattice.zero_origins()
+
+    for components_pair in components_pairs:
+
+        results = paired_beam_based_alignment(algorithm, components_pair, save_location)
+        results_list.append(results)
+
+    confirm_and_apply_results(lattice, results_list, save_location)
+
     lattice.restore_origins()
 
 
-def setup_folders(method: str):
+def paired_beam_based_alignment(
+    algorithm: Algorithm, components_pair: list[Components], save_location: str
+):
     """"""
-    foldername = f"{method}-{get_isotime()}"
-    cwd = os.getcwd()
-    bba_folderpath = os.path.join(cwd, foldername)
-    os.makedirs(bba_folderpath)
-    get_new_logger(bba_folderpath)
-    # TODO: Create a txt file to write to.
-    return bba_folderpath
-
-    # def beam_based_alignment(algorithm, element_tuples, folderpath):
-    #     """"""
-    #     # If key is bpm pv with axis?
-    #     # just save immediately to a dictionary?
-
-    #     if algorithm.__name__ in ["FastBBA", "SlowBBA"]:
-    #         # iterate through element_tuple seperately.
-    #         for element_tuple in element_tuples:
-    #             [(key, value)] = bba(algorithm, element_tuple, folderpath)
-
-    #     elif algorithm.__name__ in ["SimFastBBA"]:
-    #         # dont
-    #         [(key1, value1), (key2, value2)] = bba(algorithm, element_tuples, folderpath)
-
-    # TODO: All get passed x, y pair,
-    # slow and fast just do them one at a time,
-    # vs sim that does both.
-
-    # KEY/value MUST HAVE AXIS INDICATOR. either key=pv_x/y or value = ["x", value]
-    # return key, value
-    # return  # key, value
-
-
-def bba(algorithm, element_tuple, folderpath, save=False):
-    """"""
-    # TODO: Has to handle multiple tuples?
-    algorithm._lattice.check_beam_current(start=True)
+    algorithm._lattice.store_starting_beam_current()
     algorithm._lattice.check_feedbacks()
+
     while True:
-        rawdata = algorithm.run(element_tuple)  # run x y together but seperately .
-        if algorithm._lattice.check_beam_current(end=True):
+        rawdata = algorithm.run(components_pair)
+        if algorithm._lattice.check_beam_current():
             break
-    rawdata.save(folderpath)
-    results, results_list = algorithm.analyse(rawdata)
-    results.save(folderpath)
-    # TODO: must plot and ask for approval.
-    results.apply(folderpath)
-    return results_list
+
+    rawdata.save(save_location)
+    results = algorithm.analyse(rawdata)
+    results.save(save_location)
+    return results
+
+
+def confirm_and_apply_results(
+    lattice: Lattice, results_list: list[Results], save_location: str
+):
+    """"""
+    results_dict = {}
+
+    for results in results_list:
+        bpm_name, bpm_results = results.sort()
+        for axis, bpm_result in zip(["x", "y"], bpm_results):
+            key = bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis=axis.upper())
+            old_value = caget(key)
+            results_dict[key] = [old_value + bpm_result[0], bpm_result[1]]
+
+    write_result_txt(results_dict, save_location)
+
+    # TODO: Wont work as needs the results object with additional info.
+    lattice.confirm_results()
+
+
+def write_result_txt(results_dictionary: dict[str, list[float]], save_location: str):
+    """"""
+    filename = os.path.join(save_location, "results.txt")
+    with open(filename, "w") as writer:
+
+        for key, (value, error) in results_dictionary.items():
+            old_value = caget(key)
+            line = f"{key}, Old: {old_value}, New: {value} +- {error}"
+            writer.write(line)
+
+        writer.close()

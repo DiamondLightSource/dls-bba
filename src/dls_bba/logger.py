@@ -7,7 +7,7 @@ FILE_LOG_FORMAT = (
 )
 
 
-def get_new_logger(filepath):
+def get_new_logger(folder_path):
     """"""
     logger = log.getLogger()
     logger.setLevel(log.NOTSET)
@@ -18,7 +18,7 @@ def get_new_logger(filepath):
     console_handler.setFormatter(log.Formatter(CONSOLE_LOG_FORMAT))
     logger.addHandler(console_handler)
     # File handler
-    file_handler = log.FileHandler(os.path.join(filepath, filename))
+    file_handler = log.FileHandler(os.path.join(folder_path, filename))
     file_handler.setLevel(log.DEBUG)
     file_handler.setFormatter(log.Formatter(FILE_LOG_FORMAT))
     logger.addHandler(file_handler)

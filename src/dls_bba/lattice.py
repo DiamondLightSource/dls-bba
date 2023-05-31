@@ -76,8 +76,9 @@ class Lattice:
         overrides: Optional[dict[str, Any]] = None,
     ):
         """"""
-        self._config = Configuration.from_configuration_files(extra_config_files)
-        self._config.update_config(overrides)
+        self._config = Configuration.from_configuration_files(extra_config_files).config
+        if overrides is not None:
+            self._config.update_config(overrides)
 
     def _update_config(
         self, extra_config_files: Optional[list[Any]] = None, dct: Optional[dict] = None
