@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 
-from dls_bba.common import ALGORITHMS, cli_entrypoint, cli_show_bpm_options
+from dls_bba.cli import cli_entrypoint, cli_show_bpm_options
+from dls_bba.common import ALGORITHMS
 from dls_bba.gui import start_gui
 
 from . import __version__

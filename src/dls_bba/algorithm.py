@@ -49,8 +49,6 @@ class SlowBBA(Algorithm):
             for quadrupole, quad_pv_prefix in zip(
                 components.quadrupoles, components.quadrupoles_names
             ):
-                # TODO: Feedbacks first?
-                # self._lattice.check_feedbacks()
                 (
                     quad_start,
                     quad_high,
@@ -183,7 +181,6 @@ class SlowBBA(Algorithm):
                 log.debug(f"Size of p: {np.shape(p)}")
 
                 # Remove all values that are more than 1 stdev from the mean.
-
                 offset_mean = np.mean(p[:, 1])
                 offset_stdev = np.std(p[:, 1])
                 stdev_list = []
@@ -223,8 +220,6 @@ class FastBBA(Algorithm):
             for quadrupole, quad_name in zip(
                 components.quadrupoles, components.quadrupoles_names
             ):
-                # TODO: Feedbacks first?
-                # self._lattice.check_feedbacks()
                 (
                     quad_start,
                     quad_high,
@@ -538,7 +533,7 @@ class SimFastBBA(Algorithm):
                 oscillations[axis] = Oscillation.from_values(
                     components_pair[index], kick[axis], frequency, cycles
                 )
-            # TODO: X and Y oscillations must be same tick length.
+            # TODO: X and Y oscillations must be same tick length. Must check.
 
             quad_lag_s = (quad_sp - quad_low) / QUAD_SLEW_RATE
             quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
@@ -717,8 +712,6 @@ class SimFastBBA(Algorithm):
                     q_high_clean[:, bpm_index], q_diff_good, 1
                 )
                 p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
-
-                # TODO: Plotting Stuff
 
                 offset = np.mean(p[:, 1]) / 1000000
                 error = np.std(p[:, 1]) / 1000000

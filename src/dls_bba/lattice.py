@@ -98,7 +98,6 @@ class Lattice:
             self._load_lattice_and_ringmode_elements()
 
     def _load_lattice_and_ringmode_elements(self):
-
         self._setup_pytac_lattice()
         self._load_element_and_pv_root_lists()
         self._load_cell_dictionary_and_psps()
