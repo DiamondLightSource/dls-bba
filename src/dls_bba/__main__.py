@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 
-from dls_bba.cli import cli_entrypoint, cli_show_bpm_options
+from dls_bba.cli import cli_entrypoint, cli_quadcenter_plot, cli_show_bpm_options
 from dls_bba.common import ALGORITHMS
 from dls_bba.gui import start_gui
 
@@ -52,6 +52,13 @@ def parse_arguments():
         action="store_true",
         help="Display possible BPM values.",
     )
+    parser.add_argument(
+        "--quadcenter",
+        "-q",
+        default=None,
+        type=str,
+        help="The full filepath of the xxx-results.mat file to plot.",
+    )
     return parser.parse_args()
 
 
@@ -59,6 +66,8 @@ def main():
     args = parse_arguments()
     if args.element_names:
         cli_show_bpm_options(args.config, args.individual)
+    elif args.quadcenter is not None:
+        cli_quadcenter_plot(args.quadcenter)
     else:
         cli_entrypoint(
             args.algorithm, args.bpm, args.save_location, args.config, args.individual

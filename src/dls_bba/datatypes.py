@@ -39,10 +39,12 @@ class Results:
         self,
         results: dict[str, Any],
         metadata: dict[str, Any],
+        plotting: dict[str, Any],
         offsets: Optional[dict[str, list[float]]] = None,
     ):
         self.results: dict = results
         self.metadata: dict = metadata
+        self.plotting: dict = plotting
         self.offsets: dict = (
             self.find_true_bba_offsets() if offsets is None else offsets
         )
@@ -74,19 +76,25 @@ class Results:
     def from_file(cls, filepath: str):
         """"""
         dct = io.loadmat(filepath, simplify_cells=True)
-        return cls(dct["results"], dct["metadata"], dct["offsets"])
+        return cls(dct["results"], dct["metadata"], dct["plotting"], dct["offsets"])
 
     def save(self, folder_path):
         """"""
         results = self.results
         metadata = self.metadata
         offsets = self.offsets
+        plotting = self.plotting
 
         method = metadata["method"]
         isotime = metadata["isotime"]
         bpm_name = metadata["bpm_name"]
         filename = f"{method}-{isotime}-{bpm_name}-results.mat"
 
-        dct = {"results": results, "metadata": metadata, "offsets": offsets}
+        dct = {
+            "results": results,
+            "metadata": metadata,
+            "plotting": plotting,
+            "offsets": offsets,
+        }
         # TODO: Cannot load this in matlab as object contains strings with - instead of _.
         io.savemat(os.path.join(folder_path, filename), dct, oned_as="row")

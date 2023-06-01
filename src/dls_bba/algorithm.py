@@ -108,7 +108,7 @@ class SlowBBA(Algorithm):
         return RawData(rawdata, metadata)
 
     def analyse(self, rawdata: RawData) -> Results:
-        # TODO: Does not reference the bpm???????????
+        # TODO: Does not reference the bpm.
         data = rawdata.rawdata
         metadata = rawdata.metadata
 
@@ -117,7 +117,7 @@ class SlowBBA(Algorithm):
         center_outlier_factor = self._lattice._config["CENTER_OUTLIER_FACTOR"]
 
         results = {}
-        # TODO: plotting_data = {}
+        plotting = {}
 
         quad_names = []
         for key in data.keys():
@@ -151,7 +151,7 @@ class SlowBBA(Algorithm):
 
                 matrix = np.delete(matrix, bad_indices, axis=1)
 
-                # TODO: Should this be setpoint steps or change in step relative to start?
+                # Relative corrector step from current setpoint
                 corrector_steps = metadata[key]["corrector_steps"]
                 corrector_steps = [
                     step - corrector_steps[2] for step in corrector_steps
@@ -195,11 +195,15 @@ class SlowBBA(Algorithm):
 
                 log.info(f"Final size of p: {np.shape(p)}")
 
-                # TODO: Plotting here? Which data is important to keep at this stage?
                 key = f"{quad_name}_{axis}"
                 results[key] = [offset_mean, offset_stdev]
 
-        return Results(results, metadata)
+                # First value is x, second is y
+                plot_matrix = np.delete(matrix, bad_gradients, axis=1)
+                plot_matrix1 = np.delete(plot_matrix, stdev_list, axis=1)
+                plotting[key] = [corrector_steps, plot_matrix1]
+
+        return Results(results, metadata, plotting)
 
 
 class FastBBA(Algorithm):
@@ -339,6 +343,7 @@ class FastBBA(Algorithm):
         return [high_data, low_data]
 
     def extract_freq_excite(self, data, known_freq, bpm_index):
+        # TODO: Fix this
         # Synchronous Detector Method
 
         # Incoming data arranged as [Time, Axis]
@@ -389,6 +394,7 @@ class FastBBA(Algorithm):
             enabled_bpms[:bpm_number] == False  # noqa false positive
         )
         results = {}
+        plotting = {}
 
         quad_names = []
         for key in data.keys():
@@ -422,43 +428,15 @@ class FastBBA(Algorithm):
                 )
                 p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
 
-                # # Produce a large graph
-                # if plot_output:
-                #     to_plot = [q_high_clean, q_low_clean, q_diff, q_diff_good, p]
-                #     plot_labels = [
-                #         "quad high clean",
-                #         "quad low clean,",
-                #         "quad diff,",
-                #         "quad diff good,",
-                #         "fit coefficients",
-                #     ]
-                #     # Make a grid three wide and N high
-                #     # Fill with 1D plot, image plot, and colourbar
-                #     gs = GridSpec(
-                #         len(to_plot) + 1,
-                #         3,
-                #         width_ratios=(20, 20, 1),
-                #         height_ratios=([1] * len(to_plot) + [3]),
-                #     )
-                #     for i, _ in enumerate(to_plot):
-                #         plt.subplot(gs[i, 0]).plot(to_plot[i])
-                #         plt.ylabel(plot_labels[i])
-                #         im = plt.subplot(gs[i, 1]).imshow(
-                #             to_plot[i], aspect="auto", interpolation="nearest"
-                #         )
-                #         plt.colorbar(im, cax=plt.subplot(gs[i, 2]))
-                #     # Add a large 1D plot to show end result
-                #     plt.subplot(gs[-1, :]).plot(q_high_clean[:, bpm_index], q_diff_good)
-                #     plt.ylabel(f"BPM {bpm_number + 1} aginst BPMs")
-                #     plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
-                #     plt.show()
-
                 key = f"{quad_name}_{axis}"
                 offset = np.mean(p[:, 1]) / 1000000
                 error = np.std(p[:, 1]) / 1000000
                 results[key] = [offset, error]
 
-        return Results(results, metadata)
+                # plotting data
+                plotting[key] = [q_high_clean[:, bpm_index], q_diff_good]
+
+        return Results(results, metadata, plotting)
 
 
 class SimFastBBA(Algorithm):
@@ -631,6 +609,7 @@ class SimFastBBA(Algorithm):
         return [high_data, low_data]
 
     def extract_freq_excite(self, data, known_freq, bpm_index):
+        # TODO: Fix this
         # Synchronous Detector Method
 
         # Incoming data arranged as [Time, Axis]
@@ -681,6 +660,7 @@ class SimFastBBA(Algorithm):
             enabled_bpms[:bpm_number] == False  # noqa false positive
         )
         results = {}
+        plotting = {}
 
         quad_names = []
         for key in data.keys():
@@ -717,4 +697,7 @@ class SimFastBBA(Algorithm):
                 error = np.std(p[:, 1]) / 1000000
                 results[key] = [offset, error]
 
-        return Results(results, metadata)
+                # plotting data
+                plotting[key] = [q_high_clean[:, bpm_index], q_diff_good]
+
+        return Results(results, metadata, plotting)
