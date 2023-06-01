@@ -2,12 +2,15 @@ import sys
 from pathlib import Path
 
 import cothread
+import matplotlib
 from PyQt6 import uic
 from PyQt6.QtWidgets import QMainWindow
 
+matplotlib.use("Qt5Agg")
+
 # from dls_bba.lattice import Lattice
 
-_qapp = cothread.iqt()
+_qapp = cothread.iqt(argv=sys.argv)
 
 if sys.version_info > (3, 9):
     from importlib.resources import files
@@ -15,6 +18,7 @@ else:
     from importlib_resources import files
 
 UI_FILENAME: list[str] = ["fbba_gui.ui"]
+# export QT_QPA_PLATFORM=minimal
 
 
 class MainWindow(QMainWindow):
@@ -31,4 +35,5 @@ class MainWindow(QMainWindow):
 def start_gui():
     window = MainWindow()
     window.show()
+    print("Open")
     cothread.WaitForQuit()
