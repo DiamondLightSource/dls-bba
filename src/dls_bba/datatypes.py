@@ -1,9 +1,11 @@
 import os
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Any, Optional
 
 import numpy as np
 import scipy.io as io
+
+from dls_bba.lattice import ORIGIN_SUFFIXES
 
 
 @dataclass
@@ -32,47 +34,31 @@ class RawData:
         return cls(dct["rawdata"], dct["metadata"])
 
 
-@dataclass
 class Results:
-    results: dict
-    metadata: dict
+    def __init__(
+        self,
+        results: dict[str, Any],
+        metadata: dict[str, Any],
+        offsets: Optional[dict[str, list[float]]] = None,
+    ):
+        self.results: dict = results
+        self.metadata: dict = metadata
+        self.offsets: dict = (
+            self.find_true_bba_offsets() if offsets is None else offsets
+        )
 
-    def save(self, folder_path):
-        """"""
-        results = self.results
-        metadata = self.metadata
-
-        method = metadata["method"]
-        isotime = metadata["isotime"]
-        bpm_name = metadata["bpm_name"]
-        filename = f"{method}-{isotime}-{bpm_name}-results.mat"
-
-        dct = {"results": results, "metadata": metadata}
-        # TODO: Cannot load this in matlab as object contains strings with - instead of _.
-        io.savemat(os.path.join(folder_path, filename), dct, oned_as="row")
-
-    @classmethod
-    def from_file(cls, filepath: str):
-        """"""
-        dct = io.loadmat(filepath, simplify_cells=True)
-        return cls(dct["results"], dct["metadata"])
-
-    def sort(self) -> Tuple[str, list[list[float]]]:
-        """"""
-        # These are the changes in BBA value relative to current position.
-        results = self.results
-        metadata = self.metadata
-        bpm_name = metadata["bpm_name"]
-
-        sorted_results = []
+    def find_true_bba_offsets(self) -> dict[str, list[float]]:
+        offsets = {}
+        bpm_name = self.metadata["bpm_name"]
 
         for axis in ["x", "y"]:
-            keys = [key for key in results.keys() if axis in key]
+            keys = [key for key in self.results.keys() if axis in key]
 
-            values, errors = [], []
+            values = []
+            errors = []
             for key in keys:
-                values.append(results[key][0])
-                errors.append(results[key][1])
+                values.append(self.results[key][0])
+                errors.append(self.results[key][1])
 
             sum_error = 0
             mean_value = np.mean(values)
@@ -80,5 +66,27 @@ class Results:
                 sum_error += (error / value) ** 2
             total_error = np.sqrt(sum_error) * mean_value
 
-            sorted_results.append([mean_value, total_error])
-        return bpm_name, sorted_results
+            bpm_key = bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis=axis.upper())
+            offsets[bpm_key] = [mean_value, total_error]
+        return offsets
+
+    @classmethod
+    def from_file(cls, filepath: str):
+        """"""
+        dct = io.loadmat(filepath, simplify_cells=True)
+        return cls(dct["results"], dct["metadata"], dct["offsets"])
+
+    def save(self, folder_path):
+        """"""
+        results = self.results
+        metadata = self.metadata
+        offsets = self.offsets
+
+        method = metadata["method"]
+        isotime = metadata["isotime"]
+        bpm_name = metadata["bpm_name"]
+        filename = f"{method}-{isotime}-{bpm_name}-results.mat"
+
+        dct = {"results": results, "metadata": metadata, "offsets": offsets}
+        # TODO: Cannot load this in matlab as object contains strings with - instead of _.
+        io.savemat(os.path.join(folder_path, filename), dct, oned_as="row")

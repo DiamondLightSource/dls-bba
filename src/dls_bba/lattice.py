@@ -3,9 +3,11 @@ import os
 from collections import defaultdict
 from functools import wraps
 from subprocess import run
-from typing import Any, Optional, Union
+from typing import Any, Optional, Tuple, Union
 
 import cothread
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pytac
 from cothread import Sleep
@@ -26,6 +28,9 @@ from dls_bba.exceptions import (
     LowCurrentError,
 )
 from dls_bba.excite import QUAD_SLEW_RATE
+
+matplotlib.use("Qt5Agg")
+
 
 # TODO: Cannot exist inside config files.
 BPM_RETRIES = os.getenv("BBA_BPM_RETRIES", 5)
@@ -148,6 +153,14 @@ class Lattice:
         )
         # Incompatability between pytaclattice and faa number of bpms.
         self.faa_bpm_list = [0] + [i for i, _ in enumerate(self.bpms, start=1)]
+
+        # The PVs do not exist natively in pytac or as part of the element.
+        self.bba_x_pvs = [
+            name + ORIGIN_SUFFIXES["BBA"].format(axis="X") for name in self.bpms_names
+        ]
+        self.bba_y_pvs = [
+            name + ORIGIN_SUFFIXES["BBA"].format(axis="Y") for name in self.bpms_names
+        ]
 
     def _load_cell_dictionary_and_psps(self):
         """"""
@@ -575,15 +588,83 @@ class Lattice:
         quad_low = quad_setpoint - quad_step
         return quad_start_high, quad_high, quad_low, quad_setpoint
 
-    def confirm_results(self):
-        accepted_bba = {}
-        # TODO: Input full bba list, draw plots for all.
-        # TODO: If accepted, add to new dictionary and parse to apply bba.
-        self.apply_bba(accepted_bba)
-
-    def apply_bba(self, results: dict[str, list[float]]):
+    @_retry_command(BPM_RETRIES, BeamPositionMonitorCAException)  # BPM issues (OFL-256)
+    def get_bba_offsets(self) -> Tuple[list[float], list[float]]:
         """"""
-        for key, (value, error) in results.items():
+        current_bba_x = [float(v) for v in caget(self.bba_x_pvs)]
+        current_bba_y = [float(v) for v in caget(self.bba_y_pvs)]
+
+        return (current_bba_x, current_bba_y)
+
+    def draw_bba_plot_and_apply(self, results_list, save_location):
+        """"""
+        current_bba_x, current_bba_y = self.get_bba_offsets()
+
+        all_results = {}
+        for results in results_list:
+            all_results.update(results.offsets)
+
+        self.save_calculated_offsets(all_results, save_location)
+
+        new_bba_x = []
+        for index, bpm_pv in enumerate(self.bba_x_pvs):
+            old_value = current_bba_x[index]
+            if bpm_pv in all_results:
+                new_value = all_results[bpm_pv][0]
+                new_bba_x.append(old_value + new_value)
+            else:
+                new_bba_x.append(old_value)
+
+        new_bba_y = []
+        for index, bpm_pv in enumerate(self.bba_y_pvs):
+            old_value = current_bba_y[index]
+            if bpm_pv in all_results:
+                new_value = all_results[bpm_pv][0]
+                new_bba_y.append(old_value + new_value)
+            else:
+                new_bba_y.append(old_value)
+
+        change_in_x = np.subtract(current_bba_x, new_bba_x)
+        change_in_y = np.subtract(current_bba_y, new_bba_y)
+
+        # Plot
+        fig, (ax1, ax2) = plt.subplots(2, sharex=True)
+        fig.suptitle("Change in BBA values")
+        ax1.set_xlim(0, 174)
+        ax1.axhline(y=0, color="k", linestyle="-", alpha=0.5)
+        ax1.plot(change_in_x, color="b")
+        ax1.set_ylabel("Horizontal")
+        ax1.grid(which="both", axis="both")
+        ax2.plot(change_in_y, color="r")
+        ax2.axhline(y=0, color="k", linestyle="-", alpha=0.5)
+        ax2.set_ylabel("Vertical")
+        ax2.grid(which="both", axis="both")
+        plt.show()
+
+        while True:
+            message = "Apply these BBA offsets? (y / n) : "
+            response = input(message).lower().strip()
+            if response == "n":
+                break
+            elif response == "y":
+                self.apply_bba_offsets(all_results)
+                pass
+
+    def save_calculated_offsets(
+        self, results_dictionary: dict[str, list[float]], save_location: str
+    ):
+        filename = os.path.join(save_location, "results.txt")
+        with open(filename, "w") as writer:
+            for key, (value, error) in results_dictionary.items():
+                old_value = caget(key)
+                line = f"{key}, Old: {old_value}, New: {value} +- {error}"
+                writer.write(line)
+
+            writer.close()
+
+    def apply_bba_offsets(self, all_results: dict[str, list[float]]):
+        """"""
+        for key, (value, error) in all_results.items():
             caput(key, value, wait=True)
             message = f"Caput value {value} +- {error} on {key}"
             log.debug(message)
@@ -595,9 +676,4 @@ class Lattice:
         # TODO
         # overshoot in one direction.
         # only for ddba cell2?
-        pass
-
-    def cancel_oscillations(self):
-        # TODO
-        # Set all to 0, then prime for all IOCS.
         pass
