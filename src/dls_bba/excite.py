@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-import cothread
 import numpy as np
 from cothread.catools import caput
 
@@ -87,7 +86,6 @@ class Excitation(object):
 
 def excite(excitations):
     """Completes caputs which will start the excitation."""
-    pvs = {}
 
     # Zero all timestamps
     caput(
@@ -96,28 +94,42 @@ def excite(excitations):
     )
 
     # Create dict of PVs to put
+    pvs = {}
     for e in excitations:
+        pvs.update(
+            {
+                f"{e.ioc}:EXCITE:START_TIMES": [0] * N,
+                f"{e.ioc}:EXCITE:AMPS": [0] * N,
+                f"{e.ioc}:EXCITE:DELTAS": [0] * N,
+                f"{e.ioc}:EXCITE:TICKS": [0] * N,
+            }
+        )
+
         index = e.fofb_index
 
         # If start times has already been filled in this corrector is
         # specified twice. The IOC can't deal with this so raise an exception
-        if pvs.setdefault(f"{e.ioc}:EXCITE:START_TIMES", [0] * N)[index] != 0:
+        if pvs[f"{e.ioc}:EXCITE:START_TIMES"][index] != 0:
             raise ValueError(
                 f"Corrector {e.ioc}:{e.fofb_index:02d} cannot be "
                 "specified twice in the same plane"
             )
-        pvs.setdefault(f"{e.ioc}:EXCITE:START_TIMES", [0] * N)[index] = e.start_time
-        pvs.setdefault(f"{e.ioc}:EXCITE:AMPS", [0] * N)[index] = e.oscillation.amp
-        pvs.setdefault(f"{e.ioc}:EXCITE:DELTAS", [0] * N)[index] = e.delta
-        pvs.setdefault(f"{e.ioc}:EXCITE:TICKS", [0] * N)[index] = e.count
+        pvs[f"{e.ioc}:EXCITE:START_TIMES"][index] = e.start_time
+        pvs[f"{e.ioc}:EXCITE:AMPS"][index] = e.oscillation.amp
+        pvs[f"{e.ioc}:EXCITE:DELTAS"][index] = e.delta
+        pvs[f"{e.ioc}:EXCITE:TICKS"][index] = e.count
 
     # caput the values
-    for key, values in pvs.items():
-        caput(key, values)
+    caput(*zip(*pvs.items()), wait=True)
+
     # Ensure all values are put, then reset the reset the IOCs
-    cothread.Yield()
+    # cothread.Yield()
+    # TODO: ^Delete once tested.
     caput(
-        [f"{ioc}:EXCITE:PRIME" for ioc in excitations.iocs], [1] * len(excitations.iocs)
+        [f"{ioc}:EXCITE:PRIME" for ioc in excitations.iocs],
+        1,
+        wait=True,
+        repeat_value=True,
     )
 
 
@@ -127,21 +139,23 @@ def cancel_all_oscillations(config):
     iocs = config["CORRECTOR_IOCS"]
     pvs = {}
 
-    # TODO: Confirm this works?
-
     for ioc in iocs:
-        for corr_index in range(N + 1):
-            try:
-                pvs.setdefault(f"{ioc}:EXCITE:START_TIMES", [0] * N)[corr_index] = 0
-                pvs.setdefault(f"{ioc}:EXCITE:AMPS", [0] * N)[corr_index] = 0
-                pvs.setdefault(f"{ioc}:EXCITE:DELTAS", [0] * N)[corr_index] = 0
-                pvs.setdefault(f"{ioc}:EXCITE:TICKS", [0] * N)[corr_index] = 0
-            except Exception:
-                pass
+        pvs.update(
+            {
+                f"{ioc}:EXCITE:START_TIMES": [0] * N,
+                f"{ioc}:EXCITE:AMPS": [0] * N,
+                f"{ioc}:EXCITE:DELTAS": [0] * N,
+                f"{ioc}:EXCITE:TICKS": [0] * N,
+            }
+        )
 
-    for key, values in pvs.items():
-        caput(key, values)
+    caput(*zip(*pvs.items()), wait=True)
 
     # Ensure all values are put, then reset the reset the IOCs
-    cothread.Yield()
-    caput([f"{ioc}:EXCITE:PRIME" for ioc in iocs], [1] * len(iocs))
+    # cothread.Yield()
+    caput(
+        [f"{ioc}:EXCITE:PRIME" for ioc in iocs],
+        1,
+        wait=True,
+        repeat_value=True,
+    )
