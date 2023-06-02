@@ -44,6 +44,7 @@ class SlowBBA(Algorithm):
         metadata["isotime"] = get_isotime()
         metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()
         metadata["bpm_name"] = components_pair[0].bpm_name
+        metadata["bpm_index"] = components_pair[0].bpm_index
 
         for components in components_pair:
             for quadrupole, quad_pv_prefix in zip(
@@ -201,7 +202,7 @@ class SlowBBA(Algorithm):
                 # First value is x, second is y
                 plot_matrix = np.delete(matrix, bad_gradients, axis=1)
                 plot_matrix1 = np.delete(plot_matrix, stdev_list, axis=1)
-                plotting[key] = [corrector_steps, plot_matrix1]
+                plotting[key] = {"x": corrector_steps, "y": plot_matrix1}
 
         return Results(results, metadata, plotting)
 
@@ -218,6 +219,7 @@ class FastBBA(Algorithm):
         metadata["isotime"] = get_isotime()
         metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()
         metadata["bpm_name"] = components_pair[0].bpm_name
+        metadata["bpm_index"] = components_pair[0].bpm_index
         decimated = self._lattice._config["DECIMATED"]
 
         for components in components_pair:
@@ -342,8 +344,48 @@ class FastBBA(Algorithm):
         assert high_data.shape == low_data.shape
         return [high_data, low_data]
 
+    # def extract_freq_excite(self, data, known_freq, bpm_index):
+    # TODO: This is the fixed extract.
+    #     # Synchronous Detector Method
+
+    #     # Incoming data arranged as [Time, Axis]
+
+    #     # The mixing function creates a clean waveform at the known frequency
+    #     # A dummy axis must be created to preserve shape through numpy operations
+    #     # mix aranged as [Time, 1]
+    #     mix = np.exp(
+    #         2j * np.pi * known_freq / TICKS_PER_SECOND * np.arange(1, len(data) + 1).T
+    #     )
+    #     mix = mix[:, None]
+
+    #     # Find the DC offset; aranged as [Axis, 1]
+    #     dc_offset = data.mean(0)
+
+    #     # Run the mixing waveform over the data, aongside a hanning window
+    #     # detector aranged as [Axis, 1]
+    #     window = np.hanning(len(mix))[:, None]
+    #     detector = 4 * ((data - dc_offset) * mix * window).mean(0)
+
+    #     # Find the phase of each axis; aranged as [Axis, 1]
+    #     angle = np.angle(detector)
+
+    #     # smodpi function to align the phases
+    #     def smodpi(x):
+    #         return np.mod(x + (np.pi / 2), np.pi) - (np.pi / 2)
+
+    #     # Find the phase of the chosen BPM
+    #     phase_bpm = angle[bpm_index]
+
+    #     # Fix the angle of all BPMs to the chosen BPM
+    #     # dector_fixed aranged as [Axis, 1]
+    #     angle_fixed = smodpi(angle - phase_bpm)
+    #     detector_fixed = detector * np.exp(-1j * (angle_fixed + phase_bpm))
+
+    #     # Reconstruct the clean wave; aranged as [Time, Axis]
+    #     clean_wave = np.real(np.conj(detector_fixed) * mix) + np.real(dc_offset)
+    #     return clean_wave
+
     def extract_freq_excite(self, data, known_freq, bpm_index):
-        # TODO: Fix this
         # Synchronous Detector Method
 
         # Incoming data arranged as [Time, Axis]
@@ -387,9 +429,8 @@ class FastBBA(Algorithm):
         metadata = rawdata.metadata
 
         enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
-        bpm_number = Components.from_dict(
-            self._lattice, metadata[0]["Components"]
-        ).bpm_index
+
+        bpm_number = metadata["bpm_index"]
         bpm_index = bpm_number - np.sum(
             enabled_bpms[:bpm_number] == False  # noqa false positive
         )
@@ -404,7 +445,7 @@ class FastBBA(Algorithm):
 
         for quad_name in quad_names:
             for axis in ["x", "y"]:
-                frequency_key = f"{axis.upper}_FREQUENCY"
+                frequency_key = f"{axis.upper()}_FREQUENCY"
                 frequency = self._lattice._config[frequency_key]
                 high_key = f"{quad_name}_{axis}_High"
                 low_key = f"{quad_name}_{axis}_Low"
@@ -419,7 +460,7 @@ class FastBBA(Algorithm):
 
                 # Take the difference between fits
                 q_diff = q_high_clean - q_low_clean
-                good = np.std(q_diff) > np.std(q_diff).max() / 2
+                good = q_diff.std(0) > q_diff.std(0).max() / 2
                 q_diff_good = q_diff[:, good]
 
                 # Use a single fit operation, then transform with the straight line equation
@@ -434,7 +475,7 @@ class FastBBA(Algorithm):
                 results[key] = [offset, error]
 
                 # plotting data
-                plotting[key] = [q_high_clean[:, bpm_index], q_diff_good]
+                plotting[key] = {"x": q_high_clean[:, bpm_index], "y": q_diff_good}
 
         return Results(results, metadata, plotting)
 
@@ -451,6 +492,7 @@ class SimFastBBA(Algorithm):
         metadata["isotime"] = get_isotime()
         metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()
         metadata["bpm_name"] = components_pair[0].bpm_name
+        metadata["bpm_index"] = components_pair[0].bpm_index
         decimated = self._lattice._config["DECIMATED"]
 
         for quadrupole, quad_name in zip(
@@ -609,7 +651,6 @@ class SimFastBBA(Algorithm):
         return [high_data, low_data]
 
     def extract_freq_excite(self, data, known_freq, bpm_index):
-        # TODO: Fix this
         # Synchronous Detector Method
 
         # Incoming data arranged as [Time, Axis]
@@ -622,9 +663,13 @@ class SimFastBBA(Algorithm):
         )
         mix = mix[:, None]
 
+        # Find the DC offset; aranged as [Axis, 1]
+        dc_offset = data.mean(0)
+
         # Run the mixing waveform over the data, aongside a hanning window
         # detector aranged as [Axis, 1]
-        detector = 4 * (data * mix * np.hanning(len(mix))[:, None]).mean(0)
+        window = np.hanning(len(mix))[:, None]
+        detector = 4 * ((data - dc_offset) * mix * window).mean(0)
 
         # Find the phase of each axis; aranged as [Axis, 1]
         angle = np.angle(detector)
@@ -640,9 +685,6 @@ class SimFastBBA(Algorithm):
         # dector_fixed aranged as [Axis, 1]
         angle_fixed = smodpi(angle - phase_bpm)
         detector_fixed = detector * np.exp(-1j * (angle_fixed + phase_bpm))
-
-        # Find the DC offset; aranged as [Axis, 1]
-        dc_offset = data.mean(0)
 
         # Reconstruct the clean wave; aranged as [Time, Axis]
         clean_wave = np.real(np.conj(detector_fixed) * mix) + np.real(dc_offset)
@@ -698,6 +740,6 @@ class SimFastBBA(Algorithm):
                 results[key] = [offset, error]
 
                 # plotting data
-                plotting[key] = [q_high_clean[:, bpm_index], q_diff_good]
+                plotting[key] = {"x": q_high_clean[:, bpm_index], "y": q_diff_good}
 
         return Results(results, metadata, plotting)

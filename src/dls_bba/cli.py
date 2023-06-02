@@ -1,7 +1,7 @@
 import logging as log
 from typing import Any
 
-import matplotlib
+# import matplotlib
 import matplotlib.pyplot as plt
 
 from dls_bba.algorithm import Algorithm
@@ -9,7 +9,7 @@ from dls_bba.common import ALGORITHMS, setup_beam_based_alignment, setup_folders
 from dls_bba.datatypes import Results
 from dls_bba.lattice import Lattice
 
-matplotlib.use("Qt5Agg")
+# matplotlib.use("Qt5Agg")
 
 
 def cli_show_bpm_options(
@@ -70,7 +70,10 @@ def cli_quadcenter_plot(file_path: str):
                 axs[a_index, q_index].set_ylabel(f"Axis: {axis}")
 
             color = "b" if axis == "x" else "r"
-            x, y = results_object.plot_data[key]
+
+            x = results_object.plotting[key]["x"]
+            y = results_object.plotting[key]["y"]
+
             axs[a_index, q_index].plot(x, y, color=color)
 
             value, error = results_object.offsets[key]

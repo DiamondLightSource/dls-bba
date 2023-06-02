@@ -52,7 +52,7 @@ class Components:
     def from_dict(cls, lattice: Lattice, dct: dict):
         # recreate the object from the dict, with elements and pvs
         bpm_name = dct["bpm_name"]
-        quadrupoles_names = dct["quadrupoles_names"]
+        quadrupoles_names = list(dct["quadrupoles_names"])
         corrector_name = dct["corrector_name"]
         axis = dct["axis"]
         kick = dct["kick"]
@@ -85,6 +85,10 @@ class Components:
         return bpm, quadrupoles, corrector
 
     def as_dict(self):
-        return {
-            k: v for k, v in asdict(self).items() if isinstance(k, (str, list(str)))
-        }
+        a = {}
+        for k, v in asdict(self).items():
+            if isinstance(v, str):
+                a[k] = v
+            if isinstance(v, list) and isinstance(v[0], str):
+                a[k] = v
+        return a

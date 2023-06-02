@@ -6,7 +6,8 @@ from subprocess import run
 from typing import Any, Optional, Tuple, Union
 
 import cothread
-import matplotlib
+
+# import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pytac
@@ -29,7 +30,7 @@ from dls_bba.exceptions import (
 )
 from dls_bba.excite import QUAD_SLEW_RATE
 
-matplotlib.use("Qt5Agg")
+# matplotlib.use("Qt5Agg")
 
 
 # TODO: Cannot exist inside config files.

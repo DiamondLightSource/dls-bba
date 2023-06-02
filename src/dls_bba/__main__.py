@@ -2,7 +2,8 @@ from argparse import ArgumentParser
 
 from dls_bba.cli import cli_entrypoint, cli_quadcenter_plot, cli_show_bpm_options
 from dls_bba.common import ALGORITHMS
-from dls_bba.gui import start_gui
+
+# from dls_bba.gui import start_gui
 
 from . import __version__
 
@@ -82,7 +83,7 @@ def parse_gui_arguments(args=None):
 
 def gui_main():
     parse_gui_arguments()
-    start_gui()
+    # start_gui()
 
 
 # test with: python -m dls_bba
