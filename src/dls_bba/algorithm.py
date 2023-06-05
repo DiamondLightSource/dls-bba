@@ -344,47 +344,6 @@ class FastBBA(Algorithm):
         assert high_data.shape == low_data.shape
         return [high_data, low_data]
 
-    # def extract_freq_excite(self, data, known_freq, bpm_index):
-    # TODO: This is the fixed extract.
-    #     # Synchronous Detector Method
-
-    #     # Incoming data arranged as [Time, Axis]
-
-    #     # The mixing function creates a clean waveform at the known frequency
-    #     # A dummy axis must be created to preserve shape through numpy operations
-    #     # mix aranged as [Time, 1]
-    #     mix = np.exp(
-    #         2j * np.pi * known_freq / TICKS_PER_SECOND * np.arange(1, len(data) + 1).T
-    #     )
-    #     mix = mix[:, None]
-
-    #     # Find the DC offset; aranged as [Axis, 1]
-    #     dc_offset = data.mean(0)
-
-    #     # Run the mixing waveform over the data, aongside a hanning window
-    #     # detector aranged as [Axis, 1]
-    #     window = np.hanning(len(mix))[:, None]
-    #     detector = 4 * ((data - dc_offset) * mix * window).mean(0)
-
-    #     # Find the phase of each axis; aranged as [Axis, 1]
-    #     angle = np.angle(detector)
-
-    #     # smodpi function to align the phases
-    #     def smodpi(x):
-    #         return np.mod(x + (np.pi / 2), np.pi) - (np.pi / 2)
-
-    #     # Find the phase of the chosen BPM
-    #     phase_bpm = angle[bpm_index]
-
-    #     # Fix the angle of all BPMs to the chosen BPM
-    #     # dector_fixed aranged as [Axis, 1]
-    #     angle_fixed = smodpi(angle - phase_bpm)
-    #     detector_fixed = detector * np.exp(-1j * (angle_fixed + phase_bpm))
-
-    #     # Reconstruct the clean wave; aranged as [Time, Axis]
-    #     clean_wave = np.real(np.conj(detector_fixed) * mix) + np.real(dc_offset)
-    #     return clean_wave
-
     def extract_freq_excite(self, data, known_freq, bpm_index):
         # Synchronous Detector Method
 
@@ -398,9 +357,13 @@ class FastBBA(Algorithm):
         )
         mix = mix[:, None]
 
+        # Find the DC offset; aranged as [Axis, 1]
+        dc_offset = data.mean(0)
+
         # Run the mixing waveform over the data, aongside a hanning window
         # detector aranged as [Axis, 1]
-        detector = 4 * (data * mix * np.hanning(len(mix))[:, None]).mean(0)
+        window = np.hanning(len(mix))[:, None]
+        detector = 4 * ((data - dc_offset) * mix * window).mean(0)
 
         # Find the phase of each axis; aranged as [Axis, 1]
         angle = np.angle(detector)
@@ -416,9 +379,6 @@ class FastBBA(Algorithm):
         # dector_fixed aranged as [Axis, 1]
         angle_fixed = smodpi(angle - phase_bpm)
         detector_fixed = detector * np.exp(-1j * (angle_fixed + phase_bpm))
-
-        # Find the DC offset; aranged as [Axis, 1]
-        dc_offset = data.mean(0)
 
         # Reconstruct the clean wave; aranged as [Time, Axis]
         clean_wave = np.real(np.conj(detector_fixed) * mix) + np.real(dc_offset)
