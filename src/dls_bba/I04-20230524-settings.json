@@ -5,6 +5,23 @@
     "COTHREAD_CONTROL_SYSTEM_TIMEOUT": 10.0,
     "COTHREAD_CONTROL_SYSTEM_WAIT_FLAG": true,
     "FOFB_NOGUI_PATH": "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py",
+    "FEEDBACK_PVS": {
+        "Fast_Orbit_Feedback": "SR01A-CS-FOFB-01:RUN",
+        "Slow_Orbit_Feedback": "SR-CS-SOFB-01:ONOFF",
+        "Tune_Feedback": "SR-CS-TFB-01:ONOFF",
+        "Vertical_Emittance_Feedback": "SR-CS-VEFB-01:LOOP",
+    },
+    "DIAGNOSTICS": {
+        "TOTAL_EMITTANCE": "SR-DI-EMIT-01:EMITTANCE",
+        "HORIZONTAL_EMITTANCE_VALUE": "SR-DI-EMIT-01:HEMIT",
+        "HORIZONTAL_EMITTANCE_ERROR": "SR-DI-EMIT-01:HERROR",
+        "VERTICAL_EMITTANCE_VALUE": "SR-DI-EMIT-01:VEMIT",
+        "VERTICAL_EMITTANCE_ERROR": "SR-DI-EMIT-01:VERROR",
+        "TUNE_X": "SR23C-DI-TMBF-01:X:TUNE:TUNE",
+        "TUNE_Y": "SR23C-DI-TMBF-01:Y:TUNE:TUNE",
+        "COUPLING": "SR-DI-EMIT-01:COUPLING",
+        "LIFETIME": "SR-DI-DCCT-01:LIFETIME",
+    },
     "ORBIT_RESPONSE_MATRIX_PATH": "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/I04/GoldenBPMResp.mat",
     "CORRECTORS_TXT_PATH": "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/correctors.txt",
     "CORRECTOR_IOCS": [

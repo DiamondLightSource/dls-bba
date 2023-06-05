@@ -446,27 +446,13 @@ class Lattice:
 
     def get_diagnostics(self):
         """"""
-        emit_value = np.round(caget("SR-DI-EMIT-01:EMITTANCE"), 3)
-        x_emit_v = np.round(caget("SR-DI-EMIT-01:HEMIT"), 3)
-        x_emit_e = np.round(caget("SR-DI-EMIT-01:HERROR"), 3)
-        y_emit_v = np.round(caget("SR-DI-EMIT-01:VEMIT"), 3)
-        y_emit_e = np.round(caget("SR-DI-EMIT-01:VERROR"), 3)
-        x_tune = np.round(caget("SR23C-DI-TMBF-01:X:TUNE:TUNE"), 4)
-        y_tune = np.round(caget("SR23C-DI-TMBF-01:Y:TUNE:TUNE"), 4)
-        coupling = np.round(caget("SR-DI-EMIT-01:COUPLING"), 3)
-        current = np.round(self.get_beam_current(), 3)
-        lifetime = np.round(caget("SR-DI-DCCT-01:LIFETIME"), 3)
-        diagnostics_dict = {
-            "emittance": f"{emit_value} nm rad",
-            "x_emittance": f"{x_emit_v} +/- {x_emit_e} um",
-            "y_emittance": f"{y_emit_v} +/- {y_emit_e} pm",
-            "tune": f"X: {x_tune}, Y: {y_tune}",
-            "coupling": f"{coupling} %",
-            "current": f"{current} mA",
-            "lifetime": f"{lifetime} h",
-        }
-        for key, value in diagnostics_dict.items():
+        diagnostics = self._config["DIAGNOSTICS"]
+
+        for key, pv in diagnostics.items():
+            value = caget(pv)
             log.debug(key, value)
+
+        log.debug("BEAM_CURRENT", self.get_beam_current())
 
     def apply_feedbacks(self):
         """"""
@@ -474,7 +460,7 @@ class Lattice:
 
         if feedbacks_bool:
             fofb_trigger = self._config["FOFB_NOGUI_PATH"]
-            tune_trigger = "SR-CS-TFB-01:ONOFF"
+            tune_trigger = self._config["FEEDBACK_PVS"]["Tune_Feedback"]
             waittime = self._config["FEEDBACK_WAITTIME"]
             runtime = self._config["FEEDBACK_RUNTIME"]
 
@@ -490,16 +476,9 @@ class Lattice:
     def check_feedbacks(self):
         """"""
         max_orbit = self.config["MAX_ORBIT_CORRECTION_MICRONS"]
+        feedback_pvs = self._config["FEEDBACK_PVS"]
 
-        # TODO: This into config.
-        feedbacks = {
-            "Fast Orbit Feedback": "SR01A-CS-FOFB-01:RUN",
-            "Slow Orbit Feedback": "SR-CS-SOFB-01:ONOFF",
-            "Tune Feedback": "SR-CS-TFB-01:ONOFF",
-            "Vertical Emittance Feedback": "SR-CS-VEFB-01:LOOP",
-        }
-
-        for name, pv in feedbacks.items():
+        for name, pv in feedback_pvs.items():
             if caget(pv) != 0:
                 message = f"{name} unexpectly running."
                 log.critical(message)
