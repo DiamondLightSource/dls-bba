@@ -52,7 +52,6 @@ class Configuration:
         default_config_resources = [
             Path(files("dls_bba").joinpath(resource)) for resource in DEFAULT_CONFIGS
         ]
-
         self.apply_config_files(default_config_resources)
 
     def update_config(self, new_dictionary: dict) -> bool:
@@ -61,7 +60,6 @@ class Configuration:
 
     def apply_config_files(self, paths: List[Union[Path, str]]) -> bool:
         flag = False
-
         for pth in paths:
             if pth is None:
                 continue
