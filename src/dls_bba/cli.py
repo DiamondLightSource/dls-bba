@@ -77,12 +77,9 @@ def cli_quadcenter_plot(file_path: str):
             axs[a_index, q_index].plot(x, y, color=color)
 
             value, error = results_object.offsets[key]
-            axs[a_index, q_index].axvline(x=value, color="k", alpha=0.5)
+            axs[a_index, q_index].axvline(x=value, color="k")
             axs[a_index, q_index].axvspan(
-                xmin=value - abs(error),
-                xmax=value + abs(error),
-                color="gray",
-                alpha=0.25,
+                xmin=value - abs(error), xmax=value + abs(error), color="gray"
             )
             axs[a_index, q_index].grid(which="both", axis="both")
     plt.show()
