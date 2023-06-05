@@ -24,7 +24,7 @@ class RawData:
         filename = f"{method}-{isotime}-{bpm_name}-rawdata.mat"
 
         dct = {"rawdata": rawdata, "metadata": metadata}
-        # TODO: Cannot load this in matlab as object contains strings with - instead of _.
+        # Can load files in matlab: object.("key")
         io.savemat(os.path.join(folder_path, filename), dct, oned_as="row")
 
     @classmethod
