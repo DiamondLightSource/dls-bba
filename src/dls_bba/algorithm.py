@@ -435,7 +435,10 @@ class FastBBA(Algorithm):
                 results[key] = [offset, error]
 
                 # plotting data
-                plotting[key] = {"x": q_high_clean[:, bpm_index], "y": q_diff_good}
+                plotting[key] = {
+                    "x": q_high_clean[:, bpm_index] / 1000000,
+                    "y": q_diff_good / 1000000,
+                }
 
         return Results(results, metadata, plotting)
 
@@ -698,6 +701,9 @@ class SimFastBBA(Algorithm):
                 results[key] = [offset, error]
 
                 # plotting data
-                plotting[key] = {"x": q_high_clean[:, bpm_index], "y": q_diff_good}
+                plotting[key] = {
+                    "x": q_high_clean[:, bpm_index] / 1000000,
+                    "y": q_diff_good / 1000000,
+                }
 
         return Results(results, metadata, plotting)
