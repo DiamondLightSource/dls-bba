@@ -114,8 +114,8 @@ class SlowBBA(Algorithm):
         metadata = rawdata.metadata
 
         enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
-        min_slope_fraction = self._lattice._config["MIN_SLOPE_FRACTION"]
-        center_outlier_factor = self._lattice._config["CENTER_OUTLIER_FACTOR"]
+        min_slope_fraction = metadata["MIN_SLOPE_FRACTION"]
+        center_outlier_factor = metadata["CENTER_OUTLIER_FACTOR"]
 
         results = {}
         plotting = {}
@@ -220,7 +220,7 @@ class FastBBA(Algorithm):
         metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()
         metadata["bpm_name"] = components_pair[0].bpm_name
         metadata["bpm_index"] = components_pair[0].bpm_index
-        decimated = self._lattice._config["DECIMATED"]
+        decimated = metadata["DECIMATED"]
 
         for components in components_pair:
             for quadrupole, quad_name in zip(
@@ -446,7 +446,7 @@ class FastBBA(Algorithm):
         for quad_name in quad_names:
             for axis in ["x", "y"]:
                 frequency_key = f"{axis.upper()}_FREQUENCY"
-                frequency = self._lattice._config[frequency_key]
+                frequency = metadata[frequency_key]
                 high_key = f"{quad_name}_{axis}_High"
                 low_key = f"{quad_name}_{axis}_Low"
 
@@ -493,7 +493,7 @@ class SimFastBBA(Algorithm):
         metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()
         metadata["bpm_name"] = components_pair[0].bpm_name
         metadata["bpm_index"] = components_pair[0].bpm_index
-        decimated = self._lattice._config["DECIMATED"]
+        decimated = metadata["DECIMATED"]
 
         for quadrupole, quad_name in zip(
             components_pair[0].quadrupoles, components_pair[0].quadrupoles_names
@@ -695,9 +695,7 @@ class SimFastBBA(Algorithm):
         metadata = rawdata.metadata
 
         enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
-        bpm_number = Components.from_dict(
-            self._lattice, metadata[0]["Components"]
-        ).bpm_index
+        bpm_number = metadata["bpm_index"]
         bpm_index = bpm_number - np.sum(
             enabled_bpms[:bpm_number] == False  # noqa false positive
         )
@@ -715,7 +713,7 @@ class SimFastBBA(Algorithm):
                 key = f"{quad_name}_{axis}"
 
                 frequency_key = f"{axis.upper}_FREQUENCY"
-                frequency = self._lattice._config[frequency_key]
+                frequency = metadata[frequency_key]
 
                 # Remove bad BPMs
                 q_low = data[key]["Low"][:, enabled_bpms]
