@@ -21,6 +21,16 @@ def cli_show_bpm_options(
     print(lattice.bpms_names)
 
 
+def cli_show_cell_options(
+    cell_number: str,
+    extra_config_files: list[str],
+    additional_options: dict[str, Any],
+):
+    """"""
+    lattice = Lattice(extra_config_files, additional_options)
+    print(lattice.cell_dictionary[cell_number])
+
+
 def cli_entrypoint(
     method: str,
     element: str,

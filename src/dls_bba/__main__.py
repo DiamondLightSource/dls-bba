@@ -1,6 +1,11 @@
 from argparse import ArgumentParser
 
-from dls_bba.cli import cli_entrypoint, cli_quadcenter_plot, cli_show_bpm_options
+from dls_bba.cli import (
+    cli_entrypoint,
+    cli_quadcenter_plot,
+    cli_show_bpm_options,
+    cli_show_cell_options,
+)
 from dls_bba.common import ALGORITHMS
 
 # from dls_bba.gui import start_gui
@@ -16,6 +21,7 @@ def parse_arguments():
     parser.add_argument(
         "--algorithm",
         "-a",
+        default=None,
         type=str,
         choices=ALGORITHMS.keys(),
         help="The BBA algorithm to use.",
@@ -48,17 +54,24 @@ def parse_arguments():
         help="Additional individual configuration options",
     )
     parser.add_argument(
+        "--quadcenter",
+        "-q",
+        default=None,
+        type=str,
+        help="The full filepath of the xxx-results.mat file to plot.",
+    )
+    parser.add_argument(
         "--element_names",
         "-e",
         action="store_true",
         help="Display possible BPM values.",
     )
     parser.add_argument(
-        "--quadcenter",
-        "-q",
+        "--cell",
+        "-k",
         default=None,
         type=str,
-        help="The full filepath of the xxx-results.mat file to plot.",
+        help="Display the BPM values in the cell if given the identifier. Eg: '04'",
     )
     return parser.parse_args()
 
@@ -67,9 +80,11 @@ def main():
     args = parse_arguments()
     if args.element_names:
         cli_show_bpm_options(args.config, args.individual)
-    elif args.quadcenter is not None:
+    if args.cell is not None:
+        cli_show_cell_options(args.cell, args.config, args.individual)
+    if args.quadcenter is not None:
         cli_quadcenter_plot(args.quadcenter)
-    else:
+    if args.algorithm is not None:
         cli_entrypoint(
             args.algorithm, args.bpm, args.save_location, args.config, args.individual
         )
