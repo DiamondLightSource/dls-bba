@@ -33,7 +33,7 @@ from dls_bba.excite import QUAD_SLEW_RATE
 # matplotlib.use("Qt5Agg")
 
 
-# TODO: Cannot exist inside config files.
+# Cannot exist inside config files.
 BPM_RETRIES = os.getenv("BBA_BPM_RETRIES", 5)
 
 ORIGIN_SUFFIXES = {
@@ -108,7 +108,6 @@ class Lattice:
 
     def _setup_pytac_lattice(self):
         """"""
-        # TODO: Warning: Changing the ringmode but not updating the settings.json can cause issues.
         ringmode = self._config["RINGMODE"]
         units = self._config["UNITS"]
         datasource = self._config["DATASOURCE"]
@@ -276,7 +275,6 @@ class Lattice:
             log.critical(message)
             raise ValueError(message)
 
-    # TODO: Cant use BPM_RETRIES FROM self._config["BPM_RETRIES"]
     @_retry_command(BPM_RETRIES, BeamPositionMonitorCAException)  # BPM issues (OFL-256)
     def get_enabled_bpms(self):
         """"""
@@ -285,8 +283,6 @@ class Lattice:
     @_retry_command(BPM_RETRIES, BeamPositionMonitorCAException)  # BPM issues (OFL-256)
     def measure_bpms(self, axis: str):
         """"""
-        # TODO: """Where axis is 'x', 'y'."""
-        # returns in mm.
         return self._lattice.get_element_values("BPM", f"{axis}", pytac.RB)
 
     def get_element_from_name(self, name):
@@ -308,7 +304,6 @@ class Lattice:
     def _get_slow_correctors(self):
         """"""
         # SRxxS or xSCOR correctors are slow
-        # better to do array of 0, 1?
         slow_correctors = []
         for corrector_pv in self.hstrs_names + self.vstrs_names:
             split_pv = corrector_pv.split("-")
@@ -331,7 +326,6 @@ class Lattice:
 
     def _get_effective_corrector(self):
         """"""
-        # TODO: Effective corrector for the cell, check with ALBA?
         orm_filepath = self._config["ORBIT_RESPONSE_MATRIX_PATH"]
 
         if not os.path.exists(orm_filepath):
@@ -648,11 +642,3 @@ class Lattice:
             message = f"Caput value {value} +- {error} on {key}"
             log.debug(message)
         Sleep(0.2)
-
-    def hysteresis(
-        self,
-    ):
-        # TODO
-        # overshoot in one direction.
-        # only for ddba cell2?
-        pass

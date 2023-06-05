@@ -47,7 +47,7 @@ class SlowBBA(Algorithm):
         metadata["bpm_index"] = components_pair[0].bpm_index
 
         for components in components_pair:
-            for quadrupole, quad_pv_prefix in zip(
+            for quadrupole, quad_name in zip(
                 components.quadrupoles, components.quadrupoles_names
             ):
                 (
@@ -63,11 +63,10 @@ class SlowBBA(Algorithm):
                 # Always overshoot the high quad step and work down and keep direction
                 # consistent to mitigate unwanted hysteresis effects.
                 # FYI correctors are significantly less prone to hysteresis effects.
-                if "SR02" in quad_pv_prefix:
-                    # TODO: If Cell 2 (DDBA) complete a full hysteresis cycle.
-                    self._lattice.set_quad_setpoint(quadrupole, quad_start, True)
-                else:
-                    self._lattice.set_quad_setpoint(quadrupole, quad_start, True)
+                self._lattice.set_quad_setpoint(quadrupole, quad_start, True)
+                # Give Cell 2 DDBA magnets more time to ramp.
+                if "SR02" in quad_name:
+                    Sleep(1)
 
                 for movement, quad_movement in [
                     ("High", quad_high),
@@ -80,7 +79,7 @@ class SlowBBA(Algorithm):
                         Sleep(0.1)  # Fixed time for orbit to stabilise.
                         measured_bpms = self._lattice.measure_bpms(components.axis)
 
-                        key = f"{quad_pv_prefix}_{components.axis}_{movement}_{index}"
+                        key = f"{quad_name}_{components.axis}_{movement}_{index}"
                         rawdata[key] = measured_bpms
                         metadata[key] = {
                             "components": components.as_dict(),
@@ -109,7 +108,8 @@ class SlowBBA(Algorithm):
         return RawData(rawdata, metadata)
 
     def analyse(self, rawdata: RawData) -> Results:
-        # TODO: Does not reference the bpm.
+        # TODO: Does not reference the bpm?
+        # TODO: Remove dependance on lattice? Only SBBA has this.
         data = rawdata.rawdata
         metadata = rawdata.metadata
 
@@ -252,11 +252,10 @@ class FastBBA(Algorithm):
                 # Always overshoot the high quad step and work down and keep direction
                 # consistent to mitigate unwanted hysteresis effects.
                 # FYI correctors are significantly less prone to hysteresis effects.
+                self._lattice.set_quad_setpoint(quadrupole, quad_start, True)
+                # Give Cell 2 DDBA magnets more time to ramp.
                 if "SR02" in quad_name:
-                    # TODO: If Cell 2 (DDBA) complete a full hysteresis cycle.
-                    self._lattice.set_quad_setpoint(quadrupole, quad_start, True)
-                else:
-                    self._lattice.set_quad_setpoint(quadrupole, quad_start, True)
+                    Sleep(1)
 
                 # Setup Oscillations
                 frequency_key = f"{components.axis.upper()}_FREQUENCY"
@@ -500,11 +499,10 @@ class SimFastBBA(Algorithm):
             # Always overshoot the high quad step and work down and keep direction
             # consistent to mitigate unwanted hysteresis effects.
             # FYI correctors are significantly less prone to hysteresis effects.
+            self._lattice.set_quad_setpoint(quadrupole, quad_start, True)
+            # Give Cell 2 DDBA magnets more time to ramp.
             if "SR02" in quad_name:
-                # TODO: If Cell 2 (DDBA) complete a full hysteresis cycle.
-                self._lattice.set_quad_setpoint(quadrupole, quad_start, True)
-            else:
-                self._lattice.set_quad_setpoint(quadrupole, quad_start, True)
+                Sleep(1)
 
             # Setup Oscillations
             oscillations = {}
