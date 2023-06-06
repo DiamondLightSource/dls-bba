@@ -47,9 +47,11 @@ class SlowBBA(Algorithm):
         metadata["bpm_index"] = components_pair[0].bpm_index
 
         for components in components_pair:
+            log.debug(f"BPM: {components.bpm_name}")
             for quadrupole, quad_name in zip(
                 components.quadrupoles, components.quadrupoles_names
             ):
+                log.debug(f"Quad: {quad_name} of {components.quadrupoles_names}")
                 (
                     quad_start,
                     quad_high,
@@ -72,6 +74,7 @@ class SlowBBA(Algorithm):
                     ("High", quad_high),
                     ("Low", quad_low),
                 ]:
+                    log.debug(f"Corrector Movement: {movement}")
                     self._lattice.set_quad_setpoint(quadrupole, quad_movement, True)
 
                     for index, step in enumerate(corrector_step_list, start=1):
@@ -223,9 +226,11 @@ class FastBBA(Algorithm):
         decimated = metadata["DECIMATED"]
 
         for components in components_pair:
+            log.debug(f"BPM: {components.bpm_name}")
             for quadrupole, quad_name in zip(
                 components.quadrupoles, components.quadrupoles_names
             ):
+                log.debug(f"Quad: {quad_name} of {components.quadrupoles_names}")
                 (
                     quad_start,
                     quad_high,
@@ -460,6 +465,8 @@ class SimFastBBA(Algorithm):
         for quadrupole, quad_name in zip(
             components_pair[0].quadrupoles, components_pair[0].quadrupoles_names
         ):
+            log.debug(f"BPM: {components_pair[0].bpm_name}")
+            log.debug(f"Quad: {quad_name} of {components_pair[0].quadrupoles_names}")
             (
                 quad_start,
                 quad_high,

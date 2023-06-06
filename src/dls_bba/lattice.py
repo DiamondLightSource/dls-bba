@@ -8,7 +8,7 @@ from typing import Any, Optional, Tuple, Union
 import cothread
 
 # import matplotlib
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 import pytac
 from cothread import Sleep
@@ -96,6 +96,7 @@ class Lattice:
             flag_dict = self._config.update_config(dct)
 
         if flag_files or flag_dict:
+            log.debug("Major Config Change: Reloading Lattice")
             self._load_lattice_and_ringmode_elements()
 
     def _load_lattice_and_ringmode_elements(self):
@@ -105,6 +106,7 @@ class Lattice:
         self._load_b2q_q2b()
         self._get_slow_correctors()
         self._get_effective_corrector()
+        log.debug("Lattice Loaded")
 
     def _setup_pytac_lattice(self):
         """"""
@@ -597,22 +599,25 @@ class Lattice:
             else:
                 new_bba_y.append(old_value)
 
-        change_in_x = np.subtract(current_bba_x, new_bba_x)
-        change_in_y = np.subtract(current_bba_y, new_bba_y)
+        # change_in_x = np.subtract(current_bba_x, new_bba_x)
+        # change_in_y = np.subtract(current_bba_y, new_bba_y)
 
-        # Plot
-        fig, (ax1, ax2) = plt.subplots(2, sharex=True)
-        fig.suptitle("Change in BBA values")
-        ax1.set_xlim(0, 174)
-        ax1.axhline(y=0, color="k", linestyle="-", alpha=0.5)
-        ax1.plot(change_in_x, color="b")
-        ax1.set_ylabel("Horizontal")
-        ax1.grid(which="both", axis="both")
-        ax2.plot(change_in_y, color="r")
-        ax2.axhline(y=0, color="k", linestyle="-", alpha=0.5)
-        ax2.set_ylabel("Vertical")
-        ax2.grid(which="both", axis="both")
-        plt.show()
+        # # Plot
+        # fig, (ax1, ax2) = plt.subplots(2, sharex=True)
+        # fig.suptitle("Change in BBA values")
+        # ax1.set_xlim(0, 174)
+        # ax1.axhline(y=0, color="k", linestyle="-", alpha=0.5)
+        # ax1.plot(change_in_x, color="b")
+        # ax1.set_ylabel("Horizontal")
+        # ax1.grid(which="both", axis="both")
+        # ax2.plot(change_in_y, color="r")
+        # ax2.axhline(y=0, color="k", linestyle="-", alpha=0.5)
+        # ax2.set_ylabel("Vertical")
+        # ax2.grid(which="both", axis="both")
+        # plt.show()
+        log.info("The change in BBA offsets calculated")
+        for key, value in all_results.items():
+            log.info(f"{key}: {value}")
 
         while True:
             message = "Apply these BBA offsets? (y / n) : "

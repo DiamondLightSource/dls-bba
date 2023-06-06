@@ -4,18 +4,6 @@ class BBAComponentException(Exception):
     pass
 
 
-class InvalidRingmodeException(Exception):
-    """Raised when a pytac tries to load an invalid ringmode."""
-
-    pass
-
-
-class InvalidConfigException(Exception):
-    """Raised when an expected key does not exist in the config file."""
-
-    pass
-
-
 class BeamPositionMonitorCAException(Exception):
     """Raised when a CA error occurs upon connecting to a BPM."""
 
@@ -28,13 +16,25 @@ class CheckBeamCurrentException(Exception):
     pass
 
 
-class LowCurrentError(Exception):
-    """Raised when the current drops below the critical threshold."""
+class FeedbacksActiveException(Exception):
+    """Raised with one or more feedback systems are active unexpectedly."""
 
     pass
 
 
-class FeedbacksActiveException(Exception):
-    """Raised with one or more feedback systems are active unexpectedly."""
+class InvalidConfigException(Exception):
+    """Raised when an expected key does not exist in the config file."""
+
+    pass
+
+
+class InvalidRingmodeException(Exception):
+    """Raised when a pytac tries to load an invalid ringmode."""
+
+    pass
+
+
+class LowCurrentError(Exception):
+    """Raised when the current drops below the critical threshold."""
 
     pass

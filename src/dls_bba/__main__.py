@@ -8,9 +8,10 @@ from dls_bba.cli import (
 )
 from dls_bba.common import ALGORITHMS
 
+from . import __version__
+
 # from dls_bba.gui import start_gui
 
-from . import __version__
 
 __all__ = ["main"]
 
