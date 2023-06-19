@@ -35,9 +35,6 @@ RUN apt-get update && apt-get upgrade -y && \
     libqt5gui5 \
     && rm -rf /var/lib/apt/lists/*
 
-# Use "minimal" over "xcb" due to Qt issues
-ENV QT_QPA_PLATFORM=minimal
-
 # copy the virtual environment from the build stage and put it in PATH
 COPY --from=build /venv/ /venv/
 ENV PATH=/venv/bin:$PATH
