@@ -1,13 +1,15 @@
 import logging as log
 from typing import Any
 
+from dls_bba.algorithm import Algorithm
+from dls_bba.common import ALGORITHMS, setup_beam_based_alignment, setup_folders
+from dls_bba.components import generate_component_pairings
+from dls_bba.datatypes import Results
+from dls_bba.lattice import Lattice
+
 # import matplotlib
 # import matplotlib.pyplot as plt
 
-from dls_bba.algorithm import Algorithm
-from dls_bba.common import ALGORITHMS, setup_beam_based_alignment, setup_folders
-from dls_bba.datatypes import Results
-from dls_bba.lattice import Lattice
 
 # matplotlib.use("Qt5Agg")
 
@@ -28,7 +30,10 @@ def cli_show_cell_options(
 ):
     """"""
     lattice = Lattice(extra_config_files, additional_options)
-    print(lattice.cell_dictionary[cell_number])
+    if cell_number not in lattice.cell_dictionary.keys():
+        print("Invalid cell selected. Try cells '00' to '24'")
+    else:
+        print(lattice.cell_dictionary[cell_number])
 
 
 def cli_entrypoint(
@@ -45,7 +50,7 @@ def cli_entrypoint(
 
     # TODO: Can be moved inside setup_beam_based_alignment.
     # Currently outside so setup will work with multiple component pairs.
-    components_pair_list = [lattice.generate_component_pairings(element)]
+    components_pair_list = [generate_component_pairings(lattice, element)]
 
     try:
         algorithm: Algorithm = ALGORITHMS[method](lattice)

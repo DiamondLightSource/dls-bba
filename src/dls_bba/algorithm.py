@@ -47,7 +47,7 @@ class SlowBBA(Algorithm):
         metadata["bpm_index"] = components_pair[0].bpm_index
 
         for components in components_pair:
-            log.debug(f"BPM: {components.bpm_name}")
+            log.debug(f"Component: {components}")
             for quadrupole, quad_name in zip(
                 components.quadrupoles, components.quadrupoles_names
             ):
@@ -59,7 +59,7 @@ class SlowBBA(Algorithm):
                     quad_sp,
                 ) = self._lattice.calculate_quad_setpoints(quadrupole)
                 corrector_step_list = self._lattice.get_slow_bba_corrector_steps(
-                    components.corrector
+                    components
                 )
 
                 # Always overshoot the high quad step and work down and keep direction
@@ -226,7 +226,7 @@ class FastBBA(Algorithm):
         decimated = metadata["DECIMATED"]
 
         for components in components_pair:
-            log.debug(f"BPM: {components.bpm_name}")
+            log.debug(f"Component: {components}")
             for quadrupole, quad_name in zip(
                 components.quadrupoles, components.quadrupoles_names
             ):
@@ -467,6 +467,9 @@ class SimFastBBA(Algorithm):
         ):
             log.debug(f"BPM: {components_pair[0].bpm_name}")
             log.debug(f"Quad: {quad_name} of {components_pair[0].quadrupoles_names}")
+            log.debug(
+                f"Corrector1: {components_pair[0].corrector_name}, Corrector2: {components_pair[1].corrector_name}"
+            )
             (
                 quad_start,
                 quad_high,
@@ -475,14 +478,10 @@ class SimFastBBA(Algorithm):
             ) = self._lattice.calculate_quad_setpoints(quadrupole)
 
             hcorr_kick = self._lattice.corrector_kick(components_pair[0].corrector)
-            hcorr_sp = self._lattice.get_corrector_setpoint(
-                components_pair[0].corrector
-            )
+            hcorr_sp = self._lattice.get_corrector_setpoint(components_pair[0])
 
             vcorr_kick = self._lattice.corrector_kick(components_pair[1].corrector)
-            vcorr_sp = self._lattice.get_corrector_setpoint(
-                components_pair[1].corrector
-            )
+            vcorr_sp = self._lattice.get_corrector_setpoint(components_pair[1])
 
             kick = {"x": hcorr_kick, "y": vcorr_kick}
             setpoint = {"x": hcorr_sp, "y": vcorr_sp}

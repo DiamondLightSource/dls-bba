@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import logging as log
 from typing import TYPE_CHECKING
 
 from pytac.element import EpicsElement
+
+from dls_bba.exceptions import BBAComponentException
 
 if TYPE_CHECKING:
     from dls_bba.lattice import Lattice
@@ -92,3 +95,28 @@ class Components:
             if isinstance(v, list) and isinstance(v[0], str):
                 a[k] = v
         return a
+
+
+def generate_component_pairings(
+    lattice: Lattice, element_name: str
+) -> list[Components]:
+    """Can accept either bpm or quad pv prefix."""
+    if element_name in lattice.bpms_names:
+        bpm = element_name
+        quads = lattice.bpm2quad(bpm)
+    elif element_name in lattice.quads_names:
+        quad = [element_name]
+        bpm = lattice.quad2bpm(quad)
+    else:
+        message = "Neither a quadrupole nor BPM was given."
+        log.critical(message)
+        raise BBAComponentException(message)
+
+    hor_corr, ver_corr = lattice.effective_correctors(bpm)
+    horizontal_components = Components.from_pv_prefixes(
+        lattice, bpm, quads, hor_corr, "x", "x_kick"
+    )
+    vertical_components = Components.from_pv_prefixes(
+        lattice, bpm, quads, ver_corr, "y", "y_kick"
+    )
+    return [horizontal_components, vertical_components]

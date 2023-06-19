@@ -21,7 +21,6 @@ from scipy.io import loadmat
 from dls_bba.components import Components
 from dls_bba.configuration import Configuration
 from dls_bba.exceptions import (
-    BBAComponentException,
     BeamPositionMonitorCAException,
     CheckBeamCurrentException,
     FeedbacksActiveException,
@@ -357,28 +356,6 @@ class Lattice:
             ]
         return correctors
 
-    def generate_component_pairings(self, element_name: str) -> list[Components]:
-        """Can accept either bpm or quad pv prefix."""
-        if element_name in self.bpms_names:
-            bpm = element_name
-            quads = self.bpm2quad(bpm)
-        elif element_name in self.quads_names:
-            quad = [element_name]
-            bpm = self.quad2bpm(quad)
-        else:
-            message = "Neither a quadrupole nor BPM pv root was given."
-            log.critical(message)
-            raise BBAComponentException(message)
-
-        hor_corr, ver_corr = self.effective_correctors(bpm)
-        horizontal_components = Components.from_pv_prefixes(
-            self._lattice, bpm, quads, hor_corr, "x", "x_kick"
-        )
-        vertical_components = Components.from_pv_prefixes(
-            self._lattice, bpm, quads, ver_corr, "y", "y_kick"
-        )
-        return [horizontal_components, vertical_components]
-
     def corrector_kick(self, components: Components) -> float:
         """PV ONLY"""
         radian_kick = self._config["CORRECTOR_KICK_RADIANS"]
@@ -397,6 +374,7 @@ class Lattice:
 
     def store_starting_beam_current(self):
         self._starting_beam_current = self.get_beam_current()
+        log.debug(f"Stored Starting Beam Current: {self._starting_beam_current}")
 
     def check_beam_current(self):
         warning_current_drop = self._config["WARNING_CURRENT_DROP"]
@@ -408,6 +386,7 @@ class Lattice:
             raise CheckBeamCurrentException(message)
 
         change_in_current = self._starting_beam_current - self.get_beam_current()
+        log.debug(f"Change in beam current: {change_in_current}")
 
         if change_in_current > critical_current_drop:
             message = f"Beam current drop by >{critical_current_drop} mA"
@@ -453,6 +432,7 @@ class Lattice:
     def apply_feedbacks(self):
         """"""
         feedbacks_bool = self._config["FEEDBACKS"]
+        log.debug("Applying feedbacks")
 
         if feedbacks_bool:
             fofb_trigger = self._config["FOFB_NOGUI_PATH"]
@@ -471,7 +451,7 @@ class Lattice:
 
     def check_feedbacks(self):
         """"""
-        max_orbit = self.config["MAX_ORBIT_CORRECTION_MICRONS"]
+        max_orbit = self._config["MAX_ORBIT_CORRECTION_MICRONS"]
         feedback_pvs = self._config["FEEDBACK_PVS"]
 
         for name, pv in feedback_pvs.items():
@@ -491,7 +471,9 @@ class Lattice:
 
     def get_quad_setpoint(self, quadrupole: EpicsElement) -> float:
         """"""
-        return float(quadrupole.get_value("b1"))
+        value = float(quadrupole.get_value("b1"))
+        log.debug(f"Quadrupole get value: {value}")
+        return value
 
     def set_quad_setpoint(
         self, quadrupole: EpicsElement, value: Union[float, int], sleep: bool = False
@@ -502,10 +484,13 @@ class Lattice:
         if sleep:
             # The 2 is a magic number from the old BBA setup.
             Sleep(abs(start_current - value) / QUAD_SLEW_RATE / 2)
+        log.debug(f"Quadrupole set value: {value}")
 
     def get_corrector_setpoint(self, components: Components):
         """"""
-        return float(components.corrector.get_value(components.kick))
+        value = float(components.corrector.get_value(components.kick))
+        log.debug(f"Corrector {components.corrector_name} get value: {value}")
+        return value
 
     def get_slow_bba_corrector_steps(self, components: Components):
         """"""
@@ -525,16 +510,20 @@ class Lattice:
     ) -> None:
         """"""
         components.corrector.set_value(components.kick, value)
+        log.debug(f"Corrector {components.corrector_name} set value: {value}")
 
     def zero_origins(self):
         """"""
         # zeroes bcd and golden offsets. Golden must be restored later.
+        log.debug("Zeroing BCD and Golden Offsets")
         self._golden_offsets = {}
 
         for bpm, bpm_name in zip(self.bpms, self.bpms_names):
             for axis in ["x", "y"]:
-                bcd_pv = bpm_name + ORIGIN_SUFFIXES["BCD"].format(axis)
-                golden_pv = bpm_name + ORIGIN_SUFFIXES["GOLDEN"].format(axis)
+                bcd_pv = bpm_name + ORIGIN_SUFFIXES["BCD"].format(axis=axis.upper())
+                golden_pv = bpm_name + ORIGIN_SUFFIXES["GOLDEN"].format(
+                    axis=axis.upper()
+                )
 
                 self._golden_offsets[golden_pv] = caget(golden_pv)
 
@@ -547,6 +536,7 @@ class Lattice:
     def restore_origins(self):
         """"""
         # restore golden orbits.
+        log.debug("Restoring Golden Offsets")
         for key, value in self._golden_offsets.items():
             caput(key, value, wait=True)
         Sleep(0.2)
@@ -556,7 +546,7 @@ class Lattice:
         """"""
         quad_step_percent = self._config["QUADRUPOLE_STEP_PERCENT"]
 
-        quad_setpoint = self._lattice.get_quad_setpoint(quadrupole)
+        quad_setpoint = self.get_quad_setpoint(quadrupole)
         quad_step = quad_setpoint * quad_step_percent
         quad_start_high = quad_setpoint + (2 * quad_step)
         quad_high = quad_setpoint + quad_step
@@ -615,6 +605,7 @@ class Lattice:
         # ax2.set_ylabel("Vertical")
         # ax2.grid(which="both", axis="both")
         # plt.show()
+
         log.info("The change in BBA offsets calculated")
         for key, value in all_results.items():
             log.info(f"{key}: {value}")
@@ -637,7 +628,6 @@ class Lattice:
                 old_value = caget(key)
                 line = f"{key}, Old: {old_value}, New: {value} +- {error}"
                 writer.write(line)
-
             writer.close()
 
     def apply_bba_offsets(self, all_results: dict[str, list[float]]):
