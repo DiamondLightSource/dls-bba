@@ -37,7 +37,7 @@ def test_bpm2quad(lattice_setup):
             bpm_name_2 = [bpm_name_2a, bpm_name_2b]
         else:
             bpm_name_2 = [lattice.quad2bpm(quad_name[0])]
-        if [bpm_name_1] not in bpm_name_2:
+        if bpm_name_1 not in bpm_name_2:
             if bpm_name_1 in exceptions:
                 if bpm_name_2 is exceptions[bpm_name_1]:
                     continue
@@ -53,7 +53,7 @@ def test_quad2bpm(lattice_setup):
 
     for quad_name_1 in lattice.quads_names:
         bpm_name = lattice.quad2bpm(quad_name_1)
-        quad_name_2 = lattice.bpm2quad(bpm_name[0])
+        quad_name_2 = lattice.bpm2quad(bpm_name)
         if quad_name_1 not in quad_name_2:
             if quad_name_1 in exceptions:
                 if quad_name_2[0] == exceptions[quad_name_1]:
@@ -78,33 +78,3 @@ def test_element_to_name_for_all_elements(lattice_setup):
     for vstr_name in lattice.vstrs_names:
         element = lattice.get_element_from_name(vstr_name)
         assert "vstr" in element.families
-
-
-# def test_effective_corrector_for_elements_and_names(lattice_setup):
-#     lattice = lattice_setup
-
-#     for
-
-
-#     bpm, bpm_name = lattice.bpms[0], lattice.bpms_names[0]
-
-#     correctors = lattice.effective_correctors(bpm)
-#     correctors_names = lattice.effective_correctors(bpm_name)
-#     print(correctors, correctors_names)
-
-#     for corrector, corrector_name in zip(correctors, correctors_names):
-#         print(corrector, corrector_name)
-#         assert corrector is lattice.get_element_from_name(corrector_name)
-
-
-# def test_corrector_kick_for_element_and_pvs(lattice_setup):
-#     lattice = lattice_setup
-
-#     c_pvs = lattice.effective_correctors(lattice.bpms_pvs[0], pv=True)
-#     cs = lattice.effective_correctors(lattice.bpms[0])
-
-#     assert lattice.corrector_kick(c_pvs, pv=True) == lattice.corrector_kick(cs)
-
-
-# def test_element_to_pv_for_all_pvs():
-#     assert False
