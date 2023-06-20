@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
 import logging as log
+from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING
 
 from pytac.element import EpicsElement
@@ -25,7 +25,7 @@ class Components:
     bpm_index: int
 
     @classmethod
-    def from_pv_prefixes(
+    def from_name(
         cls,
         lattice: Lattice,
         bpm_name: str,
@@ -34,7 +34,7 @@ class Components:
         axis: str,
         kick: str,
     ):
-        bpm, quadrupoles, corrector = Components.pv_to_element(
+        bpm, quadrupoles, corrector = Components.name_to_element(
             lattice, bpm_name, quadrupoles_names, corrector_name
         )
         bpm_index = lattice.bpms_names.index(bpm_name)
@@ -53,14 +53,14 @@ class Components:
 
     @classmethod
     def from_dict(cls, lattice: Lattice, dct: dict):
-        # recreate the object from the dict, with elements and pvs
+        # recreate the object from the dict, with elements and names
         bpm_name = dct["bpm_name"]
         quadrupoles_names = list(dct["quadrupoles_names"])
         corrector_name = dct["corrector_name"]
         axis = dct["axis"]
         kick = dct["kick"]
 
-        return cls.from_pv_prefixes(
+        return cls.from_name(
             lattice,
             bpm_name,
             quadrupoles_names,
@@ -70,7 +70,7 @@ class Components:
         )
 
     @staticmethod
-    def pv_to_element(
+    def name_to_element(
         lattice: Lattice,
         bpm_name: str,
         quadrupoles_names: list[str],
@@ -100,7 +100,7 @@ class Components:
 def generate_component_pairings(
     lattice: Lattice, element_name: str
 ) -> list[Components]:
-    """Can accept either bpm or quad pv prefix."""
+    """Can accept either bpm or quad name."""
     if element_name in lattice.bpms_names:
         bpm = element_name
         quads = lattice.bpm2quad(bpm)
@@ -113,10 +113,10 @@ def generate_component_pairings(
         raise BBAComponentException(message)
 
     hor_corr, ver_corr = lattice.effective_correctors(bpm)
-    horizontal_components = Components.from_pv_prefixes(
+    horizontal_components = Components.from_name(
         lattice, bpm, quads, hor_corr, "x", "x_kick"
     )
-    vertical_components = Components.from_pv_prefixes(
+    vertical_components = Components.from_name(
         lattice, bpm, quads, ver_corr, "y", "y_kick"
     )
     return [horizontal_components, vertical_components]

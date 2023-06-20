@@ -100,7 +100,7 @@ class Lattice:
 
     def _load_lattice_and_ringmode_elements(self):
         self._setup_pytac_lattice()
-        self._load_element_and_pv_root_lists()
+        self._load_element_and_name_lists()
         self._load_cell_dictionary_and_psps()
         self._load_b2q_q2b()
         self._get_slow_correctors()
@@ -129,7 +129,7 @@ class Lattice:
         self._lattice.set_default_data_source(datasource)
         log.info(f"pytac datasource: {self._lattice.get_default_data_source()}")
 
-    def _load_element_and_pv_root_lists(self):
+    def _load_element_and_name_lists(self):
         """"""
 
         self.bpms = self._lattice.get_elements("BPM")
@@ -297,7 +297,7 @@ class Lattice:
         elif "-PC-V" in name:
             element = self.vstrs[self.vstrs_names.index(name)]
         else:
-            message = f"Method not created for pv name: {name}"
+            message = f"Method not created for element name: {name}"
             log.critical(message)
             raise NotImplementedError(message)
         return element
@@ -306,10 +306,10 @@ class Lattice:
         """"""
         # SRxxS or xSCOR correctors are slow
         slow_correctors = []
-        for corrector_pv in self.hstrs_names + self.vstrs_names:
-            split_pv = corrector_pv.split("-")
-            if split_pv[0][-1] == "S" or len(split_pv[2]) == 5:
-                slow_correctors.append(corrector_pv)
+        for corrector_name in self.hstrs_names + self.vstrs_names:
+            split_name = corrector_name.split("-")
+            if split_name[0][-1] == "S" or len(split_name[2]) == 5:
+                slow_correctors.append(corrector_name)
         return slow_correctors
 
     def _get_best_corrector_for_bpm(self, index: int, bpm_name: str):
