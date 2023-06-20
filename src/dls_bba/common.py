@@ -35,7 +35,7 @@ def setup_beam_based_alignment(
 ):
     """"""
     results_list = []
-    # lattice.zero_origins()
+    lattice.zero_origins()
 
     for components_pair in components_pairs:
         results = paired_beam_based_alignment(algorithm, components_pair, save_location)
@@ -43,7 +43,7 @@ def setup_beam_based_alignment(
 
     lattice.draw_bba_plot_and_apply(results_list, save_location)
 
-    # lattice.restore_origins()
+    lattice.restore_origins()
 
 
 def paired_beam_based_alignment(
