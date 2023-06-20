@@ -55,7 +55,6 @@ class Results:
 
         for axis in ["x", "y"]:
             keys = [key for key in self.results.keys() if axis in key]
-
             values = []
             errors = []
             for key in keys:
@@ -76,14 +75,19 @@ class Results:
     def from_file(cls, filepath: str):
         """"""
         dct = io.loadmat(filepath, simplify_cells=True)
-        return cls(dct["results"], dct["metadata"], dct["plotting"], dct["offsets"])
+
+        results = {}
+        for keys, values in dct["results"].items():
+            results[keys] = values.tolist()
+
+        return cls(results, dct["metadata"], dct["plotting"], dct["offsets"])
 
     def save(self, folder_path):
         """"""
         results = self.results
         metadata = self.metadata
-        offsets = self.offsets
         plotting = self.plotting
+        offsets = self.offsets
 
         method = metadata["method"]
         isotime = metadata["isotime"]

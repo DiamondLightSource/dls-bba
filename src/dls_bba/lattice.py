@@ -225,9 +225,9 @@ class Lattice:
         # quad can be either PV or element
         # Will only return 1 to 1.
         if isinstance(quad, pytac.element.EpicsElement):
-            return [self._quad2bpm_elements[quad]]
+            return self._quad2bpm_elements[quad]
         elif isinstance(quad, str):
-            return [self._quad2bpm_names[quad]]
+            return self._quad2bpm_names[quad]
         else:
             message = f"Invalid quad: {quad} {type(quad)} is not 'pytac.element.EpicsElement' or 'str'"
             log.critical(message)

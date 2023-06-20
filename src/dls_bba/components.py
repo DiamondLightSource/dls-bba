@@ -105,8 +105,9 @@ def generate_component_pairings(
         bpm = element_name
         quads = lattice.bpm2quad(bpm)
     elif element_name in lattice.quads_names:
-        quad = [element_name]
+        quad = element_name
         bpm = lattice.quad2bpm(quad)
+        quads = [quad]
     else:
         message = "Neither a quadrupole nor BPM was given."
         log.critical(message)
