@@ -144,11 +144,11 @@ class Lattice:
         self.quads = self._lattice.get_elements("quadrupole")
         self.quads_names = [quad.get_device("b1").name for quad in self.quads]
 
-        self.fofb_enabled = {}
-        self.fofb_enabled["x"] = self._lattice.get_element_values(
+        self.fofb_disabled = {}
+        self.fofb_disabled["x"] = self._lattice.get_element_values(
             "BPM", "x_fofb_disabled", pytac.RB
         )
-        self.fofb_enabled["y"] = self._lattice.get_element_values(
+        self.fofb_disabled["y"] = self._lattice.get_element_values(
             "BPM", "y_fofb_disabled", pytac.RB
         )
         # Incompatability between pytaclattice and faa number of bpms.
@@ -462,7 +462,11 @@ class Lattice:
 
         bpm_values = self.measure_bpms("x") + self.measure_bpms("y")
         enabled_bpms = self.get_enabled_bpms() + self.get_enabled_bpms()
-        acceptable_values = [v * e for v, e in zip(bpm_values, enabled_bpms)]
+        fofb_disabled_bpms = self.fofb_disabled["x"] + self.fofb_disabled["y"]
+        fofb_enabled_bpms = np.logical_not(fofb_disabled_bpms).astype(int)
+        acceptable_values = [
+            v * e * f for v, e, f in zip(bpm_values, enabled_bpms, fofb_enabled_bpms)
+        ]
 
         max_value = abs(max(acceptable_values, key=abs))
 
