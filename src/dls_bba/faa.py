@@ -4,16 +4,35 @@ import cothread
 import numpy
 from fa.falib import falib
 
+from dls_bba.exceptions import FAATimestampError
+
 TICKS_PER_SECOND = 10072
 
 
 def get_timestamp(decimated):
-    # TODO: If faa timestamp is larger than 2**32 - 1 hour,
-    # then the power supply IOC will reject the oscillation.
+    """If faa timestamp is larger than 2**32 - 1 hour,
+    then the power supply IOC will reject the oscillation."""
+
+    ioc_rejection_timestamp = 2**32 - ((TICKS_PER_SECOND) * 60 * 60)
+    ioc_warning_timestamp = 2**32 - (3 * (TICKS_PER_SECOND) * 60 * 60)
+
     s = falib.subscription([0], decimated=decimated)
     x = s.read(1)
     s.close()
-    return x[0][0][0]
+    timestamp = x[0][0][0]
+
+    if timestamp > ioc_rejection_timestamp:
+        msg = "Current FAA timestamp too large."
+        log.critical(msg)
+        raise FAATimestampError(msg)
+
+    if timestamp > ioc_warning_timestamp:
+        msg = (
+            "FAA timestamp will be too large within two hours. Please resync all BPMs."
+        )
+        log.warning(msg)
+
+    return timestamp
 
 
 class FaException(Exception):

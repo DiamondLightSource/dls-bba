@@ -22,6 +22,18 @@ class ComponentConstructionError(Exception):
     pass
 
 
+class FAATimestampError(Exception):
+    """Raised when the FAA timestamp is too large to be used."""
+
+    pass
+
+
+class FeedbacksActiveException(Exception):
+    """Raised with one or more feedback systems are active unexpectedly."""
+
+    pass
+
+
 class ElementDisabledError(Exception):
     """Raised when a disabled element is selected."""
 
