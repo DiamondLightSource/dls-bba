@@ -145,12 +145,18 @@ class Lattice:
         self.quads_names = [quad.get_device("b1").name for quad in self.quads]
 
         self.fofb_disabled = {}
-        self.fofb_disabled["x"] = self._lattice.get_element_values(
-            "BPM", "x_fofb_disabled", pytac.RB
-        )
-        self.fofb_disabled["y"] = self._lattice.get_element_values(
-            "BPM", "y_fofb_disabled", pytac.RB
-        )
+        self.fofb_disabled["x"] = [
+            int(v)
+            for v in self._lattice.get_element_values(
+                "BPM", "x_fofb_disabled", pytac.RB
+            )
+        ]
+        self.fofb_disabled["y"] = [
+            int(v)
+            for v in self._lattice.get_element_values(
+                "BPM", "y_fofb_disabled", pytac.RB
+            )
+        ]
         # Incompatability between pytaclattice and faa number of bpms.
         self.faa_bpm_list = [0] + [i for i, _ in enumerate(self.bpms, start=1)]
 

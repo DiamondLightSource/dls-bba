@@ -16,6 +16,12 @@ class CheckBeamCurrentException(Exception):
     pass
 
 
+class DisabledBPMException(Exception):
+    """Raised when a disabled BPM is selected."""
+
+    pass
+
+
 class FeedbacksActiveException(Exception):
     """Raised with one or more feedback systems are active unexpectedly."""
 
