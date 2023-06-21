@@ -3,6 +3,7 @@ from typing import Optional
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.components import Components
+from dls_bba.excite import cancel_all_oscillations
 from dls_bba.fbba import FastBBA
 from dls_bba.isotime import get_isotime
 from dls_bba.lattice import Lattice
@@ -43,6 +44,7 @@ def setup_beam_based_alignment(
 
     lattice.draw_bba_plot_and_apply(results_list, save_location)
 
+    cancel_all_oscillations(lattice._config)
     lattice.restore_origins()
 
 
