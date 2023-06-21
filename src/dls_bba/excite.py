@@ -61,6 +61,7 @@ def get_fofb_corrector(lattice, components: Components):
     """Create FofbCorrector tuple from pytac element."""
     table = get_corrector_table(lattice)
     name = components.corrector_name
+    # Corrector table indices start from 1
     index = int(table["epics"].tolist().index(name)) + 1
     ioc = table["ioc"][index]
     fofb_index = int(table["farow"][index])
