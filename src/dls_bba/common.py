@@ -57,6 +57,8 @@ def paired_beam_based_alignment(
         rawdata = algorithm.run(components_pair)
         if algorithm._lattice.check_beam_current():
             break
+        else:
+            algorithm._lattice.check_feedbacks()
 
     rawdata.save(save_location)
     results = algorithm.analyse(rawdata)
