@@ -59,13 +59,10 @@ class Configuration:
         return any(key in new_dictionary for key in LATTICE_SETTINGS)
 
     def apply_config_files(self, paths: List[Union[Path, str]]) -> bool:
-        flag = False
+        reload_lattice = False
         for pth in paths:
-            if pth is None:
-                continue
-
             with open(pth) as f:
-                flag_files = self.update_config(load(f))
-            if flag_files:
-                flag = True
-        return flag
+                reload_flag = self.update_config(load(f))
+                if reload_flag:
+                    reload_lattice = True
+        return reload_lattice
