@@ -109,7 +109,7 @@ def generate_component_pairings(
         bpm = lattice.quad2bpm(quad)
         quads = [quad]
     else:
-        message = "Neither a quadrupole nor BPM was given."
+        message = f"Element {element_name} does not correspond to quadrupole or BPM"
         log.critical(message)
         raise BBAComponentException(message)
 
