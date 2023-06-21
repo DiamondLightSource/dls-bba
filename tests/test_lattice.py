@@ -2,11 +2,45 @@ import pytest
 
 from dls_bba.lattice import Lattice
 
+extra_dict_no_reload = {"MAX_ORBIT_CORRECTION_MICRONS": 16}
+extra_dict_with_reload = {"COTHREAD_CONTROL_SYSTEM_TIMEOUT": 11}
+
 
 @pytest.fixture(scope="module")
 def lattice_setup():
     lattice = Lattice()
     return lattice
+
+
+def test_lattice_setup():
+    lattice = Lattice()
+    assert isinstance(lattice, Lattice)
+
+
+def test_lattice_setup_additional_file():
+    assert False
+
+
+def test_lattice_setup_invalid_additional_file():
+    assert False
+
+
+def test_lattice_setup_additional_args():
+    extra = {}
+    lattice = Lattice(overrides=extra)
+    assert isinstance(lattice, Lattice)
+
+
+def test_lattice_setup_invalid_additional_args():
+    assert False
+
+
+def test_lattice_update_no_reload():
+    assert False
+
+
+def test_lattice_update_with_reload():
+    assert False
 
 
 def test_pytac_lattice_loaded_config_correctly(lattice_setup):
