@@ -65,8 +65,7 @@ def get_fofb_corrector(lattice, components: Components):
     index = int(table["epics"].tolist().index(name)) + 1
     ioc = table["ioc"][index]
     fofb_index = int(table["farow"][index])
-    slow_correctors = lattice._get_slow_correctors()
-    slow = 1 if name in slow_correctors else 0
+    slow = 1 if name in lattice.slow_correctors else 0
     return FofbCorrector(index, ioc, fofb_index, slow)
 
 

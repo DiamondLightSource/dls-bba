@@ -103,7 +103,7 @@ class Lattice:
         self._load_element_and_name_lists()
         self._load_cell_dictionary_and_psps()
         self._load_b2q_q2b()
-        self._get_slow_correctors()
+        self.slow_correctors = self._get_slow_correctors()
         self._get_effective_corrector()
         log.debug("Lattice Loaded")
 
@@ -302,7 +302,7 @@ class Lattice:
             raise NotImplementedError(message)
         return element
 
-    def _get_slow_correctors(self):
+    def _get_slow_correctors(self) -> list[str]:
         """"""
         # SRxxS or xSCOR correctors are slow
         slow_correctors = []
