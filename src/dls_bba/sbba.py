@@ -142,23 +142,22 @@ class SlowBBA(Algorithm):
                 p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
                 gradients = list(p[:, 1])
 
-                abs_gradients = [abs(value) for value in gradients]
-                sorted_gradients = sorted((v, i) for i, v in enumerate(abs_gradients))
+                sorted_gradients = sorted((abs(v), i) for i, v in enumerate(gradients))
 
                 second_half = sorted_gradients[len(sorted_gradients) // 2 :]
-                if len(gradients) > 5:
-                    min_gradient = sorted_gradients[-5]
+                if len(second_half) > 5:
+                    min_gradient, _ = second_half[-5]
                 else:
-                    min_gradient = sorted_gradients[-1]
+                    min_gradient, _ = second_half[-1]
                 min_gradient = min_gradient * min_slope_fraction
 
                 bad_gradients = []
-                for v, i in second_half:
+                for v, i in sorted_gradients:
                     if v < min_gradient:
                         bad_gradients.append(i)
                 bad_gradients = sorted(bad_gradients)[::-1]
 
-                log.debug(f"Too shallow gradients: {bad_gradients}")
+                log.debug(f"Indices with too shallow gradients: {bad_gradients}")
                 p = np.delete(p, bad_gradients, axis=0)
                 log.debug(f"Size of p: {np.shape(p)}")
 
