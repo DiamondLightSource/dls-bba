@@ -90,7 +90,6 @@ class SlowBBA(Algorithm):
 
     def analyse(self, rawdata: RawData) -> Results:
         # TODO: Does not reference the bpm?
-        # TODO: Remove dependance on lattice? Only SBBA has this.
         data = rawdata.rawdata
         metadata = rawdata.metadata
 
