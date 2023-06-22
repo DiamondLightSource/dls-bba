@@ -24,6 +24,7 @@ from dls_bba.exceptions import (
     BeamPositionMonitorCAException,
     CheckBeamCurrentException,
     FeedbacksActiveException,
+    InvalidNameError,
     InvalidRingmodeException,
     LowCurrentError,
 )
@@ -206,7 +207,6 @@ class Lattice:
     def _get_quad2bpm(self, Q2B_special_cases):
         """"""
         # should only have a 1 to 1 pairing, and not every bpm is used. Every Quad must be used.
-        q2b_elements = {}
         q2b_names = {}
 
         for quad, quad_name, quad_mid in zip(
@@ -216,74 +216,49 @@ class Lattice:
                 closest_bpm_index, _ = min(
                     enumerate(self._bpms_s), key=lambda x: abs(x[1] - quad_mid)
                 )
-                q2b_elements[quad] = self.bpms[closest_bpm_index]
                 q2b_names[quad_name] = self.bpms_names[closest_bpm_index]
             else:
                 chosen_bpm_name = Q2B_special_cases[quad_name]
-                chosen_bpm = self.bpms[self.bpms_names.index(chosen_bpm_name)]
-                q2b_elements[quad] = chosen_bpm
                 q2b_names[quad_name] = chosen_bpm_name
 
-        self._quad2bpm_elements = q2b_elements
         self._quad2bpm_names = q2b_names
 
-    def quad2bpm(
-        self, quad: Union[pytac.element.EpicsElement, str]
-    ) -> Union[pytac.element.EpicsElement, str]:
+    def quad2bpm(self, quad: str) -> str:
         """"""
-        # quad can be either PV or element
-        # Will only return 1 to 1.
-        if isinstance(quad, pytac.element.EpicsElement):
-            return self._quad2bpm_elements[quad]
-        elif isinstance(quad, str):
+        try:
             return self._quad2bpm_names[quad]
-        else:
-            message = f"Invalid quad: {quad} {type(quad)} is not 'pytac.element.EpicsElement' or 'str'"
-            log.critical(message)
-            raise ValueError(message)
+        except KeyError:
+            msg = f"Invalid quadrupole name provided: {quad}"
+            log.critical(msg)
+            raise InvalidNameError(msg)
 
     def _get_bpm2quad(self, _B2Q_special_cases):
         """"""
         # every bpm must be used, not every quad will be. 1 to many.
-        b2q_elements = defaultdict(list)
         b2q_names = defaultdict(list)
 
-        for bpm, bpm_name in zip(self.bpms, self.bpms_names):
+        for bpm_name in self.bpms_names:
             if bpm_name not in _B2Q_special_cases:
-                chosen_quads = [
-                    k for k, v in self._quad2bpm_elements.items() if bpm is v
-                ]
                 chosen_quads_names = [
                     k for k, v in self._quad2bpm_names.items() if bpm_name is v
                 ]
-                b2q_elements[bpm] = chosen_quads
                 b2q_names[bpm_name] = chosen_quads_names
             else:
                 chosen_quads_names = _B2Q_special_cases[bpm_name]
-                chosen_quads = [
-                    self.quads[self.quads_names.index(chosen_quad_name)]
-                    for chosen_quad_name in chosen_quads_names
-                ]
-                b2q_elements[bpm] = chosen_quads
                 b2q_names[bpm_name] = chosen_quads_names
 
-        self._bpm2quad_elements = b2q_elements
         self._bpm2quad_names = b2q_names
 
-    def bpm2quad(
-        self, bpm: Union[pytac.element.EpicsElement, str]
-    ) -> list[Union[pytac.element.EpicsElement, str]]:
+    def bpm2quad(self, bpm: str) -> list[str]:
         """"""
         # bpm can be either PV or element, default element.
         # Will return 1 to many.
-        if isinstance(bpm, pytac.element.EpicsElement):
-            return self._bpm2quad_elements[bpm]
-        elif isinstance(bpm, str):
+        if bpm in self._bpm2quad_names:
             return self._bpm2quad_names[bpm]
         else:
-            message = f"Invalid bpm: {bpm} {type(bpm)} is not 'pytac.element.EpicsElement' or 'str'"
-            log.critical(message)
-            raise ValueError(message)
+            msg = f"Invalid BPM name provided: {bpm}"
+            log.critical(msg)
+            raise InvalidNameError(msg)
 
     @_retry_command(BPM_RETRIES, BeamPositionMonitorCAException)  # BPM issues (OFL-256)
     def get_enabled_bpms(self):

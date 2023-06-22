@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from dls_bba.configuration import DEFAULT_CONFIGS
-from dls_bba.exceptions import InvalidRingmodeException
+from dls_bba.exceptions import InvalidNameError, InvalidRingmodeException
 from dls_bba.lattice import Lattice
 
 if sys.version_info > (3, 9):
@@ -126,6 +126,12 @@ def test_bpm2quad(lattice_setup):
                 assert False
 
 
+def test_bpm2quad_invalid_bpm(lattice_setup):
+    lattice = lattice_setup
+    with pytest.raises(InvalidNameError):
+        lattice.bpm2quad("INVALID_BPM")
+
+
 def test_quad2bpm(lattice_setup):
     lattice = lattice_setup
     exceptions = lattice._config.config["QUAD2BPM_EXCEPTIONS"]
@@ -141,6 +147,12 @@ def test_quad2bpm(lattice_setup):
                     assert False
             else:
                 assert False
+
+
+def test_quad2bpm_invalid_quad(lattice_setup):
+    lattice = lattice_setup
+    with pytest.raises(InvalidNameError):
+        lattice.quad2bpm("INVALID_QUADRUPOLE")
 
 
 def test_element_to_name_for_all_elements(lattice_setup):

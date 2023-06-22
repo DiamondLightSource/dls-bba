@@ -40,6 +40,12 @@ class InvalidRingmodeException(Exception):
     pass
 
 
+class InvalidNameError(Exception):
+    """Raised when a non existant element name is used."""
+
+    pass
+
+
 class LowCurrentError(Exception):
     """Raised when the current drops below the critical threshold."""
 
