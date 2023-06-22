@@ -19,7 +19,7 @@ from dls_bba.isotime import get_isotime
 from dls_bba.lattice import Lattice
 
 # To convert from nanometers to millimeters
-UNIT_CONVERSION = 1000000
+NM_TO_MM_UNIT_CONV = 1000000
 
 
 class FastBBA(Algorithm):
@@ -246,14 +246,14 @@ class FastBBA(Algorithm):
                 p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
 
                 key = f"{quad_name}_{axis}"
-                offset = np.mean(p[:, 1]) / UNIT_CONVERSION
-                error = np.std(p[:, 1]) / UNIT_CONVERSION
+                offset = np.mean(p[:, 1]) / NM_TO_MM_UNIT_CONV
+                error = np.std(p[:, 1]) / NM_TO_MM_UNIT_CONV
                 results[key] = [offset, error]
 
                 # plotting data
                 plotting[key] = {
-                    "x": q_high_clean[:, bpm_index] / UNIT_CONVERSION,
-                    "y": q_diff_good / UNIT_CONVERSION,
+                    "x": q_high_clean[:, bpm_index] / NM_TO_MM_UNIT_CONV,
+                    "y": q_diff_good / NM_TO_MM_UNIT_CONV,
                 }
 
         return Results(results, metadata, plotting)
