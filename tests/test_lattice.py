@@ -1,12 +1,25 @@
+import sys
+from pathlib import Path
+
 import pytest
 
+from dls_bba.configuration import DEFAULT_CONFIGS
 from dls_bba.lattice import Lattice
+
+if sys.version_info > (3, 9):
+    from importlib.resources import files
+else:
+    from importlib_resources import files
+
 
 extra_dict_no_reload = {"MAX_ORBIT_CORRECTION_MICRONS": 16}
 extra_dict_new_key = {"TEST_FIELD": 100}
 extra_dict_with_reload = {
     "UNITS": "pytac.PHYS",
 }
+default_config_resources = [
+    Path(str(files("dls_bba").joinpath(resource))) for resource in DEFAULT_CONFIGS
+]
 
 
 @pytest.fixture(scope="module")
@@ -20,15 +33,18 @@ def test_lattice_setup():
     assert isinstance(lattice, Lattice)
 
 
-# def test_lattice_setup_additional_file():
-#     assert False
+def test_lattice_additional_file():
+    lattice = Lattice(extra_config_files=default_config_resources)
+    assert isinstance(lattice, Lattice)
 
 
-# def test_lattice_setup_invalid_additional_file():
-#     assert False
+def test_lattice_update_additional_file():
+    lattice = Lattice()
+    lattice._update_config(extra_config_files=default_config_resources)
+    assert isinstance(lattice, Lattice)
 
 
-def test_lattice_setup_additional_args_new():
+def test_lattice_additional_args_new():
     lattice = Lattice(overrides=extra_dict_new_key)
     key = list(extra_dict_new_key.keys())[0]
     value = extra_dict_new_key[key]
