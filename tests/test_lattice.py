@@ -3,7 +3,10 @@ import pytest
 from dls_bba.lattice import Lattice
 
 extra_dict_no_reload = {"MAX_ORBIT_CORRECTION_MICRONS": 16}
-extra_dict_with_reload = {"COTHREAD_CONTROL_SYSTEM_TIMEOUT": 11}
+extra_dict_new_key = {"TEST_FIELD": 100}
+extra_dict_with_reload = {
+    "UNITS": "pytac.PHYS",
+}
 
 
 @pytest.fixture(scope="module")
@@ -17,35 +20,56 @@ def test_lattice_setup():
     assert isinstance(lattice, Lattice)
 
 
-def test_lattice_setup_additional_file():
-    assert False
+# def test_lattice_setup_additional_file():
+#     assert False
 
 
-def test_lattice_setup_invalid_additional_file():
-    assert False
+# def test_lattice_setup_invalid_additional_file():
+#     assert False
 
 
-def test_lattice_setup_additional_args():
-    extra = {}
-    lattice = Lattice(overrides=extra)
-    assert isinstance(lattice, Lattice)
+def test_lattice_setup_additional_args_new():
+    lattice = Lattice(overrides=extra_dict_new_key)
+    key = list(extra_dict_new_key.keys())[0]
+    value = extra_dict_new_key[key]
+    assert lattice._config.config[key] == value
 
 
-def test_lattice_setup_invalid_additional_args():
-    assert False
+def test_lattice_additional_args_no_reload():
+    lattice = Lattice(overrides=extra_dict_no_reload)
+    key = list(extra_dict_no_reload.keys())[0]
+    value = extra_dict_no_reload[key]
+    assert lattice._config.config[key] == value
 
 
-def test_lattice_update_no_reload():
-    assert False
+def test_lattice_additional_args_with_reload():
+    lattice = Lattice(overrides=extra_dict_with_reload)
+    key = list(extra_dict_with_reload.keys())[0]
+    value = extra_dict_with_reload[key]
+    assert lattice._config.config[key] == value
+    assert lattice._lattice.get_default_units()[:4] in value.lower()
 
 
-def test_lattice_update_with_reload():
-    assert False
+def test_lattice_update_additional_args_no_reload():
+    lattice = Lattice()
+    lattice._update_config(dct=extra_dict_no_reload)
+    key = list(extra_dict_no_reload.keys())[0]
+    value = extra_dict_no_reload[key]
+    assert lattice._config.config[key] == value
+
+
+def test_lattice_update_additional_args_with_reload():
+    lattice = Lattice()
+    lattice._update_config(dct=extra_dict_with_reload)
+    key = list(extra_dict_with_reload.keys())[0]
+    value = extra_dict_with_reload[key]
+    assert lattice._config.config[key] == value
+    assert lattice._lattice.get_default_units()[:4] in value.lower()
 
 
 def test_pytac_lattice_loaded_config_correctly(lattice_setup):
     lattice = lattice_setup
-    config = lattice._config
+    config = lattice._config.config
     pytac_lattice = lattice._lattice
     assert pytac_lattice.name == config["RINGMODE"]
     assert pytac_lattice.get_default_data_source() == config["DATASOURCE"]
@@ -62,7 +86,7 @@ def test_element_and_name_lists_equal_length(lattice_setup):
 
 def test_bpm2quad(lattice_setup):
     lattice = lattice_setup
-    exceptions = lattice._config["BPM2QUAD_EXCEPTIONS"]
+    exceptions = lattice._config.config["BPM2QUAD_EXCEPTIONS"]
     for bpm_name_1 in lattice.bpms_names:
         quad_name = lattice.bpm2quad(bpm_name_1)
         if len(quad_name) == 2:
@@ -83,7 +107,7 @@ def test_bpm2quad(lattice_setup):
 
 def test_quad2bpm(lattice_setup):
     lattice = lattice_setup
-    exceptions = lattice._config["QUAD2BPM_EXCEPTIONS"]
+    exceptions = lattice._config.config["QUAD2BPM_EXCEPTIONS"]
 
     for quad_name_1 in lattice.quads_names:
         bpm_name = lattice.quad2bpm(quad_name_1)
