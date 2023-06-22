@@ -17,6 +17,9 @@ ARG PIP_OPTIONS=.
 RUN python -m venv /venv
 ENV PATH=/venv/bin:$PATH
 
+# allow tests to run headless in the dev container
+ENV QT_QPA_PLATFORM=offscreen
+
 # Copy any required context for the pip install over
 COPY . /context
 WORKDIR /context
@@ -27,14 +30,15 @@ RUN pip install ${PIP_OPTIONS}
 FROM python:3.10-slim as runtime
 
 # Add apt-get system dependecies for runtime here if needed
-
-# Use "minimal" over "xcb" due to Qt issues
-ENV QT_QPA_PLATFORM=minimal
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    libqt5gui5 \
+    && rm -rf /var/lib/apt/lists/*
 
 # copy the virtual environment from the build stage and put it in PATH
 COPY --from=build /venv/ /venv/
 ENV PATH=/venv/bin:$PATH
 
 # change this entrypoint if it is not the same as the repo
-ENTRYPOINT ["dls-bba"]
+ENTRYPOINT ["dls-bba-gui"]
 CMD ["--version"]

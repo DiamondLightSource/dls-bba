@@ -1,180 +1,135 @@
-"""This file contains fast BBA specific functions and classes."""
-
 import logging as log
-from math import ceil
-from statistics import mean, stdev
 
-import cothread
-import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.gridspec import GridSpec
+from cothread import Sleep
 
-from dls_bba.common import Algorithm, RawData, Results
-from dls_bba.excite import Excitation, Oscillation, excite
+from dls_bba.algorithm import Algorithm
+from dls_bba.components import Components
+from dls_bba.datatypes import RawData, Results
+from dls_bba.excite import (
+    NETWORK_LAG,
+    QUAD_SLEW_RATE,
+    SAFETY_NET,
+    Excitation,
+    Oscillation,
+    excite,
+)
 from dls_bba.faa import TICKS_PER_SECOND, Buffer, get_timestamp
+from dls_bba.isotime import get_isotime
+from dls_bba.lattice import Lattice
 
-NETWORK_LAG_S = 0.5
-SAFETY_NET_S = 0.1
-QUAD_SLEW_RATE = 0.5
-NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
-SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
-FBBA_UNIT_CONVERSION = 1000000
+# To convert from nanometers to millimeters
+NM_TO_MM_UNIT_CONV = 1000000
 
 
-class FBBA(Algorithm):
-    def __init__(self, accelerator):
-        super().__init__(accelerator)
-        self.configure()
+class FastBBA(Algorithm):
+    def __init__(self, lattice: Lattice):
+        super().__init__(lattice)
 
-    def configure(
-        self,
-        quadrupole_scalar=0.01,
-        corrector_scalar=1,
-        cycles=16,
-        frequency=8,
-        decimated=False,
-        runtime=3,
-        waittime=3,
-        *args,
-        **kwargs,
-    ):
-        """These are optional arguments, which are used during testing."""
-        self.quadrupole_scalar = quadrupole_scalar  # 0.01 is old default
-        self.corrector_scalar = float(corrector_scalar)  # 1 is old default
-        self.cycles = cycles
-        self.frequency = frequency
-        self.decimated = decimated
-        self.runtime = runtime
-        self.waittime = waittime
+    def run(self, components_pair: list[Components]) -> RawData:
+        rawdata = {}
+        metadata = {}
+        metadata.update(self._lattice._config)
+        metadata["method"] = "FastBBA"
+        metadata["isotime"] = get_isotime()
+        metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()
+        metadata["bpm_name"] = components_pair[0].bpm_name
+        metadata["bpm_index"] = components_pair[0].bpm_index
+        decimated = metadata["DECIMATED"]
 
-        log.debug(
-            f"Configuration: Cycles: {self.cycles}, Frequency: {self.frequency}, Quadrupole Scalar: {self.quadrupole_scalar}, Corrector Scalar: {self.corrector_scalar}, Decimated: {self.decimated}"
-        )
+        for components in components_pair:
+            log.debug(f"Component: {components}")
+            for quadrupole, quad_name in zip(
+                components.quadrupoles, components.quadrupoles_names
+            ):
+                log.debug(f"Quad: {quad_name} of {components.quadrupoles_names}")
+                (
+                    quad_start,
+                    quad_high,
+                    quad_low,
+                    quad_sp,
+                ) = self._lattice.calculate_quad_setpoints(quadrupole)
 
-    def run(self, element, plane_info, max_orbit) -> RawData:
-        """Run the FBBA process."""
-        method = "FBBA"
-        log.info(f"{method} process started in plane {plane_info.axis}.")
+                corr_kick = self._lattice.corrector_kick(components)
+                corr_sp = self._lattice.get_corrector_setpoint(components)
 
-        bpm, quad_list, corrector = self.select_elements(element, plane_info)
-        quad_pv_list = [
-            self._accelerator.element_to_pv_prefix(quad_element)
-            for quad_element in quad_list
-        ]
-        bpm_pv_prefix = self._accelerator.element_to_pv_prefix(bpm)
-        corrector_pv_prefix = self._accelerator.element_to_pv_prefix(
-            corrector, plane_info
-        )
-        log.debug(
-            f"Quads: {quad_pv_list}, BPM: {bpm_pv_prefix}, Corrector: {corrector_pv_prefix}."
-        )
-        raw_data = {}
-        metadata = {
-            "plane": plane_info,
-            "quad": quad_pv_list,
-            "bpm_pv": bpm_pv_prefix,
-            "bpm_index": self._accelerator.bpms.index(bpm),
-            "corrector": corrector_pv_prefix,
-            "decimated": self.decimated,
-            "enabled_bpms": self._accelerator.enabled_bpms,
-            "quadrupole_scalar": self.quadrupole_scalar,
-            "corrector_scalar": self.corrector_scalar,
-        }
-        diagnostics_dict = self.diagnostics()
-        for key, value in diagnostics_dict.items():
-            metadata[key] = value
+                key = f"{quad_name}_{components.axis}"
+                metadata[key] = {
+                    "components": components.as_dict(),
+                    "quad_start_high_low_sp": [
+                        quad_start,
+                        quad_high,
+                        quad_low,
+                        quad_sp,
+                    ],
+                    "corrector_sp": corr_sp,
+                    "corrector_kick": corr_kick,
+                }
 
-        for quad in quad_list:
-            self.check_feedbacks(max_orbit, self.runtime, self.waittime)
-            # original_offsets = self.zero_origins()
+                # Always overshoot the high quad step and work down and keep direction
+                # consistent to mitigate unwanted hysteresis effects.
+                # FYI correctors are significantly less prone to hysteresis effects.
+                self._lattice.set_quad_setpoint(quadrupole, quad_start, True)
+                # Give Cell 2 DDBA magnets more time to ramp.
+                if "SR02" in quad_name:
+                    Sleep(1)
 
-            quad_step = self._accelerator.measure_quad(quad) * self.quadrupole_scalar
-            corr_amp = (
-                self._accelerator.microrads(corrector, plane_info)
-                * self.corrector_scalar
-            )
-            log.debug(f"Quad step: {quad_step}, Corrector step: {corr_amp}.")
-            metadata["quad_step"] = quad_step
-            metadata["corr_step"] = corr_amp
-            osc = Oscillation(corr_amp, plane_info, self.frequency, self.cycles)
-            self.osc = osc
+                # Setup Oscillations
+                frequency_key = f"{components.axis.upper()}_FREQUENCY"
+                frequency = self._lattice._config[frequency_key]
+                cycles_key = f"{components.axis.upper()}_CYCLES"
+                cycles = self._lattice._config[cycles_key]
+                osc = Oscillation.from_values(components, corr_kick, frequency, cycles)
 
-            log.debug(
-                "Oscillation amplitude {}; frequency {}; cycles {}".format(
-                    osc.amp, osc.freq, osc.cycles
+                quad_lag_s = (quad_sp - quad_low) / QUAD_SLEW_RATE
+                quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
+
+                self._lattice.set_quad_setpoint(quadrupole, quad_high)
+                Sleep(quad_lag_s / 2)
+
+                now = get_timestamp(decimated)
+                high_start = now + NETWORK_LAG
+                low_start = high_start + (2 * osc.count) + SAFETY_NET + quad_lag
+
+                fa_buffer = Buffer(
+                    self._lattice.faa_bpm_list, high_start, osc.duration, decimated
                 )
-            )
-            metadata["frequency"] = self.osc.freq
-            metadata["period"] = TICKS_PER_SECOND // self.osc.freq
-            metadata["amp"] = self.osc.amp
-            metadata["cycles"] = self.osc.cycles
 
-            quad_sp = self._accelerator.measure_quad(quad)
-            quad_high = quad_sp + quad_step
-            quad_low = quad_sp - quad_step
-            quad_lag_s = quad_step / QUAD_SLEW_RATE
-            quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
+                exc_high = Excitation(self._lattice, components, osc, high_start)
+                exc_low = Excitation(self._lattice, components, osc, low_start)
+                # Sleep for first excitation. SAFETY_NET ensures that we don't start
+                # moving the quad before the excitation has finished.
+                excite((exc_high,))
+                Sleep((NETWORK_LAG + exc_high.count + SAFETY_NET) / TICKS_PER_SECOND)
+                # Move quad from high to low
+                self._lattice.set_quad_setpoint(quadrupole, quad_low)
+                # Set up second excitation
+                excite((exc_low,))
+                # This will block until all data has been retrieved.
+                fa_data = fa_buffer.get_data()
+                selected_data = self.select_data(fa_data, components.axis)
 
-            # Move quad high
-            self._accelerator.set_quad(quad, quad_high)
-            cothread.Sleep(quad_lag_s / 2)
-            now = get_timestamp(self.decimated)
-            osc_length = ceil(TICKS_PER_SECOND / osc.freq) * osc.cycles
-            # Set off the data collection
-            high_start = now + NETWORK_LAG
-            duration = NETWORK_LAG + osc_length + SAFETY_NET + quad_lag + osc_length
-            # Incompatability between pytaclattice and faa number of bpms.
-            bpm_list = [0] + [i for i, _ in enumerate(self._accelerator.bpms, start=1)]
-            fa_buffer = Buffer(bpm_list, high_start, duration, self.decimated)
-            low_start = high_start + osc_length + SAFETY_NET + quad_lag
-            log.debug("Safety net: {}; quad_lag: {}".format(SAFETY_NET, quad_lag))
-            log.debug("Time now: {}.".format(now))
-            log.debug("High start time: {}.".format(high_start - now))
-            log.debug("Low start time: {}.".format(low_start - now))
-            log.debug("The oscillation: {}".format(osc))
-            self.exc_high = Excitation(corrector, osc, high_start, self._accelerator)
-            log.debug(
-                "The excitation: dwell {} count {}".format(
-                    self.exc_high.dwell, self.exc_high.count
-                )
-            )
-            self.exc_low = Excitation(corrector, osc, low_start, self._accelerator)
+                key = f"{quad_name}_{components.axis}_High"
+                rawdata[key] = selected_data[0]
+                key = f"{quad_name}_{components.axis}_Low"
+                rawdata[key] = selected_data[1]
 
-            log.info("High Oscillation")
-            excite((self.exc_high,))
-            # Sleep for first excitation. SAFETY_NET ensures that we don't start
-            # moving the quad before the excitation has finished.
-            cothread.Sleep(
-                (NETWORK_LAG + self.exc_high.count + SAFETY_NET) / TICKS_PER_SECOND
-            )
-            # Move quad from high to low
-            self._accelerator.set_quad(quad, quad_low)
-            log.info("Low Oscillation")
-            # Set up second excitation
-            excite((self.exc_low,))
-            # This will block until all data has been retrieved.
+                self._lattice.set_quad_setpoint(quadrupole, quad_sp)
+                Sleep(quad_lag_s / 2)
 
-            fa_data = fa_buffer.get_data()
-            selected_data = self.select_data(fa_data, plane_info)
-            raw_data[
-                self._accelerator.element_to_pv_prefix(quad).replace("-", "_") + "_High"
-            ] = selected_data[0]
-            raw_data[
-                self._accelerator.element_to_pv_prefix(quad).replace("-", "_") + "_Low"
-            ] = selected_data[1]
+        return RawData(rawdata, metadata)
 
-            self._accelerator.set_quad(quad, quad_sp)
-            cothread.Sleep(quad_lag_s / 2)
-            # self.restore_origins(original_offsets)
-
-        return RawData(raw_data, method, metadata)
-
-    def select_data(self, data, plane_info):
+    def select_data(self, data, axis):
         """Extract FA data that covers the excitations exc_high and exc_low.
 
         The input data array should cover the full length of both excitations.
 
         """
+        if axis == "x":
+            plane = 0
+        else:
+            plane = 1
+
         # Note: array data must include the timestamps.
         log.debug("Raw data shape: {}".format(data.shape))
         log.debug(
@@ -197,10 +152,10 @@ class FBBA(Algorithm):
         log.debug("Searched start times: %s, %s", high_start, low_start)
         # Ensure we include the entire oscillation if using decimated data.
         length = (
-            ceil(self.exc_high.count / 10) if self.decimated else self.exc_high.count
+            np.ceil(self.exc_high.count / 10) if self.decimated else self.exc_high.count
         )
-        high_data = data[high_start : high_start + length, :, plane_info.index]
-        low_data = data[low_start : low_start + length, :, plane_info.index]
+        high_data = data[high_start : high_start + length, :, plane.index]
+        low_data = data[low_start : low_start + length, :, plane.index]
         log.debug("Selected data shape: {} {}".format(high_data.shape, low_data.shape))
         assert high_data.shape == low_data.shape
         return [high_data, low_data]
@@ -218,9 +173,13 @@ class FBBA(Algorithm):
         )
         mix = mix[:, None]
 
+        # Find the DC offset; aranged as [Axis, 1]
+        dc_offset = data.mean(0)
+
         # Run the mixing waveform over the data, aongside a hanning window
         # detector aranged as [Axis, 1]
-        detector = 4 * (data * mix * np.hanning(len(mix))[:, None]).mean(0)
+        window = np.hanning(len(mix))[:, None]
+        detector = 4 * ((data - dc_offset) * mix * window).mean(0)
 
         # Find the phase of each axis; aranged as [Axis, 1]
         angle = np.angle(detector)
@@ -237,99 +196,64 @@ class FBBA(Algorithm):
         angle_fixed = smodpi(angle - phase_bpm)
         detector_fixed = detector * np.exp(-1j * (angle_fixed + phase_bpm))
 
-        # Find the DC offset; aranged as [Axis, 1]
-        dc_offset = data.mean(0)
-
         # Reconstruct the clean wave; aranged as [Time, Axis]
         clean_wave = np.real(np.conj(detector_fixed) * mix) + np.real(dc_offset)
         return clean_wave
 
-    def analyse_data(self, raw_data, plot_output=False, *args, **kwargs):
-        data = raw_data.raw_data
-        # algorithm = raw_data["algorithm"] -> Not used.
-        metadata = raw_data.metadata
+    def analyse(self, rawdata: RawData) -> Results:
+        data = rawdata.rawdata
+        metadata = rawdata.metadata
+
+        enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
 
         bpm_number = metadata["bpm_index"]
-        enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
         bpm_index = bpm_number - np.sum(
             enabled_bpms[:bpm_number] == False  # noqa false positive
         )
-        # freq = TICKS_PER_SECOND / metadata["period"]
-        freq = metadata["frequency"]
-
-        offsets = []
-        errors = []
-
-        quad_prefixs = []
-        for key in data:
-            quad_prefix = "_".join(key.split("_")[0:4])
-            if quad_prefix not in quad_prefixs:
-                quad_prefixs.append(quad_prefix)
-
-        for quad in quad_prefixs:
-            low_key = quad + "_Low"
-            high_key = quad + "_High"
-
-            # Remove bad BPMs
-            q_low = data[low_key][:, enabled_bpms]
-            q_high = data[high_key][:, enabled_bpms]
-
-            # Clean the data using the synchronous detector method
-            q_high_clean = self.extract_freq_excite(q_high, freq, bpm_index)
-            q_low_clean = self.extract_freq_excite(q_low, freq, bpm_index)
-
-            # Take the difference between fits
-            q_diff = q_high_clean - q_low_clean
-            good = q_diff.std(0) > q_diff.std(0).max() / 2
-            q_diff_good = q_diff[:, good]
-
-            # Use a single fit operation, then transform with the straight line equation
-            fit = np.polynomial.polynomial.polyfit(
-                q_high_clean[:, bpm_index], q_diff_good, 1
-            )
-            p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
-            # Produce a large graph
-            if plot_output:
-                to_plot = [q_high_clean, q_low_clean, q_diff, q_diff_good, p]
-                plot_labels = [
-                    "quad high clean",
-                    "quad low clean,",
-                    "quad diff,",
-                    "quad diff good,",
-                    "fit coefficients",
-                ]
-                # Make a grid three wide and N high
-                # Fill with 1D plot, image plot, and colourbar
-                gs = GridSpec(
-                    len(to_plot) + 1,
-                    3,
-                    width_ratios=(20, 20, 1),
-                    height_ratios=([1] * len(to_plot) + [3]),
-                )
-                for i, _ in enumerate(to_plot):
-                    plt.subplot(gs[i, 0]).plot(to_plot[i])
-                    plt.ylabel(plot_labels[i])
-                    im = plt.subplot(gs[i, 1]).imshow(
-                        to_plot[i], aspect="auto", interpolation="nearest"
-                    )
-                    plt.colorbar(im, cax=plt.subplot(gs[i, 2]))
-                # Add a large 1D plot to show end result
-                plt.subplot(gs[-1, :]).plot(q_high_clean[:, bpm_index], q_diff_good)
-                plt.ylabel(f"BPM {bpm_number + 1} aginst BPMs")
-                plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
-                plt.show()
-            # Change results to mm.
-            offsets.append(mean(p[:, 1]) / FBBA_UNIT_CONVERSION)
-            errors.append(stdev(p[:, 1]) / FBBA_UNIT_CONVERSION)
-
         results = {}
-        for index, number in enumerate(offsets):
-            quadrupole = quad_prefixs[index]
-            offset = offsets[index]
-            error = errors[index]
-            quad_name = quadrupole.replace("_", "-")
-            log.debug(f"Quad: {quad_name} offset calculated: {offset} +- {error}.")
-            results[quadrupole] = [offset, error]
+        plotting = {}
 
-        bpm_pv_prefix = metadata["bpm_pv"]
-        return Results(results, bpm_pv_prefix, metadata)
+        quad_names = []
+        for key in data.keys():
+            quad_name = key.split("_")[0]
+            if quad_name not in quad_names:
+                quad_names.append(quad_name)
+
+        for quad_name in quad_names:
+            for axis in ["x", "y"]:
+                frequency_key = f"{axis.upper()}_FREQUENCY"
+                frequency = metadata[frequency_key]
+                high_key = f"{quad_name}_{axis}_High"
+                low_key = f"{quad_name}_{axis}_Low"
+
+                # Remove bad BPMs
+                q_low = data[low_key][:, enabled_bpms]
+                q_high = data[high_key][:, enabled_bpms]
+
+                # Clean the data using the synchronous detector method
+                q_high_clean = self.extract_freq_excite(q_high, frequency, bpm_index)
+                q_low_clean = self.extract_freq_excite(q_low, frequency, bpm_index)
+
+                # Take the difference between fits
+                q_diff = q_high_clean - q_low_clean
+                good = q_diff.std(0) > q_diff.std(0).max() / 2
+                q_diff_good = q_diff[:, good]
+
+                # Use a single fit operation, then transform with the straight line equation
+                fit = np.polynomial.polynomial.polyfit(
+                    q_high_clean[:, bpm_index], q_diff_good, 1
+                )
+                p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
+
+                key = f"{quad_name}_{axis}"
+                offset = np.mean(p[:, 1]) / NM_TO_MM_UNIT_CONV
+                error = np.std(p[:, 1]) / NM_TO_MM_UNIT_CONV
+                results[key] = [offset, error]
+
+                # plotting data
+                plotting[key] = {
+                    "x": q_high_clean[:, bpm_index] / NM_TO_MM_UNIT_CONV,
+                    "y": q_diff_good / NM_TO_MM_UNIT_CONV,
+                }
+
+        return Results(results, metadata, plotting)

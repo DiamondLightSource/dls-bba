@@ -14,13 +14,15 @@ classifiers = [
 ]
 description = "Fast and Slow Beam Based Alignment"
 dependencies = [
-    "cothread>=2.18.2",
+    "cothread>=2.18.3",
     "epicscorelibs",
     "fa-archiver",
     "matplotlib",
     "numpy",
-    "pytac",
-    "PyQt5",
+    "pytac>=0.6.0",
+    "PyQt6==6.4.1",
+    "PyQt6-Qt6==6.4.2",
+    "PyQt6-sip==13.4.1",
     "scipy",
     "setuptools>=60.0.0",
 ]
@@ -49,6 +51,7 @@ dev = [
 
 [project.scripts]
 dls-bba = "dls_bba.__main__:main"
+dls-bba-gui = "dls_bba.__main__:gui_main"
 
 [project.urls]
 GitHub = "https://github.com/DiamondLightSource/dls-bba"
@@ -56,6 +59,12 @@ GitHub = "https://github.com/DiamondLightSource/dls-bba"
 [[project.authors]] # Further authors may be added by duplicating this section
 email = "diamhighlvlapps@diamond.ac.uk"
 name = "Joshua Appleby"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 
 [tool.setuptools_scm]
