@@ -328,24 +328,15 @@ class Lattice:
         for index, bpm_name in enumerate(self.bpms_names):
             self._get_best_corrector_for_bpm(index, bpm_name)
 
-    def effective_correctors(
-        self, bpm: Union[pytac.element.EpicsElement, str]
-    ) -> list[Union[pytac.element.EpicsElement, str]]:
-        if isinstance(bpm, pytac.element.EpicsElement):
-            bpm = self.bpms_names[self.bpms.index(bpm)]
-        correctors = self._effective_corrector[bpm]
-        if isinstance(bpm, pytac.element.EpicsElement):
-            correctors = [
-                self.get_element_from_name(corrector) for corrector in correctors
-            ]
-        return correctors
+    def effective_correctors(self, bpm: str) -> list[str]:
+        return self._effective_corrector[bpm]
 
-    def corrector_kick(self, components: Components) -> float:
+    def corrector_kick(self, component: Components) -> float:
         """PV ONLY"""
         radian_kick = self._config.config["CORRECTOR_KICK_RADIANS"]
 
         if str(self._config.config["UNITS"]) == "ENG":
-            value = components.corrector.get_unitconv(components.kick).convert(
+            value = component.corrector.get_unitconv(component.kick).convert(
                 radian_kick, pytac.PHYS, pytac.ENG
             )
         else:
