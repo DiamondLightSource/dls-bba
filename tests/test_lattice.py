@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from dls_bba.configuration import DEFAULT_CONFIGS
+from dls_bba.exceptions import InvalidRingmodeException
 from dls_bba.lattice import Lattice
 
 if sys.version_info > (3, 9):
@@ -14,9 +15,8 @@ else:
 
 extra_dict_no_reload = {"MAX_ORBIT_CORRECTION_MICRONS": 16}
 extra_dict_new_key = {"TEST_FIELD": 100}
-extra_dict_with_reload = {
-    "UNITS": "pytac.PHYS",
-}
+extra_dict_with_reload = {"UNITS": "pytac.PHYS"}
+extra_dict_invalid_ringmode = {"RINGMODE": "TEST"}
 default_config_resources = [
     Path(str(files("dls_bba").joinpath(resource))) for resource in DEFAULT_CONFIGS
 ]
@@ -90,6 +90,11 @@ def test_pytac_lattice_loaded_config_correctly(lattice_setup):
     assert pytac_lattice.name == config["RINGMODE"]
     assert pytac_lattice.get_default_data_source() == config["DATASOURCE"]
     assert pytac_lattice.get_default_units()[:3] in config["UNITS"].lower()
+
+
+def test_pytac_lattice_loaded_with_invalid_ringmode():
+    with pytest.raises(InvalidRingmodeException):
+        Lattice(overrides=extra_dict_invalid_ringmode)
 
 
 def test_element_and_name_lists_equal_length(lattice_setup):

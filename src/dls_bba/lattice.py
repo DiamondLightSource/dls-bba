@@ -123,7 +123,7 @@ class Lattice:
             self._lattice = load_csv.load(ringmode, _cs)
         except FileNotFoundError as e:
             message = f"Ringmode: {ringmode} does not exist in pytac."
-            log.critical(message, e)
+            log.critical(message)
             raise InvalidRingmodeException(message, e)
 
         self._lattice.set_default_units(eval(units))
