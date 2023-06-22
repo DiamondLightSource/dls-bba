@@ -169,9 +169,7 @@ class SlowBBA(Algorithm):
                 max_value = offset_mean + (offset_stdev * center_outlier_factor)
                 min_value = offset_mean - (offset_stdev * center_outlier_factor)
                 for index, offset in enumerate(p[:, 1]):
-                    if min_value < offset < max_value:
-                        pass
-                    else:
+                    if not min_value < offset < max_value:
                         stdev_list.append(index)
                 p = np.delete(p, stdev_list, axis=0)
 
@@ -181,8 +179,8 @@ class SlowBBA(Algorithm):
                 results[key] = [offset_mean, offset_stdev]
 
                 # First value is x, second is y
-                plot_matrix = np.delete(matrix, bad_gradients, axis=1)
-                plot_matrix1 = np.delete(plot_matrix, stdev_list, axis=1)
-                plotting[key] = {"x": corrector_steps, "y": plot_matrix1}
+                matrix_x = np.delete(matrix, bad_gradients, axis=1)
+                matrix_xy = np.delete(matrix_x, stdev_list, axis=1)
+                plotting[key] = {"x": corrector_steps, "y": matrix_xy}
 
         return Results(results, metadata, plotting)
