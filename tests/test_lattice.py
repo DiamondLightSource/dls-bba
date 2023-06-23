@@ -61,21 +61,21 @@ def test_lattice_construction_is_valid_with_new_additional_args():
     lattice = Lattice(overrides=extra_dict_new_key)
     key = list(extra_dict_new_key.keys())[0]
     value = extra_dict_new_key[key]
-    assert lattice._config._config[key] == value
+    assert lattice.config._config[key] == value
 
 
 def test_lattice_construction_is_valid_with_additional_args():
     lattice = Lattice(overrides=extra_dict_no_reload)
     key = list(extra_dict_no_reload.keys())[0]
     value = extra_dict_no_reload[key]
-    assert lattice._config._config[key] == value
+    assert lattice.config._config[key] == value
 
 
 def test_lattice_construction_is_valid_with_additional_args_that_require_reload():
     lattice = Lattice(overrides=extra_dict_with_reload)
     key = list(extra_dict_with_reload.keys())[0]
     value = extra_dict_with_reload[key]
-    assert lattice._config._config[key] == value
+    assert lattice.config._config[key] == value
     assert lattice._lattice.get_default_units()[:4] in value.lower()
 
 
@@ -84,7 +84,7 @@ def test_lattice_can_be_updated_with_additional_args():
     lattice._update_config(dct=extra_dict_no_reload)
     key = list(extra_dict_no_reload.keys())[0]
     value = extra_dict_no_reload[key]
-    assert lattice._config._config[key] == value
+    assert lattice.config._config[key] == value
 
 
 def test_lattice_can_be_updated_with_additional_args_that_require_reload():
@@ -92,13 +92,13 @@ def test_lattice_can_be_updated_with_additional_args_that_require_reload():
     lattice._update_config(dct=extra_dict_with_reload)
     key = list(extra_dict_with_reload.keys())[0]
     value = extra_dict_with_reload[key]
-    assert lattice._config._config[key] == value
+    assert lattice.config._config[key] == value
     assert lattice._lattice.get_default_units()[:4] in value.lower()
 
 
 def test_pytac_lattice_loaded_config_items_correctly(lattice_setup):
     lattice = lattice_setup
-    config = lattice._config.config
+    config = lattice.config._config
     pytac_lattice = lattice._lattice
     assert pytac_lattice.name == config["RINGMODE"]
     assert pytac_lattice.get_default_data_source() == config["DATASOURCE"]
@@ -120,7 +120,7 @@ def test_element_and_name_lists_equal_length(lattice_setup):
 
 def test_bpm2quad_is_valid(lattice_setup):
     lattice = lattice_setup
-    exceptions = lattice._config.config["BPM2QUAD_EXCEPTIONS"]
+    exceptions = lattice.config._config["BPM2QUAD_EXCEPTIONS"]
     for bpm_name_1 in lattice.bpms_names:
         quad_name = lattice.bpm2quad(bpm_name_1)
         if len(quad_name) == 2:
@@ -147,7 +147,7 @@ def test_bpm2quad_fails_with_invalid_bpm(lattice_setup):
 
 def test_quad2bpm_is_valid(lattice_setup):
     lattice = lattice_setup
-    exceptions = lattice._config.config["QUAD2BPM_EXCEPTIONS"]
+    exceptions = lattice.config._config["QUAD2BPM_EXCEPTIONS"]
 
     for quad_name_1 in lattice.quads_names:
         bpm_name = lattice.quad2bpm(quad_name_1)
