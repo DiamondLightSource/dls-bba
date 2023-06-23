@@ -44,7 +44,7 @@ def setup_beam_based_alignment(
 
     lattice.draw_bba_plot_and_apply(results_list, save_location)
 
-    cancel_all_oscillations(lattice._config)
+    cancel_all_oscillations(lattice.config)
     lattice.restore_origins()
 
 

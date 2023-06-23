@@ -1,5 +1,5 @@
 import sys
-from dataclasses import dataclass, field
+from copy import deepcopy
 from json import load
 from pathlib import Path
 from typing import Any, List, Optional, Union
@@ -34,9 +34,12 @@ LATTICE_SETTINGS = (  # Requires update to lattice and associated components
 )
 
 
-@dataclass
 class Configuration:
-    config: dict[str, Any] = field(default_factory=dict)
+    def __init__(self) -> None:
+        self._config: dict[str, Any] = {}
+
+    def __getitem__(self, key: str):
+        return self._config[key]
 
     @classmethod
     def from_configuration_files(cls, paths: Optional[List[Union[Path, str]]] = None):
@@ -56,7 +59,7 @@ class Configuration:
         self.apply_config_files(default_config_resources)
 
     def update_config(self, new_dictionary: dict) -> bool:
-        self.config.update(new_dictionary)
+        self._config.update(new_dictionary)
         return any(key in new_dictionary for key in LATTICE_SETTINGS)
 
     def apply_config_files(self, paths: List[Union[Path, str]]) -> bool:
@@ -67,3 +70,6 @@ class Configuration:
                 if reload_flag:
                     reload_lattice = True
         return reload_lattice
+
+    def get_settings(self):
+        return deepcopy(self._config)
