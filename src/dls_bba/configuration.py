@@ -50,7 +50,8 @@ class Configuration:
 
     def apply_default_config(self):
         default_config_resources = [
-            Path(files("dls_bba").joinpath(resource)) for resource in DEFAULT_CONFIGS
+            Path(str(files("dls_bba").joinpath(resource)))
+            for resource in DEFAULT_CONFIGS
         ]
         self.apply_config_files(default_config_resources)
 

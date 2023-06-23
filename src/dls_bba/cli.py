@@ -1,4 +1,3 @@
-import logging as log
 from typing import Any
 
 from dls_bba.algorithm import Algorithm
@@ -55,12 +54,8 @@ def cli_entrypoint(
         lattice, unverified_component_pairings
     )
 
-    try:
-        algorithm: Algorithm = ALGORITHMS[method](lattice)
-    except KeyError as e:
-        message = f"Invalid BBA method selected: {method}"
-        log.critical(message)
-        raise e
+    # Argparse stops invalid methods being selected.
+    algorithm: Algorithm = ALGORITHMS[method](lattice)
 
     setup_beam_based_alignment(lattice, algorithm, components_pair_list, save_location)
 

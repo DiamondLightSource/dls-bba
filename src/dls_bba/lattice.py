@@ -24,6 +24,7 @@ from dls_bba.exceptions import (
     BeamPositionMonitorCAException,
     CheckBeamCurrentException,
     FeedbacksActiveException,
+    InvalidNameError,
     InvalidRingmodeException,
     LowCurrentError,
 )
@@ -81,13 +82,16 @@ class Lattice:
         overrides: Optional[dict[str, Any]] = None,
     ):
         """"""
-        self._config = Configuration.from_configuration_files(extra_config_files).config
+        self._config = Configuration.from_configuration_files(extra_config_files)
         if overrides is not None:
             self._config.update_config(overrides)
 
     def _update_config(
         self, extra_config_files: Optional[list[Any]] = None, dct: Optional[dict] = None
     ):
+        flag_files = False
+        flag_dict = False
+
         if extra_config_files is not None:
             flag_files = self._config.apply_config_files(extra_config_files)
 
@@ -109,18 +113,18 @@ class Lattice:
 
     def _setup_pytac_lattice(self):
         """"""
-        ringmode = self._config["RINGMODE"]
-        units = self._config["UNITS"]
-        datasource = self._config["DATASOURCE"]
-        ccs_timeout = self._config["COTHREAD_CONTROL_SYSTEM_TIMEOUT"]
-        ccs_wait = self._config["COTHREAD_CONTROL_SYSTEM_WAIT_FLAG"]
+        ringmode = self._config.config["RINGMODE"]
+        units = self._config.config["UNITS"]
+        datasource = self._config.config["DATASOURCE"]
+        ccs_timeout = self._config.config["COTHREAD_CONTROL_SYSTEM_TIMEOUT"]
+        ccs_wait = self._config.config["COTHREAD_CONTROL_SYSTEM_WAIT_FLAG"]
 
         _cs = CothreadControlSystem(timeout=ccs_timeout, wait=ccs_wait)
         try:
             self._lattice = load_csv.load(ringmode, _cs)
         except FileNotFoundError as e:
             message = f"Ringmode: {ringmode} does not exist in pytac."
-            log.critical(message, e)
+            log.critical(message)
             raise InvalidRingmodeException(message, e)
 
         self._lattice.set_default_units(eval(units))
@@ -167,10 +171,11 @@ class Lattice:
         self.bba_y_pvs = [
             name + ORIGIN_SUFFIXES["BBA"].format(axis="Y") for name in self.bpms_names
         ]
+        self._starting_beam_current = None
 
     def _load_cell_dictionary_and_psps(self):
         """"""
-        PSPdict = self._config["PSPS"]
+        PSPdict = self._config.config["PSPS"]
 
         # Cell Dictionary defined by PV names.
         cell_dictionary = defaultdict(list)
@@ -187,8 +192,8 @@ class Lattice:
 
     def _load_b2q_q2b(self):
         """"""
-        _Q2B_special_cases = self._config["QUAD2BPM_SPECIAL_CASES"]
-        _B2Q_special_cases = self._config["BPM2QUAD_SPECIAL_CASES"]
+        _Q2B_special_cases = self._config.config["QUAD2BPM_SPECIAL_CASES"]
+        _B2Q_special_cases = self._config.config["BPM2QUAD_SPECIAL_CASES"]
 
         self._bpms_s = self._lattice.get_family_s("BPM")
         self._quads_s = self._lattice.get_family_s("quadrupole")
@@ -203,7 +208,6 @@ class Lattice:
     def _get_quad2bpm(self, Q2B_special_cases):
         """"""
         # should only have a 1 to 1 pairing, and not every bpm is used. Every Quad must be used.
-        q2b_elements = {}
         q2b_names = {}
 
         for quad, quad_name, quad_mid in zip(
@@ -213,74 +217,49 @@ class Lattice:
                 closest_bpm_index, _ = min(
                     enumerate(self._bpms_s), key=lambda x: abs(x[1] - quad_mid)
                 )
-                q2b_elements[quad] = self.bpms[closest_bpm_index]
                 q2b_names[quad_name] = self.bpms_names[closest_bpm_index]
             else:
                 chosen_bpm_name = Q2B_special_cases[quad_name]
-                chosen_bpm = self.bpms[self.bpms_names.index(chosen_bpm_name)]
-                q2b_elements[quad] = chosen_bpm
                 q2b_names[quad_name] = chosen_bpm_name
 
-        self._quad2bpm_elements = q2b_elements
         self._quad2bpm_names = q2b_names
 
-    def quad2bpm(
-        self, quad: Union[pytac.element.EpicsElement, str]
-    ) -> Union[pytac.element.EpicsElement, str]:
+    def quad2bpm(self, quad: str) -> str:
         """"""
-        # quad can be either PV or element
-        # Will only return 1 to 1.
-        if isinstance(quad, pytac.element.EpicsElement):
-            return self._quad2bpm_elements[quad]
-        elif isinstance(quad, str):
+        try:
             return self._quad2bpm_names[quad]
-        else:
-            message = f"Invalid quad: {quad} {type(quad)} is not 'pytac.element.EpicsElement' or 'str'"
-            log.critical(message)
-            raise ValueError(message)
+        except KeyError:
+            msg = f"Invalid quadrupole name provided: {quad}"
+            log.critical(msg)
+            raise InvalidNameError(msg)
 
     def _get_bpm2quad(self, _B2Q_special_cases):
         """"""
         # every bpm must be used, not every quad will be. 1 to many.
-        b2q_elements = defaultdict(list)
         b2q_names = defaultdict(list)
 
-        for bpm, bpm_name in zip(self.bpms, self.bpms_names):
+        for bpm_name in self.bpms_names:
             if bpm_name not in _B2Q_special_cases:
-                chosen_quads = [
-                    k for k, v in self._quad2bpm_elements.items() if bpm is v
-                ]
                 chosen_quads_names = [
                     k for k, v in self._quad2bpm_names.items() if bpm_name is v
                 ]
-                b2q_elements[bpm] = chosen_quads
                 b2q_names[bpm_name] = chosen_quads_names
             else:
                 chosen_quads_names = _B2Q_special_cases[bpm_name]
-                chosen_quads = [
-                    self.quads[self.quads_names.index(chosen_quad_name)]
-                    for chosen_quad_name in chosen_quads_names
-                ]
-                b2q_elements[bpm] = chosen_quads
                 b2q_names[bpm_name] = chosen_quads_names
 
-        self._bpm2quad_elements = b2q_elements
         self._bpm2quad_names = b2q_names
 
-    def bpm2quad(
-        self, bpm: Union[pytac.element.EpicsElement, str]
-    ) -> list[Union[pytac.element.EpicsElement, str]]:
+    def bpm2quad(self, bpm: str) -> list[str]:
         """"""
         # bpm can be either PV or element, default element.
         # Will return 1 to many.
-        if isinstance(bpm, pytac.element.EpicsElement):
-            return self._bpm2quad_elements[bpm]
-        elif isinstance(bpm, str):
+        if bpm in self._bpm2quad_names:
             return self._bpm2quad_names[bpm]
         else:
-            message = f"Invalid bpm: {bpm} {type(bpm)} is not 'pytac.element.EpicsElement' or 'str'"
-            log.critical(message)
-            raise ValueError(message)
+            msg = f"Invalid BPM name provided: {bpm}"
+            log.critical(msg)
+            raise InvalidNameError(msg)
 
     @_retry_command(BPM_RETRIES, BeamPositionMonitorCAException)  # BPM issues (OFL-256)
     def get_enabled_bpms(self):
@@ -333,7 +312,7 @@ class Lattice:
 
     def _get_effective_corrector(self):
         """"""
-        orm_filepath = self._config["ORBIT_RESPONSE_MATRIX_PATH"]
+        orm_filepath = self._config.config["ORBIT_RESPONSE_MATRIX_PATH"]
 
         if not os.path.exists(orm_filepath):
             message = f"Response Matrix does not exist at: {orm_filepath}"
@@ -350,24 +329,15 @@ class Lattice:
         for index, bpm_name in enumerate(self.bpms_names):
             self._get_best_corrector_for_bpm(index, bpm_name)
 
-    def effective_correctors(
-        self, bpm: Union[pytac.element.EpicsElement, str]
-    ) -> list[Union[pytac.element.EpicsElement, str]]:
-        if isinstance(bpm, pytac.element.EpicsElement):
-            bpm = self.bpms_names[self.bpms.index(bpm)]
-        correctors = self._effective_corrector[bpm]
-        if isinstance(bpm, pytac.element.EpicsElement):
-            correctors = [
-                self.get_element_from_name(corrector) for corrector in correctors
-            ]
-        return correctors
+    def effective_correctors(self, bpm: str) -> list[str]:
+        return self._effective_corrector[bpm]
 
-    def corrector_kick(self, components: Components) -> float:
+    def corrector_kick(self, component: Components) -> float:
         """PV ONLY"""
-        radian_kick = self._config["CORRECTOR_KICK_RADIANS"]
+        radian_kick = self._config.config["CORRECTOR_KICK_RADIANS"]
 
-        if str(self._config["UNITS"]) == "ENG":
-            value = components.corrector.get_unitconv(components.kick).convert(
+        if str(self._config.config["UNITS"]) == "ENG":
+            value = component.corrector.get_unitconv(component.kick).convert(
                 radian_kick, pytac.PHYS, pytac.ENG
             )
         else:
@@ -383,8 +353,8 @@ class Lattice:
         log.debug(f"Stored Starting Beam Current: {self._starting_beam_current}")
 
     def check_beam_current(self):
-        warning_current_drop = self._config["WARNING_CURRENT_DROP"]
-        critical_current_drop = self._config["CRITICAL_CURRENT_DROP"]
+        warning_current_drop = self._config.config["WARNING_CURRENT_DROP"]
+        critical_current_drop = self._config.config["CRITICAL_CURRENT_DROP"]
 
         if self._starting_beam_current is None:
             message = "Starting beam current has not been stored."
@@ -406,7 +376,7 @@ class Lattice:
             log.error(message)
             while True:
                 resp_message = "Input y to continue after top-up, or n to cancel: "
-                response = input(resp_message).lower().strip()
+                response = self._ask_user(resp_message)
                 if response == "n":
                     message = "User cancelled BBA: Due to beam current drop."
                     log.critical(message)
@@ -425,9 +395,14 @@ class Lattice:
         self._starting_beam_current = None
         return True
 
+    def _ask_user(self, msg):
+        response = input(msg).lower().strip()
+        log.debug(f"User Response: {response}")
+        return response
+
     def get_diagnostics(self):
         """"""
-        diagnostics = self._config["DIAGNOSTICS"]
+        diagnostics = self._config.config["DIAGNOSTICS"]
 
         for key, pv in diagnostics.items():
             value = caget(pv)
@@ -437,14 +412,14 @@ class Lattice:
 
     def apply_feedbacks(self):
         """"""
-        feedbacks_bool = self._config["FEEDBACKS"]
+        feedbacks_bool = self._config.config["FEEDBACKS"]
         log.debug("Applying feedbacks")
 
         if feedbacks_bool:
-            fofb_trigger = self._config["FOFB_NOGUI_PATH"]
-            tune_trigger = self._config["FEEDBACK_PVS"]["Tune_Feedback"]
-            waittime = self._config["FEEDBACK_WAITTIME"]
-            runtime = self._config["FEEDBACK_RUNTIME"]
+            fofb_trigger = self._config.config["FOFB_NOGUI_PATH"]
+            tune_trigger = self._config.config["FEEDBACK_PVS"]["Tune_Feedback"]
+            waittime = self._config.config["FEEDBACK_WAITTIME"]
+            runtime = self._config.config["FEEDBACK_RUNTIME"]
 
             log.warn("Correcting orbit with FOFB and Tune Feedbacks")
 
@@ -457,8 +432,8 @@ class Lattice:
 
     def check_feedbacks(self):
         """"""
-        max_orbit = self._config["MAX_ORBIT_CORRECTION_MICRONS"]
-        feedback_pvs = self._config["FEEDBACK_PVS"]
+        max_orbit = self._config.config["MAX_ORBIT_CORRECTION_MICRONS"]
+        feedback_pvs = self._config.config["FEEDBACK_PVS"]
 
         for name, pv in feedback_pvs.items():
             if caget(pv) != 0:
@@ -554,7 +529,7 @@ class Lattice:
 
     def calculate_quad_setpoints(self, quadrupole: EpicsElement):
         """"""
-        quad_step_percent = self._config["QUADRUPOLE_STEP_PERCENT"]
+        quad_step_percent = self._config.config["QUADRUPOLE_STEP_PERCENT"]
 
         quad_setpoint = self.get_quad_setpoint(quadrupole)
         quad_step = quad_setpoint * quad_step_percent
