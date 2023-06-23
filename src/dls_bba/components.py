@@ -3,11 +3,11 @@ from __future__ import annotations
 import logging as log
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING
-import numpy as np
 
+import numpy as np
 from pytac.element import EpicsElement
 
-from dls_bba.exceptions import BBAComponentException, DisabledBPMException
+from dls_bba.exceptions import ComponentConstructionError, ElementDisabledError
 
 if TYPE_CHECKING:
     from dls_bba.lattice import Lattice
@@ -112,7 +112,7 @@ def generate_component_pairings(
     else:
         message = f"Element {element_name} does not correspond to quadrupole or BPM"
         log.critical(message)
-        raise BBAComponentException(message)
+        raise ComponentConstructionError(message)
 
     hor_corr, ver_corr = lattice.effective_correctors(bpm)
     horizontal_components = Components.from_name(
@@ -141,7 +141,7 @@ def verify_component_pairing(
             check_component(
                 component_pair, disabled_bpms_indices, disabled_fofb_indices
             )
-        except DisabledBPMException:
+        except ElementDisabledError:
             bpm_name = component_pair[0].bpm_name
             msg = f"BPM {bpm_name} skipped."
             log.warning(msg)
@@ -160,7 +160,7 @@ def check_component(
     if horizontal_component.bpm_index in disabled_bpm_indices:
         msg = f"Cannot run BBA on disabled BPM: {horizontal_component.bpm_name}"
         log.error(msg)
-        raise DisabledBPMException(msg)
+        raise ElementDisabledError(msg)
 
     if horizontal_component.bpm_index in disabled_fofb_bpm_indices:
         msg = f"BPM: {horizontal_component.bpm_name} is feedback disabled. Results may be invalid."

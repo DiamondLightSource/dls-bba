@@ -8,9 +8,9 @@ import pytest
 from dls_bba.components import generate_component_pairings
 from dls_bba.configuration import DEFAULT_CONFIGS
 from dls_bba.exceptions import (
-    CheckBeamCurrentException,
-    InvalidNameError,
-    InvalidRingmodeException,
+    CheckBeamCurrentError,
+    InvalidElementError,
+    InvalidRingmodeError,
     LowCurrentError,
 )
 from dls_bba.lattice import Lattice
@@ -106,7 +106,7 @@ def test_pytac_lattice_loaded_config_items_correctly(lattice_setup):
 
 
 def test_pytac_lattice_loading_fails_with_invalid_ringmode():
-    with pytest.raises(InvalidRingmodeException):
+    with pytest.raises(InvalidRingmodeError):
         Lattice(overrides=extra_dict_invalid_ringmode)
 
 
@@ -141,7 +141,7 @@ def test_bpm2quad_is_valid(lattice_setup):
 
 def test_bpm2quad_fails_with_invalid_bpm(lattice_setup):
     lattice = lattice_setup
-    with pytest.raises(InvalidNameError):
+    with pytest.raises(InvalidElementError):
         lattice.bpm2quad("INVALID_BPM")
 
 
@@ -164,7 +164,7 @@ def test_quad2bpm_is_valid(lattice_setup):
 
 def test_quad2bpm_fails_with_invalid_quad(lattice_setup):
     lattice = lattice_setup
-    with pytest.raises(InvalidNameError):
+    with pytest.raises(InvalidElementError):
         lattice.quad2bpm("INVALID_QUADRUPOLE")
 
 
@@ -235,7 +235,7 @@ def test_store_starting_beam_current_is_stored_correctly(mock_get_value):
 
 def test_check_beam_current_fails_when_starting_current_not_stored():
     lattice = Lattice()
-    with pytest.raises(CheckBeamCurrentException):
+    with pytest.raises(CheckBeamCurrentError):
         lattice.check_beam_current()
 
 

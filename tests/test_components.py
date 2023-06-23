@@ -1,7 +1,7 @@
 import pytest
 
 from dls_bba.components import Components, generate_component_pairings
-from dls_bba.exceptions import BBAComponentException
+from dls_bba.exceptions import ComponentConstructionError
 from dls_bba.lattice import Lattice
 
 
@@ -147,5 +147,5 @@ def test_component_pairing_generation_is_valid_from_quadrupole(lattice_setup):
 def test_component_generation_with_invalid_element_raises_error(lattice_setup):
     lattice = lattice_setup
     corrector_name = lattice.hstrs_names[0]
-    with pytest.raises(BBAComponentException):
+    with pytest.raises(ComponentConstructionError):
         generate_component_pairings(lattice, corrector_name)
