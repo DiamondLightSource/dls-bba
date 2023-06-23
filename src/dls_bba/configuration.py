@@ -1,3 +1,4 @@
+from copy import deepcopy
 import sys
 from json import load
 from pathlib import Path
@@ -40,8 +41,8 @@ class Configuration:
     def __getitem__(self, key: str):
         return self._config[key]
 
-    def __setitem__(self, key: str, value):
-        self._config[key] = value
+    # def __setitem__(self, key: str, value):
+    #     self._config[key] = value
 
     @classmethod
     def from_configuration_files(cls, paths: Optional[List[Union[Path, str]]] = None):
@@ -61,8 +62,7 @@ class Configuration:
         self.apply_config_files(default_config_resources)
 
     def update_config(self, new_dictionary: dict) -> bool:
-        for key, value in new_dictionary.items():
-            self.__setitem__(key, value)
+        self._config.update(new_dictionary)
         return any(key in new_dictionary for key in LATTICE_SETTINGS)
 
     def apply_config_files(self, paths: List[Union[Path, str]]) -> bool:
@@ -73,3 +73,6 @@ class Configuration:
                 if reload_flag:
                     reload_lattice = True
         return reload_lattice
+
+    def get_metadata_settings(self):
+        return deepcopy(self._config)

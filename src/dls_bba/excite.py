@@ -51,7 +51,7 @@ class Oscillation:
 
 
 def get_corrector_table(lattice):
-    correctors_txt = lattice._config["CORRECTORS_TXT_PATH"]
+    correctors_txt = lattice.config["CORRECTORS_TXT_PATH"]
     with open(correctors_txt, "r", encoding="utf8", newline="") as file:
         data = np.genfromtxt(file, names=True, dtype=None, encoding="UTF-8")
     return data
@@ -81,7 +81,7 @@ class Excitation(object):
         fofb_corrector = lattice.get_fofb_corrector(components)
         self.ioc = fofb_corrector.ioc
         self.fofb_index = fofb_corrector.corr
-        self.iocs = lattice._config["CORRECTOR_IOCS"]
+        self.iocs = lattice.config["CORRECTOR_IOCS"]
 
 
 def excite(excitations):

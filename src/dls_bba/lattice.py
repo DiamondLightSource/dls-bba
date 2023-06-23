@@ -113,11 +113,11 @@ class Lattice:
 
     def _setup_pytac_lattice(self):
         """"""
-        ringmode = self.config._config["RINGMODE"]
-        units = self.config._config["UNITS"]
-        datasource = self.config._config["DATASOURCE"]
-        ccs_timeout = self.config._config["COTHREAD_CONTROL_SYSTEM_TIMEOUT"]
-        ccs_wait = self.config._config["COTHREAD_CONTROL_SYSTEM_WAIT_FLAG"]
+        ringmode = self.config["RINGMODE"]
+        units = self.config["UNITS"]
+        datasource = self.config["DATASOURCE"]
+        ccs_timeout = self.config["COTHREAD_CONTROL_SYSTEM_TIMEOUT"]
+        ccs_wait = self.config["COTHREAD_CONTROL_SYSTEM_WAIT_FLAG"]
 
         _cs = CothreadControlSystem(timeout=ccs_timeout, wait=ccs_wait)
         try:
@@ -192,8 +192,8 @@ class Lattice:
 
     def _load_b2q_q2b(self):
         """"""
-        _Q2B_special_cases = self.config._config["QUAD2BPM_SPECIAL_CASES"]
-        _B2Q_special_cases = self.config._config["BPM2QUAD_SPECIAL_CASES"]
+        _Q2B_special_cases = self.config["QUAD2BPM_SPECIAL_CASES"]
+        _B2Q_special_cases = self.config["BPM2QUAD_SPECIAL_CASES"]
 
         self._bpms_s = self._lattice.get_family_s("BPM")
         self._quads_s = self._lattice.get_family_s("quadrupole")
@@ -312,7 +312,7 @@ class Lattice:
 
     def _get_effective_corrector(self):
         """"""
-        orm_filepath = self.config._config["ORBIT_RESPONSE_MATRIX_PATH"]
+        orm_filepath = self.config["ORBIT_RESPONSE_MATRIX_PATH"]
 
         if not os.path.exists(orm_filepath):
             message = f"Response Matrix does not exist at: {orm_filepath}"
@@ -334,9 +334,9 @@ class Lattice:
 
     def corrector_kick(self, component: Components) -> float:
         """PV ONLY"""
-        radian_kick = self.config._config["CORRECTOR_KICK_RADIANS"]
+        radian_kick = self.config["CORRECTOR_KICK_RADIANS"]
 
-        if str(self.config._config["UNITS"]) == "ENG":
+        if str(self.config["UNITS"]) == "ENG":
             value = component.corrector.get_unitconv(component.kick).convert(
                 radian_kick, pytac.PHYS, pytac.ENG
             )
@@ -353,8 +353,8 @@ class Lattice:
         log.debug(f"Stored Starting Beam Current: {self._starting_beam_current}")
 
     def check_beam_current(self):
-        warning_current_drop = self.config._config["WARNING_CURRENT_DROP"]
-        critical_current_drop = self.config._config["CRITICAL_CURRENT_DROP"]
+        warning_current_drop = self.config["WARNING_CURRENT_DROP"]
+        critical_current_drop = self.config["CRITICAL_CURRENT_DROP"]
 
         if self._starting_beam_current is None:
             message = "Starting beam current has not been stored."
@@ -402,7 +402,7 @@ class Lattice:
 
     def get_diagnostics(self):
         """"""
-        diagnostics = self.config._config["DIAGNOSTICS"]
+        diagnostics = self.config["DIAGNOSTICS"]
 
         for key, pv in diagnostics.items():
             value = caget(pv)
@@ -412,14 +412,14 @@ class Lattice:
 
     def apply_feedbacks(self):
         """"""
-        feedbacks_bool = self.config._config["FEEDBACKS"]
+        feedbacks_bool = self.config["FEEDBACKS"]
         log.debug("Applying feedbacks")
 
         if feedbacks_bool:
-            fofb_trigger = self.config._config["FOFB_NOGUI_PATH"]
-            tune_trigger = self.config._config["FEEDBACK_PVS"]["Tune_Feedback"]
-            waittime = self.config._config["FEEDBACK_WAITTIME"]
-            runtime = self.config._config["FEEDBACK_RUNTIME"]
+            fofb_trigger = self.config["FOFB_NOGUI_PATH"]
+            tune_trigger = self.config["FEEDBACK_PVS"]["Tune_Feedback"]
+            waittime = self.config["FEEDBACK_WAITTIME"]
+            runtime = self.config["FEEDBACK_RUNTIME"]
 
             log.warn("Correcting orbit with FOFB and Tune Feedbacks")
 
@@ -432,8 +432,8 @@ class Lattice:
 
     def check_feedbacks(self):
         """"""
-        max_orbit = self.config._config["MAX_ORBIT_CORRECTION_MICRONS"]
-        feedback_pvs = self.config._config["FEEDBACK_PVS"]
+        max_orbit = self.config["MAX_ORBIT_CORRECTION_MICRONS"]
+        feedback_pvs = self.config["FEEDBACK_PVS"]
 
         for name, pv in feedback_pvs.items():
             if caget(pv) != 0:
@@ -529,7 +529,7 @@ class Lattice:
 
     def calculate_quad_setpoints(self, quadrupole: EpicsElement):
         """"""
-        quad_step_percent = self.config._config["QUADRUPOLE_STEP_PERCENT"]
+        quad_step_percent = self.config["QUADRUPOLE_STEP_PERCENT"]
 
         quad_setpoint = self.get_quad_setpoint(quadrupole)
         quad_step = quad_setpoint * quad_step_percent

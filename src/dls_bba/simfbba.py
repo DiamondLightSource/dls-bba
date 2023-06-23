@@ -29,7 +29,7 @@ class SimFastBBA(Algorithm):
     def run(self, components_pair: list[Components]) -> RawData:
         rawdata = {}
         metadata = {}
-        metadata.update(self._lattice.config._config)
+        metadata.update(self._lattice.config.get_metadata_settings())
         metadata["method"] = "SimFastBBA"
         metadata["isotime"] = get_isotime()
         metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()
