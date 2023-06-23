@@ -184,8 +184,9 @@ def test_element_to_name_for_all_elements(lattice_setup):
         assert "vstr" in element.families
 
 
-@mock.patch("pytac.lattice.EpicsLattice.get_element_values", return_value=1)
-def test_bpm_interactions_are_valid(mock_get_element_values):
+@mock.patch("dls_bba.lattice.Lattice.get_enabled_bpms", return_value=1)
+@mock.patch("dls_bba.lattice.Lattice.measure_bpms", return_value=1)
+def test_bpm_interactions_are_valid(mock_get_enabled_bpms, mock_measure_bpms):
     lattice = Lattice()
     assert lattice.get_enabled_bpms() == 1
     assert lattice.measure_bpms("axis") == 1

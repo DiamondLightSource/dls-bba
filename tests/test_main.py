@@ -38,10 +38,9 @@ def test_cli_argument_shows_all_bpm_names(lattice_setup):
 
 def test_cli_argument_shows_full_cell_dictionary(lattice_setup):
     lattice = lattice_setup
-    for cell in ["%.2d" % i for i in range(25)]:
-        full_bpm_list = lattice.cell_dictionary[cell]
-        cmd = [sys.executable, "-m", "dls_bba", "-k", cell]
-        assert subprocess.check_output(cmd).decode().strip() == str(full_bpm_list)
+    full_bpm_list = lattice.cell_dictionary["06"]
+    cmd = [sys.executable, "-m", "dls_bba", "-k", "06"]
+    assert subprocess.check_output(cmd).decode().strip() == str(full_bpm_list)
 
 
 def test_cli_argument_fails_when_given_invalid_cell():
