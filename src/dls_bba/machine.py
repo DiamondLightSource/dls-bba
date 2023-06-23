@@ -109,7 +109,7 @@ class Machine:
         self._load_b2q_q2b()
         self.slow_correctors = self._get_slow_correctors()
         self._get_effective_corrector()
-        log.debug("Lattice Loaded")
+        log.debug("Machine Loaded")
 
     def _setup_pytac_lattice(self):
         """"""

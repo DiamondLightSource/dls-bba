@@ -35,7 +35,7 @@ class MainWindow(QMainWindow):
         machine = Machine()
         self.setup_main_window(machine)
 
-    def setup_main_window(self, lattice):
+    def setup_main_window(self, machine):
         # Methods
         self.box_method.addItems(ALGORITHMS.keys())
         self.box_method.setCurrentText(list(ALGORITHMS.keys())[0])
