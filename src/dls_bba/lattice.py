@@ -171,6 +171,7 @@ class Lattice:
         self.bba_y_pvs = [
             name + ORIGIN_SUFFIXES["BBA"].format(axis="Y") for name in self.bpms_names
         ]
+        self._starting_beam_current = None
 
     def _load_cell_dictionary_and_psps(self):
         """"""
@@ -375,7 +376,7 @@ class Lattice:
             log.error(message)
             while True:
                 resp_message = "Input y to continue after top-up, or n to cancel: "
-                response = input(resp_message).lower().strip()
+                response = self._ask_user(resp_message)
                 if response == "n":
                     message = "User cancelled BBA: Due to beam current drop."
                     log.critical(message)
@@ -393,6 +394,11 @@ class Lattice:
             return False
         self._starting_beam_current = None
         return True
+
+    def _ask_user(self, msg):
+        response = input(msg).lower().strip()
+        log.debug(f"User Response: {response}")
+        return response
 
     def get_diagnostics(self):
         """"""

@@ -7,7 +7,12 @@ import pytest
 
 from dls_bba.components import generate_component_pairings
 from dls_bba.configuration import DEFAULT_CONFIGS
-from dls_bba.exceptions import InvalidNameError, InvalidRingmodeException
+from dls_bba.exceptions import (
+    CheckBeamCurrentException,
+    InvalidNameError,
+    InvalidRingmodeException,
+    LowCurrentError,
+)
 from dls_bba.lattice import Lattice
 
 if sys.version_info > (3, 9):
@@ -23,6 +28,8 @@ extra_dict_invalid_ringmode = {"RINGMODE": "TEST"}
 extra_dict_invalid_orm_path = {
     "ORBIT_RESPONSE_MATRIX_PATH": os.path.join(os.getcwd(), "file.mat")
 }
+extra_dict_critical_drop = {"CRITICAL_CURRENT_DROP": 1, "WARNING_CURRENT_DROP": 1000}
+extra_dict_warning_drop = {"CRITICAL_CURRENT_DROP": 1000, "WARNING_CURRENT_DROP": 1}
 default_config_resources = [
     Path(str(files("dls_bba").joinpath(resource))) for resource in DEFAULT_CONFIGS
 ]
@@ -178,8 +185,8 @@ def test_element_to_name_for_all_elements(lattice_setup):
 
 
 @mock.patch("pytac.lattice.EpicsLattice.get_element_values", return_value=1)
-def test_bpm_interactions(mock_get_element_values, lattice_setup):
-    lattice = lattice_setup
+def test_bpm_interactions(mock_get_element_values):
+    lattice = Lattice()
     assert lattice.get_enabled_bpms() == 1
     assert lattice.measure_bpms("axis") == 1
 
@@ -213,6 +220,53 @@ def test_corrector_kick_phys():
 
 
 @mock.patch("pytac.lattice.Lattice.get_value", return_value=1.0)
-def test_get_beam_current(mock_get_value, lattice_setup):
-    lattice = lattice_setup
+def test_get_beam_current(mock_get_value):
+    lattice = Lattice()
     assert lattice.get_beam_current() == 1.0
+
+
+@mock.patch("pytac.lattice.Lattice.get_value", return_value=1.0)
+def test_store_starting_beam_current(mock_get_value):
+    lattice = Lattice()
+    lattice.store_starting_beam_current()
+    assert lattice._starting_beam_current == 1.0
+
+
+def test_check_beam_current_starting_current_not_stored():
+    lattice = Lattice()
+    with pytest.raises(CheckBeamCurrentException):
+        lattice.check_beam_current()
+
+
+@mock.patch("pytac.lattice.Lattice.get_value", return_value=8.0)
+def test_check_beam_current_beam_dumped(mock_get_value):
+    lattice = Lattice(overrides=extra_dict_critical_drop)
+    lattice._starting_beam_current = 10.0
+    with pytest.raises(LowCurrentError):
+        lattice.check_beam_current()
+
+
+@mock.patch("pytac.lattice.Lattice.get_value", return_value=8.0)
+@mock.patch("dls_bba.lattice.Lattice._ask_user", return_value="n")
+def test_check_beam_current_topup_no(mock_get_value, mock_ask_user):
+    lattice = Lattice(overrides=extra_dict_warning_drop)
+    lattice._starting_beam_current = 10.0
+    with pytest.raises(LowCurrentError):
+        lattice.check_beam_current()
+
+
+@mock.patch("dls_bba.lattice.Lattice.get_beam_current", side_effect=[8.0, 9.1])
+@mock.patch("dls_bba.lattice.Lattice._ask_user", return_value="y")
+def test_check_beam_current_topup_yes(mock_get_beam_current, mock_ask_user):
+    lattice = Lattice(overrides=extra_dict_warning_drop)
+    lattice._starting_beam_current = 10.0
+    assert not lattice.check_beam_current()
+    assert lattice._starting_beam_current is None
+
+
+@mock.patch("pytac.lattice.Lattice.get_value", return_value=1.0)
+def test_check_beam_current(mock_get_value):
+    lattice = Lattice()
+    lattice.store_starting_beam_current()
+    assert lattice.check_beam_current()
+    assert lattice._starting_beam_current is None
