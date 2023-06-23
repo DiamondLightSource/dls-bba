@@ -29,7 +29,7 @@ class SimFastBBA(Algorithm):
     def run(self, components_pair: list[Components]) -> RawData:
         rawdata = {}
         metadata = {}
-        metadata.update(self._lattice._config)
+        metadata.update(self._lattice.config._config)
         metadata["method"] = "SimFastBBA"
         metadata["isotime"] = get_isotime()
         metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()
@@ -89,9 +89,9 @@ class SimFastBBA(Algorithm):
             oscillations = {}
             for index, axis in enumerate(["x", "y"]):
                 frequency_key = f"{components_pair[index].axis.upper()}_FREQUENCY"
-                frequency = self._lattice._config[frequency_key]
+                frequency = metadata[frequency_key]
                 cycles_key = f"{components_pair[index].axis.upper()}_CYCLES"
-                cycles = self._lattice._config[cycles_key]
+                cycles = metadata[cycles_key]
                 oscillations[axis] = Oscillation.from_values(
                     components_pair[index], kick[axis], frequency, cycles
                 )

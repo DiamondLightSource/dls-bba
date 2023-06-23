@@ -36,7 +36,7 @@ LATTICE_SETTINGS = (  # Requires update to lattice and associated components
 
 @dataclass
 class Configuration:
-    config: dict[str, Any] = field(default_factory=dict)
+    _config: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_configuration_files(cls, paths: Optional[List[Union[Path, str]]] = None):
@@ -56,7 +56,7 @@ class Configuration:
         self.apply_config_files(default_config_resources)
 
     def update_config(self, new_dictionary: dict) -> bool:
-        self.config.update(new_dictionary)
+        self._config.update(new_dictionary)
         return any(key in new_dictionary for key in LATTICE_SETTINGS)
 
     def apply_config_files(self, paths: List[Union[Path, str]]) -> bool:

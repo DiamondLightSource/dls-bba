@@ -29,7 +29,7 @@ class FastBBA(Algorithm):
     def run(self, components_pair: list[Components]) -> RawData:
         rawdata = {}
         metadata = {}
-        metadata.update(self._lattice._config)
+        metadata.update(self._lattice.config._config)
         metadata["method"] = "FastBBA"
         metadata["isotime"] = get_isotime()
         metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()
@@ -76,9 +76,9 @@ class FastBBA(Algorithm):
 
                 # Setup Oscillations
                 frequency_key = f"{components.axis.upper()}_FREQUENCY"
-                frequency = self._lattice._config[frequency_key]
+                frequency = metadata[frequency_key]
                 cycles_key = f"{components.axis.upper()}_CYCLES"
-                cycles = self._lattice._config[cycles_key]
+                cycles = metadata[cycles_key]
                 osc = Oscillation.from_values(components, corr_kick, frequency, cycles)
 
                 quad_lag_s = (quad_sp - quad_low) / QUAD_SLEW_RATE

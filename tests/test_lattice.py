@@ -61,21 +61,21 @@ def test_lattice_construction_is_valid_with_new_additional_args():
     lattice = Lattice(overrides=extra_dict_new_key)
     key = list(extra_dict_new_key.keys())[0]
     value = extra_dict_new_key[key]
-    assert lattice._config.config[key] == value
+    assert lattice._config._config[key] == value
 
 
 def test_lattice_construction_is_valid_with_additional_args():
     lattice = Lattice(overrides=extra_dict_no_reload)
     key = list(extra_dict_no_reload.keys())[0]
     value = extra_dict_no_reload[key]
-    assert lattice._config.config[key] == value
+    assert lattice._config._config[key] == value
 
 
 def test_lattice_construction_is_valid_with_additional_args_that_require_reload():
     lattice = Lattice(overrides=extra_dict_with_reload)
     key = list(extra_dict_with_reload.keys())[0]
     value = extra_dict_with_reload[key]
-    assert lattice._config.config[key] == value
+    assert lattice._config._config[key] == value
     assert lattice._lattice.get_default_units()[:4] in value.lower()
 
 
@@ -84,7 +84,7 @@ def test_lattice_can_be_updated_with_additional_args():
     lattice._update_config(dct=extra_dict_no_reload)
     key = list(extra_dict_no_reload.keys())[0]
     value = extra_dict_no_reload[key]
-    assert lattice._config.config[key] == value
+    assert lattice._config._config[key] == value
 
 
 def test_lattice_can_be_updated_with_additional_args_that_require_reload():
@@ -92,7 +92,7 @@ def test_lattice_can_be_updated_with_additional_args_that_require_reload():
     lattice._update_config(dct=extra_dict_with_reload)
     key = list(extra_dict_with_reload.keys())[0]
     value = extra_dict_with_reload[key]
-    assert lattice._config.config[key] == value
+    assert lattice._config._config[key] == value
     assert lattice._lattice.get_default_units()[:4] in value.lower()
 
 
