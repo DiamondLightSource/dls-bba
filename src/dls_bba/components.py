@@ -10,7 +10,7 @@ from pytac.element import EpicsElement
 from dls_bba.exceptions import ComponentConstructionError, ElementDisabledError
 
 if TYPE_CHECKING:
-    from dls_bba.lattice import Lattice
+    from dls_bba.machine import Lattice
 
 
 @dataclass

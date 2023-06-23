@@ -7,7 +7,7 @@ from dls_bba.algorithm import Algorithm
 from dls_bba.components import Components
 from dls_bba.datatypes import RawData, Results
 from dls_bba.isotime import get_isotime
-from dls_bba.lattice import Lattice
+from dls_bba.machine import Lattice
 
 
 class SlowBBA(Algorithm):

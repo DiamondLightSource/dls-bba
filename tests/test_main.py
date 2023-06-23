@@ -5,7 +5,7 @@ import sys
 import pytest
 
 from dls_bba import __version__
-from dls_bba.lattice import Lattice
+from dls_bba.machine import Lattice
 
 
 @pytest.fixture(scope="module")

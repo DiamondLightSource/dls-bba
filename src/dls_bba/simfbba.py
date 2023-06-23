@@ -16,7 +16,7 @@ from dls_bba.excite import (
 )
 from dls_bba.faa import TICKS_PER_SECOND, Buffer, get_timestamp
 from dls_bba.isotime import get_isotime
-from dls_bba.lattice import Lattice
+from dls_bba.machine import Lattice
 
 # To convert from nanometers to millimeters
 NM_TO_MM_UNIT_CONV = 1000000

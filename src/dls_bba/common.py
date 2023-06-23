@@ -6,8 +6,8 @@ from dls_bba.components import Components
 from dls_bba.excite import cancel_all_oscillations
 from dls_bba.fbba import FastBBA
 from dls_bba.isotime import get_isotime
-from dls_bba.lattice import Lattice
 from dls_bba.logger import get_new_logger
+from dls_bba.machine import Lattice
 from dls_bba.sbba import SlowBBA
 from dls_bba.simfbba import SimFastBBA
 

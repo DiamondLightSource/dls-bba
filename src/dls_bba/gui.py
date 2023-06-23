@@ -12,7 +12,7 @@ from PyQt6 import uic  # noqa: E402
 from PyQt6.QtWidgets import QMainWindow  # noqa: E402
 
 from dls_bba.common import ALGORITHMS  # noqa: E402
-from dls_bba.lattice import Lattice  # noqa: E402
+from dls_bba.machine import Lattice  # noqa: E402
 
 _qapp = cothread.iqt()
 

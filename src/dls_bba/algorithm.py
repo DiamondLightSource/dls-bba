@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 from dls_bba.components import Components
 from dls_bba.datatypes import RawData, Results
-from dls_bba.lattice import Lattice
+from dls_bba.machine import Lattice
 
 
 class Algorithm(ABC):

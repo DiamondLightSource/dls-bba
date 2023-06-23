@@ -5,7 +5,7 @@ from typing import Any, Optional
 import numpy as np
 import scipy.io as io
 
-from dls_bba.lattice import ORIGIN_SUFFIXES
+from dls_bba.machine import ORIGIN_SUFFIXES
 
 
 @dataclass

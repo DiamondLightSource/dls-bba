@@ -13,7 +13,7 @@ from dls_bba.exceptions import (
     InvalidRingmodeError,
     LowCurrentError,
 )
-from dls_bba.lattice import Lattice
+from dls_bba.machine import Lattice
 
 if sys.version_info > (3, 9):
     from importlib.resources import files
@@ -184,8 +184,8 @@ def test_element_to_name_for_all_elements(lattice_setup):
         assert "vstr" in element.families
 
 
-@mock.patch("dls_bba.lattice.Lattice.get_enabled_bpms", return_value=1)
-@mock.patch("dls_bba.lattice.Lattice.measure_bpms", return_value=1)
+@mock.patch("dls_bba.machine.Lattice.get_enabled_bpms", return_value=1)
+@mock.patch("dls_bba.machine.Lattice.measure_bpms", return_value=1)
 def test_bpm_interactions_are_valid(mock_get_enabled_bpms, mock_measure_bpms):
     lattice = Lattice()
     assert lattice.get_enabled_bpms() == 1
@@ -248,7 +248,7 @@ def test_check_beam_current_raises_error_when_beam_dumped(mock_get_value):
 
 
 @mock.patch("pytac.lattice.Lattice.get_value", return_value=8.0)
-@mock.patch("dls_bba.lattice.Lattice._ask_user", return_value="n")
+@mock.patch("dls_bba.machine.Lattice._ask_user", return_value="n")
 def test_check_beam_current_raises_error_when_topup_prompt_response_is_no(
     mock_get_value, mock_ask_user
 ):
@@ -258,8 +258,8 @@ def test_check_beam_current_raises_error_when_topup_prompt_response_is_no(
         lattice.check_beam_current()
 
 
-@mock.patch("dls_bba.lattice.Lattice.get_beam_current", side_effect=[8.0, 9.1])
-@mock.patch("dls_bba.lattice.Lattice._ask_user", return_value="y")
+@mock.patch("dls_bba.machine.Lattice.get_beam_current", side_effect=[8.0, 9.1])
+@mock.patch("dls_bba.machine.Lattice._ask_user", return_value="y")
 def test_check_beam_current_returns_false_when_topup_prompt_response_is_yes(
     mock_get_beam_current, mock_ask_user
 ):

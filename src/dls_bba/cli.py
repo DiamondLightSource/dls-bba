@@ -4,7 +4,7 @@ from dls_bba.algorithm import Algorithm
 from dls_bba.common import ALGORITHMS, setup_beam_based_alignment, setup_folders
 from dls_bba.components import generate_component_pairings, verify_component_pairing
 from dls_bba.datatypes import Results
-from dls_bba.lattice import Lattice
+from dls_bba.machine import Lattice
 
 # import matplotlib
 # import matplotlib.pyplot as plt
