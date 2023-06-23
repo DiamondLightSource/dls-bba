@@ -22,6 +22,12 @@ class ComponentConstructionError(Exception):
     pass
 
 
+class FastAcquisitionDataError(Exception):
+    """Insufficient data received from FA archiver."""
+
+    pass
+
+
 class FeedbacksActiveException(Exception):
     """Raised with one or more feedback systems are active unexpectedly."""
 
