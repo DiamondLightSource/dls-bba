@@ -5,12 +5,12 @@ import sys
 import pytest
 
 from dls_bba import __version__
-from dls_bba.machine import Lattice
+from dls_bba.machine import Machine
 
 
 @pytest.fixture(scope="module")
 def lattice_setup():
-    lattice = Lattice()
+    lattice = Machine()
     return lattice
 
 

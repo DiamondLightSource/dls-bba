@@ -10,7 +10,7 @@ from pytac.element import EpicsElement
 from dls_bba.exceptions import ComponentConstructionError, ElementDisabledError
 
 if TYPE_CHECKING:
-    from dls_bba.machine import Lattice
+    from dls_bba.machine import Machine
 
 
 @dataclass
@@ -28,7 +28,7 @@ class Components:
     @classmethod
     def from_name(
         cls,
-        lattice: Lattice,
+        machine: Machine,
         bpm_name: str,
         quadrupoles_names: list[str],
         corrector_name: str,
@@ -36,9 +36,9 @@ class Components:
         kick: str,
     ):
         bpm, quadrupoles, corrector = Components.name_to_element(
-            lattice, bpm_name, quadrupoles_names, corrector_name
+            machine, bpm_name, quadrupoles_names, corrector_name
         )
-        bpm_index = lattice.bpms_names.index(bpm_name)
+        bpm_index = machine.bpms_names.index(bpm_name)
 
         return cls(
             bpm_name,
@@ -53,7 +53,7 @@ class Components:
         )
 
     @classmethod
-    def from_dict(cls, lattice: Lattice, dct: dict):
+    def from_dict(cls, machine: Machine, dct: dict):
         # recreate the object from the dict, with elements and names
         bpm_name = dct["bpm_name"]
         quadrupoles_names = list(dct["quadrupoles_names"])
@@ -62,7 +62,7 @@ class Components:
         kick = dct["kick"]
 
         return cls.from_name(
-            lattice,
+            machine,
             bpm_name,
             quadrupoles_names,
             corrector_name,
@@ -72,20 +72,20 @@ class Components:
 
     @staticmethod
     def name_to_element(
-        lattice: Lattice,
+        machine: Machine,
         bpm_name: str,
         quadrupoles_names: list[str],
         corrector_name: str,
     ):
-        bpm = lattice.bpms[lattice.bpms_names.index(bpm_name)]
+        bpm = machine.bpms[machine.bpms_names.index(bpm_name)]
         quadrupoles = [
-            lattice.quads[lattice.quads_names.index(quad_name)]
+            machine.quads[machine.quads_names.index(quad_name)]
             for quad_name in quadrupoles_names
         ]
         if "-PC-H" in corrector_name:
-            corrector = lattice.hstrs[lattice.hstrs_names.index(corrector_name)]
+            corrector = machine.hstrs[machine.hstrs_names.index(corrector_name)]
         else:
-            corrector = lattice.vstrs[lattice.vstrs_names.index(corrector_name)]
+            corrector = machine.vstrs[machine.vstrs_names.index(corrector_name)]
         return bpm, quadrupoles, corrector
 
     def as_dict(self):
@@ -99,41 +99,41 @@ class Components:
 
 
 def generate_component_pairings(
-    lattice: Lattice, element_name: str
+    machine: Machine, element_name: str
 ) -> list[Components]:
     """Can accept either bpm or quad name."""
-    if element_name in lattice.bpms_names:
+    if element_name in machine.bpms_names:
         bpm = element_name
-        quads = lattice.bpm2quad(bpm)
-    elif element_name in lattice.quads_names:
+        quads = machine.bpm2quad(bpm)
+    elif element_name in machine.quads_names:
         quad = element_name
-        bpm = lattice.quad2bpm(quad)
+        bpm = machine.quad2bpm(quad)
         quads = [quad]
     else:
         message = f"Element {element_name} does not correspond to quadrupole or BPM"
         log.critical(message)
         raise ComponentConstructionError(message)
 
-    hor_corr, ver_corr = lattice.effective_correctors(bpm)
+    hor_corr, ver_corr = machine.effective_correctors(bpm)
     horizontal_components = Components.from_name(
-        lattice, bpm, quads, hor_corr, "x", "x_kick"
+        machine, bpm, quads, hor_corr, "x", "x_kick"
     )
     vertical_components = Components.from_name(
-        lattice, bpm, quads, ver_corr, "y", "y_kick"
+        machine, bpm, quads, ver_corr, "y", "y_kick"
     )
     return [horizontal_components, vertical_components]
 
 
 def verify_component_pairing(
-    lattice: Lattice, component_pairings: list[list[Components]]
+    machine: Machine, component_pairings: list[list[Components]]
 ) -> list[list[Components]]:
     checked_pairings = []
 
-    disabled_bpms_indices = np.nonzero(np.logical_not(lattice.get_enabled_bpms()))[
+    disabled_bpms_indices = np.nonzero(np.logical_not(machine.get_enabled_bpms()))[
         0
     ].tolist()
-    disabled_fofb_bpm_indices_x = np.nonzero(lattice.fofb_disabled["x"])[0].tolist()
-    disabled_fofb_bpm_indices_y = np.nonzero(lattice.fofb_disabled["y"])[0].tolist()
+    disabled_fofb_bpm_indices_x = np.nonzero(machine.fofb_disabled["x"])[0].tolist()
+    disabled_fofb_bpm_indices_y = np.nonzero(machine.fofb_disabled["y"])[0].tolist()
     disabled_fofb_indices = disabled_fofb_bpm_indices_x + disabled_fofb_bpm_indices_y
 
     for component_pair in component_pairings:

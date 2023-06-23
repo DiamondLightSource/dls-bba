@@ -4,7 +4,7 @@ from dls_bba.algorithm import Algorithm
 from dls_bba.common import ALGORITHMS, setup_beam_based_alignment, setup_folders
 from dls_bba.components import generate_component_pairings, verify_component_pairing
 from dls_bba.datatypes import Results
-from dls_bba.machine import Lattice
+from dls_bba.machine import Machine
 
 # import matplotlib
 # import matplotlib.pyplot as plt
@@ -18,8 +18,8 @@ def cli_show_bpm_options(
     additional_options: dict[str, Any],
 ):
     """"""
-    lattice = Lattice(extra_config_files, additional_options)
-    print(lattice.bpms_names)
+    machine = Machine(extra_config_files, additional_options)
+    print(machine.bpms_names)
 
 
 def cli_show_cell_options(
@@ -28,11 +28,11 @@ def cli_show_cell_options(
     additional_options: dict[str, Any],
 ):
     """"""
-    lattice = Lattice(extra_config_files, additional_options)
-    if cell_number not in lattice.cell_dictionary.keys():
+    machine = Machine(extra_config_files, additional_options)
+    if cell_number not in machine.cell_dictionary.keys():
         print("Invalid cell selected. Try cells '00' to '24'")
     else:
-        print(lattice.cell_dictionary[cell_number])
+        print(machine.cell_dictionary[cell_number])
 
 
 def cli_entrypoint(
@@ -45,19 +45,19 @@ def cli_entrypoint(
     """"""
     save_location = setup_folders(method, folder_path)
 
-    lattice = Lattice(extra_config_files, additional_options)
+    machine = Machine(extra_config_files, additional_options)
 
     # TODO: Can be moved inside setup_beam_based_alignment.
     # Currently outside so setup will work with multiple component pairs.
-    unverified_component_pairings = [generate_component_pairings(lattice, element)]
+    unverified_component_pairings = [generate_component_pairings(machine, element)]
     components_pair_list = verify_component_pairing(
-        lattice, unverified_component_pairings
+        machine, unverified_component_pairings
     )
 
     # Argparse stops invalid methods being selected.
-    algorithm: Algorithm = ALGORITHMS[method](lattice)
+    algorithm: Algorithm = ALGORITHMS[method](machine)
 
-    setup_beam_based_alignment(lattice, algorithm, components_pair_list, save_location)
+    setup_beam_based_alignment(machine, algorithm, components_pair_list, save_location)
 
 
 def cli_quadcenter_plot(file_path: str):

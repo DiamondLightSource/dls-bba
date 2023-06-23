@@ -50,29 +50,29 @@ class Oscillation:
         return cls(amplitude, plane, frequency, cycles, dwell, count, delta, duration)
 
 
-def get_corrector_table(lattice):
-    correctors_txt = lattice.config["CORRECTORS_TXT_PATH"]
+def get_corrector_table(machine):
+    correctors_txt = machine.config["CORRECTORS_TXT_PATH"]
     with open(correctors_txt, "r", encoding="utf8", newline="") as file:
         data = np.genfromtxt(file, names=True, dtype=None, encoding="UTF-8")
     return data
 
 
-def get_fofb_corrector(lattice, components: Components):
+def get_fofb_corrector(machine, components: Components):
     """Create FofbCorrector tuple from pytac element."""
-    table = get_corrector_table(lattice)
+    table = get_corrector_table(machine)
     name = components.corrector_name
     # Corrector table indices start from 1
     index = int(table["epics"].tolist().index(name)) + 1
     ioc = table["ioc"][index]
     fofb_index = int(table["farow"][index])
-    slow = 1 if name in lattice.slow_correctors else 0
+    slow = 1 if name in machine.slow_correctors else 0
     return FofbCorrector(index, ioc, fofb_index, slow)
 
 
 class Excitation(object):
     """An excitation performed on a corrector."""
 
-    def __init__(self, lattice, components, oscillation, start_time):
+    def __init__(self, machine, components, oscillation, start_time):
         self.corrector = components.corrector
         self.oscillation = oscillation
         self.start_time = start_time

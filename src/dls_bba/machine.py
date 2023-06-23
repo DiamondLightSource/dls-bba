@@ -64,7 +64,7 @@ def _retry_command(num_tries, excp_type):
     return retry_outer
 
 
-class Lattice:
+class Machine:
     """"""
 
     def __init__(
