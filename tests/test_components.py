@@ -11,7 +11,7 @@ def lattice_setup():
     return lattice
 
 
-def test_component_name_to_element_single(lattice_setup):
+def test_name_to_element_generates_valid_elements_with_single_element(lattice_setup):
     lattice = lattice_setup
     bpm_name = lattice.bpms_names[0]
     quad_name = [lattice.quads_names[0]]
@@ -25,7 +25,7 @@ def test_component_name_to_element_single(lattice_setup):
     assert corr.get_device("x_kick").name == corrector_name
 
 
-def test_component_name_to_element_double(lattice_setup):
+def test_name_to_element_generates_valid_elements_with_double_elements(lattice_setup):
     lattice = lattice_setup
     bpm_name = lattice.bpms_names[0]
     quad_name = [lattice.quads_names[0], lattice.quads_names[1]]
@@ -40,7 +40,7 @@ def test_component_name_to_element_double(lattice_setup):
     assert corr.get_device("y_kick").name == corrector_name
 
 
-def test_component_from_name(lattice_setup):
+def test_component_construction_from_element_names_is_valid(lattice_setup):
     bpm_number = 0
     axis = "x"
     kick = "x_kick"
@@ -58,7 +58,7 @@ def test_component_from_name(lattice_setup):
     assert component.corrector.get_device(kick).name == corrector_name
 
 
-def test_component_as_dict(lattice_setup):
+def test_component_conversion_to_dictionary_is_valid(lattice_setup):
     bpm_number = 0
     axis = "x"
     kick = "x_kick"
@@ -79,7 +79,7 @@ def test_component_as_dict(lattice_setup):
     assert component_dictionary["kick"] == kick
 
 
-def test_component_from_dict(lattice_setup):
+def test_component_construction_from_dictionary_is_valid(lattice_setup):
     bpm_number = 0
     axis = "x"
     kick = "x_kick"
@@ -102,7 +102,7 @@ def test_component_from_dict(lattice_setup):
     assert new_component.kick == component.kick
 
 
-def test_generator_component_pairings_bpm_single(lattice_setup):
+def test_component_pairing_generation_is_valid_from_single_bpm(lattice_setup):
     lattice = lattice_setup
     bpm_name = lattice.bpms_names[0]
     components_pair = generate_component_pairings(lattice, bpm_name)
@@ -116,7 +116,7 @@ def test_generator_component_pairings_bpm_single(lattice_setup):
     assert component_y.kick == "y_kick"
 
 
-def test_generator_component_pairings_bpm_double(lattice_setup):
+def test_component_pairing_generation_is_valid_from_double_bpm(lattice_setup):
     lattice = lattice_setup
     bpm_name = lattice.bpms_names[67]
     components_pair = generate_component_pairings(lattice, bpm_name)
@@ -130,7 +130,7 @@ def test_generator_component_pairings_bpm_double(lattice_setup):
     assert component_y.kick == "y_kick"
 
 
-def test_generator_component_pairings_quadrupole(lattice_setup):
+def test_component_pairing_generation_is_valid_from_quadrupole(lattice_setup):
     lattice = lattice_setup
     quadrupole_name = lattice.quads_names[0]
     components_pair = generate_component_pairings(lattice, quadrupole_name)
@@ -144,7 +144,7 @@ def test_generator_component_pairings_quadrupole(lattice_setup):
     assert component_y.kick == "y_kick"
 
 
-def test_generator_component_parings_invalid_element(lattice_setup):
+def test_component_generation_with_invalid_element_raises_error(lattice_setup):
     lattice = lattice_setup
     corrector_name = lattice.hstrs_names[0]
     with pytest.raises(BBAComponentException):

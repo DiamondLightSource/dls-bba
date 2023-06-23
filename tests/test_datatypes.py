@@ -28,13 +28,13 @@ def results_without_offsets_setup():
     return Results(results, metadata, plotting)
 
 
-def test_rawdata_save(tmp_path, rawdata_setup):
+def test_rawdata_saving_is_valid(tmp_path, rawdata_setup):
     rawdata = rawdata_setup
     rawdata.save(tmp_path)
     assert any(file.endswith("-rawdata.mat") for file in os.listdir(tmp_path))
 
 
-def test_rawdata_save_and_load(tmp_path, rawdata_setup):
+def test_rawdata_construction_from_file_is_valid(tmp_path, rawdata_setup):
     rawdata = rawdata_setup
     rawdata.save(tmp_path)
 
@@ -49,19 +49,23 @@ def test_rawdata_save_and_load(tmp_path, rawdata_setup):
     assert loaded_rawdata.metadata == rawdata.metadata
 
 
-def test_results_construction_without_offsets(results_without_offsets_setup):
+def test_results_object_calculates_offsets_when_not_given(
+    results_without_offsets_setup,
+):
     results = results_without_offsets_setup
     assert results.offsets["results_bpm_name:CF:BBA_X_S"] == results.results["data_x"]
     assert results.offsets["results_bpm_name:CF:BBA_Y_S"] == results.results["data_y"]
 
 
-def test_results_save(tmp_path, results_without_offsets_setup):
+def test_results_saving_is_valid(tmp_path, results_without_offsets_setup):
     results = results_without_offsets_setup
     results.save(tmp_path)
     assert any(file.endswith("-results.mat") for file in os.listdir(tmp_path))
 
 
-def test_results_save_and_load(tmp_path, results_without_offsets_setup):
+def test_results_construction_from_file_is_valid(
+    tmp_path, results_without_offsets_setup
+):
     results = results_without_offsets_setup
     results.save(tmp_path)
 

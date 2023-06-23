@@ -41,37 +41,37 @@ def lattice_setup():
     return lattice
 
 
-def test_lattice_setup():
+def test_lattice_construction_is_valid():
     lattice = Lattice()
     assert isinstance(lattice, Lattice)
 
 
-def test_lattice_additional_file():
+def test_lattice_construction_is_valid_with_additional_files():
     lattice = Lattice(extra_config_files=default_config_resources)
     assert isinstance(lattice, Lattice)
 
 
-def test_lattice_update_additional_file():
+def test_lattice_can_be_updated_with_additional_files():
     lattice = Lattice()
     lattice._update_config(extra_config_files=default_config_resources)
     assert isinstance(lattice, Lattice)
 
 
-def test_lattice_additional_args_new():
+def test_lattice_construction_is_valid_with_new_additional_args():
     lattice = Lattice(overrides=extra_dict_new_key)
     key = list(extra_dict_new_key.keys())[0]
     value = extra_dict_new_key[key]
     assert lattice._config.config[key] == value
 
 
-def test_lattice_additional_args_no_reload():
+def test_lattice_construction_is_valid_with_additional_args():
     lattice = Lattice(overrides=extra_dict_no_reload)
     key = list(extra_dict_no_reload.keys())[0]
     value = extra_dict_no_reload[key]
     assert lattice._config.config[key] == value
 
 
-def test_lattice_additional_args_with_reload():
+def test_lattice_construction_is_valid_with_additional_args_that_require_reload():
     lattice = Lattice(overrides=extra_dict_with_reload)
     key = list(extra_dict_with_reload.keys())[0]
     value = extra_dict_with_reload[key]
@@ -79,7 +79,7 @@ def test_lattice_additional_args_with_reload():
     assert lattice._lattice.get_default_units()[:4] in value.lower()
 
 
-def test_lattice_update_additional_args_no_reload():
+def test_lattice_can_be_updated_with_additional_args():
     lattice = Lattice()
     lattice._update_config(dct=extra_dict_no_reload)
     key = list(extra_dict_no_reload.keys())[0]
@@ -87,7 +87,7 @@ def test_lattice_update_additional_args_no_reload():
     assert lattice._config.config[key] == value
 
 
-def test_lattice_update_additional_args_with_reload():
+def test_lattice_can_be_updated_with_additional_args_that_require_reload():
     lattice = Lattice()
     lattice._update_config(dct=extra_dict_with_reload)
     key = list(extra_dict_with_reload.keys())[0]
@@ -96,7 +96,7 @@ def test_lattice_update_additional_args_with_reload():
     assert lattice._lattice.get_default_units()[:4] in value.lower()
 
 
-def test_pytac_lattice_loaded_config_correctly(lattice_setup):
+def test_pytac_lattice_loaded_config_items_correctly(lattice_setup):
     lattice = lattice_setup
     config = lattice._config.config
     pytac_lattice = lattice._lattice
@@ -105,7 +105,7 @@ def test_pytac_lattice_loaded_config_correctly(lattice_setup):
     assert pytac_lattice.get_default_units()[:3] in config["UNITS"].lower()
 
 
-def test_pytac_lattice_loaded_with_invalid_ringmode():
+def test_pytac_lattice_loading_fails_with_invalid_ringmode():
     with pytest.raises(InvalidRingmodeException):
         Lattice(overrides=extra_dict_invalid_ringmode)
 
@@ -118,7 +118,7 @@ def test_element_and_name_lists_equal_length(lattice_setup):
     assert len(lattice.vstrs) == len(lattice.vstrs_names)
 
 
-def test_bpm2quad(lattice_setup):
+def test_bpm2quad_is_valid(lattice_setup):
     lattice = lattice_setup
     exceptions = lattice._config.config["BPM2QUAD_EXCEPTIONS"]
     for bpm_name_1 in lattice.bpms_names:
@@ -139,13 +139,13 @@ def test_bpm2quad(lattice_setup):
                 assert False
 
 
-def test_bpm2quad_invalid_bpm(lattice_setup):
+def test_bpm2quad_fails_with_invalid_bpm(lattice_setup):
     lattice = lattice_setup
     with pytest.raises(InvalidNameError):
         lattice.bpm2quad("INVALID_BPM")
 
 
-def test_quad2bpm(lattice_setup):
+def test_quad2bpm_is_valid(lattice_setup):
     lattice = lattice_setup
     exceptions = lattice._config.config["QUAD2BPM_EXCEPTIONS"]
 
@@ -162,7 +162,7 @@ def test_quad2bpm(lattice_setup):
                 assert False
 
 
-def test_quad2bpm_invalid_quad(lattice_setup):
+def test_quad2bpm_fails_with_invalid_quad(lattice_setup):
     lattice = lattice_setup
     with pytest.raises(InvalidNameError):
         lattice.quad2bpm("INVALID_QUADRUPOLE")
@@ -185,25 +185,25 @@ def test_element_to_name_for_all_elements(lattice_setup):
 
 
 @mock.patch("pytac.lattice.EpicsLattice.get_element_values", return_value=1)
-def test_bpm_interactions(mock_get_element_values):
+def test_bpm_interactions_are_valid(mock_get_element_values):
     lattice = Lattice()
     assert lattice.get_enabled_bpms() == 1
     assert lattice.measure_bpms("axis") == 1
 
 
-def test_get_element_from_name_invalid_name(lattice_setup):
+def test_get_element_from_name_fails_with_invalid_name(lattice_setup):
     lattice = lattice_setup
     with pytest.raises(NotImplementedError):
         lattice.get_element_from_name("INVALID_NAME")
 
 
-def test_invalid_orm_file_path():
+def test_update_config_fails_with_invalid_orm_file_path():
     lattice = Lattice()
     with pytest.raises(FileNotFoundError):
         lattice._update_config(dct=extra_dict_invalid_orm_path)
 
 
-def test_corrector_kick_eng(lattice_setup):
+def test_corrector_kick_valid_with_eng_units(lattice_setup):
     lattice = lattice_setup
     bpm_name = lattice.bpms_names[0]
     components_pair = generate_component_pairings(lattice, bpm_name)
@@ -211,7 +211,7 @@ def test_corrector_kick_eng(lattice_setup):
     assert lattice._lattice.get_default_units()[:3] == "eng"
 
 
-def test_corrector_kick_phys():
+def test_corrector_kick_valid_with_phys_units():
     lattice = Lattice(overrides=extra_dict_with_reload)
     bpm_name = lattice.bpms_names[0]
     components_pair = generate_component_pairings(lattice, bpm_name)
@@ -220,26 +220,26 @@ def test_corrector_kick_phys():
 
 
 @mock.patch("pytac.lattice.Lattice.get_value", return_value=1.0)
-def test_get_beam_current(mock_get_value):
+def test_get_beam_current_valid(mock_get_value):
     lattice = Lattice()
     assert lattice.get_beam_current() == 1.0
 
 
 @mock.patch("pytac.lattice.Lattice.get_value", return_value=1.0)
-def test_store_starting_beam_current(mock_get_value):
+def test_store_starting_beam_current_is_stored_correctly(mock_get_value):
     lattice = Lattice()
     lattice.store_starting_beam_current()
     assert lattice._starting_beam_current == 1.0
 
 
-def test_check_beam_current_starting_current_not_stored():
+def test_check_beam_current_fails_when_starting_current_not_stored():
     lattice = Lattice()
     with pytest.raises(CheckBeamCurrentException):
         lattice.check_beam_current()
 
 
 @mock.patch("pytac.lattice.Lattice.get_value", return_value=8.0)
-def test_check_beam_current_beam_dumped(mock_get_value):
+def test_check_beam_current_raises_error_when_beam_dumped(mock_get_value):
     lattice = Lattice(overrides=extra_dict_critical_drop)
     lattice._starting_beam_current = 10.0
     with pytest.raises(LowCurrentError):
@@ -248,7 +248,9 @@ def test_check_beam_current_beam_dumped(mock_get_value):
 
 @mock.patch("pytac.lattice.Lattice.get_value", return_value=8.0)
 @mock.patch("dls_bba.lattice.Lattice._ask_user", return_value="n")
-def test_check_beam_current_topup_no(mock_get_value, mock_ask_user):
+def test_check_beam_current_raises_error_when_topup_prompt_response_is_no(
+    mock_get_value, mock_ask_user
+):
     lattice = Lattice(overrides=extra_dict_warning_drop)
     lattice._starting_beam_current = 10.0
     with pytest.raises(LowCurrentError):
@@ -257,7 +259,9 @@ def test_check_beam_current_topup_no(mock_get_value, mock_ask_user):
 
 @mock.patch("dls_bba.lattice.Lattice.get_beam_current", side_effect=[8.0, 9.1])
 @mock.patch("dls_bba.lattice.Lattice._ask_user", return_value="y")
-def test_check_beam_current_topup_yes(mock_get_beam_current, mock_ask_user):
+def test_check_beam_current_returns_false_when_topup_prompt_response_is_yes(
+    mock_get_beam_current, mock_ask_user
+):
     lattice = Lattice(overrides=extra_dict_warning_drop)
     lattice._starting_beam_current = 10.0
     assert not lattice.check_beam_current()
@@ -265,7 +269,7 @@ def test_check_beam_current_topup_yes(mock_get_beam_current, mock_ask_user):
 
 
 @mock.patch("pytac.lattice.Lattice.get_value", return_value=1.0)
-def test_check_beam_current(mock_get_value):
+def test_check_beam_current_returns_true_when_valid(mock_get_value):
     lattice = Lattice()
     lattice.store_starting_beam_current()
     assert lattice.check_beam_current()
