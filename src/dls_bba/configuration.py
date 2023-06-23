@@ -1,5 +1,4 @@
 import sys
-from dataclasses import dataclass, field
 from json import load
 from pathlib import Path
 from typing import Any, List, Optional, Union
