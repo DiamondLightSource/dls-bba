@@ -71,5 +71,5 @@ class Configuration:
                     reload_lattice = True
         return reload_lattice
 
-    def get_metadata_settings(self):
+    def get_settings(self):
         return deepcopy(self._config)

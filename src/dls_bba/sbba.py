@@ -17,7 +17,8 @@ class SlowBBA(Algorithm):
     def run(self, components_pair: list[Components]) -> RawData:
         rawdata = {}
         metadata = {}
-        metadata.update(self._lattice.config.get_metadata_settings())
+        config = self._lattice.config.get_settings()
+        metadata.update(config)
         metadata["method"] = "SlowBBA"
         metadata["isotime"] = get_isotime()
         metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()

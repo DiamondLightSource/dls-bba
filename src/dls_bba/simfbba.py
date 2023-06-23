@@ -29,13 +29,14 @@ class SimFastBBA(Algorithm):
     def run(self, components_pair: list[Components]) -> RawData:
         rawdata = {}
         metadata = {}
-        metadata.update(self._lattice.config.get_metadata_settings())
+        config = self._lattice.config.get_settings()
+        metadata.update(config)
         metadata["method"] = "SimFastBBA"
         metadata["isotime"] = get_isotime()
         metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()
         metadata["bpm_name"] = components_pair[0].bpm_name
         metadata["bpm_index"] = components_pair[0].bpm_index
-        decimated = metadata["DECIMATED"]
+        decimated = config["DECIMATED"]
 
         for quadrupole, quad_name in zip(
             components_pair[0].quadrupoles, components_pair[0].quadrupoles_names
@@ -89,9 +90,9 @@ class SimFastBBA(Algorithm):
             oscillations = {}
             for index, axis in enumerate(["x", "y"]):
                 frequency_key = f"{components_pair[index].axis.upper()}_FREQUENCY"
-                frequency = metadata[frequency_key]
+                frequency = config[frequency_key]
                 cycles_key = f"{components_pair[index].axis.upper()}_CYCLES"
-                cycles = metadata[cycles_key]
+                cycles = config[cycles_key]
                 oscillations[axis] = Oscillation.from_values(
                     components_pair[index], kick[axis], frequency, cycles
                 )
