@@ -1,47 +1,41 @@
-class BBAComponentException(Exception):
-    """Raised when an invalid PV is given."""
-
-    pass
-
-
-class BeamPositionMonitorCAException(Exception):
-    """Raised when a CA error occurs upon connecting to a BPM."""
-
-    pass
-
-
-class CheckBeamCurrentException(Exception):
-    """Raised when check_beam_current is used incorrectly."""
-
-    pass
-
-
-class DisabledBPMException(Exception):
-    """Raised when a disabled BPM is selected."""
-
-    pass
-
-
-class FeedbacksActiveException(Exception):
+class ActiveFeedbacksError(Exception):
     """Raised with one or more feedback systems are active unexpectedly."""
 
     pass
 
 
-class InvalidConfigException(Exception):
-    """Raised when an expected key does not exist in the config file."""
+class ChannelAccessError(Exception):
+    """Raised when a CA error occurs upon connecting to a BPM."""
 
     pass
 
 
-class InvalidRingmodeException(Exception):
-    """Raised when a pytac tries to load an invalid ringmode."""
+class CheckBeamCurrentError(Exception):
+    """Raised when check_beam_current is used incorrectly."""
 
     pass
 
 
-class InvalidNameError(Exception):
+class ComponentConstructionError(Exception):
+    """Raised when an invalid PV is given."""
+
+    pass
+
+
+class ElementDisabledError(Exception):
+    """Raised when a disabled element is selected."""
+
+    pass
+
+
+class InvalidElementError(Exception):
     """Raised when a non existant element name is used."""
+
+    pass
+
+
+class InvalidRingmodeError(Exception):
+    """Raised when a pytac tries to load an invalid ringmode."""
 
     pass
 

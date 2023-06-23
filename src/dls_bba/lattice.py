@@ -21,11 +21,11 @@ from scipy.io import loadmat
 from dls_bba.components import Components
 from dls_bba.configuration import Configuration
 from dls_bba.exceptions import (
-    BeamPositionMonitorCAException,
-    CheckBeamCurrentException,
-    FeedbacksActiveException,
-    InvalidNameError,
-    InvalidRingmodeException,
+    ActiveFeedbacksError,
+    ChannelAccessError,
+    CheckBeamCurrentError,
+    InvalidElementError,
+    InvalidRingmodeError,
     LowCurrentError,
 )
 from dls_bba.excite import QUAD_SLEW_RATE
@@ -125,7 +125,7 @@ class Lattice:
         except FileNotFoundError as e:
             message = f"Ringmode: {ringmode} does not exist in pytac."
             log.critical(message)
-            raise InvalidRingmodeException(message, e)
+            raise InvalidRingmodeError(message, e)
 
         self._lattice.set_default_units(eval(units))
         log.info(f"pytac units: {self._lattice.get_default_units()}")
@@ -231,7 +231,7 @@ class Lattice:
         except KeyError:
             msg = f"Invalid quadrupole name provided: {quad}"
             log.critical(msg)
-            raise InvalidNameError(msg)
+            raise InvalidElementError(msg)
 
     def _get_bpm2quad(self, _B2Q_special_cases):
         """"""
@@ -259,14 +259,14 @@ class Lattice:
         else:
             msg = f"Invalid BPM name provided: {bpm}"
             log.critical(msg)
-            raise InvalidNameError(msg)
+            raise InvalidElementError(msg)
 
-    @_retry_command(BPM_RETRIES, BeamPositionMonitorCAException)  # BPM issues (OFL-256)
+    @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
     def get_enabled_bpms(self):
         """"""
         return self._lattice.get_element_values("BPM", "enabled")
 
-    @_retry_command(BPM_RETRIES, BeamPositionMonitorCAException)  # BPM issues (OFL-256)
+    @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
     def measure_bpms(self, axis: str):
         """"""
         return self._lattice.get_element_values("BPM", f"{axis}", pytac.RB)
@@ -359,7 +359,7 @@ class Lattice:
         if self._starting_beam_current is None:
             message = "Starting beam current has not been stored."
             log.critical(message)
-            raise CheckBeamCurrentException(message)
+            raise CheckBeamCurrentError(message)
 
         change_in_current = self._starting_beam_current - self.get_beam_current()
         log.debug(f"Change in beam current: {change_in_current}")
@@ -439,7 +439,7 @@ class Lattice:
             if caget(pv) != 0:
                 message = f"{name} unexpectly running."
                 log.critical(message)
-                raise FeedbacksActiveException(message)
+                raise ActiveFeedbacksError(message)
 
         bpm_values = self.measure_bpms("x") + self.measure_bpms("y")
         enabled_bpms = self.get_enabled_bpms() + self.get_enabled_bpms()
@@ -538,7 +538,7 @@ class Lattice:
         quad_low = quad_setpoint - quad_step
         return quad_start_high, quad_high, quad_low, quad_setpoint
 
-    @_retry_command(BPM_RETRIES, BeamPositionMonitorCAException)  # BPM issues (OFL-256)
+    @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
     def get_bba_offsets(self) -> Tuple[list[float], list[float]]:
         """"""
         current_bba_x = [float(v) for v in caget(self.bba_x_pvs)]
