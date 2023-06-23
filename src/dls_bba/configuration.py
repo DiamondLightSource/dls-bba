@@ -1,5 +1,5 @@
-from copy import deepcopy
 import sys
+from copy import deepcopy
 from json import load
 from pathlib import Path
 from typing import Any, List, Optional, Union
@@ -40,9 +40,6 @@ class Configuration:
 
     def __getitem__(self, key: str):
         return self._config[key]
-
-    # def __setitem__(self, key: str, value):
-    #     self._config[key] = value
 
     @classmethod
     def from_configuration_files(cls, paths: Optional[List[Union[Path, str]]] = None):
