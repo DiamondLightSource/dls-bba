@@ -22,14 +22,6 @@ class ComponentConstructionError(Exception):
     pass
 
 
-class TimestampTooLargeError(Exception):
-    """Raised when the timestamp on the Fast Acquisition Archiver is too large.
-    The maximum timestamp accepted by the corrector magnet power supply IOCs is
-    2 ** 32 - 36259200 (1 hour) = 4258708096 ticks"""
-
-    pass
-
-
 class FeedbacksActiveException(Exception):
     """Raised with one or more feedback systems are active unexpectedly."""
 
@@ -56,5 +48,13 @@ class InvalidRingmodeError(Exception):
 
 class LowCurrentError(Exception):
     """Raised when the current drops below the critical threshold."""
+
+    pass
+
+
+class TimestampTooLargeError(Exception):
+    """Raised when the timestamp on the Fast Acquisition Archiver is too large.
+    The maximum timestamp accepted by the corrector magnet power supply IOCs is
+    2 ** 32 - 36259200 (1 hour) = 4258708096 ticks"""
 
     pass
