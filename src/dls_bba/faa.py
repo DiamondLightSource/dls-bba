@@ -4,7 +4,7 @@ import cothread
 import numpy
 from fa.falib import falib
 
-from dls_bba.exceptions import FAATimestampError
+from dls_bba.exceptions import TimestampTooLargeError
 
 TICKS_PER_SECOND = 10072
 
@@ -24,7 +24,7 @@ def get_timestamp(decimated):
     if timestamp > ioc_rejection_timestamp:
         msg = "Current FAA timestamp too large."
         log.critical(msg)
-        raise FAATimestampError(msg)
+        raise TimestampTooLargeError(msg)
 
     if timestamp > ioc_warning_timestamp:
         msg = (

@@ -22,8 +22,10 @@ class ComponentConstructionError(Exception):
     pass
 
 
-class FAATimestampError(Exception):
-    """Raised when the FAA timestamp is too large to be used."""
+class TimestampTooLargeError(Exception):
+    """Raised when the timestamp on the Fast Acquisition Archiver is too large.
+    The maximum timestamp accepted by the corrector magnet power supply IOCs is
+    2 ** 32 - 36259200 (1 hour) = 4258708096 ticks"""
 
     pass
 
