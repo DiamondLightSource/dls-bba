@@ -1,11 +1,11 @@
 class ActiveFeedbacksError(Exception):
-    """Raised with one or more feedback systems are active unexpectedly."""
+    """Raised when any feedback system is active. Disable to continue."""
 
     pass
 
 
 class ChannelAccessError(Exception):
-    """Raised when a CA error occurs upon connecting to a BPM."""
+    """Raised when a Channel Access error occurs."""
 
     pass
 
@@ -17,7 +17,7 @@ class CheckBeamCurrentError(Exception):
 
 
 class ComponentConstructionError(Exception):
-    """Raised when an invalid PV is given."""
+    """Raised when an invalid element name is given for component construction."""
 
     pass
 
