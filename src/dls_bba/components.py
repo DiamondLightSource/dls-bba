@@ -3,10 +3,11 @@ from __future__ import annotations
 import logging as log
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING
+import numpy as np
 
 from pytac.element import EpicsElement
 
-from dls_bba.exceptions import BBAComponentException
+from dls_bba.exceptions import BBAComponentException, DisabledBPMException
 
 if TYPE_CHECKING:
     from dls_bba.lattice import Lattice
@@ -121,3 +122,46 @@ def generate_component_pairings(
         lattice, bpm, quads, ver_corr, "y", "y_kick"
     )
     return [horizontal_components, vertical_components]
+
+
+def verify_component_pairing(
+    lattice: Lattice, component_pairings: list[list[Components]]
+) -> list[list[Components]]:
+    checked_pairings = []
+
+    disabled_bpms_indices = np.nonzero(np.logical_not(lattice.get_enabled_bpms()))[
+        0
+    ].tolist()
+    disabled_fofb_bpm_indices_x = np.nonzero(lattice.fofb_disabled["x"])[0].tolist()
+    disabled_fofb_bpm_indices_y = np.nonzero(lattice.fofb_disabled["y"])[0].tolist()
+    disabled_fofb_indices = disabled_fofb_bpm_indices_x + disabled_fofb_bpm_indices_y
+
+    for component_pair in component_pairings:
+        try:
+            check_component(
+                component_pair, disabled_bpms_indices, disabled_fofb_indices
+            )
+        except DisabledBPMException:
+            bpm_name = component_pair[0].bpm_name
+            msg = f"BPM {bpm_name} skipped."
+            log.warning(msg)
+        else:
+            checked_pairings.append(component_pair)
+    return checked_pairings
+
+
+def check_component(
+    component_pair: list[Components],
+    disabled_bpm_indices: list[int],
+    disabled_fofb_bpm_indices: list[int],
+):
+    horizontal_component = component_pair[0]
+
+    if horizontal_component.bpm_index in disabled_bpm_indices:
+        msg = f"Cannot run BBA on disabled BPM: {horizontal_component.bpm_name}"
+        log.error(msg)
+        raise DisabledBPMException(msg)
+
+    if horizontal_component.bpm_index in disabled_fofb_bpm_indices:
+        msg = f"BPM: {horizontal_component.bpm_name} is feedback disabled. Results may be invalid."
+        log.warning(msg)

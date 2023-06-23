@@ -3,7 +3,7 @@ from typing import Any
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.common import ALGORITHMS, setup_beam_based_alignment, setup_folders
-from dls_bba.components import generate_component_pairings
+from dls_bba.components import generate_component_pairings, verify_component_pairing
 from dls_bba.datatypes import Results
 from dls_bba.lattice import Lattice
 
@@ -50,7 +50,10 @@ def cli_entrypoint(
 
     # TODO: Can be moved inside setup_beam_based_alignment.
     # Currently outside so setup will work with multiple component pairs.
-    components_pair_list = [generate_component_pairings(lattice, element)]
+    unverified_component_pairings = [generate_component_pairings(lattice, element)]
+    components_pair_list = verify_component_pairing(
+        lattice, unverified_component_pairings
+    )
 
     try:
         algorithm: Algorithm = ALGORITHMS[method](lattice)

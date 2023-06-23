@@ -126,7 +126,7 @@ class SlowBBA(Algorithm):
 
                 # Get rid of bad bpms.
                 for index, _ in enumerate(self._lattice.bpms):
-                    if self._lattice.fofb_enabled[axis][index] == 1:
+                    if self._lattice.fofb_disabled[axis][index] == 1:
                         bad_indices.append(index)
                 log.debug(f"Disabled and bad BPMs: {bad_indices}")
 
