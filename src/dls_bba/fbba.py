@@ -50,7 +50,7 @@ class FastBBA(Algorithm):
                     quad_low,
                     quad_sp,
                     quad_step,
-                ) = self._lattice.calculate_quad_setpoints(quadrupole)
+                ) = self.calculate_quad_setpoints(quadrupole)
 
                 corr_kick = self._lattice.corrector_kick(components)
                 corr_sp = self._lattice.get_corrector_setpoint(components)

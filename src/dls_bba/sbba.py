@@ -37,10 +37,8 @@ class SlowBBA(Algorithm):
                     quad_low,
                     quad_sp,
                     quad_step,
-                ) = self._lattice.calculate_quad_setpoints(quadrupole)
-                corrector_step_list = self._lattice.get_slow_bba_corrector_steps(
-                    components
-                )
+                ) = self.calculate_quad_setpoints(quadrupole)
+                corrector_step_list = self.get_slow_bba_corrector_steps(components)
 
                 # Always overshoot the high quad step and work down and keep direction
                 # consistent to mitigate unwanted hysteresis effects.
