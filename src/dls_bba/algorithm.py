@@ -21,28 +21,26 @@ class Algorithm(ABC):
     def analyse(self, rawdata: RawData) -> Results:
         pass
 
+    def calculate_quad_setpoints(self, quadrupole: EpicsElement):
+        """"""
+        quad_step_percent = self._lattice.config["QUADRUPOLE_STEP_PERCENT"]
 
-def calculate_quad_setpoints(lattice: Lattice, quadrupole: EpicsElement):
-    """"""
-    quad_step_percent = lattice.config["QUADRUPOLE_STEP_PERCENT"]
+        quad_setpoint = self._lattice.get_quad_setpoint(quadrupole)
+        quad_step = quad_setpoint * quad_step_percent
+        quad_start_high = quad_setpoint + (2 * quad_step)
+        quad_high = quad_setpoint + quad_step
+        quad_low = quad_setpoint - quad_step
+        return quad_start_high, quad_high, quad_low, quad_setpoint
 
-    quad_setpoint = lattice.get_quad_setpoint(quadrupole)
-    quad_step = quad_setpoint * quad_step_percent
-    quad_start_high = quad_setpoint + (2 * quad_step)
-    quad_high = quad_setpoint + quad_step
-    quad_low = quad_setpoint - quad_step
-    return quad_start_high, quad_high, quad_low, quad_setpoint
-
-
-def get_slow_bba_corrector_steps(lattice: Lattice, components: Components):
-    """"""
-    setpoint = lattice.get_corrector_setpoint(components)
-    step = lattice.corrector_kick(components)
-    corrector_steps = [
-        setpoint + step,
-        setpoint + (step / 2),
-        setpoint,
-        setpoint - (step / 2),
-        setpoint - step,
-    ]
-    return corrector_steps
+    def get_slow_bba_corrector_steps(self, components: Components):
+        """"""
+        setpoint = self._lattice.get_corrector_setpoint(components)
+        step = self._lattice.corrector_kick(components)
+        corrector_steps = [
+            setpoint + step,
+            setpoint + (step / 2),
+            setpoint,
+            setpoint - (step / 2),
+            setpoint - step,
+        ]
+        return corrector_steps
