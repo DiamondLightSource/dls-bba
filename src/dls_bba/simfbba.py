@@ -117,12 +117,12 @@ class SimFastBBA(Algorithm):
                 decimated,
             )
             excitations = {}
-            for index, (osc, axis) in enumerate(zip(oscillations, ["x", "y"])):
+            for index, axis in enumerate(["x", "y"]):
                 excitations[f"High_{axis}"] = Excitation(
-                    self._lattice, components_pair[index], osc, high_start
+                    self._lattice, components_pair[index], oscillations[axis], high_start
                 )
                 excitations[f"Low_{axis}"] = Excitation(
-                    self._lattice, components_pair[index], osc, low_start
+                    self._lattice, components_pair[index], oscillations[axis], low_start
                 )
 
             high_keys = [key for key in excitations.keys() if "High_" in key]
