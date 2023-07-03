@@ -78,10 +78,10 @@ class Excitation(object):
         self.start_time = start_time
         self.count = oscillation.count
 
-        fofb_corrector = get_fofb_corrector(lattice, components)
+        fofb_corrector = get_fofb_corrector(machine, components)
         self.ioc = fofb_corrector.ioc
         self.fofb_index = fofb_corrector.fofb_index
-        self.iocs = lattice.config["CORRECTOR_IOCS"]
+        self.iocs = machine.config["CORRECTOR_IOCS"]
 
 
 def excite(excitations):
