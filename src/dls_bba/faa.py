@@ -7,13 +7,13 @@ from fa.falib import falib
 TICKS_PER_SECOND = 10072
 
 
-def get_timestamp(decimated):
+def get_timestamp(decimated) -> int:
     # TODO: If faa timestamp is larger than 2**32 - 1 hour,
     # then the power supply IOC will reject the oscillation.
     s = falib.subscription([0], decimated=decimated)
     x = s.read(1)
     s.close()
-    return x[0][0][0]
+    return int(x[0][0][0])
 
 
 class FaException(Exception):

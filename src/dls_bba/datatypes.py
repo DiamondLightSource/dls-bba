@@ -13,7 +13,7 @@ class RawData:
     rawdata: dict
     metadata: dict
 
-    def save(self, folder_path):
+    def save(self, folder_path: str):
         """"""
         rawdata = self.rawdata
         metadata = self.metadata
@@ -28,7 +28,7 @@ class RawData:
         io.savemat(os.path.join(folder_path, filename), dct, oned_as="row")
 
     @classmethod
-    def from_file(cls, filepath):
+    def from_file(cls, filepath: str):
         """"""
         dct = io.loadmat(filepath, simplify_cells=True)
         return cls(dct["rawdata"], dct["metadata"])
@@ -82,7 +82,7 @@ class Results:
 
         return cls(results, dct["metadata"], dct["plotting"], dct["offsets"])
 
-    def save(self, folder_path):
+    def save(self, folder_path: str):
         """"""
         results = self.results
         metadata = self.metadata

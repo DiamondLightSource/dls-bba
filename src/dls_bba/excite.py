@@ -1,10 +1,14 @@
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import numpy as np
 from cothread.catools import caput
 
 from dls_bba.components import Components
 from dls_bba.faa import TICKS_PER_SECOND
+
+if TYPE_CHECKING:
+    from dls_bba.lattice import Lattice
 
 NETWORK_LAG_S = 0.5
 SAFETY_NET_S = 0.1
@@ -50,14 +54,14 @@ class Oscillation:
         return cls(amplitude, plane, frequency, cycles, dwell, count, delta, duration)
 
 
-def get_corrector_table(lattice):
-    correctors_txt = lattice.config["CORRECTORS_TXT_PATH"]
+def get_corrector_table(lattice: Lattice):
+    correctors_txt: str = lattice.config["CORRECTORS_TXT_PATH"]
     with open(correctors_txt, "r", encoding="utf8", newline="") as file:
         data = np.genfromtxt(file, names=True, dtype=None, encoding="UTF-8")
     return data
 
 
-def get_fofb_corrector(lattice, components: Components):
+def get_fofb_corrector(lattice: Lattice, components: Components):
     """Create FofbCorrector tuple from pytac element."""
     table = get_corrector_table(lattice)
     name = components.corrector_name
@@ -72,11 +76,17 @@ def get_fofb_corrector(lattice, components: Components):
 class Excitation(object):
     """An excitation performed on a corrector."""
 
-    def __init__(self, lattice, components, oscillation, start_time):
+    def __init__(
+        self,
+        lattice: Lattice,
+        components: Components,
+        oscillation: Oscillation,
+        start_time: int,
+    ):
         self.corrector = components.corrector
-        self.oscillation = oscillation
-        self.start_time = start_time
-        self.count = oscillation.count
+        self.oscillation: Oscillation = oscillation
+        self.start_time: int = start_time
+        self.count: int = oscillation.count
 
         fofb_corrector = get_fofb_corrector(lattice, components)
         self.ioc = fofb_corrector.ioc
@@ -84,7 +94,7 @@ class Excitation(object):
         self.iocs = lattice.config["CORRECTOR_IOCS"]
 
 
-def excite(excitations):
+def excite(excitations: tuple[Excitation, ...]):
     """Completes caputs which will start the excitation."""
 
     iocs = excitations[0].iocs

@@ -87,7 +87,7 @@ class SimFastBBA(Algorithm):
                 Sleep(1)
 
             # Setup Oscillations
-            oscillations = {}
+            oscillations: dict[str, Oscillation] = {}
             for index, axis in enumerate(["x", "y"]):
                 frequency_key = f"{components_pair[index].axis.upper()}_FREQUENCY"
                 frequency = config[frequency_key]
@@ -105,8 +105,8 @@ class SimFastBBA(Algorithm):
             Sleep(quad_lag_s / 2)
 
             now = get_timestamp(decimated)
-            high_start = now + NETWORK_LAG
-            low_start = (
+            high_start = int(now + NETWORK_LAG)
+            low_start = int(
                 high_start + (2 * oscillations["x"].count) + SAFETY_NET + quad_lag
             )
 
@@ -119,10 +119,7 @@ class SimFastBBA(Algorithm):
             excitations = {}
             for index, axis in enumerate(["x", "y"]):
                 excitations[f"High_{axis}"] = Excitation(
-                    self._lattice,
-                    components_pair[index],
-                    oscillations[axis],
-                    high_start,
+                    self._lattice, components_pair[index], oscillations[axis], high_start
                 )
                 excitations[f"Low_{axis}"] = Excitation(
                     self._lattice, components_pair[index], oscillations[axis], low_start

@@ -89,8 +89,8 @@ class FastBBA(Algorithm):
                 Sleep(quad_lag_s / 2)
 
                 now = get_timestamp(decimated)
-                high_start = now + NETWORK_LAG
-                low_start = high_start + (2 * osc.count) + SAFETY_NET + quad_lag
+                high_start = int(now + NETWORK_LAG)
+                low_start = int(high_start + (2 * osc.count) + SAFETY_NET + quad_lag)
 
                 fa_buffer = Buffer(
                     self._lattice.faa_bpm_list, high_start, osc.duration, decimated
