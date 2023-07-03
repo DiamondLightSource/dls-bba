@@ -78,19 +78,21 @@ class Excitation(object):
         self.start_time = start_time
         self.count = oscillation.count
 
-        fofb_corrector = lattice.get_fofb_corrector(components)
+        fofb_corrector = get_fofb_corrector(lattice, components)
         self.ioc = fofb_corrector.ioc
-        self.fofb_index = fofb_corrector.corr
+        self.fofb_index = fofb_corrector.fofb_index
         self.iocs = lattice.config["CORRECTOR_IOCS"]
 
 
 def excite(excitations):
     """Completes caputs which will start the excitation."""
 
+    iocs = excitations[0].iocs
+
     # Zero all timestamps
     caput(
-        [f"{ioc}:EXCITE:START_TIMES" for ioc in excitations.iocs],
-        [[0] * N] * len(excitations.iocs),
+        [f"{ioc}:EXCITE:START_TIMES" for ioc in iocs],
+        [[0] * N] * len(iocs),
     )
 
     # Create dict of PVs to put
@@ -126,7 +128,7 @@ def excite(excitations):
     # cothread.Yield()
     # TODO: ^Delete once tested.
     caput(
-        [f"{ioc}:EXCITE:PRIME" for ioc in excitations.iocs],
+        [f"{ioc}:EXCITE:PRIME" for ioc in iocs],
         1,
         wait=True,
         repeat_value=True,
