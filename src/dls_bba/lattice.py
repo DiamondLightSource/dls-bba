@@ -529,7 +529,7 @@ class Lattice:
 
     def calculate_quad_setpoints(self, quadrupole: EpicsElement):
         """"""
-        quad_step_percent = self.config["QUADRUPOLE_STEP_PERCENT"]
+        quad_step_percent = self.config["QUADRUPOLE_STEP_PERCENT"] * 1e-2
 
         quad_setpoint = self.get_quad_setpoint(quadrupole)
         quad_step = quad_setpoint * quad_step_percent
