@@ -28,7 +28,6 @@ from dls_bba.exceptions import (
     InvalidRingmodeError,
     LowCurrentError,
 )
-from dls_bba.excite import QUAD_SLEW_RATE
 
 # matplotlib.use("Qt5Agg")
 
@@ -41,6 +40,8 @@ ORIGIN_SUFFIXES = {
     "BCD": ":CF:BCD_{axis}_S",
     "GOLDEN": ":CF:GOLDEN_{axis}_S",
 }
+
+QUAD_SLEW_RATE = 0.5  # Amps/Second
 
 
 def _retry_command(num_tries, excp_type):
