@@ -63,4 +63,8 @@ Additional information about BBA
 - ALBA Paper: `"Fast beam-based alignment using ac excitations" <https://journals.aps.org/prab/abstract/10.1103/PhysRevAccelBeams.23.012802>`_
 
 
+..
+    Anything below this line is used when viewing README.rst and will be replaced
+    when included in index.rst
+
 See https://DiamondLightSource.github.io/dls-bba for more detailed documentation.
