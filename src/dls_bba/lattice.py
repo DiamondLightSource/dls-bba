@@ -477,19 +477,6 @@ class Lattice:
         log.debug(f"Corrector {components.corrector_name} get value: {value}")
         return value
 
-    def get_slow_bba_corrector_steps(self, components: Components):
-        """"""
-        setpoint = self.get_corrector_setpoint(components)
-        step = self.corrector_kick(components)
-        corrector_steps = [
-            setpoint + step,
-            setpoint + (step / 2),
-            setpoint,
-            setpoint - (step / 2),
-            setpoint - step,
-        ]
-        return corrector_steps
-
     def set_corrector_setpoint(
         self, components: Components, value: Union[float, int]
     ) -> None:
