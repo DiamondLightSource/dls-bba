@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging as log
 from dataclasses import asdict, dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 import numpy as np
 from pytac.element import EpicsElement
@@ -15,6 +15,10 @@ if TYPE_CHECKING:
 
 @dataclass
 class Components:
+    """The components class stores both the names and EpicsElements for the
+    paired components, including additional information such as the axis, kick
+    and indices."""
+
     bpm_name: str
     quadrupoles_names: list[str]
     corrector_name: str
@@ -35,6 +39,19 @@ class Components:
         axis: str,
         kick: str,
     ):
+        """Components constructor using the names of the components.
+
+        Args:
+            lattice: The Lattice object for the accelerator.
+            bpm_name: The name of the BPM required.
+            quadrupoles_names: The names of quadrupoles required in a list.
+            corrector_name: The name of the corrector required.
+            axis: The axis of interest. eg. 'x' or 'y'
+            kick: The corrector kick of interest. eg. 'x_kick' or 'y_kick'
+
+        Returns:
+            The constructed Components object.
+        """
         bpm, quadrupoles, corrector = Components.name_to_element(
             lattice, bpm_name, quadrupoles_names, corrector_name
         )
@@ -54,7 +71,15 @@ class Components:
 
     @classmethod
     def from_dict(cls, lattice: Lattice, dct: dict):
-        # recreate the object from the dict, with elements and names
+        """Components constructor using a dictionary.
+
+        Args:
+            lattice: The Lattice object for the accelerator.
+            dct: A dictionary that contains information for construction.
+
+        Returns:
+            The constructed Components object.
+        """
         bpm_name = dct["bpm_name"]
         quadrupoles_names = list(dct["quadrupoles_names"])
         corrector_name = dct["corrector_name"]
@@ -76,7 +101,20 @@ class Components:
         bpm_name: str,
         quadrupoles_names: list[str],
         corrector_name: str,
-    ):
+    ) -> tuple[EpicsElement, list[EpicsElement], EpicsElement]:
+        """A function that converts component names to EpicsElements.
+
+        Args:
+            lattice: The Lattice object for the accelerator.
+            bpm_name: The name of the BPM required.
+            quadrupoles_names: The names of quadrupoles required in a list.
+            corrector_name: The name of the corrector required.
+
+        Returns:
+            bpm: The EpicsElement object for the BPM.
+            quadrupoles: A list of EpicsElements for the quadrupoles.
+            corrector: The EpicsElement object for the corrector.
+        """
         bpm = lattice.bpms[lattice.bpms_names.index(bpm_name)]
         quadrupoles = [
             lattice.quads[lattice.quads_names.index(quad_name)]
@@ -88,20 +126,38 @@ class Components:
             corrector = lattice.vstrs[lattice.vstrs_names.index(corrector_name)]
         return bpm, quadrupoles, corrector
 
-    def as_dict(self):
-        a = {}
+    def as_dict(self) -> dict[str, Union[str, list[str]]]:
+        """A function that converts the component names into a dictionary.
+
+        Returns:
+            dct: A dictionary of all names and string values in the object.
+        """
+        dct: dict[str, Union[str, list[str]]] = {}
         for k, v in asdict(self).items():
             if isinstance(v, str):
-                a[k] = v
+                dct[k] = v
             if isinstance(v, list) and isinstance(v[0], str):
-                a[k] = v
-        return a
+                dct[k] = v
+        return dct
 
 
 def generate_component_pairings(
     lattice: Lattice, element_name: str
 ) -> list[Components]:
-    """Can accept either bpm or quad name."""
+    """A function that generates the component pairings when given a valid
+    quadrupole or bpm name.
+
+    Args:
+        lattice: The Lattice object for the accelerator.
+        element_name: The name of the element.
+
+    Returns:
+        horizontal_components: The component for the horizontal direction.
+        vertical_components: The component for the vertical direction.
+
+    Raises:
+        ComponentConstructionError: If an invalid element name is given.
+    """
     if element_name in lattice.bpms_names:
         bpm = element_name
         quads = lattice.bpm2quad(bpm)
@@ -127,6 +183,17 @@ def generate_component_pairings(
 def verify_component_pairing(
     lattice: Lattice, component_pairings: list[list[Components]]
 ) -> list[list[Components]]:
+    """This function returns valid component pairings given the current machine state.
+    Elements that are disabled will be valid upon component object construction, this
+    function removes those elements and provides warnings where appropriate.
+
+    Args:
+        lattice: The Lattice object for the accelerator.
+        component_pairings: The list of component pair lists.
+
+    Returns:
+        check_pairings: The verified list of component pair lists.
+    """
     checked_pairings = []
 
     disabled_bpms_indices = np.nonzero(np.logical_not(lattice.get_enabled_bpms()))[
@@ -155,6 +222,19 @@ def check_component(
     disabled_bpm_indices: list[int],
     disabled_fofb_bpm_indices: list[int],
 ):
+    """This function checks the individual components that they are not invalid.
+    Disabled BPMs cannot perform BBA, whereas FOFB Disabled BPMs can, but the
+    result must be treated with caution.
+
+    Args:
+        component_pair: A pair of horizontal and vertical component objects.
+        disabled_bpm_indices: The indices of the disabled BPMs.
+        disabled_fofb_bpm_indices: The indicies of FOFB disabled BPMs.
+
+    Raises:
+        ElementDisabledError: If a disabled BPM is selected.
+
+    """
     horizontal_component = component_pair[0]
 
     if horizontal_component.bpm_index in disabled_bpm_indices:
