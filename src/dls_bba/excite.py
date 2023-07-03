@@ -87,10 +87,12 @@ class Excitation(object):
 def excite(excitations):
     """Completes caputs which will start the excitation."""
 
+    iocs = excitations[0].iocs
+
     # Zero all timestamps
     caput(
-        [f"{ioc}:EXCITE:START_TIMES" for ioc in excitations[0].iocs],
-        [[0] * N] * len(excitations[0].iocs),
+        [f"{ioc}:EXCITE:START_TIMES" for ioc in iocs],
+        [[0] * N] * len(iocs),
     )
 
     # Create dict of PVs to put
@@ -126,7 +128,7 @@ def excite(excitations):
     # cothread.Yield()
     # TODO: ^Delete once tested.
     caput(
-        [f"{ioc}:EXCITE:PRIME" for ioc in excitations[0].iocs],
+        [f"{ioc}:EXCITE:PRIME" for ioc in iocs],
         1,
         wait=True,
         repeat_value=True,
