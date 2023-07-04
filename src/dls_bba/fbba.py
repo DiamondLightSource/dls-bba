@@ -154,8 +154,8 @@ class FastBBA(Algorithm):
         log.debug("Searched start times: %s, %s", high_start, low_start)
         # Ensure we include the entire oscillation if using decimated data.
         length = np.ceil(exc_high.count / 10) if decimated else exc_high.count
-        high_data = data[high_start : high_start + length, :, plane.index]
-        low_data = data[low_start : low_start + length, :, plane.index]
+        high_data = data[high_start : high_start + length, :, plane]
+        low_data = data[low_start : low_start + length, :, plane]
         log.debug("Selected data shape: {} {}".format(high_data.shape, low_data.shape))
         assert high_data.shape == low_data.shape
         return [high_data, low_data]
