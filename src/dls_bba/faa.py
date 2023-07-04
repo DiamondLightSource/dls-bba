@@ -40,6 +40,12 @@ class Buffer(object):
         Note that length is in FA archiver timestamps, even if the data
         is decimated, so if decimated is true the dimension of the data
         will be 1/10 the value of length.
+
+        Args:
+            ids: The BPM id list.
+            start_time: The starting FAA tick of the oscillation.
+            length: The length of the oscillations.
+            decimated: A boolean for if the data is decimated,
         """
         self.length = length
         self.start = start_time
@@ -71,6 +77,14 @@ class Buffer(object):
             self.complete = True
 
     def get_data(self):
+        """This function returns the FAA data.
+
+        Raises:
+            FaException: If insufficient data is gathered.
+
+        Returns:
+            The data.
+        """
         while not self.complete:
             cothread.Sleep(0.1)
         try:
