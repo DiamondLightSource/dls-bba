@@ -5,7 +5,11 @@ ISO_TIME_FORMAT_STRING: str = "%Y%m%dT%H%M%S"
 
 
 def get_isotime():
-    """"""
+    """This function gets the current time and returns in isotime format.
+
+    Returns:
+        The datetime in ISO 8601 format.
+    """
     now = datetime.now()
     isotime = now.strftime(ISO_TIME_FORMAT_STRING)
     return isotime
