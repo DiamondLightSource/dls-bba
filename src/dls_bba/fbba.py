@@ -133,7 +133,7 @@ class FastBBA(Algorithm):
             plane = 1
 
         exc_high, exc_low = exc_data
-        decimated = self.metadata["DECIMATED"]
+        decimated = False
         # Note: array data must include the timestamps.
         log.debug("Raw data shape: {}".format(data.shape))
         log.debug(
