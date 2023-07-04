@@ -10,11 +10,17 @@ from dls_bba.lattice import ORIGIN_SUFFIXES
 
 @dataclass
 class RawData:
+    """This RawData dataclass allows saving and loading for the rawdata and metadata."""
+
     rawdata: dict
     metadata: dict
 
-    def save(self, folder_path):
-        """"""
+    def save(self, folder_path) -> None:
+        """This function saves the rawdata and metadata.
+
+        Args:
+            folder_path: The folderpath to save the data to.
+        """
         rawdata = self.rawdata
         metadata = self.metadata
 
@@ -29,12 +35,19 @@ class RawData:
 
     @classmethod
     def from_file(cls, filepath):
-        """"""
+        """This function loads the rawdata and metadata.
+
+        Args:
+            filepath: The filepath of the xxx-rawdata.mat file to load.
+        """
         dct = io.loadmat(filepath, simplify_cells=True)
         return cls(dct["rawdata"], dct["metadata"])
 
 
 class Results:
+    """This Results class allows saving and loading for the results, metadata and
+    plotting information as well as calculating the offsets as required."""
+
     def __init__(
         self,
         results: dict[str, Any],
@@ -42,6 +55,16 @@ class Results:
         plotting: dict[str, Any],
         offsets: Optional[dict[str, list[float]]] = None,
     ):
+        """The default constructor which stores results, metadata and plotting,
+        with an optional offsets storing or calculating option.
+
+        Args:
+            results: The results dictionary.
+            metadata: The metadata dictionary.
+            plotting: The plotting dictionary.
+            offsets: The calculated offsets dictionary.
+
+        """
         self.results: dict = results
         self.metadata: dict = metadata
         self.plotting: dict = plotting
@@ -50,7 +73,12 @@ class Results:
         )
 
     def find_true_bba_offsets(self) -> dict[str, list[float]]:
-        offsets = {}
+        """This function calculates the bba offsets with the results and metadata.
+
+        Returns:
+            A dictionary with the calculated offsets.
+        """
+        offsets: dict[str, list[float]] = {}
         bpm_name = self.metadata["bpm_name"]
 
         for axis in ["x", "y"]:
@@ -73,7 +101,14 @@ class Results:
 
     @classmethod
     def from_file(cls, filepath: str):
-        """"""
+        """This constructor loads a Results object when given a filepath.
+
+        Args:
+            filepath: The filepath to a xxx-results.mat file.
+
+        Returns:
+            A constructed Results object.
+        """
         dct = io.loadmat(filepath, simplify_cells=True)
 
         results = {}
@@ -82,8 +117,13 @@ class Results:
 
         return cls(results, dct["metadata"], dct["plotting"], dct["offsets"])
 
-    def save(self, folder_path):
-        """"""
+    def save(self, folder_path) -> None:
+        """This function saves the current Results object to the given folder path.
+        Note: Files with complex keys can be loaded in MATLAB. eg: object.("key").
+
+        Args:
+            folder_path: The path to the folder to save the file in.
+        """
         results = self.results
         metadata = self.metadata
         plotting = self.plotting
@@ -100,5 +140,4 @@ class Results:
             "plotting": plotting,
             "offsets": offsets,
         }
-        # Can load files in matlab: object.("key")
         io.savemat(os.path.join(folder_path, filename), dct, oned_as="row")
