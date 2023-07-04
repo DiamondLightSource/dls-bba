@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from dataclasses import dataclass
 from typing import Any, Optional
@@ -28,7 +30,7 @@ class RawData:
         io.savemat(os.path.join(folder_path, filename), dct, oned_as="row")
 
     @classmethod
-    def from_file(cls, filepath: str):
+    def from_file(cls, filepath: str) -> RawData:
         """"""
         dct = io.loadmat(filepath, simplify_cells=True)
         return cls(dct["rawdata"], dct["metadata"])
@@ -72,7 +74,7 @@ class Results:
         return offsets
 
     @classmethod
-    def from_file(cls, filepath: str):
+    def from_file(cls, filepath: str) -> Results:
         """"""
         dct = io.loadmat(filepath, simplify_cells=True)
 

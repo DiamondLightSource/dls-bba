@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from cothread.catools import caput
@@ -46,7 +48,9 @@ class Oscillation:
     duration: float
 
     @classmethod
-    def from_values(cls, amplitude, plane, frequency, cycles):
+    def from_values(
+        cls, amplitude: float, plane: Components, frequency: int, cycles: int
+    ) -> Oscillation:
         dwell = cycles / frequency
         count = int(np.ceil(dwell * TICKS_PER_SECOND))
         delta = int(np.floor(frequency * 2**32 / TICKS_PER_SECOND))
@@ -54,14 +58,14 @@ class Oscillation:
         return cls(amplitude, plane, frequency, cycles, dwell, count, delta, duration)
 
 
-def get_corrector_table(lattice: Lattice):
+def get_corrector_table(lattice: Lattice) -> np.ndarray[Any]:
     correctors_txt: str = lattice.config["CORRECTORS_TXT_PATH"]
     with open(correctors_txt, "r", encoding="utf8", newline="") as file:
         data = np.genfromtxt(file, names=True, dtype=None, encoding="UTF-8")
     return data
 
 
-def get_fofb_corrector(lattice: Lattice, components: Components):
+def get_fofb_corrector(lattice: Lattice, components: Components) -> FofbCorrector:
     """Create FofbCorrector tuple from pytac element."""
     table = get_corrector_table(lattice)
     name = components.corrector_name
@@ -127,8 +131,8 @@ def excite(excitations: tuple[Excitation, ...]):
                 "specified twice in the same plane"
             )
         pvs[f"{e.ioc}:EXCITE:START_TIMES"][index] = e.start_time
-        pvs[f"{e.ioc}:EXCITE:AMPS"][index] = e.oscillation.amp
-        pvs[f"{e.ioc}:EXCITE:DELTAS"][index] = e.delta
+        pvs[f"{e.ioc}:EXCITE:AMPS"][index] = e.oscillation.amplitude
+        pvs[f"{e.ioc}:EXCITE:DELTAS"][index] = e.oscillation.delta
         pvs[f"{e.ioc}:EXCITE:TICKS"][index] = e.count
 
     # caput the values
@@ -145,7 +149,7 @@ def excite(excitations: tuple[Excitation, ...]):
     )
 
 
-def cancel_all_oscillations(config):
+def cancel_all_oscillations(config: dict[str, Any]):
     """"""
     # Set all to 0, then prime for all IOCS.
     iocs = config["CORRECTOR_IOCS"]

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging as log
 from dataclasses import asdict, dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 import numpy as np
 from pytac.element import EpicsElement
@@ -34,7 +34,7 @@ class Components:
         corrector_name: str,
         axis: str,
         kick: str,
-    ):
+    ) -> Components:
         bpm, quadrupoles, corrector = Components.name_to_element(
             lattice, bpm_name, quadrupoles_names, corrector_name
         )
@@ -53,7 +53,7 @@ class Components:
         )
 
     @classmethod
-    def from_dict(cls, lattice: Lattice, dct: dict):
+    def from_dict(cls, lattice: Lattice, dct: dict) -> Components:
         # recreate the object from the dict, with elements and names
         bpm_name = dct["bpm_name"]
         quadrupoles_names = list(dct["quadrupoles_names"])
@@ -76,7 +76,7 @@ class Components:
         bpm_name: str,
         quadrupoles_names: list[str],
         corrector_name: str,
-    ):
+    ) -> tuple[EpicsElement, list[EpicsElement], EpicsElement]:
         bpm = lattice.bpms[lattice.bpms_names.index(bpm_name)]
         quadrupoles = [
             lattice.quads[lattice.quads_names.index(quad_name)]
@@ -88,14 +88,14 @@ class Components:
             corrector = lattice.vstrs[lattice.vstrs_names.index(corrector_name)]
         return bpm, quadrupoles, corrector
 
-    def as_dict(self):
-        a = {}
+    def as_dict(self) -> dict[str, Union[str, list[str]]]:
+        dct: dict[str, Union[str, list[str]]] = {}
         for k, v in asdict(self).items():
             if isinstance(v, str):
-                a[k] = v
+                dct[k] = v
             if isinstance(v, list) and isinstance(v[0], str):
-                a[k] = v
-        return a
+                dct[k] = v
+        return dct
 
 
 def generate_component_pairings(

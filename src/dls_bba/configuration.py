@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 from copy import deepcopy
 from json import load
@@ -42,7 +44,9 @@ class Configuration:
         return self._config[key]
 
     @classmethod
-    def from_configuration_files(cls, paths: Optional[List[Union[Path, str]]] = None):
+    def from_configuration_files(
+        cls, paths: Optional[List[Union[Path, str]]] = None
+    ) -> Configuration:
         config = cls()
         config.apply_default_config()
 
@@ -51,7 +55,7 @@ class Configuration:
 
         return config
 
-    def apply_default_config(self):
+    def apply_default_config(self) -> None:
         default_config_resources = [
             Path(str(files("dls_bba").joinpath(resource)))
             for resource in DEFAULT_CONFIGS
@@ -71,5 +75,5 @@ class Configuration:
                     reload_lattice = True
         return reload_lattice
 
-    def get_settings(self):
+    def get_settings(self) -> dict[str, Any]:
         return deepcopy(self._config)
