@@ -65,14 +65,22 @@ def _retry_command(num_tries, excp_type):
 
 
 class Lattice:
-    """"""
+    """This lattice class includes functions for all interactions with the accelerator,
+    to the underlying pytac lattice and all configuration setup."""
 
     def __init__(
         self,
         extra_config_files: Optional[list[Any]] = None,
         overrides: Optional[dict[str, Any]] = None,
     ):
-        """"""
+        """This constructor is the only way to initialise the class.
+
+        Args:
+            extra_config_files: This is an optional list of filepaths of config files
+                to load.
+            overrides: This is an optional dictionary with explicit fields of the
+                configuration to overwrite.
+        """
         self._load_config(extra_config_files, overrides)
         self._load_lattice_and_ringmode_elements()
 
@@ -81,7 +89,6 @@ class Lattice:
         extra_config_files: Optional[list[Any]] = None,
         overrides: Optional[dict[str, Any]] = None,
     ):
-        """"""
         self.config = Configuration.from_configuration_files(extra_config_files)
         if overrides is not None:
             self.config.update_config(overrides)
@@ -225,7 +232,14 @@ class Lattice:
         self._quad2bpm_names = q2b_names
 
     def quad2bpm(self, quad: str) -> str:
-        """"""
+        """This function provides the closest BPM when given a quadrupole.
+
+        Args:
+            quad: The name of the quadrupole.
+
+        Returns:
+            The name of the closest BPM.
+        """
         try:
             return self._quad2bpm_names[quad]
         except KeyError:
@@ -251,9 +265,16 @@ class Lattice:
         self._bpm2quad_names = b2q_names
 
     def bpm2quad(self, bpm: str) -> list[str]:
-        """"""
-        # bpm can be either PV or element, default element.
-        # Will return 1 to many.
+        """This function provides the closest quadrupoles when given a BPM.
+        Note: This process is 1 to many as the BPM2QUAD and QUAD2BPM functions are
+        non symetric. Therefore you could get multiple quadrupoles returned.
+
+        Args:
+            bpm: The name of the BPM.
+
+        Returns:
+            A list of the closest 1 or 2 quadrupole names.
+        """
         if bpm in self._bpm2quad_names:
             return self._bpm2quad_names[bpm]
         else:
@@ -263,12 +284,24 @@ class Lattice:
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
     def get_enabled_bpms(self):
-        """"""
+        """This function returns an array showing which BPMs are enabled.
+
+        Returns:
+            An array with boolean integers in the indices of the BPMs.
+        """
         return self._lattice.get_element_values("BPM", "enabled")
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
     def measure_bpms(self, axis: str):
-        """"""
+        """This function returns an array with the current BPMs values in the axis
+        specified.
+
+        Args:
+            axis: The 'x' or 'y' axis.
+
+        Returns:
+            An array with the values read from the BPMs.
+        """
         return self._lattice.get_element_values("BPM", f"{axis}", pytac.RB)
 
     def get_element_from_name(self, name):
@@ -345,7 +378,11 @@ class Lattice:
         return float(value)
 
     def get_beam_current(self) -> float:
-        """"""
+        """This function returns the beam current.
+
+        Returns:
+            The beam current.
+        """
         return float(self._lattice.get_value("beam_current"))
 
     def store_starting_beam_current(self):
@@ -401,7 +438,7 @@ class Lattice:
         return response
 
     def get_diagnostics(self):
-        """"""
+        """This function writes all the diagnostics to the logging file."""
         diagnostics = self.config["DIAGNOSTICS"]
 
         for key, pv in diagnostics.items():
@@ -411,7 +448,7 @@ class Lattice:
         log.debug("BEAM_CURRENT", self.get_beam_current())
 
     def apply_feedbacks(self):
-        """"""
+        """This function applies feedbacks for the times specified in the config."""
         feedbacks_bool = self.config["FEEDBACKS"]
         log.debug("Applying feedbacks")
 
@@ -455,7 +492,14 @@ class Lattice:
             self.apply_feedbacks()
 
     def get_quad_setpoint(self, quadrupole: EpicsElement) -> float:
-        """"""
+        """This function returns the setpoint of a quadrupole.
+
+        Args:
+            quadrupole: The EpicsElement object for the quadrupole.
+
+        Returns:
+            The current setpoint of the quadrupole.
+        """
         value = float(quadrupole.get_value("b1"))
         log.debug(f"Quadrupole get value: {value}")
         return value
@@ -463,7 +507,13 @@ class Lattice:
     def set_quad_setpoint(
         self, quadrupole: EpicsElement, value: Union[float, int], sleep: bool = False
     ) -> None:
-        """"""
+        """This function sets a quadrupole setpoint.
+
+        Args:
+            quadrupole: The EpicsElement object for the quadrupole.
+            value: The value to set the quadrupole to, in amps.
+            sleep: Bool to indicate if the process should sleep afterwards.
+        """
         start_current = self.get_quad_setpoint(quadrupole)
         quadrupole.set_value("b1", value)
         if sleep:
@@ -472,7 +522,14 @@ class Lattice:
         log.debug(f"Quadrupole set value: {value}")
 
     def get_corrector_setpoint(self, components: Components):
-        """"""
+        """This function returns the corrector setpoint.
+
+        Args:
+            components: The components object.
+
+        Returns:
+            The current setpoint of the corrector.
+        """
         value = float(components.corrector.get_value(components.kick))
         log.debug(f"Corrector {components.corrector_name} get value: {value}")
         return value
@@ -493,13 +550,18 @@ class Lattice:
     def set_corrector_setpoint(
         self, components: Components, value: Union[float, int]
     ) -> None:
-        """"""
+        """This function sets a corrector setpoint.
+
+        Args:
+            components: The components object.
+            value: The value to set the corrector to, in amps.
+        """
         components.corrector.set_value(components.kick, value)
         log.debug(f"Corrector {components.corrector_name} set value: {value}")
 
     def zero_origins(self):
-        """"""
-        # zeroes bcd and golden offsets. Golden must be restored later.
+        """This function zeroes all BPM BCD and Golden origin numbers."""
+        # TODO: Make this save the golden numbers into a file for reload later.
         log.debug("Zeroing BCD and Golden Offsets")
         self._golden_offsets = {}
 
@@ -519,16 +581,28 @@ class Lattice:
         log.debug("Origins Zeroed")
 
     def restore_origins(self):
-        """"""
-        # restore golden orbits.
+        """This function restores the Golden origin numbers to the BPMs."""
+        # TODO: Make this load the golden numbers from a file.
         log.debug("Restoring Golden Offsets")
         for key, value in self._golden_offsets.items():
             caput(key, value, wait=True)
         Sleep(0.2)
         log.debug("Origins Restored")
 
-    def calculate_quad_setpoints(self, quadrupole: EpicsElement):
-        """"""
+    def calculate_quad_setpoints(
+        self, quadrupole: EpicsElement
+    ) -> Tuple[float, float, float, float]:
+        """This function calculates the quadrupole setpoints.
+
+        Args:
+            quadrupole: The EpicsElement object for the quadrupole.
+
+        Returns:
+            quad_start_high: Initial starting point to establish a known hysteresis curve.
+            quad_high: The 'high' measurement point.
+            quad_low: The 'low' measurement point.
+            quad_setpoint: The starting and ending setpoint.
+        """
         quad_step_percent = self.config["QUADRUPOLE_STEP_PERCENT"] * 1e-2
 
         quad_setpoint = self.get_quad_setpoint(quadrupole)
@@ -540,7 +614,11 @@ class Lattice:
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
     def get_bba_offsets(self) -> Tuple[list[float], list[float]]:
-        """"""
+        """This function returns all BBA offset numbers.
+
+        Returns:
+            Two lists of the current BBA x and y values.
+        """
         current_bba_x = [float(v) for v in caget(self.bba_x_pvs)]
         current_bba_y = [float(v) for v in caget(self.bba_y_pvs)]
 
@@ -607,6 +685,12 @@ class Lattice:
     def save_calculated_offsets(
         self, results_dictionary: dict[str, list[float]], save_location: str
     ):
+        """This function saves the calculated offsets to a file.
+
+        Args:
+            results_dictionary: This holds all of the BBA values and errors to be saved.
+            save_location: The folder path to save the file in.
+        """
         filename = os.path.join(save_location, "results.txt")
         with open(filename, "w") as writer:
             for key, (value, error) in results_dictionary.items():
@@ -616,7 +700,13 @@ class Lattice:
             writer.close()
 
     def apply_bba_offsets(self, all_results: dict[str, list[float]]):
-        """"""
+        """This function applies the BBA offset values.
+
+        Args:
+            all_results: This dictionary contains BPM information adn the new BBA
+                offsets, where the keys are the PVs and the values are the new
+                value and the error.
+        """
         for key, (value, error) in all_results.items():
             caput(key, value, wait=True)
             message = f"Caput value {value} +- {error} on {key}"
