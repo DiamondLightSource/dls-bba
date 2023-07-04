@@ -7,9 +7,17 @@ from fa.falib import falib
 TICKS_PER_SECOND = 10072
 
 
-def get_timestamp(decimated):
-    # TODO: If faa timestamp is larger than 2**32 - 1 hour,
-    # then the power supply IOC will reject the oscillation.
+def get_timestamp(decimated: bool):
+    """Get the current FAA timestamp in ticks.
+    Note: If faa timestamp is larger than 2**32 - 1 hour,
+    then the power supply IOC will reject the oscillation.
+
+    Args:
+        decimated: A boolean to describe if decimated data is wanted.
+
+    Returns:
+        The FAA timestamp.
+    """
     s = falib.subscription([0], decimated=decimated)
     x = s.read(1)
     s.close()
@@ -21,10 +29,10 @@ class FaException(Exception):
 
 
 class Buffer(object):
-    # Number of datapoints to read at once.
-    SIZE = 1000
-    # Timestamps of extra data to ensure desired data is fetched.
-    EXTRA = 1000
+    """The buffer class allows extraction of the data from the FA archiver."""
+
+    SIZE = 1000  # Number of datapoints to read at once.
+    EXTRA = 1000  # Timestamps of extra data to ensure desired data is fetched.
 
     def __init__(self, ids, start_time, length, decimated):
         """Create buffer.
@@ -32,7 +40,6 @@ class Buffer(object):
         Note that length is in FA archiver timestamps, even if the data
         is decimated, so if decimated is true the dimension of the data
         will be 1/10 the value of length.
-
         """
         self.length = length
         self.start = start_time
