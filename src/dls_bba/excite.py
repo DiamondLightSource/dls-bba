@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, List, Union
 
 import numpy as np
 from cothread.catools import caput
@@ -45,7 +45,7 @@ class Oscillation:
     # Phase advance per tick per revoloution
     delta: int
     # Duration of all oscillations.
-    duration: float
+    duration: int
 
     @classmethod
     def from_values(
@@ -54,11 +54,11 @@ class Oscillation:
         dwell = cycles / frequency
         count = int(np.ceil(dwell * TICKS_PER_SECOND))
         delta = int(np.floor(frequency * 2**32 / TICKS_PER_SECOND))
-        duration = (2 * count) + NETWORK_LAG + SAFETY_NET
+        duration = int((2 * count) + NETWORK_LAG + SAFETY_NET)
         return cls(amplitude, plane, frequency, cycles, dwell, count, delta, duration)
 
 
-def get_corrector_table(lattice: Lattice) -> np.ndarray[Any]:
+def get_corrector_table(lattice: Lattice) -> np.ndarray[Any, Any]:
     correctors_txt: str = lattice.config["CORRECTORS_TXT_PATH"]
     with open(correctors_txt, "r", encoding="utf8", newline="") as file:
         data = np.genfromtxt(file, names=True, dtype=None, encoding="UTF-8")
@@ -110,7 +110,7 @@ def excite(excitations: tuple[Excitation, ...]):
     )
 
     # Create dict of PVs to put
-    pvs = {}
+    pvs: dict[str, List[Union[float, int]]] = {}
     for e in excitations:
         pvs.update(
             {
@@ -149,10 +149,10 @@ def excite(excitations: tuple[Excitation, ...]):
     )
 
 
-def cancel_all_oscillations(config: dict[str, Any]):
+def cancel_all_oscillations(lattice: Lattice):
     """"""
     # Set all to 0, then prime for all IOCS.
-    iocs = config["CORRECTOR_IOCS"]
+    iocs = lattice.config["CORRECTOR_IOCS"]
     pvs = {}
 
     for ioc in iocs:

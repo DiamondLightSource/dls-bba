@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from typing import List
 
 # isort: off
 import matplotlib
@@ -21,7 +22,7 @@ if sys.version_info > (3, 9):
 else:
     from importlib_resources import files
 
-UI_FILENAME: list[str] = ["fbba_gui.ui"]
+UI_FILENAME: List[str] = ["fbba_gui.ui"]
 
 
 class MainWindow(QMainWindow):

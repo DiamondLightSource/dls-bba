@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging as log
 from dataclasses import asdict, dataclass
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, List, Union
 
 import numpy as np
 from pytac.element import EpicsElement
@@ -16,12 +16,12 @@ if TYPE_CHECKING:
 @dataclass
 class Components:
     bpm_name: str
-    quadrupoles_names: list[str]
+    quadrupoles_names: List[str]
     corrector_name: str
     axis: str
     kick: str
     bpm: EpicsElement
-    quadrupoles: list[EpicsElement]
+    quadrupoles: List[EpicsElement]
     corrector: EpicsElement
     bpm_index: int
 
@@ -30,7 +30,7 @@ class Components:
         cls,
         lattice: Lattice,
         bpm_name: str,
-        quadrupoles_names: list[str],
+        quadrupoles_names: List[str],
         corrector_name: str,
         axis: str,
         kick: str,
@@ -74,9 +74,9 @@ class Components:
     def name_to_element(
         lattice: Lattice,
         bpm_name: str,
-        quadrupoles_names: list[str],
+        quadrupoles_names: List[str],
         corrector_name: str,
-    ) -> tuple[EpicsElement, list[EpicsElement], EpicsElement]:
+    ) -> tuple[EpicsElement, List[EpicsElement], EpicsElement]:
         bpm = lattice.bpms[lattice.bpms_names.index(bpm_name)]
         quadrupoles = [
             lattice.quads[lattice.quads_names.index(quad_name)]
@@ -88,8 +88,8 @@ class Components:
             corrector = lattice.vstrs[lattice.vstrs_names.index(corrector_name)]
         return bpm, quadrupoles, corrector
 
-    def as_dict(self) -> dict[str, Union[str, list[str]]]:
-        dct: dict[str, Union[str, list[str]]] = {}
+    def as_dict(self) -> dict[str, Union[str, List[str]]]:
+        dct: dict[str, Union[str, List[str]]] = {}
         for k, v in asdict(self).items():
             if isinstance(v, str):
                 dct[k] = v
@@ -100,7 +100,7 @@ class Components:
 
 def generate_component_pairings(
     lattice: Lattice, element_name: str
-) -> list[Components]:
+) -> List[Components]:
     """Can accept either bpm or quad name."""
     if element_name in lattice.bpms_names:
         bpm = element_name
@@ -125,8 +125,8 @@ def generate_component_pairings(
 
 
 def verify_component_pairing(
-    lattice: Lattice, component_pairings: list[list[Components]]
-) -> list[list[Components]]:
+    lattice: Lattice, component_pairings: List[List[Components]]
+) -> List[List[Components]]:
     checked_pairings = []
 
     disabled_bpms_indices = np.nonzero(np.logical_not(lattice.get_enabled_bpms()))[
@@ -151,9 +151,9 @@ def verify_component_pairing(
 
 
 def check_component(
-    component_pair: list[Components],
-    disabled_bpm_indices: list[int],
-    disabled_fofb_bpm_indices: list[int],
+    component_pair: List[Components],
+    disabled_bpm_indices: List[int],
+    disabled_fofb_bpm_indices: List[int],
 ):
     horizontal_component = component_pair[0]
 

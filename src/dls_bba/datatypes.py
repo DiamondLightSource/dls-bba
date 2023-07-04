@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 import scipy.io as io
@@ -42,7 +42,7 @@ class Results:
         results: dict[str, Any],
         metadata: dict[str, Any],
         plotting: dict[str, Any],
-        offsets: Optional[dict[str, list[float]]] = None,
+        offsets: Optional[dict[str, List[float]]] = None,
     ):
         self.results: dict = results
         self.metadata: dict = metadata
@@ -51,7 +51,7 @@ class Results:
             self.find_true_bba_offsets() if offsets is None else offsets
         )
 
-    def find_true_bba_offsets(self) -> dict[str, list[float]]:
+    def find_true_bba_offsets(self) -> dict[str, List[float]]:
         offsets = {}
         bpm_name = self.metadata["bpm_name"]
 

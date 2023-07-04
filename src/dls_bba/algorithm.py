@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import List
 
 from dls_bba.components import Components
 from dls_bba.datatypes import RawData, Results
@@ -10,7 +11,7 @@ class Algorithm(ABC):
         self._lattice = lattice
 
     @abstractmethod
-    def run(self, component_pair: list[Components]) -> RawData:
+    def run(self, component_pair: List[Components]) -> RawData:
         pass
 
     @abstractmethod

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.common import ALGORITHMS, setup_beam_based_alignment, setup_folders
@@ -14,7 +14,7 @@ from dls_bba.lattice import Lattice
 
 
 def cli_show_bpm_options(
-    extra_config_files: list[str],
+    extra_config_files: List[str],
     additional_options: dict[str, Any],
 ):
     """"""
@@ -24,7 +24,7 @@ def cli_show_bpm_options(
 
 def cli_show_cell_options(
     cell_number: str,
-    extra_config_files: list[str],
+    extra_config_files: List[str],
     additional_options: dict[str, Any],
 ):
     """"""
@@ -39,7 +39,7 @@ def cli_entrypoint(
     method: str,
     element: str,
     folder_path: str,
-    extra_config_files: list[str],
+    extra_config_files: List[str],
     additional_options: dict[str, Any],
 ):
     """"""

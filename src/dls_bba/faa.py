@@ -1,13 +1,14 @@
 import logging as log
+from typing import Any, List
 
 import cothread
-import numpy
+import numpy as np
 from fa.falib import falib
 
 TICKS_PER_SECOND = 10072
 
 
-def get_timestamp(decimated) -> int:
+def get_timestamp(decimated: bool) -> int:
     # TODO: If faa timestamp is larger than 2**32 - 1 hour,
     # then the power supply IOC will reject the oscillation.
     s = falib.subscription([0], decimated=decimated)
@@ -26,7 +27,7 @@ class Buffer(object):
     # Timestamps of extra data to ensure desired data is fetched.
     EXTRA = 1000
 
-    def __init__(self, ids, start_time, length, decimated):
+    def __init__(self, ids: List[int], start_time: int, length: int, decimated: bool):
         """Create buffer.
 
         Note that length is in FA archiver timestamps, even if the data
@@ -43,12 +44,12 @@ class Buffer(object):
         else:
             self.timestamps = True
         self.ids = ids
-        self.cache = []
+        self.cache: List[Any] = []
         self.datapoints = int(length // 10) if decimated else length
         log.debug("FA buffer: length %s; datapoints %s", length, self.datapoints)
         self.dec = decimated
         self.server = falib.Server()
-        self.complete = False
+        self.complete: bool = False
         cothread.Spawn(self._fetch_data)
 
     def _fetch_data(self):
@@ -63,12 +64,12 @@ class Buffer(object):
             log.warn("Fetching FA data failed: {}".format(e))
             self.complete = True
 
-    def get_data(self):
+    def get_data(self) -> np.ndarray:
         while not self.complete:
             cothread.Sleep(0.1)
         try:
-            data = numpy.concatenate(self.cache)
-            data_start = numpy.searchsorted(data[:, 0, 0], self.start)
+            data = np.concatenate(self.cache)
+            data_start = np.searchsorted(data[:, 0, 0], self.start)
             log.debug("Raw data size: {}".format(data.shape))
             data = data[data_start : data_start + self.datapoints, :, :]
             log.debug("Data timestamps: {}".format(data[:, 0, 0]))

@@ -1,4 +1,5 @@
 import logging as log
+from typing import List
 
 import numpy as np
 from cothread import Sleep
@@ -26,7 +27,7 @@ class SimFastBBA(Algorithm):
     def __init__(self, lattice: Lattice):
         super().__init__(lattice)
 
-    def run(self, components_pair: list[Components]) -> RawData:
+    def run(self, components_pair: List[Components]) -> RawData:
         rawdata = {}
         metadata = {}
         config = self._lattice.config.get_settings()
@@ -119,7 +120,10 @@ class SimFastBBA(Algorithm):
             excitations = {}
             for index, axis in enumerate(["x", "y"]):
                 excitations[f"High_{axis}"] = Excitation(
-                    self._lattice, components_pair[index], oscillations[axis], high_start
+                    self._lattice,
+                    components_pair[index],
+                    oscillations[axis],
+                    high_start,
                 )
                 excitations[f"Low_{axis}"] = Excitation(
                     self._lattice, components_pair[index], oscillations[axis], low_start

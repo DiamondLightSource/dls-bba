@@ -3,7 +3,7 @@ import os
 from collections import defaultdict
 from functools import wraps
 from subprocess import run
-from typing import Any, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import cothread
 
@@ -69,7 +69,7 @@ class Lattice:
 
     def __init__(
         self,
-        extra_config_files: Optional[list[Any]] = None,
+        extra_config_files: Optional[List[Any]] = None,
         overrides: Optional[dict[str, Any]] = None,
     ):
         """"""
@@ -78,7 +78,7 @@ class Lattice:
 
     def _load_config(
         self,
-        extra_config_files: Optional[list[Any]] = None,
+        extra_config_files: Optional[List[Any]] = None,
         overrides: Optional[dict[str, Any]] = None,
     ):
         """"""
@@ -87,7 +87,7 @@ class Lattice:
             self.config.update_config(overrides)
 
     def _update_config(
-        self, extra_config_files: Optional[list[Any]] = None, dct: Optional[dict] = None
+        self, extra_config_files: Optional[List[Any]] = None, dct: Optional[dict] = None
     ):
         flag_files = False
         flag_dict = False
@@ -250,7 +250,7 @@ class Lattice:
 
         self._bpm2quad_names = b2q_names
 
-    def bpm2quad(self, bpm: str) -> list[str]:
+    def bpm2quad(self, bpm: str) -> List[str]:
         """"""
         # bpm can be either PV or element, default element.
         # Will return 1 to many.
@@ -287,7 +287,7 @@ class Lattice:
             raise NotImplementedError(message)
         return element
 
-    def _get_slow_correctors(self) -> list[str]:
+    def _get_slow_correctors(self) -> List[str]:
         """"""
         # SRxxS or xSCOR correctors are slow
         slow_correctors = []
@@ -329,7 +329,7 @@ class Lattice:
         for index, bpm_name in enumerate(self.bpms_names):
             self._get_best_corrector_for_bpm(index, bpm_name)
 
-    def effective_correctors(self, bpm: str) -> list[str]:
+    def effective_correctors(self, bpm: str) -> List[str]:
         return self._effective_corrector[bpm]
 
     def corrector_kick(self, component: Components) -> float:
@@ -539,7 +539,7 @@ class Lattice:
         return quad_start_high, quad_high, quad_low, quad_setpoint
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
-    def get_bba_offsets(self) -> Tuple[list[float], list[float]]:
+    def get_bba_offsets(self) -> Tuple[List[float], List[float]]:
         """"""
         current_bba_x = [float(v) for v in caget(self.bba_x_pvs)]
         current_bba_y = [float(v) for v in caget(self.bba_y_pvs)]
@@ -605,7 +605,7 @@ class Lattice:
                 pass
 
     def save_calculated_offsets(
-        self, results_dictionary: dict[str, list[float]], save_location: str
+        self, results_dictionary: dict[str, List[float]], save_location: str
     ):
         filename = os.path.join(save_location, "results.txt")
         with open(filename, "w") as writer:
@@ -615,7 +615,7 @@ class Lattice:
                 writer.write(line)
             writer.close()
 
-    def apply_bba_offsets(self, all_results: dict[str, list[float]]):
+    def apply_bba_offsets(self, all_results: dict[str, List[float]]):
         """"""
         for key, (value, error) in all_results.items():
             caput(key, value, wait=True)

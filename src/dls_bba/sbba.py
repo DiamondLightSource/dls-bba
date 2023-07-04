@@ -1,4 +1,5 @@
 import logging as log
+from typing import List
 
 import numpy as np
 from cothread import Sleep
@@ -14,7 +15,7 @@ class SlowBBA(Algorithm):
     def __init__(self, lattice: Lattice):
         super().__init__(lattice)
 
-    def run(self, components_pair: list[Components]) -> RawData:
+    def run(self, components_pair: List[Components]) -> RawData:
         rawdata = {}
         metadata = {}
         config = self._lattice.config.get_settings()

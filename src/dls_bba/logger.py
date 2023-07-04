@@ -7,7 +7,7 @@ FILE_LOG_FORMAT = (
 )
 
 
-def get_new_logger(folder_path):
+def get_new_logger(folder_path: str) -> None:
     """"""
     logger = log.getLogger()
     logger.setLevel(log.NOTSET)

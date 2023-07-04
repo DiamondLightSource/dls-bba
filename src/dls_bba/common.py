@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import List, Optional
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.components import Components
@@ -31,7 +31,7 @@ def setup_folders(method: str, folder_path: Optional[str] = None) -> str:
 def setup_beam_based_alignment(
     lattice: Lattice,
     algorithm: Algorithm,
-    components_pairs: list[list[Components]],
+    components_pairs: List[List[Components]],
     save_location: str,
 ):
     """"""
@@ -44,12 +44,12 @@ def setup_beam_based_alignment(
 
     lattice.draw_bba_plot_and_apply(results_list, save_location)
 
-    cancel_all_oscillations(lattice.config)
+    cancel_all_oscillations(lattice)
     lattice.restore_origins()
 
 
 def paired_beam_based_alignment(
-    algorithm: Algorithm, components_pair: list[Components], save_location: str
+    algorithm: Algorithm, components_pair: List[Components], save_location: str
 ):
     """"""
     algorithm._lattice.store_starting_beam_current()

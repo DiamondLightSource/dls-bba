@@ -4,7 +4,7 @@ import sys
 from copy import deepcopy
 from json import load
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Sequence, Union
 
 if sys.version_info > (3, 9):
     from importlib.resources import files
@@ -66,7 +66,7 @@ class Configuration:
         self._config.update(new_dictionary)
         return any(key in new_dictionary for key in LATTICE_SETTINGS)
 
-    def apply_config_files(self, paths: List[Union[Path, str]]) -> bool:
+    def apply_config_files(self, paths: Sequence[Union[Path, str]]) -> bool:
         reload_lattice = False
         for pth in paths:
             with open(pth) as f:
