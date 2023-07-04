@@ -170,7 +170,7 @@ class SimFastBBA(Algorithm):
         """
         # Note: array data must include the timestamps.
         exc_high, exc_low = exc_data
-        decimated = False
+        decimated = self.metadata["DECIMATED"]
         log.debug("Raw data shape: {}".format(data.shape))
         log.debug(
             "Timestamp range in raw data: {} - {}".format(data[0, 0, 0], data[-1, 0, 0])
