@@ -37,7 +37,7 @@ def setup_beam_based_alignment(
 ):
     """"""
     results_list: List[Results] = []
-    machine.zero_origins()
+    machine.zero_origins(save_location)
 
     for components_pair in components_pairs:
         results = paired_beam_based_alignment(
@@ -48,7 +48,7 @@ def setup_beam_based_alignment(
     algorithm.use_bba_offsets(results_list, save_location)
 
     cancel_all_oscillations(machine.config)
-    machine.restore_origins()
+    machine.restore_origins(save_location)
 
 
 def paired_beam_based_alignment(

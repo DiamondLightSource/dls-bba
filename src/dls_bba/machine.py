@@ -1,3 +1,4 @@
+import json
 import logging as log
 import os
 from collections import defaultdict
@@ -489,11 +490,11 @@ class Machine:
         components.corrector.set_value(components.kick, value)
         log.debug(f"Corrector {components.corrector_name} set value: {value}")
 
-    def zero_origins(self):
+    def zero_origins(self, folder_path: str):
         """"""
         # zeroes bcd and golden offsets. Golden must be restored later.
         log.debug("Zeroing BCD and Golden Offsets")
-        self._golden_offsets = {}
+        golden_offsets = {}
 
         for bpm, bpm_name in zip(self.bpms, self.bpms_names):
             for axis in ["x", "y"]:
@@ -502,19 +503,24 @@ class Machine:
                     axis=axis.upper()
                 )
 
-                self._golden_offsets[golden_pv] = caget(golden_pv)
+                golden_offsets[golden_pv] = caget(golden_pv)
 
                 caput(bcd_pv, 0, wait=True)
                 caput(golden_pv, 0, wait=True)
         Sleep(0.2)
-        log.debug(self._golden_offsets)
+        with open(os.path.join(folder_path, "golden_offsets.json"), "w") as outfile:
+            json.dump(golden_offsets, outfile)
         log.debug("Origins Zeroed")
 
-    def restore_origins(self):
+    def restore_origins(self, folder_path: str):
         """"""
         # restore golden orbits.
         log.debug("Restoring Golden Offsets")
-        for key, value in self._golden_offsets.items():
+
+        with open(os.path.join(folder_path, "golden_offsets.json")) as f:
+            golden_offsets = json.load(f)
+
+        for key, value in golden_offsets.items():
             caput(key, value, wait=True)
         Sleep(0.2)
         log.debug("Origins Restored")
