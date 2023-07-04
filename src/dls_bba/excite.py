@@ -7,18 +7,28 @@ from dls_bba.components import Components
 from dls_bba.faa import TICKS_PER_SECOND
 
 NETWORK_LAG_S = 0.5
+"""Additional time to account for Network Lag in seconds."""
 SAFETY_NET_S = 0.1
-QUAD_SLEW_RATE = 0.5  # Amps/Second
+"""Additional time for a safety net in seconds."""
+QUAD_SLEW_RATE = 0.5
+"""The slew rate of a quadrupole in amps per second."""
 NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
+"""Additional time to account for Network Lag in FAA ticks."""
 SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
+"""Additional time for a safety net in FAA ticks."""
 
 PLANES = 2
+"""Number of planes. eg. 'x' and 'y'."""
 MAX_CORRECTORS = 9
+"""The maximum number of correctors in a plane per IOC or cell."""
 N = MAX_CORRECTORS * PLANES
+"""The maximum number of correctors per IOC or cell."""
 
 
 @dataclass
 class FofbCorrector:
+    """This dataclass provides information regarding the IOC and the corrector chosen."""
+
     index: int
     ioc: str
     fofb_index: int
@@ -27,22 +37,30 @@ class FofbCorrector:
 
 @dataclass
 class Oscillation:
+    """This dataclass provides information regarding the AC excitation."""
+
     amplitude: float
     plane: Components
     frequency: int
     cycles: int
 
-    # Length of time of excitation in s
-    dwell: float
-    # Length of time of excitation in FOFB ticks
-    count: int
-    # Phase advance per tick per revoloution
-    delta: int
-    # Duration of all oscillations.
-    duration: float
+    dwell: float  # Length of time of excitation in s.
+    count: int  # Length of time of excitation in FOFB ticks.
+    delta: int  # Phase advance per tick per revoloution.
+    duration: float  # Duration of all oscillations.
 
     @classmethod
-    def from_values(cls, amplitude, plane, frequency, cycles):
+    def from_values(
+        cls, amplitude: float, plane: Components, frequency: int, cycles: int
+    ):
+        """This constructor is the default construction method.
+
+        Args:
+            amplitude: The maximum amplitude of the excitation in amps.
+            plane: The components including the plane.
+            frequency: The frequency of the oscillation in Hz.
+            cycles: The number of cycles to excite for.
+        """
         dwell = cycles / frequency
         count = int(np.ceil(dwell * TICKS_PER_SECOND))
         delta = int(np.floor(frequency * 2**32 / TICKS_PER_SECOND))
@@ -51,6 +69,14 @@ class Oscillation:
 
 
 def get_corrector_table(lattice):
+    """This function gets corrector IOC table.
+
+    Args:
+        lattice: The lattice object.
+
+    Returns:
+        An array with the corrector IOC table.
+    """
     correctors_txt = lattice.config["CORRECTORS_TXT_PATH"]
     with open(correctors_txt, "r", encoding="utf8", newline="") as file:
         data = np.genfromtxt(file, names=True, dtype=None, encoding="UTF-8")
@@ -58,7 +84,15 @@ def get_corrector_table(lattice):
 
 
 def get_fofb_corrector(lattice, components: Components):
-    """Create FofbCorrector tuple from pytac element."""
+    """Create FofbCorrector tuple from components.
+
+    Args:
+        lattice: The lattice object.
+        components: The component object for the corrector of interest.
+
+    Returns:
+        An FofbCorrector object.
+    """
     table = get_corrector_table(lattice)
     name = components.corrector_name
     # Corrector table indices start from 1
@@ -70,9 +104,19 @@ def get_fofb_corrector(lattice, components: Components):
 
 
 class Excitation(object):
-    """An excitation performed on a corrector."""
+    """An excitation object contains all the information to perform an AC excitation."""
 
-    def __init__(self, lattice, components, oscillation, start_time):
+    def __init__(
+        self, lattice, components: Components, oscillation: Oscillation, start_time: int
+    ):
+        """The default constructor for the excitation object.
+
+        Args:
+            lattice: The lattice object.
+            components: The component object for the corrector of interest.
+            oscillation: The oscillation object for the corrector of interest.
+            start_time: The oscillation start time in FAA ticks.
+        """
         self.corrector = components.corrector
         self.oscillation = oscillation
         self.start_time = start_time
@@ -85,8 +129,11 @@ class Excitation(object):
 
 
 def excite(excitations):
-    """Completes caputs which will start the excitation."""
+    """Completes caputs which will start the excitation.
 
+    Args:
+        excitations: A tuple of excitation objects.
+    """
     iocs = excitations[0].iocs
 
     # Zero all timestamps
@@ -136,7 +183,11 @@ def excite(excitations):
 
 
 def cancel_all_oscillations(config):
-    """"""
+    """This function resets all of the IOCs to stop rogue oscillations.
+
+    Args:
+        config: The configuration dictionary of the lattice object.
+    """
     # Set all to 0, then prime for all IOCS.
     iocs = config["CORRECTOR_IOCS"]
     pvs = {}
