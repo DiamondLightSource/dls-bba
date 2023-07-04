@@ -9,13 +9,12 @@ if sys.version_info > (3, 9):
 else:
     from importlib_resources import files
 
-"""The default config names to import first."""
 DEFAULT_CONFIGS = (
     "I04-20230524-settings.json",  # Ring mode settings -> Must be first in list.
     "defaults.json",  # UI defaults.
 )
+"""The default config names to import first."""
 
-"""The complex lattice settings that require a reload to the underlying pytac lattice."""
 LATTICE_SETTINGS = (  # Requires update to lattice and associated components
     "RINGMODE",
     "UNITS",
@@ -34,6 +33,7 @@ LATTICE_SETTINGS = (  # Requires update to lattice and associated components
     "QUAD2BPM_EXCEPTIONS",
     "PSPS",
 )
+"""The complex lattice settings that require a reload to the underlying pytac lattice."""
 
 
 class Configuration:
