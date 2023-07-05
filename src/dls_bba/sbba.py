@@ -183,4 +183,6 @@ class SlowBBA(Algorithm):
                 matrix_xy = np.delete(matrix_x, stdev_list, axis=1)
                 plotting[key] = {"x": corrector_steps, "y": matrix_xy}
 
-        return Results(results, metadata, plotting)
+        offsets = self.create_offsets_dict(results, metadata)
+
+        return Results(results, metadata, plotting, offsets)
