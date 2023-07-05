@@ -25,7 +25,12 @@ class RawData:
 
         dct = {"rawdata": rawdata, "metadata": metadata}
         # Can load files in matlab: object.("key")
-        io.savemat(os.path.join(folder_path, filename), dct, oned_as="row")
+        io.savemat(
+            os.path.join(folder_path, filename),
+            dct,
+            oned_as="row",
+            long_field_names=True,
+        )
 
     @classmethod
     def from_file(cls, filepath):
@@ -101,4 +106,9 @@ class Results:
             "offsets": offsets,
         }
         # Can load files in matlab: object.("key")
-        io.savemat(os.path.join(folder_path, filename), dct, oned_as="row")
+        io.savemat(
+            os.path.join(folder_path, filename),
+            dct,
+            oned_as="row",
+            long_field_names=True,
+        )

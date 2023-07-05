@@ -57,7 +57,7 @@ class SlowBBA(Algorithm):
                     self._lattice.set_quad_setpoint(quadrupole, quad_movement, True)
 
                     for index, step in enumerate(corrector_step_list, start=1):
-                        self._lattice.set_corrector_setpoint(components.corrector, step)
+                        self._lattice.set_corrector_setpoint(components, step)
                         Sleep(0.1)  # Fixed time for orbit to stabilise.
                         measured_bpms = self._lattice.measure_bpms(components.axis)
 
@@ -76,12 +76,10 @@ class SlowBBA(Algorithm):
 
                     # Reset the corrector after the steps before moving the quadrupole.
                     self._lattice.set_corrector_setpoint(
-                        components.corrector, corrector_step_list[2]
+                        components, corrector_step_list[2]
                     )
                 # Reset Quad and Corrector once finished.
-                self._lattice.set_corrector_setpoint(
-                    components.corrector, corrector_step_list[2]
-                )
+                self._lattice.set_corrector_setpoint(components, corrector_step_list[2])
                 self._lattice.set_quad_setpoint(quadrupole, quad_sp, True)
             # run feedbacks after each axis.
             self._lattice.check_feedbacks()
@@ -110,10 +108,10 @@ class SlowBBA(Algorithm):
         for quad_name in quad_names:
             for axis in ["x", "y"]:
                 matrix = np.zeros(shape=(5, len(enabled_bpms)))
-                for index in range(1, 6):
-                    key = f"{quad_name}_{axis}_High_{index}"
+                for index in range(5):
+                    key = f"{quad_name}_{axis}_High_{index + 1}"
                     high = data[key]
-                    key = f"{quad_name}_{axis}_Low_{index}"
+                    key = f"{quad_name}_{axis}_Low_{index + 1}"
                     low = data[key]
                     matrix[index, :] = np.subtract(high, low)
 
@@ -173,6 +171,8 @@ class SlowBBA(Algorithm):
                         stdev_list.append(index)
                 p = np.delete(p, stdev_list, axis=0)
 
+                offset_mean = np.mean(p[:, 1])
+                offset_stdev = np.std(p[:, 1])
                 log.info(f"Final size of p: {np.shape(p)}")
 
                 key = f"{quad_name}_{axis}"
