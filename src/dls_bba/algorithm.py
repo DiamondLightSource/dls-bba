@@ -23,20 +23,23 @@ class Algorithm(ABC):
     def create_offsets_dict(
         self, results, metadata
     ) -> dict[str, dict[str, Union[List[float], float]]]:
-        offsets = {}
+        offsets: dict[str, dict[str, Union[List[float], float]]] = {}
         bpm_name = metadata["bpm_name"]
         bpm_index = metadata["bpm_index"]
 
         for index, axis in enumerate(["x", "y"]):
-            bpm_key = bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis=axis.upper())
+            bpm_key = str(bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis=axis.upper()))
             # Get current BBA offset.
-            old_bba = self._lattice.get_bba_offsets()[index][bpm_index]
+            old_bba = float(self._lattice.get_bba_offsets()[index][bpm_index])
             # Calculate the change needed.
             difference = self.calculate_new_offsets(results, axis)
             # Calculate the new BBA offset.
-            new_bba = [old_bba + difference[0], difference[1]]
+            new_bba = float("%0.4f" % (old_bba + difference[0]))
+            # Set all values to 4d.p.
+            difference = [float("%0.4f" % v) for v in difference]
 
-        offsets[bpm_key] = {"new": new_bba, "old": old_bba, "diff": difference}
+            offsets[bpm_key] = {"new": new_bba, "old": old_bba, "diff": difference}
+
         return offsets
 
     def calculate_new_offsets(

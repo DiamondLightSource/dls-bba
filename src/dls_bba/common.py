@@ -42,7 +42,7 @@ def setup_beam_based_alignment(
         results = paired_beam_based_alignment(algorithm, components_pair, save_location)
         results_list.append(results)
 
-    lattice.draw_bba_plot_and_apply(results_list, save_location)
+    lattice.use_bba_offsets(results_list, save_location)
 
     cancel_all_oscillations(lattice.config)
     lattice.restore_origins()
