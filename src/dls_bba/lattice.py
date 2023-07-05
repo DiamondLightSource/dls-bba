@@ -336,7 +336,7 @@ class Lattice:
         """PV ONLY"""
         radian_kick = self.config["CORRECTOR_KICK_RADIANS"]
 
-        if str(self.config["UNITS"]) == "ENG":
+        if str(self.config["UNITS"]) == "pytac.ENG":
             value = component.corrector.get_unitconv(component.kick).convert(
                 radian_kick, pytac.PHYS, pytac.ENG
             )
