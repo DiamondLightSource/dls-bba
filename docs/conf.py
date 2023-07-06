@@ -63,6 +63,15 @@ nitpick_ignore = [
     ("py:class", "'object'"),
     ("py:class", "'id'"),
     ("py:class", "typing_extensions.Literal"),
+    # Added, but custom for dls-bba
+    ("py:class", "pytac.element.EpicsElement"),
+    ("py:class", "EpicsElement"),
+    ("py:class", "bpm"),
+    ("py:class", "dct"),
+    ("py:class", "horizontal_components"),
+    ("py:class", "check_pairings"),
+    ("py:class", "quad_start_high"),
+    ("py:exc", "FaException"),
 ]
 
 # Both the class’ and the __init__ method’s docstring are concatenated and
