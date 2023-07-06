@@ -552,18 +552,18 @@ class Lattice:
         for results in results_list:
             offsets_dict.update(results.offsets.items())
 
-        self.save_bba_offsets(offsets_dict, save_location)
-        self.plot_bba_offsets(offsets_dict)
+        self._save_bba_offsets(offsets_dict, save_location)
+        self._plot_bba_offsets(offsets_dict)
         while True:
             message = "Apply these BBA offsets? (y / n) : "
             response = input(message).lower().strip()
             if response == "n":
                 break
             elif response == "y":
-                self.apply_bba_offsets(offsets_dict)
+                self._apply_bba_offsets(offsets_dict)
                 pass
 
-    def save_bba_offsets(
+    def _save_bba_offsets(
         self,
         offsets_dict: dict[str, dict[str, Union[List[float], float]]],
         save_location: str,
@@ -583,7 +583,7 @@ class Lattice:
                 writer.write(line)
             writer.close()
 
-    def plot_bba_offsets(self, offsets_dict):
+    def _plot_bba_offsets(self, offsets_dict):
         """"""
         change_in_x = []
         change_in_dx = []
@@ -623,13 +623,15 @@ class Lattice:
         # fig.supylabel("Change in BBA offset [mm]")
         # plt.show()
 
-    def apply_bba_offsets(
+    def _apply_bba_offsets(
         self,
         offsets_dict: dict[str, dict[str, Union[List[float], float]]],
     ):
-        apply_dict = {}
+        pv_names = []
+        pv_values = []
         for key, value in offsets_dict.items():
-            apply_dict[key] = value["new"]
-        caput(*zip(*apply_dict.items()), wait=True)
-        log.info(f"{len(apply_dict)} BBA Offsets Applied.")
+            pv_names.append(key)
+            pv_values.append(value["new"])
+        caput(pv_names, pv_values, wait=True)
+        log.info(f"{len(pv_names)} BBA Offsets Applied.")
         Sleep(0.2)
