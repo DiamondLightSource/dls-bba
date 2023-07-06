@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, List
 
 import scipy.io as io
 
@@ -49,10 +49,10 @@ class CalculatedOffset:
 class Results:
     def __init__(
         self,
-        results: dict[str, Any],
+        results: dict[str, List[float]],
         metadata: dict[str, Any],
-        plotting: dict[str, Any],
-        offsets: dict[str, Any],
+        plotting: dict[str, dict[str, List[float]]],
+        offsets: dict[str, CalculatedOffset],
     ):
         self.results: dict = results
         self.metadata: dict = metadata
@@ -67,6 +67,7 @@ class Results:
         results = {}
         for keys, values in dct["results"].items():
             results[keys] = values.tolist()
+
         offsets: dict[str, CalculatedOffset] = {}
         for key, values in dct["offsets"].items():
             offsets[key] = CalculatedOffset(**values)
