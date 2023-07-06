@@ -64,13 +64,6 @@ nitpick_ignore = [
     ("py:class", "'id'"),
     ("py:class", "typing_extensions.Literal"),
     # Added, but custom for dls-bba
-    ("py:class", "pytac.element.EpicsElement"),
-    ("py:class", "EpicsElement"),
-    ("py:class", "bpm"),
-    ("py:class", "dct"),
-    ("py:class", "horizontal_components"),
-    ("py:class", "check_pairings"),
-    ("py:class", "quad_start_high"),
     ("py:exc", "FaException"),
 ]
 
@@ -110,6 +103,7 @@ pygments_style = "sphinx"
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
+    "pytac": ("https://diamondlightsource.github.io/pytac/main/", None),
 }
 
 # A dictionary of graphviz graph attributes for inheritance diagrams.

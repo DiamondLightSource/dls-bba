@@ -5,7 +5,7 @@ from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Union
 
 import numpy as np
-from pytac.element import EpicsElement
+import pytac
 
 from dls_bba.exceptions import ComponentConstructionError, ElementDisabledError
 
@@ -24,9 +24,9 @@ class Components:
     corrector_name: str
     axis: str
     kick: str
-    bpm: EpicsElement
-    quadrupoles: list[EpicsElement]
-    corrector: EpicsElement
+    bpm: pytac.element.EpicsElement
+    quadrupoles: list[pytac.element.EpicsElement]
+    corrector: pytac.element.EpicsElement
     bpm_index: int
 
     @classmethod
@@ -70,7 +70,7 @@ class Components:
         )
 
     @classmethod
-    def from_dict(cls, lattice: Lattice, dct: dict):
+    def from_dict(cls, lattice: Lattice, dct: dict[str, str]):
         """Components constructor using a dictionary.
 
         Args:
@@ -101,7 +101,11 @@ class Components:
         bpm_name: str,
         quadrupoles_names: list[str],
         corrector_name: str,
-    ) -> tuple[EpicsElement, list[EpicsElement], EpicsElement]:
+    ) -> tuple[
+        pytac.element.EpicsElement,
+        list[pytac.element.EpicsElement],
+        pytac.element.EpicsElement,
+    ]:
         """A function that converts component names to EpicsElements.
 
         Args:
@@ -111,9 +115,9 @@ class Components:
             corrector_name: The name of the corrector required.
 
         Returns:
-            bpm: The EpicsElement object for the BPM.
-            quadrupoles: A list of EpicsElements for the quadrupoles.
-            corrector: The EpicsElement object for the corrector.
+            The EpicsElement object for the BPM.
+            A list of EpicsElements for the quadrupoles.
+            The EpicsElement object for the corrector.
         """
         bpm = lattice.bpms[lattice.bpms_names.index(bpm_name)]
         quadrupoles = [
@@ -130,7 +134,7 @@ class Components:
         """A function that converts the component names into a dictionary.
 
         Returns:
-            dct: A dictionary of all names and string values in the object.
+            A dictionary of all names and string values in the object.
         """
         dct: dict[str, Union[str, list[str]]] = {}
         for k, v in asdict(self).items():
@@ -152,8 +156,8 @@ def generate_component_pairings(
         element_name: The name of the element.
 
     Returns:
-        horizontal_components: The component for the horizontal direction.
-        vertical_components: The component for the vertical direction.
+        The component for the horizontal direction.
+        The component for the vertical direction.
 
     Raises:
         ComponentConstructionError: If an invalid element name is given.
@@ -192,7 +196,7 @@ def verify_component_pairing(
         component_pairings: The list of component pair lists.
 
     Returns:
-        check_pairings: The verified list of component pair lists.
+        The verified list of component pair lists.
     """
     checked_pairings = []
 

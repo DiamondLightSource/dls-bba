@@ -598,10 +598,10 @@ class Lattice:
             quadrupole: The EpicsElement object for the quadrupole.
 
         Returns:
-            quad_start_high: Initial starting point to establish a known hysteresis curve.
-            quad_high: The 'high' measurement point.
-            quad_low: The 'low' measurement point.
-            quad_setpoint: The starting and ending setpoint.
+            Initial starting point to establish a known hysteresis curve.
+            The 'high' measurement point.
+            The 'low' measurement point.
+            The starting and ending setpoint.
         """
         quad_step_percent = self.config["QUADRUPOLE_STEP_PERCENT"] * 1e-2
 
