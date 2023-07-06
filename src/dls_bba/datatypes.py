@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import os
-from dataclasses import dataclass
-from typing import Any, List, Union
+from dataclasses import asdict, dataclass
+from typing import Any
 
 import scipy.io as io
 
@@ -36,13 +38,21 @@ class RawData:
         return cls(dct["rawdata"], dct["metadata"])
 
 
+@dataclass
+class CalculatedOffset:
+    old_value: float
+    new_value: float
+    diff_value: float
+    diff_error: float
+
+
 class Results:
     def __init__(
         self,
         results: dict[str, Any],
         metadata: dict[str, Any],
         plotting: dict[str, Any],
-        offsets: dict[str, dict[str, Union[List[float], float]]],
+        offsets: dict[str, Any],
     ):
         self.results: dict = results
         self.metadata: dict = metadata
@@ -50,22 +60,16 @@ class Results:
         self.offsets: dict = offsets
 
     @classmethod
-    def from_file(cls, filepath: str):
+    def from_file(cls, filepath: str) -> Results:
         """"""
         dct = io.loadmat(filepath, simplify_cells=True)
 
         results = {}
         for keys, values in dct["results"].items():
             results[keys] = values.tolist()
-
-        offsets: dict[str, dict[str, Union[List[float], float]]] = {}
+        offsets: dict[str, CalculatedOffset] = {}
         for key, values in dct["offsets"].items():
-            offsets[key] = {}
-            for id, value in values.items():
-                if isinstance(value, float):
-                    offsets[key][id] = value
-                else:
-                    offsets[key][id] = value.tolist()
+            offsets[key] = CalculatedOffset(**values)
 
         return cls(results, dct["metadata"], dct["plotting"], offsets)
 
@@ -81,11 +85,15 @@ class Results:
         bpm_name = metadata["bpm_name"]
         filename = f"{method}-{isotime}-{bpm_name}-results.mat"
 
+        offsets_dict = {}
+        for key, values in offsets.items():
+            offsets_dict[key] = asdict(values)
+
         dct = {
             "results": results,
             "metadata": metadata,
             "plotting": plotting,
-            "offsets": offsets,
+            "offsets": offsets_dict,
         }
         # Can load files in matlab: object.("key")
         io.savemat(

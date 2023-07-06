@@ -3,7 +3,7 @@ import os
 from collections import defaultdict
 from functools import wraps
 from subprocess import run
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 import cothread
 
@@ -545,93 +545,3 @@ class Lattice:
         current_bba_y = [float(v) for v in caget(self.bba_y_pvs)]
 
         return (current_bba_x, current_bba_y)
-
-    def use_bba_offsets(self, results_list, save_location: str):
-        """"""
-        offsets_dict: dict[str, dict[str, Union[List[float], float]]] = {}
-        for results in results_list:
-            offsets_dict.update(results.offsets.items())
-
-        self._save_bba_offsets(offsets_dict, save_location)
-        self._plot_bba_offsets(offsets_dict)
-        while True:
-            message = "Apply these BBA offsets? (y / n) : "
-            response = input(message).lower().strip()
-            if response == "n":
-                break
-            elif response == "y":
-                self._apply_bba_offsets(offsets_dict)
-                pass
-
-    def _save_bba_offsets(
-        self,
-        offsets_dict: dict[str, dict[str, Union[List[float], float]]],
-        save_location: str,
-    ):
-        filename = os.path.join(save_location, "results.txt")
-        with open(filename, "w") as writer:
-            for key, value in offsets_dict.items():
-                val, err = value["diff"]  # type: ignore
-                old = value["old"]
-                new = value["new"]
-
-                line = f"{key}  : Absolute change: {val} +/- {err} [mm]\n"
-                log.info(line)
-                writer.write(line)
-                line = f"{key}  : Old: {old} [mm], New: {new} [mm]\n"
-                log.info(line)
-                writer.write(line)
-            writer.close()
-
-    def _plot_bba_offsets(self, offsets_dict):
-        """"""
-        change_in_x = []
-        change_in_dx = []
-        for index, bpm_name in enumerate(self.bba_x_pvs):
-            if bpm_name in offsets_dict.keys():
-                val, err = offsets_dict[bpm_name]["diff"]
-                change_in_x.append(val)
-                change_in_dx.append(err)
-            else:
-                change_in_x.append(0)
-                change_in_dx.append(0)
-
-        change_in_y = []
-        change_in_dy = []
-        for index, bpm_name in enumerate(self.bba_y_pvs):
-            if bpm_name in offsets_dict.keys():
-                val, err = offsets_dict[bpm_name]["diff"]
-                change_in_y.append(val)
-                change_in_dy.append(err)
-            else:
-                change_in_y.append(0)
-                change_in_dy.append(0)
-
-        # # Plot
-        # fig, (ax1, ax2) = plt.subplots(2, sharex=True, tight_layout=True)
-        # fig.suptitle("Change in BBA values")
-        # ax1.set_xlim(0, 174)
-        # ax1.axhline(y=0, color="k", linestyle="-", alpha=0.5)
-        # ax1.plot(change_in_x, color="b")
-        # ax1.set_ylabel("Horizontal")
-        # ax1.grid(which="both", axis="both")
-        # ax2.plot(change_in_y, color="r")
-        # ax2.axhline(y=0, color="k", linestyle="-", alpha=0.5)
-        # ax2.set_ylabel("Vertical")
-        # ax2.grid(which="both", axis="both")
-        # fig.supxlabel("BPM Number")
-        # fig.supylabel("Change in BBA offset [mm]")
-        # plt.show()
-
-    def _apply_bba_offsets(
-        self,
-        offsets_dict: dict[str, dict[str, Union[List[float], float]]],
-    ):
-        pv_names = []
-        pv_values = []
-        for key, value in offsets_dict.items():
-            pv_names.append(key)
-            pv_values.append(value["new"])
-        caput(pv_names, pv_values, wait=True)
-        log.info(f"{len(pv_names)} BBA Offsets Applied.")
-        Sleep(0.2)

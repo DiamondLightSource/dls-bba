@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from dls_bba.datatypes import RawData, Results
+from dls_bba.datatypes import CalculatedOffset, RawData, Results
 
 
 @pytest.fixture(scope="module")
@@ -25,7 +25,10 @@ def results_without_offsets_setup():
         "bpm_name": "results_bpm_name",
     }
     plotting = {"plotting": "results_plotting"}
-    offsets = {"offsets": {"key": [1.1, 2.1]}}
+    offsets = {
+        "BPM1": CalculatedOffset(1.0, 1.1, 1.2, 1.3),
+        "BPM2": CalculatedOffset(2.0, 2.1, 2.2, 2.3),
+    }
     return Results(results, metadata, plotting, offsets)
 
 
