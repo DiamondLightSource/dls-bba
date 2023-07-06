@@ -1,11 +1,10 @@
+from __future__ import annotations
+
 import os
-from dataclasses import dataclass
-from typing import Any, Optional
+from dataclasses import asdict, dataclass
+from typing import Any, List
 
-import numpy as np
 import scipy.io as io
-
-from dls_bba.lattice import ORIGIN_SUFFIXES
 
 
 @dataclass
@@ -39,45 +38,29 @@ class RawData:
         return cls(dct["rawdata"], dct["metadata"])
 
 
+@dataclass
+class CalculatedOffset:
+    old_value: float
+    new_value: float
+    diff_value: float
+    diff_error: float
+
+
 class Results:
     def __init__(
         self,
-        results: dict[str, Any],
+        results: dict[str, List[float]],
         metadata: dict[str, Any],
-        plotting: dict[str, Any],
-        offsets: Optional[dict[str, list[float]]] = None,
+        plotting: dict[str, dict[str, List[float]]],
+        offsets: dict[str, CalculatedOffset],
     ):
         self.results: dict = results
         self.metadata: dict = metadata
         self.plotting: dict = plotting
-        self.offsets: dict = (
-            self.find_true_bba_offsets() if offsets is None else offsets
-        )
-
-    def find_true_bba_offsets(self) -> dict[str, list[float]]:
-        offsets = {}
-        bpm_name = self.metadata["bpm_name"]
-
-        for axis in ["x", "y"]:
-            keys = [key for key in self.results.keys() if axis in key]
-            values = []
-            errors = []
-            for key in keys:
-                values.append(self.results[key][0])
-                errors.append(self.results[key][1])
-
-            sum_error = 0
-            mean_value = np.mean(values)
-            for value, error in zip(values, errors):
-                sum_error += (error / value) ** 2
-            total_error = np.sqrt(sum_error) * mean_value
-
-            bpm_key = bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis=axis.upper())
-            offsets[bpm_key] = [mean_value, total_error]
-        return offsets
+        self.offsets: dict = offsets
 
     @classmethod
-    def from_file(cls, filepath: str):
+    def from_file(cls, filepath: str) -> Results:
         """"""
         dct = io.loadmat(filepath, simplify_cells=True)
 
@@ -85,7 +68,11 @@ class Results:
         for keys, values in dct["results"].items():
             results[keys] = values.tolist()
 
-        return cls(results, dct["metadata"], dct["plotting"], dct["offsets"])
+        offsets: dict[str, CalculatedOffset] = {}
+        for key, values in dct["offsets"].items():
+            offsets[key] = CalculatedOffset(**values)
+
+        return cls(results, dct["metadata"], dct["plotting"], offsets)
 
     def save(self, folder_path):
         """"""
@@ -99,11 +86,15 @@ class Results:
         bpm_name = metadata["bpm_name"]
         filename = f"{method}-{isotime}-{bpm_name}-results.mat"
 
+        offsets_dict = {}
+        for key, values in offsets.items():
+            offsets_dict[key] = asdict(values)
+
         dct = {
             "results": results,
             "metadata": metadata,
             "plotting": plotting,
-            "offsets": offsets,
+            "offsets": offsets_dict,
         }
         # Can load files in matlab: object.("key")
         io.savemat(

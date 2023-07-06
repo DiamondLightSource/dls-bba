@@ -1,8 +1,9 @@
 import os
-from typing import Optional
+from typing import List, Optional
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.components import Components
+from dls_bba.datatypes import Results
 from dls_bba.excite import cancel_all_oscillations
 from dls_bba.fbba import FastBBA
 from dls_bba.isotime import get_isotime
@@ -35,14 +36,14 @@ def setup_beam_based_alignment(
     save_location: str,
 ):
     """"""
-    results_list = []
+    results_list: List[Results] = []
     lattice.zero_origins()
 
     for components_pair in components_pairs:
         results = paired_beam_based_alignment(algorithm, components_pair, save_location)
         results_list.append(results)
 
-    lattice.draw_bba_plot_and_apply(results_list, save_location)
+    algorithm.use_bba_offsets(results_list, save_location)
 
     cancel_all_oscillations(lattice.config)
     lattice.restore_origins()
@@ -53,14 +54,13 @@ def paired_beam_based_alignment(
 ):
     """"""
     algorithm._lattice.store_starting_beam_current()
-    algorithm._lattice.check_feedbacks()
 
     while True:
+        algorithm._lattice.check_feedbacks()
         rawdata = algorithm.run(components_pair)
+
         if algorithm._lattice.check_beam_current():
             break
-        else:
-            algorithm._lattice.check_feedbacks()
 
     rawdata.save(save_location)
     results = algorithm.analyse(rawdata)

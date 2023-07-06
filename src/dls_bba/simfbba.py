@@ -289,4 +289,6 @@ class SimFastBBA(Algorithm):
                     "y": q_diff_good / NM_TO_MM_UNIT_CONV,
                 }
 
-        return Results(results, metadata, plotting)
+        offsets = self.create_offsets_dict(results, metadata)
+
+        return Results(results, metadata, plotting, offsets)

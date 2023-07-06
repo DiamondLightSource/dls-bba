@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from dls_bba.datatypes import RawData, Results
+from dls_bba.datatypes import CalculatedOffset, RawData, Results
 
 
 @pytest.fixture(scope="module")
@@ -25,7 +25,11 @@ def results_without_offsets_setup():
         "bpm_name": "results_bpm_name",
     }
     plotting = {"plotting": "results_plotting"}
-    return Results(results, metadata, plotting)
+    offsets = {
+        "BPM1": CalculatedOffset(1.0, 1.1, 1.2, 1.3),
+        "BPM2": CalculatedOffset(2.0, 2.1, 2.2, 2.3),
+    }
+    return Results(results, metadata, plotting, offsets)
 
 
 def test_rawdata_saving_is_valid(tmp_path, rawdata_setup):
@@ -47,14 +51,6 @@ def test_rawdata_construction_from_file_is_valid(tmp_path, rawdata_setup):
 
     assert loaded_rawdata.rawdata == rawdata.rawdata
     assert loaded_rawdata.metadata == rawdata.metadata
-
-
-def test_results_object_calculates_offsets_when_not_given(
-    results_without_offsets_setup,
-):
-    results = results_without_offsets_setup
-    assert results.offsets["results_bpm_name:CF:BBA_X_S"] == results.results["data_x"]
-    assert results.offsets["results_bpm_name:CF:BBA_Y_S"] == results.results["data_y"]
 
 
 def test_results_saving_is_valid(tmp_path, results_without_offsets_setup):
@@ -79,3 +75,4 @@ def test_results_construction_from_file_is_valid(
     assert loaded_results.results["data_x"] == results.results["data_x"]
     assert loaded_results.results["data_y"] == results.results["data_y"]
     assert loaded_results.metadata == results.metadata
+    assert loaded_results.offsets == results.offsets
