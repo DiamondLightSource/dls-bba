@@ -49,6 +49,7 @@ class FastBBA(Algorithm):
                     quad_high,
                     quad_low,
                     quad_sp,
+                    quad_step,
                 ) = self._lattice.calculate_quad_setpoints(quadrupole)
 
                 corr_kick = self._lattice.corrector_kick(components)
@@ -62,6 +63,7 @@ class FastBBA(Algorithm):
                         quad_high,
                         quad_low,
                         quad_sp,
+                        quad_step,
                     ],
                     "corrector_sp": corr_sp,
                     "corrector_kick": corr_kick,
@@ -82,7 +84,7 @@ class FastBBA(Algorithm):
                 cycles = config[cycles_key]
                 osc = Oscillation.from_values(corr_kick, components, frequency, cycles)
 
-                quad_lag_s = (quad_sp - quad_low) / QUAD_SLEW_RATE
+                quad_lag_s = quad_step / QUAD_SLEW_RATE
                 quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
 
                 self._lattice.set_quad_setpoint(quadrupole, quad_high)
@@ -90,11 +92,11 @@ class FastBBA(Algorithm):
 
                 now = get_timestamp(decimated)
                 high_start = now + NETWORK_LAG
-                low_start = high_start + (2 * osc.count) + SAFETY_NET + quad_lag
-
+                duration = (2 * osc.length) + NETWORK_LAG + SAFETY_NET + quad_lag
                 fa_buffer = Buffer(
-                    self._lattice.faa_bpm_list, high_start, osc.duration, decimated
+                    self._lattice.faa_bpm_list, high_start, duration, decimated
                 )
+                low_start = SAFETY_NET + osc.length + high_start + quad_lag
 
                 exc_high = Excitation(self._lattice, components, osc, high_start)
                 exc_low = Excitation(self._lattice, components, osc, low_start)

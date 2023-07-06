@@ -536,7 +536,7 @@ class Lattice:
         quad_start_high = quad_setpoint + (2 * quad_step)
         quad_high = quad_setpoint + quad_step
         quad_low = quad_setpoint - quad_step
-        return quad_start_high, quad_high, quad_low, quad_setpoint
+        return quad_start_high, quad_high, quad_low, quad_setpoint, quad_step
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
     def get_bba_offsets(self) -> Tuple[list[float], list[float]]:
