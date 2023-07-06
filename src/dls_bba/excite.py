@@ -28,26 +28,14 @@ class FofbCorrector:
 @dataclass
 class Oscillation:
     amplitude: float
-    plane: Components
+    component: Components
     frequency: int
     cycles: int
 
-    # Length of time of excitation in s
-    dwell: float
-    # Length of time of excitation in FOFB ticks
-    count: int
-    # Phase advance per tick per revoloution
-    delta: int
-    # Duration of all oscillations.
-    duration: float
-
-    @classmethod
-    def from_values(cls, amplitude, plane, frequency, cycles):
-        dwell = cycles / frequency
-        count = int(np.ceil(dwell * TICKS_PER_SECOND))
-        delta = int(np.floor(frequency * 2**32 / TICKS_PER_SECOND))
-        duration = (2 * count) + NETWORK_LAG + SAFETY_NET
-        return cls(amplitude, plane, frequency, cycles, dwell, count, delta, duration)
+    @property
+    def length(self):
+        length = int(np.ceil(TICKS_PER_SECOND / self.frequency) * self.cycles)
+        return length
 
 
 def get_corrector_table(lattice):
@@ -72,11 +60,21 @@ def get_fofb_corrector(lattice, components: Components):
 class Excitation(object):
     """An excitation performed on a corrector."""
 
-    def __init__(self, lattice, components, oscillation, start_time):
+    def __init__(
+        self, lattice, components: Components, oscillation: Oscillation, start_time: int
+    ):
         self.corrector = components.corrector
-        self.oscillation = oscillation
-        self.start_time = start_time
-        self.count = oscillation.count
+        self.oscillation: Oscillation = oscillation
+        self.start_time: int = start_time
+
+        # Length of time of excitation in s
+        self.dwell = self.oscillation.cycles / self.oscillation.frequency
+        # Length of time of excitation in FOFB ticks
+        self.count = int(np.round(self.dwell * TICKS_PER_SECOND))
+        # Phase advance per tick per revoloution
+        self.delta = int(
+            np.floor(self.oscillation.frequency * 2**32 / TICKS_PER_SECOND)
+        )
 
         fofb_corrector = get_fofb_corrector(lattice, components)
         self.ioc = fofb_corrector.ioc

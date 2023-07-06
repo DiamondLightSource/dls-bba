@@ -36,6 +36,7 @@ class SlowBBA(Algorithm):
                     quad_high,
                     quad_low,
                     quad_sp,
+                    quad_step,
                 ) = self._lattice.calculate_quad_setpoints(quadrupole)
                 corrector_step_list = self._lattice.get_slow_bba_corrector_steps(
                     components
@@ -70,6 +71,7 @@ class SlowBBA(Algorithm):
                                 quad_high,
                                 quad_low,
                                 quad_sp,
+                                quad_step,
                             ],
                             "corrector_steps": corrector_step_list,
                         }

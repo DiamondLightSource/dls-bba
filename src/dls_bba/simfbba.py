@@ -51,6 +51,7 @@ class SimFastBBA(Algorithm):
                 quad_high,
                 quad_low,
                 quad_sp,
+                quad_step,
             ) = self._lattice.calculate_quad_setpoints(quadrupole)
 
             hcorr_kick = self._lattice.corrector_kick(components_pair[0].corrector)
@@ -73,6 +74,7 @@ class SimFastBBA(Algorithm):
                     quad_high,
                     quad_low,
                     quad_sp,
+                    quad_step,
                 ],
                 "corrector_sp": setpoint,
                 "corrector_kick": kick,
@@ -93,12 +95,12 @@ class SimFastBBA(Algorithm):
                 frequency = config[frequency_key]
                 cycles_key = f"{components_pair[index].axis.upper()}_CYCLES"
                 cycles = config[cycles_key]
-                oscillations[axis] = Oscillation.from_values(
+                oscillations[axis] = Oscillation(
                     kick[axis], components_pair[index], frequency, cycles
                 )
             # TODO: X and Y oscillations must be same tick length. Must check.
 
-            quad_lag_s = (quad_sp - quad_low) / QUAD_SLEW_RATE
+            quad_lag_s = quad_step / QUAD_SLEW_RATE
             quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
 
             self._lattice.set_quad_setpoint(quadrupole, quad_high)
@@ -106,16 +108,14 @@ class SimFastBBA(Algorithm):
 
             now = get_timestamp(decimated)
             high_start = now + NETWORK_LAG
-            low_start = (
-                high_start + (2 * oscillations["x"].count) + SAFETY_NET + quad_lag
+            duration = (
+                (2 * oscillations["x"].length) + NETWORK_LAG + SAFETY_NET + quad_lag
             )
-
             fa_buffer = Buffer(
-                self._lattice.faa_bpm_list,
-                high_start,
-                oscillations["x"].duration,
-                decimated,
+                self._lattice.faa_bpm_list, high_start, duration, decimated
             )
+            low_start = SAFETY_NET + oscillations["x"].length + high_start + quad_lag
+
             excitations = {}
             for index, axis in enumerate(["x", "y"]):
                 excitations[f"High_{axis}"] = Excitation(
