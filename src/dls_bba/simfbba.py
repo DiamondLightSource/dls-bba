@@ -95,7 +95,7 @@ class SimFastBBA(Algorithm):
                 frequency = config[frequency_key]
                 cycles_key = f"{components_pair[index].axis.upper()}_CYCLES"
                 cycles = config[cycles_key]
-                oscillations[axis] = Oscillation.from_values(
+                oscillations[axis] = Oscillation(
                     kick[axis], components_pair[index], frequency, cycles
                 )
             # TODO: X and Y oscillations must be same tick length. Must check.

@@ -31,12 +31,11 @@ class Oscillation:
     component: Components
     frequency: int
     cycles: int
-    length: int
 
-    @classmethod
-    def from_values(cls, amplitude, component, frequency, cycles):
-        length = int(np.ceil(TICKS_PER_SECOND / frequency) * cycles)
-        return cls(amplitude, component, frequency, cycles, length)
+    @property
+    def length(self):
+        length = int(np.ceil(TICKS_PER_SECOND / self.frequency) * self.cycles)
+        return length
 
 
 def get_corrector_table(lattice):

@@ -82,7 +82,7 @@ class FastBBA(Algorithm):
                 frequency = config[frequency_key]
                 cycles_key = f"{components.axis.upper()}_CYCLES"
                 cycles = config[cycles_key]
-                osc = Oscillation.from_values(corr_kick, components, frequency, cycles)
+                osc = Oscillation(corr_kick, components, frequency, cycles)
 
                 quad_lag_s = quad_step / QUAD_SLEW_RATE
                 quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
