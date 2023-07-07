@@ -506,10 +506,12 @@ class Machine:
                 golden_offsets[golden_pv] = caget(golden_pv)
                 pv_names.append(bcd_pv)
                 pv_names.append(golden_pv)
-        caput(pv_names, 0, wait=True)
-        Sleep(0.2)
+
         with open(os.path.join(folder_path, "golden_offsets.json"), "w") as outfile:
             json.dump(golden_offsets, outfile)
+
+        caput(pv_names, 0, wait=True)
+        Sleep(0.2)
         log.debug("Origins Zeroed")
 
     def restore_origins(self, folder_path: str):
