@@ -477,19 +477,6 @@ class Lattice:
         log.debug(f"Corrector {components.corrector_name} get value: {value}")
         return value
 
-    def get_slow_bba_corrector_steps(self, components: Components):
-        """"""
-        setpoint = self.get_corrector_setpoint(components)
-        step = self.corrector_kick(components)
-        corrector_steps = [
-            setpoint + step,
-            setpoint + (step / 2),
-            setpoint,
-            setpoint - (step / 2),
-            setpoint - step,
-        ]
-        return corrector_steps
-
     def set_corrector_setpoint(
         self, components: Components, value: Union[float, int]
     ) -> None:
@@ -526,17 +513,6 @@ class Lattice:
             caput(key, value, wait=True)
         Sleep(0.2)
         log.debug("Origins Restored")
-
-    def calculate_quad_setpoints(self, quadrupole: EpicsElement):
-        """"""
-        quad_step_percent = self.config["QUADRUPOLE_STEP_PERCENT"] * 1e-2
-
-        quad_setpoint = self.get_quad_setpoint(quadrupole)
-        quad_step = quad_setpoint * quad_step_percent
-        quad_start_high = quad_setpoint + (2 * quad_step)
-        quad_high = quad_setpoint + quad_step
-        quad_low = quad_setpoint - quad_step
-        return quad_start_high, quad_high, quad_low, quad_setpoint, quad_step
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
     def get_bba_offsets(self) -> Tuple[list[float], list[float]]:

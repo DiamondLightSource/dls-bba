@@ -6,6 +6,7 @@ from typing import List
 import numpy as np
 from cothread import Sleep
 from cothread.catools import caput
+from pytac.element import EpicsElement
 
 from dls_bba.components import Components
 from dls_bba.datatypes import CalculatedOffset, RawData, Results
@@ -23,6 +24,30 @@ class Algorithm(ABC):
     @abstractmethod
     def analyse(self, rawdata: RawData) -> Results:
         pass
+
+    def calculate_quad_setpoints(self, quadrupole: EpicsElement):
+        """"""
+        quad_step_percent = self._lattice.config["QUADRUPOLE_STEP_PERCENT"] * 1e-2
+
+        quad_setpoint = self._lattice.get_quad_setpoint(quadrupole)
+        quad_step = quad_setpoint * quad_step_percent
+        quad_start_high = quad_setpoint + (2 * quad_step)
+        quad_high = quad_setpoint + quad_step
+        quad_low = quad_setpoint - quad_step
+        return quad_start_high, quad_high, quad_low, quad_setpoint, quad_step
+
+    def get_slow_bba_corrector_steps(self, components: Components):
+        """"""
+        setpoint = self._lattice.get_corrector_setpoint(components)
+        step = self._lattice.corrector_kick(components)
+        corrector_steps = [
+            setpoint + step,
+            setpoint + (step / 2),
+            setpoint,
+            setpoint - (step / 2),
+            setpoint - step,
+        ]
+        return corrector_steps
 
     def create_offsets_dict(self, results, metadata) -> dict[str, CalculatedOffset]:
         offsets: dict[str, CalculatedOffset] = {}
