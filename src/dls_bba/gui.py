@@ -12,7 +12,7 @@ from PyQt6 import uic  # noqa: E402
 from PyQt6.QtWidgets import QMainWindow  # noqa: E402
 
 from dls_bba.common import ALGORITHMS  # noqa: E402
-from dls_bba.lattice import Lattice  # noqa: E402
+from dls_bba.machine import Machine  # noqa: E402
 
 _qapp = cothread.iqt()
 
@@ -32,10 +32,10 @@ class MainWindow(QMainWindow):
         ][0]
         uic.loadUi(ui_file, self)
 
-        lattice = Lattice()
-        self.setup_main_window(lattice)
+        machine = Machine()
+        self.setup_main_window(machine)
 
-    def setup_main_window(self, lattice):
+    def setup_main_window(self, machine):
         # Methods
         self.box_method.addItems(ALGORITHMS.keys())
         self.box_method.setCurrentText(list(ALGORITHMS.keys())[0])

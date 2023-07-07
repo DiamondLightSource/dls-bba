@@ -5,13 +5,13 @@ import sys
 import pytest
 
 from dls_bba import __version__
-from dls_bba.lattice import Lattice
+from dls_bba.machine import Machine
 
 
 @pytest.fixture(scope="module")
-def lattice_setup():
-    lattice = Lattice()
-    return lattice
+def machine_setup():
+    machine = Machine()
+    return machine
 
 
 def test_cli_module_entrypoint_can_provide_version():
@@ -29,16 +29,16 @@ def test_gui_entrypoint_can_provide_version():
     assert subprocess.check_output(cmd).decode().strip() == __version__
 
 
-def test_cli_argument_shows_all_bpm_names(lattice_setup):
-    lattice = lattice_setup
-    full_bpm_list = lattice.bpms_names
+def test_cli_argument_shows_all_bpm_names(machine_setup):
+    machine = machine_setup
+    full_bpm_list = machine.bpms_names
     cmd = [sys.executable, "-m", "dls_bba", "-e"]
     assert subprocess.check_output(cmd).decode().strip() == str(full_bpm_list)
 
 
-def test_cli_argument_shows_full_cell_dictionary(lattice_setup):
-    lattice = lattice_setup
-    full_bpm_list = lattice.cell_dictionary["06"]
+def test_cli_argument_shows_full_cell_dictionary(machine_setup):
+    machine = machine_setup
+    full_bpm_list = machine.cell_dictionary["06"]
     cmd = [sys.executable, "-m", "dls_bba", "-k", "06"]
     assert subprocess.check_output(cmd).decode().strip() == str(full_bpm_list)
 

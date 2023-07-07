@@ -9,24 +9,24 @@ from dls_bba.datatypes import RawData, Results
 from dls_bba.excite import NETWORK_LAG, SAFETY_NET, Excitation, Oscillation, excite
 from dls_bba.faa import TICKS_PER_SECOND, Buffer, get_timestamp
 from dls_bba.isotime import get_isotime
-from dls_bba.lattice import QUAD_SLEW_RATE, Lattice
+from dls_bba.machine import QUAD_SLEW_RATE, Machine
 
 # To convert from nanometers to millimeters
 NM_TO_MM_UNIT_CONV = 1000000
 
 
 class FastBBA(Algorithm):
-    def __init__(self, lattice: Lattice):
-        super().__init__(lattice)
+    def __init__(self, machine: Machine):
+        super().__init__(machine)
 
     def run(self, components_pair: list[Components]) -> RawData:
         rawdata = {}
         metadata = {}
-        config = self._lattice.config.get_settings()
+        config = self.machine.config.get_settings()
         metadata.update(config)
         metadata["method"] = "FastBBA"
         metadata["isotime"] = get_isotime()
-        metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()
+        metadata["enabled_bpms"] = self.machine.get_enabled_bpms()
         metadata["bpm_name"] = components_pair[0].bpm_name
         metadata["bpm_index"] = components_pair[0].bpm_index
         decimated = config["DECIMATED"]
@@ -45,8 +45,8 @@ class FastBBA(Algorithm):
                     quad_step,
                 ) = self.calculate_quad_setpoints(quadrupole)
 
-                corr_kick = self._lattice.corrector_kick(components)
-                corr_sp = self._lattice.get_corrector_setpoint(components)
+                corr_kick = self.machine.corrector_kick(components)
+                corr_sp = self.machine.get_corrector_setpoint(components)
 
                 key = f"{quad_name}_{components.axis}"
                 metadata[key] = {
@@ -65,7 +65,7 @@ class FastBBA(Algorithm):
                 # Always overshoot the high quad step and work down and keep direction
                 # consistent to mitigate unwanted hysteresis effects.
                 # FYI correctors are significantly less prone to hysteresis effects.
-                self._lattice.set_quad_setpoint(quadrupole, quad_start, True)
+                self.machine.set_quad_setpoint(quadrupole, quad_start, True)
                 # Give Cell 2 DDBA magnets more time to ramp.
                 if "SR02" in quad_name:
                     Sleep(1)
@@ -80,25 +80,25 @@ class FastBBA(Algorithm):
                 quad_lag_s = quad_step / QUAD_SLEW_RATE
                 quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
 
-                self._lattice.set_quad_setpoint(quadrupole, quad_high)
+                self.machine.set_quad_setpoint(quadrupole, quad_high)
                 Sleep(quad_lag_s / 2)
 
                 now = get_timestamp(decimated)
                 high_start = now + NETWORK_LAG
                 duration = (2 * osc.length) + NETWORK_LAG + SAFETY_NET + quad_lag
                 fa_buffer = Buffer(
-                    self._lattice.faa_bpm_list, high_start, duration, decimated
+                    self.machine.faa_bpm_list, high_start, duration, decimated
                 )
                 low_start = SAFETY_NET + osc.length + high_start + quad_lag
 
-                exc_high = Excitation(self._lattice, components, osc, high_start)
-                exc_low = Excitation(self._lattice, components, osc, low_start)
+                exc_high = Excitation(self.machine, components, osc, high_start)
+                exc_low = Excitation(self.machine, components, osc, low_start)
                 # Sleep for first excitation. SAFETY_NET ensures that we don't start
                 # moving the quad before the excitation has finished.
                 excite((exc_high,))
                 Sleep((NETWORK_LAG + exc_high.count + SAFETY_NET) / TICKS_PER_SECOND)
                 # Move quad from high to low
-                self._lattice.set_quad_setpoint(quadrupole, quad_low)
+                self.machine.set_quad_setpoint(quadrupole, quad_low)
                 # Set up second excitation
                 excite((exc_low,))
                 # This will block until all data has been retrieved.
@@ -111,7 +111,7 @@ class FastBBA(Algorithm):
                 key = f"{quad_name}_{components.axis}_Low"
                 rawdata[key] = selected_data[1]
 
-                self._lattice.set_quad_setpoint(quadrupole, quad_sp)
+                self.machine.set_quad_setpoint(quadrupole, quad_sp)
                 Sleep(quad_lag_s / 2)
 
         return RawData(rawdata, metadata)

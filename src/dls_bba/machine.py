@@ -65,7 +65,7 @@ def _retry_command(num_tries, excp_type):
     return retry_outer
 
 
-class Lattice:
+class Machine:
     """"""
 
     def __init__(
@@ -467,7 +467,7 @@ class Lattice:
         quadrupole: EpicsElement, value: Union[float, int], sleep: bool = False
     ) -> None:
         """"""
-        start_current = Lattice.get_quad_setpoint(quadrupole)
+        start_current = Machine.get_quad_setpoint(quadrupole)
         quadrupole.set_value("b1", value)
         if sleep:
             # The 2 is a magic number from the old BBA setup.

@@ -7,21 +7,21 @@ from dls_bba.algorithm import Algorithm
 from dls_bba.components import Components
 from dls_bba.datatypes import RawData, Results
 from dls_bba.isotime import get_isotime
-from dls_bba.lattice import Lattice
+from dls_bba.machine import Machine
 
 
 class SlowBBA(Algorithm):
-    def __init__(self, lattice: Lattice):
-        super().__init__(lattice)
+    def __init__(self, machine: Machine):
+        super().__init__(machine)
 
     def run(self, components_pair: list[Components]) -> RawData:
         rawdata = {}
         metadata = {}
-        config = self._lattice.config.get_settings()
+        config = self.machine.config.get_settings()
         metadata.update(config)
         metadata["method"] = "SlowBBA"
         metadata["isotime"] = get_isotime()
-        metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()
+        metadata["enabled_bpms"] = self.machine.get_enabled_bpms()
         metadata["bpm_name"] = components_pair[0].bpm_name
         metadata["bpm_index"] = components_pair[0].bpm_index
 
@@ -43,7 +43,7 @@ class SlowBBA(Algorithm):
                 # Always overshoot the high quad step and work down and keep direction
                 # consistent to mitigate unwanted hysteresis effects.
                 # FYI correctors are significantly less prone to hysteresis effects.
-                self._lattice.set_quad_setpoint(quadrupole, quad_start, True)
+                self.machine.set_quad_setpoint(quadrupole, quad_start, True)
                 # Give Cell 2 DDBA magnets more time to ramp.
                 if "SR02" in quad_name:
                     Sleep(1)
@@ -53,12 +53,12 @@ class SlowBBA(Algorithm):
                     ("Low", quad_low),
                 ]:
                     log.debug(f"Corrector Movement: {movement}")
-                    self._lattice.set_quad_setpoint(quadrupole, quad_movement, True)
+                    self.machine.set_quad_setpoint(quadrupole, quad_movement, True)
 
                     for index, step in enumerate(corrector_step_list, start=1):
-                        self._lattice.set_corrector_setpoint(components, step)
+                        self.machine.set_corrector_setpoint(components, step)
                         Sleep(0.1)  # Fixed time for orbit to stabilise.
-                        measured_bpms = self._lattice.measure_bpms(components.axis)
+                        measured_bpms = self.machine.measure_bpms(components.axis)
 
                         key = f"{quad_name}_{components.axis}_{movement}_{index}"
                         rawdata[key] = measured_bpms
@@ -75,14 +75,14 @@ class SlowBBA(Algorithm):
                         }
 
                     # Reset the corrector after the steps before moving the quadrupole.
-                    self._lattice.set_corrector_setpoint(
+                    self.machine.set_corrector_setpoint(
                         components, corrector_step_list[2]
                     )
                 # Reset Quad and Corrector once finished.
-                self._lattice.set_corrector_setpoint(components, corrector_step_list[2])
-                self._lattice.set_quad_setpoint(quadrupole, quad_sp, True)
+                self.machine.set_corrector_setpoint(components, corrector_step_list[2])
+                self.machine.set_quad_setpoint(quadrupole, quad_sp, True)
             # run feedbacks after each axis.
-            self._lattice.check_feedbacks()
+            self.machine.check_feedbacks()
 
         # Saving x and y in one file, as you cannot do just one axis.
         return RawData(rawdata, metadata)
@@ -124,8 +124,8 @@ class SlowBBA(Algorithm):
                 log.debug(f"Disabled BPMs: {bad_indices}")
 
                 # Get rid of bad bpms.
-                for index, _ in enumerate(self._lattice.bpms):
-                    if self._lattice.fofb_disabled[axis][index] == 1:
+                for index, _ in enumerate(self.machine.bpms):
+                    if self.machine.fofb_disabled[axis][index] == 1:
                         bad_indices.append(index)
                 log.debug(f"Disabled and bad BPMs: {bad_indices}")
 
