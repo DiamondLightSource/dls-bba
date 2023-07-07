@@ -495,18 +495,18 @@ class Machine:
         # zeroes bcd and golden offsets. Golden must be restored later.
         log.debug("Zeroing BCD and Golden Offsets")
         golden_offsets = {}
+        pv_names = []
 
-        for bpm, bpm_name in zip(self.bpms, self.bpms_names):
+        for bpm_name in self.bpms_names:
             for axis in ["x", "y"]:
                 bcd_pv = bpm_name + ORIGIN_SUFFIXES["BCD"].format(axis=axis.upper())
                 golden_pv = bpm_name + ORIGIN_SUFFIXES["GOLDEN"].format(
                     axis=axis.upper()
                 )
-
                 golden_offsets[golden_pv] = caget(golden_pv)
-
-                caput(bcd_pv, 0, wait=True)
-                caput(golden_pv, 0, wait=True)
+                pv_names.append(bcd_pv)
+                pv_names.append(golden_pv)
+        caput(pv_names, 0, wait=True)
         Sleep(0.2)
         with open(os.path.join(folder_path, "golden_offsets.json"), "w") as outfile:
             json.dump(golden_offsets, outfile)
@@ -520,8 +520,12 @@ class Machine:
         with open(os.path.join(folder_path, "golden_offsets.json")) as f:
             golden_offsets = json.load(f)
 
+        pv_names = []
+        pv_values = []
         for key, value in golden_offsets.items():
-            caput(key, value, wait=True)
+            pv_names.append(key)
+            pv_values.append(value)
+        caput(pv_names, pv_values, wait=True)
         Sleep(0.2)
         log.debug("Origins Restored")
 
