@@ -454,31 +454,35 @@ class Lattice:
         if max_value * 1000 >= max_orbit:
             self.apply_feedbacks()
 
-    def get_quad_setpoint(self, quadrupole: EpicsElement) -> float:
+    @staticmethod
+    def get_quad_setpoint(quadrupole: EpicsElement) -> float:
         """"""
         value = float(quadrupole.get_value("b1"))
         log.debug(f"Quadrupole get value: {value}")
         return value
 
+    @staticmethod
     def set_quad_setpoint(
-        self, quadrupole: EpicsElement, value: Union[float, int], sleep: bool = False
+        quadrupole: EpicsElement, value: Union[float, int], sleep: bool = False
     ) -> None:
         """"""
-        start_current = self.get_quad_setpoint(quadrupole)
+        start_current = Lattice.get_quad_setpoint(quadrupole)
         quadrupole.set_value("b1", value)
         if sleep:
             # The 2 is a magic number from the old BBA setup.
             Sleep(abs(start_current - value) / QUAD_SLEW_RATE / 2)
         log.debug(f"Quadrupole set value: {value}")
 
-    def get_corrector_setpoint(self, components: Components):
+    @staticmethod
+    def get_corrector_setpoint(components: Components):
         """"""
         value = float(components.corrector.get_value(components.kick))
         log.debug(f"Corrector {components.corrector_name} get value: {value}")
         return value
 
+    @staticmethod
     def set_corrector_setpoint(
-        self, components: Components, value: Union[float, int]
+        components: Components, value: Union[float, int]
     ) -> None:
         """"""
         components.corrector.set_value(components.kick, value)
