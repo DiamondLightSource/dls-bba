@@ -15,7 +15,7 @@ from dls_bba.machine import ORIGIN_SUFFIXES, Machine
 
 class Algorithm(ABC):
     def __init__(self, machine: Machine):
-        self.machine = machine
+        self._machine = machine
 
     @abstractmethod
     def run(self, component_pair: list[Components]) -> RawData:
@@ -27,9 +27,9 @@ class Algorithm(ABC):
 
     def calculate_quad_setpoints(self, quadrupole: EpicsElement):
         """"""
-        quad_step_percent = self.machine.config["QUADRUPOLE_STEP_PERCENT"] * 1e-2
+        quad_step_percent = self._machine.config["QUADRUPOLE_STEP_PERCENT"] * 1e-2
 
-        quad_setpoint = self.machine.get_quad_setpoint(quadrupole)
+        quad_setpoint = self._machine.get_quad_setpoint(quadrupole)
         quad_step = quad_setpoint * quad_step_percent
         quad_start_high = quad_setpoint + (2 * quad_step)
         quad_high = quad_setpoint + quad_step
@@ -38,8 +38,8 @@ class Algorithm(ABC):
 
     def get_slow_bba_corrector_steps(self, components: Components):
         """"""
-        setpoint = self.machine.get_corrector_setpoint(components)
-        step = self.machine.corrector_kick(components)
+        setpoint = self._machine.get_corrector_setpoint(components)
+        step = self._machine.corrector_kick(components)
         corrector_steps = [
             setpoint + step,
             setpoint + (step / 2),
@@ -57,7 +57,7 @@ class Algorithm(ABC):
         for index, axis in enumerate(["x", "y"]):
             bpm_key = str(bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis=axis.upper()))
             # Get current BBA offset.
-            old_bba = float(self.machine.get_bba_offsets()[index][bpm_index])
+            old_bba = float(self._machine.get_bba_offsets()[index][bpm_index])
             # Calculate the change needed.
             difference = self.calculate_new_offsets(results, axis)
             # Calculate the new BBA offset.
@@ -125,7 +125,7 @@ class Algorithm(ABC):
         """"""
         change_in_x = []
         change_in_dx = []
-        for bpm_name in self.machine.bba_x_pvs:
+        for bpm_name in self._machine.bba_x_pvs:
             if bpm_name in offsets_dict.keys():
                 calc_offsets = offsets_dict[bpm_name]
                 change_in_x.append(calc_offsets.diff_value)
@@ -136,7 +136,7 @@ class Algorithm(ABC):
 
         change_in_y = []
         change_in_dy = []
-        for bpm_name in self.machine.bba_y_pvs:
+        for bpm_name in self._machine.bba_y_pvs:
             if bpm_name in offsets_dict.keys():
                 calc_offsets = offsets_dict[bpm_name]
                 change_in_x.append(calc_offsets.diff_value)
