@@ -28,6 +28,12 @@ class ElementDisabledError(Exception):
     pass
 
 
+class FastAcquisitionArchiverError(Exception):
+    """Raised when unexpected data shape is recieved from FA Arhciver."""
+
+    pass
+
+
 class InvalidElementError(Exception):
     """Raised when a non existant element name is used."""
 
