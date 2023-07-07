@@ -52,7 +52,7 @@ class SimFastBBA(Algorithm):
                 quad_low,
                 quad_sp,
                 quad_step,
-            ) = self._lattice.calculate_quad_setpoints(quadrupole)
+            ) = self.calculate_quad_setpoints(quadrupole)
 
             hcorr_kick = self._lattice.corrector_kick(components_pair[0].corrector)
             hcorr_sp = self._lattice.get_corrector_setpoint(components_pair[0])
