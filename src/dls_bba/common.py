@@ -40,7 +40,9 @@ def setup_beam_based_alignment(
     machine.zero_origins()
 
     for components_pair in components_pairs:
-        results = paired_beam_based_alignment(algorithm, components_pair, save_location)
+        results = paired_beam_based_alignment(
+            algorithm, machine, components_pair, save_location
+        )
         results_list.append(results)
 
     algorithm.use_bba_offsets(results_list, save_location)
@@ -50,16 +52,19 @@ def setup_beam_based_alignment(
 
 
 def paired_beam_based_alignment(
-    algorithm: Algorithm, components_pair: list[Components], save_location: str
+    algorithm: Algorithm,
+    machine: Machine,
+    components_pair: list[Components],
+    save_location: str,
 ):
     """"""
-    algorithm.machine.store_starting_beam_current()
+    machine.store_starting_beam_current()
 
     while True:
-        algorithm.machine.check_feedbacks()
+        machine.check_feedbacks()
         rawdata = algorithm.run(components_pair)
 
-        if algorithm.machine.check_beam_current():
+        if machine.check_beam_current():
             break
 
     rawdata.save(save_location)
