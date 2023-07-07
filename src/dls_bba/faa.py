@@ -4,6 +4,8 @@ import cothread
 import numpy
 from fa.falib import falib
 
+from dls_bba.exceptions import FastAcquisitionArchiverError
+
 TICKS_PER_SECOND = 10072
 
 
@@ -14,10 +16,6 @@ def get_timestamp(decimated):
     x = s.read(1)
     s.close()
     return x[0][0][0]
-
-
-class FaException(Exception):
-    pass
 
 
 class Buffer(object):
@@ -76,5 +74,7 @@ class Buffer(object):
             if not self.timestamps:
                 data = data[:, 1:, :]
         except IndexError:
-            raise FaException("Insufficient data received from FA archiver.")
+            raise FastAcquisitionArchiverError(
+                "Insufficient data received from FA archiver."
+            )
         return data

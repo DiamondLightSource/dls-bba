@@ -28,7 +28,6 @@ from dls_bba.exceptions import (
     InvalidRingmodeError,
     LowCurrentError,
 )
-from dls_bba.excite import QUAD_SLEW_RATE
 
 # matplotlib.use("Qt5Agg")
 
@@ -41,6 +40,8 @@ ORIGIN_SUFFIXES = {
     "BCD": ":CF:BCD_{axis}_S",
     "GOLDEN": ":CF:GOLDEN_{axis}_S",
 }
+
+QUAD_SLEW_RATE = 0.5  # Amps/Second
 
 
 def _retry_command(num_tries, excp_type):
@@ -64,7 +65,7 @@ def _retry_command(num_tries, excp_type):
     return retry_outer
 
 
-class Lattice:
+class Machine:
     """"""
 
     def __init__(
@@ -454,44 +455,35 @@ class Lattice:
         if max_value * 1000 >= max_orbit:
             self.apply_feedbacks()
 
-    def get_quad_setpoint(self, quadrupole: EpicsElement) -> float:
+    @staticmethod
+    def get_quad_setpoint(quadrupole: EpicsElement) -> float:
         """"""
         value = float(quadrupole.get_value("b1"))
         log.debug(f"Quadrupole get value: {value}")
         return value
 
+    @staticmethod
     def set_quad_setpoint(
-        self, quadrupole: EpicsElement, value: Union[float, int], sleep: bool = False
+        quadrupole: EpicsElement, value: Union[float, int], sleep: bool = False
     ) -> None:
         """"""
-        start_current = self.get_quad_setpoint(quadrupole)
+        start_current = Machine.get_quad_setpoint(quadrupole)
         quadrupole.set_value("b1", value)
         if sleep:
             # The 2 is a magic number from the old BBA setup.
             Sleep(abs(start_current - value) / QUAD_SLEW_RATE / 2)
         log.debug(f"Quadrupole set value: {value}")
 
-    def get_corrector_setpoint(self, components: Components):
+    @staticmethod
+    def get_corrector_setpoint(components: Components):
         """"""
         value = float(components.corrector.get_value(components.kick))
         log.debug(f"Corrector {components.corrector_name} get value: {value}")
         return value
 
-    def get_slow_bba_corrector_steps(self, components: Components):
-        """"""
-        setpoint = self.get_corrector_setpoint(components)
-        step = self.corrector_kick(components)
-        corrector_steps = [
-            setpoint + step,
-            setpoint + (step / 2),
-            setpoint,
-            setpoint - (step / 2),
-            setpoint - step,
-        ]
-        return corrector_steps
-
+    @staticmethod
     def set_corrector_setpoint(
-        self, components: Components, value: Union[float, int]
+        components: Components, value: Union[float, int]
     ) -> None:
         """"""
         components.corrector.set_value(components.kick, value)
@@ -526,17 +518,6 @@ class Lattice:
             caput(key, value, wait=True)
         Sleep(0.2)
         log.debug("Origins Restored")
-
-    def calculate_quad_setpoints(self, quadrupole: EpicsElement):
-        """"""
-        quad_step_percent = self.config["QUADRUPOLE_STEP_PERCENT"] * 1e-2
-
-        quad_setpoint = self.get_quad_setpoint(quadrupole)
-        quad_step = quad_setpoint * quad_step_percent
-        quad_start_high = quad_setpoint + (2 * quad_step)
-        quad_high = quad_setpoint + quad_step
-        quad_low = quad_setpoint - quad_step
-        return quad_start_high, quad_high, quad_low, quad_setpoint, quad_step
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
     def get_bba_offsets(self) -> Tuple[list[float], list[float]]:

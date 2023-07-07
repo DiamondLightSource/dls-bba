@@ -7,8 +7,8 @@ from dls_bba.datatypes import Results
 from dls_bba.excite import cancel_all_oscillations
 from dls_bba.fbba import FastBBA
 from dls_bba.isotime import get_isotime
-from dls_bba.lattice import Lattice
 from dls_bba.logger import get_new_logger
+from dls_bba.machine import Machine
 from dls_bba.sbba import SlowBBA
 from dls_bba.simfbba import SimFastBBA
 
@@ -30,36 +30,41 @@ def setup_folders(method: str, folder_path: Optional[str] = None) -> str:
 
 
 def setup_beam_based_alignment(
-    lattice: Lattice,
+    machine: Machine,
     algorithm: Algorithm,
     components_pairs: list[list[Components]],
     save_location: str,
 ):
     """"""
     results_list: List[Results] = []
-    lattice.zero_origins()
+    machine.zero_origins()
 
     for components_pair in components_pairs:
-        results = paired_beam_based_alignment(algorithm, components_pair, save_location)
+        results = paired_beam_based_alignment(
+            algorithm, machine, components_pair, save_location
+        )
         results_list.append(results)
 
     algorithm.use_bba_offsets(results_list, save_location)
 
-    cancel_all_oscillations(lattice.config)
-    lattice.restore_origins()
+    cancel_all_oscillations(machine.config)
+    machine.restore_origins()
 
 
 def paired_beam_based_alignment(
-    algorithm: Algorithm, components_pair: list[Components], save_location: str
+    algorithm: Algorithm,
+    machine: Machine,
+    components_pair: list[Components],
+    save_location: str,
 ):
     """"""
-    algorithm._lattice.store_starting_beam_current()
+    machine.store_starting_beam_current()
 
     while True:
-        algorithm._lattice.check_feedbacks()
+        machine.check_feedbacks()
         rawdata = algorithm.run(components_pair)
 
-        if algorithm._lattice.check_beam_current():
+        if machine.check_beam_current():
             break
 
     rawdata.save(save_location)

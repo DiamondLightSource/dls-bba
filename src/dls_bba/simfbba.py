@@ -6,34 +6,27 @@ from cothread import Sleep
 from dls_bba.algorithm import Algorithm
 from dls_bba.components import Components
 from dls_bba.datatypes import RawData, Results
-from dls_bba.excite import (
-    NETWORK_LAG,
-    QUAD_SLEW_RATE,
-    SAFETY_NET,
-    Excitation,
-    Oscillation,
-    excite,
-)
+from dls_bba.excite import NETWORK_LAG, SAFETY_NET, Excitation, Oscillation, excite
 from dls_bba.faa import TICKS_PER_SECOND, Buffer, get_timestamp
 from dls_bba.isotime import get_isotime
-from dls_bba.lattice import Lattice
+from dls_bba.machine import QUAD_SLEW_RATE, Machine
 
 # To convert from nanometers to millimeters
 NM_TO_MM_UNIT_CONV = 1000000
 
 
 class SimFastBBA(Algorithm):
-    def __init__(self, lattice: Lattice):
-        super().__init__(lattice)
+    def __init__(self, machine: Machine):
+        super().__init__(machine)
 
     def run(self, components_pair: list[Components]) -> RawData:
         rawdata = {}
         metadata = {}
-        config = self._lattice.config.get_settings()
+        config = self._machine.config.get_settings()
         metadata.update(config)
         metadata["method"] = "SimFastBBA"
         metadata["isotime"] = get_isotime()
-        metadata["enabled_bpms"] = self._lattice.get_enabled_bpms()
+        metadata["enabled_bpms"] = self._machine.get_enabled_bpms()
         metadata["bpm_name"] = components_pair[0].bpm_name
         metadata["bpm_index"] = components_pair[0].bpm_index
         decimated = config["DECIMATED"]
@@ -52,13 +45,13 @@ class SimFastBBA(Algorithm):
                 quad_low,
                 quad_sp,
                 quad_step,
-            ) = self._lattice.calculate_quad_setpoints(quadrupole)
+            ) = self.calculate_quad_setpoints(quadrupole)
 
-            hcorr_kick = self._lattice.corrector_kick(components_pair[0].corrector)
-            hcorr_sp = self._lattice.get_corrector_setpoint(components_pair[0])
+            hcorr_kick = self._machine.corrector_kick(components_pair[0].corrector)
+            hcorr_sp = self._machine.get_corrector_setpoint(components_pair[0])
 
-            vcorr_kick = self._lattice.corrector_kick(components_pair[1].corrector)
-            vcorr_sp = self._lattice.get_corrector_setpoint(components_pair[1])
+            vcorr_kick = self._machine.corrector_kick(components_pair[1].corrector)
+            vcorr_sp = self._machine.get_corrector_setpoint(components_pair[1])
 
             kick = {"x": hcorr_kick, "y": vcorr_kick}
             setpoint = {"x": hcorr_sp, "y": vcorr_sp}
@@ -83,7 +76,7 @@ class SimFastBBA(Algorithm):
             # Always overshoot the high quad step and work down and keep direction
             # consistent to mitigate unwanted hysteresis effects.
             # FYI correctors are significantly less prone to hysteresis effects.
-            self._lattice.set_quad_setpoint(quadrupole, quad_start, True)
+            self._machine.set_quad_setpoint(quadrupole, quad_start, True)
             # Give Cell 2 DDBA magnets more time to ramp.
             if "SR02" in quad_name:
                 Sleep(1)
@@ -103,7 +96,7 @@ class SimFastBBA(Algorithm):
             quad_lag_s = quad_step / QUAD_SLEW_RATE
             quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
 
-            self._lattice.set_quad_setpoint(quadrupole, quad_high)
+            self._machine.set_quad_setpoint(quadrupole, quad_high)
             Sleep(quad_lag_s / 2)
 
             now = get_timestamp(decimated)
@@ -112,20 +105,20 @@ class SimFastBBA(Algorithm):
                 (2 * oscillations["x"].length) + NETWORK_LAG + SAFETY_NET + quad_lag
             )
             fa_buffer = Buffer(
-                self._lattice.faa_bpm_list, high_start, duration, decimated
+                self._machine.faa_bpm_list, high_start, duration, decimated
             )
             low_start = SAFETY_NET + oscillations["x"].length + high_start + quad_lag
 
             excitations = {}
             for index, axis in enumerate(["x", "y"]):
                 excitations[f"High_{axis}"] = Excitation(
-                    self._lattice,
+                    self._machine,
                     components_pair[index],
                     oscillations[axis],
                     high_start,
                 )
                 excitations[f"Low_{axis}"] = Excitation(
-                    self._lattice, components_pair[index], oscillations[axis], low_start
+                    self._machine, components_pair[index], oscillations[axis], low_start
                 )
 
             high_keys = [key for key in excitations.keys() if "High_" in key]
@@ -137,7 +130,7 @@ class SimFastBBA(Algorithm):
                 / TICKS_PER_SECOND
             )
             # Move quad from high to low
-            self._lattice.set_quad_setpoint(quadrupole, quad_low)
+            self._machine.set_quad_setpoint(quadrupole, quad_low)
             low_keys = [key for key in excitations.keys() if "Low_" in key]
             excite((excitations[low_keys[0]], excitations[low_keys[1]]))
             # This will block until all data has been retrieved.
@@ -157,7 +150,7 @@ class SimFastBBA(Algorithm):
                     "Low": selected_data[1],
                 }
 
-            self._lattice.set_quad_setpoint(quadrupole, quad_sp)
+            self._machine.set_quad_setpoint(quadrupole, quad_sp)
             Sleep(quad_lag_s / 2)
 
         return RawData(rawdata, metadata)
