@@ -1,3 +1,4 @@
+import json
 import logging as log
 import os
 from collections import defaultdict
@@ -489,33 +490,44 @@ class Machine:
         components.corrector.set_value(components.kick, value)
         log.debug(f"Corrector {components.corrector_name} set value: {value}")
 
-    def zero_origins(self):
+    def zero_origins(self, folder_path: str):
         """"""
         # zeroes bcd and golden offsets. Golden must be restored later.
         log.debug("Zeroing BCD and Golden Offsets")
-        self._golden_offsets = {}
+        golden_offsets = {}
+        pv_names = []
 
-        for bpm, bpm_name in zip(self.bpms, self.bpms_names):
+        for bpm_name in self.bpms_names:
             for axis in ["x", "y"]:
                 bcd_pv = bpm_name + ORIGIN_SUFFIXES["BCD"].format(axis=axis.upper())
                 golden_pv = bpm_name + ORIGIN_SUFFIXES["GOLDEN"].format(
                     axis=axis.upper()
                 )
+                golden_offsets[golden_pv] = caget(golden_pv)
+                pv_names.append(bcd_pv)
+                pv_names.append(golden_pv)
 
-                self._golden_offsets[golden_pv] = caget(golden_pv)
+        with open(os.path.join(folder_path, "golden_offsets.json"), "w") as outfile:
+            json.dump(golden_offsets, outfile)
 
-                caput(bcd_pv, 0, wait=True)
-                caput(golden_pv, 0, wait=True)
+        caput(pv_names, 0, wait=True)
         Sleep(0.2)
-        log.debug(self._golden_offsets)
         log.debug("Origins Zeroed")
 
-    def restore_origins(self):
+    def restore_origins(self, folder_path: str):
         """"""
         # restore golden orbits.
         log.debug("Restoring Golden Offsets")
-        for key, value in self._golden_offsets.items():
-            caput(key, value, wait=True)
+
+        with open(os.path.join(folder_path, "golden_offsets.json")) as f:
+            golden_offsets = json.load(f)
+
+        pv_names = []
+        pv_values = []
+        for key, value in golden_offsets.items():
+            pv_names.append(key)
+            pv_values.append(value)
+        caput(pv_names, pv_values, wait=True)
         Sleep(0.2)
         log.debug("Origins Restored")
 
