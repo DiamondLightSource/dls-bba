@@ -7,17 +7,26 @@ from dls_bba.components import Components
 from dls_bba.faa import TICKS_PER_SECOND
 
 NETWORK_LAG_S = 0.5
+"""Additional time to account for Network Lag in seconds."""
 SAFETY_NET_S = 0.1
+"""Additional time for a safety net in seconds."""
 NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
+"""Additional time to account for Network Lag in FAA ticks."""
 SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
+"""Additional time for a safety net in FAA ticks."""
 
 PLANES = 2
+"""Number of planes. eg. 'x' and 'y'."""
 MAX_CORRECTORS = 9
+"""The maximum number of correctors in a plane per IOC or cell."""
 N = MAX_CORRECTORS * PLANES
+"""The maximum number of correctors per IOC or cell."""
 
 
 @dataclass
 class FofbCorrector:
+    """This dataclass provides information regarding the IOC and the corrector chosen."""
+
     index: int
     ioc: str
     fofb_index: int
@@ -45,6 +54,15 @@ class FofbCorrector:
 
 @dataclass
 class Oscillation:
+    """This dataclass provides information regarding the AC excitation.
+
+    Args:
+        amplitude: The maximum amplitude of the excitation in amps.
+        plane: The components including the plane.
+        frequency: The frequency of the oscillation in Hz.
+        cycles: The number of cycles to excite for.
+    """
+
     amplitude: float
     component: Components
     frequency: int
@@ -52,16 +70,24 @@ class Oscillation:
 
     @property
     def length(self):
+        """This property provides the length of the oscillation in ticks."""
         length = int(np.ceil(TICKS_PER_SECOND / self.frequency) * self.cycles)
         return length
 
 
 class Excitation(object):
-    """An excitation performed on a corrector."""
+    """An excitation object contains all the information to perform an AC excitation."""
 
     def __init__(
         self, machine, components: Components, oscillation: Oscillation, start_time: int
     ):
+        """The default constructor for the excitation object.
+        Args:
+            lattice: The lattice object.
+            components: The component object for the corrector of interest.
+            oscillation: The oscillation object for the corrector of interest.
+            start_time: The oscillation start time in FAA ticks.
+        """
         self.corrector = components.corrector
         self.oscillation: Oscillation = oscillation
         self.start_time: int = start_time
@@ -82,7 +108,10 @@ class Excitation(object):
 
 
 def excite(excitations):
-    """Completes caputs which will start the excitation."""
+    """Completes caputs which will start the excitation.
+    Args:
+        excitations: A tuple of excitation objects.
+    """
 
     iocs = excitations[0].iocs
 
@@ -133,7 +162,10 @@ def excite(excitations):
 
 
 def cancel_all_oscillations(config):
-    """"""
+    """This function resets all of the IOCs to stop rogue oscillations.
+    Args:
+        config: The configuration dictionary of the lattice object.
+    """
     # Set all to 0, then prime for all IOCS.
     iocs = config["CORRECTOR_IOCS"]
     pvs = {}

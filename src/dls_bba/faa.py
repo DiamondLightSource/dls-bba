@@ -17,11 +17,16 @@ MAX_BBA_DURATION = 6 * TICKS_PER_HOUR
 
 
 def get_timestamp(decimated):
-    """Get the FAA timestamp.
-    Note: If the timestamp is larger than 2**32 - 1 hour,
+    """Get the current FAA timestamp in ticks.
+    Note: If faa timestamp is larger than 2**32 - 1 hour,
     then the power supply IOC will reject the oscillation.
+    Args:
+        decimated: A boolean to describe if decimated data is wanted.
+    Returns:
+        The FAA timestamp.
     """
-
+    # TODO: If faa timestamp is larger than 2**32 - 1 hour,
+    # then the power supply IOC will reject the oscillation.
     s = falib.subscription([0], decimated=decimated)
     x = s.read(1)
     s.close()
@@ -40,10 +45,12 @@ def get_timestamp(decimated):
 
 
 class Buffer(object):
-    # Number of datapoints to read at once.
+    """The buffer class allows extraction of the data from the FA archiver."""
+
     SIZE = 1000
-    # Timestamps of extra data to ensure desired data is fetched.
+    """The number of datapoints to read at once."""
     EXTRA = 1000
+    """The number of extra datapoints to ensure desired data is fetched."""
 
     def __init__(self, ids, start_time, length, decimated):
         """Create buffer.
@@ -52,6 +59,11 @@ class Buffer(object):
         is decimated, so if decimated is true the dimension of the data
         will be 1/10 the value of length.
 
+        Args:
+            ids: The BPM id list.
+            start_time: The starting FAA tick of the oscillation.
+            length: The length of the oscillations.
+            decimated: A boolean for if the data is decimated,
         """
         self.length = length
         self.start = start_time
@@ -83,6 +95,12 @@ class Buffer(object):
             self.complete = True
 
     def get_data(self):
+        """This function returns the FAA data.
+        Raises:
+            FastAcquisitionArchiverError: If insufficient data is gathered.
+        Returns:
+            The data.
+        """
         while not self.complete:
             cothread.Sleep(0.1)
         try:

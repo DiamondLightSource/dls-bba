@@ -16,8 +16,15 @@ from dls_bba.machine import Machine
 def cli_show_bpm_options(
     extra_config_files: list[str],
     additional_options: dict[str, Any],
-):
-    """"""
+) -> None:
+    """This function displays all of the bpm names available.
+
+    Args:
+        extra_config_files: This is an optional list of filepaths of config files
+            to load.
+        overrides: This is an optional dictionary with explicit fields of the
+            configuration to overwrite.
+    """
     machine = Machine(extra_config_files, additional_options)
     print(machine.bpms_names)
 
@@ -26,8 +33,16 @@ def cli_show_cell_options(
     cell_number: str,
     extra_config_files: list[str],
     additional_options: dict[str, Any],
-):
-    """"""
+) -> None:
+    """This function shows the bpm values in a requested cell.
+
+    Args:
+        cell_number: The stringified cell number.
+        extra_config_files: This is an optional list of filepaths of config files
+            to load.
+        overrides: This is an optional dictionary with explicit fields of the
+            configuration to overwrite.
+    """
     machine = Machine(extra_config_files, additional_options)
     if cell_number not in machine.cell_dictionary.keys():
         print("Invalid cell selected. Try cells '00' to '24'")
@@ -41,8 +56,18 @@ def cli_entrypoint(
     folder_path: str,
     extra_config_files: list[str],
     additional_options: dict[str, Any],
-):
-    """"""
+) -> None:
+    """The main entrypoint to begin BBA. This entrypoint only allows individual elements.
+
+    Args:
+        method: The string name of the method class.
+        element: A single BPM name.
+        folder_path: The folder location to save data in.
+        extra_config_files: This is an optional list of filepaths of config files
+            to load.
+        overrides: This is an optional dictionary with explicit fields of the
+            configuration to overwrite.
+    """
     save_location = setup_folders(method, folder_path)
 
     machine = Machine(extra_config_files, additional_options)
@@ -60,8 +85,12 @@ def cli_entrypoint(
     setup_beam_based_alignment(machine, algorithm, components_pair_list, save_location)
 
 
-def cli_quadcenter_plot(file_path: str):
-    """"""
+def cli_quadcenter_plot(file_path: str) -> None:
+    """This function plots the quadcenter plot of a supplied results file.
+
+    Args:
+        file_path: The full filepath of a xxx-results.mat file.
+    """
     results_object = Results.from_file(file_path)
 
     keys = results_object.results.keys()

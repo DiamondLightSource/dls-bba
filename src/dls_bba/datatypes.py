@@ -9,11 +9,16 @@ import scipy.io as io
 
 @dataclass
 class RawData:
+    """This RawData dataclass allows saving and loading for the rawdata and metadata."""
+
     rawdata: dict
     metadata: dict
 
     def save(self, folder_path):
-        """"""
+        """This function saves the rawdata and metadata.
+        Args:
+            folder_path: The folderpath to save the data to.
+        """
         rawdata = self.rawdata
         metadata = self.metadata
 
@@ -33,7 +38,10 @@ class RawData:
 
     @classmethod
     def from_file(cls, filepath):
-        """"""
+        """This function loads the rawdata and metadata.
+        Args:
+            filepath: The filepath of the xxx-rawdata.mat file to load.
+        """
         dct = io.loadmat(filepath, simplify_cells=True)
         return cls(dct["rawdata"], dct["metadata"])
 
@@ -47,6 +55,9 @@ class CalculatedOffset:
 
 
 class Results:
+    """This Results dataclass allows saving and loading for the results, metadata,
+    plotting and offset data."""
+
     def __init__(
         self,
         results: dict[str, List[float]],
@@ -54,6 +65,15 @@ class Results:
         plotting: dict[str, dict[str, List[float]]],
         offsets: dict[str, CalculatedOffset],
     ):
+        """The default constructor which stores results, metadata and plotting
+        and offsets.
+
+        Args:
+            results: The results dictionary.
+            metadata: The metadata dictionary.
+            plotting: The plotting dictionary.
+            offsets: The offsets dictionary.
+        """
         self.results: dict = results
         self.metadata: dict = metadata
         self.plotting: dict = plotting
@@ -61,7 +81,12 @@ class Results:
 
     @classmethod
     def from_file(cls, filepath: str) -> Results:
-        """"""
+        """This constructor loads a Results object when given a filepath.
+        Args:
+            filepath: The filepath to a xxx-results.mat file.
+        Returns:
+            A constructed Results object.
+        """
         dct = io.loadmat(filepath, simplify_cells=True)
 
         results = {}
@@ -75,7 +100,12 @@ class Results:
         return cls(results, dct["metadata"], dct["plotting"], offsets)
 
     def save(self, folder_path):
-        """"""
+        """This function saves the current Results object to the given folder path.
+        Note: Files with complex keys can be loaded in MATLAB. eg: object.("key").
+
+        Args:
+            folder_path: The path to the folder to save the file in.
+        """
         results = self.results
         metadata = self.metadata
         plotting = self.plotting

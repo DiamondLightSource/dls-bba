@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+from typing import Any, Dict, List
 
 from dls_bba.cli import (
     cli_entrypoint,
@@ -42,14 +43,14 @@ def parse_arguments():
         "--config",
         "-c",
         default=None,
-        type=list[str],
+        type=List[str],
         help="Additional configuration filepaths.",
     )
     parser.add_argument(
         "--individual",
         "-i",
         default=None,
-        type=dict,
+        type=Dict[str, Any],
         help="Additional individual configuration options",
     )
     parser.add_argument(

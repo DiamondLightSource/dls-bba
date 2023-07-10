@@ -4,7 +4,7 @@ import os
 from collections import defaultdict
 from functools import wraps
 from subprocess import run
-from typing import Any, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import cothread
 
@@ -42,7 +42,8 @@ ORIGIN_SUFFIXES = {
     "GOLDEN": ":CF:GOLDEN_{axis}_S",
 }
 
-QUAD_SLEW_RATE = 0.5  # Amps/Second
+QUAD_SLEW_RATE = 0.5
+"""The slew rate of a quadrupole in amps per second."""
 
 
 def _retry_command(num_tries, excp_type):
@@ -67,14 +68,19 @@ def _retry_command(num_tries, excp_type):
 
 
 class Machine:
-    """"""
+    """This machine class includes functions for all interactions with the accelerator,
+    to the underlying pytac lattice and all configuration setup."""
 
     def __init__(
         self,
         extra_config_files: Optional[list[Any]] = None,
         overrides: Optional[dict[str, Any]] = None,
     ):
-        """"""
+        """This constructor is the only way to initialise the class.
+        Args:
+            extra_config_files: This is an optional list of filepaths of config files to load.
+            overrides: This is an optional dictionary with explicit fields of the configuration to overwrite.
+        """
         self._load_config(extra_config_files, overrides)
         self._load_lattice_and_ringmode_elements()
 
@@ -180,7 +186,7 @@ class Machine:
         PSPdict = self.config._config["PSPS"]
 
         # Cell Dictionary defined by PV names.
-        cell_dictionary = defaultdict(list)
+        cell_dictionary = defaultdict(str, List[str])
         for _, bpm_name in zip(self.bpms, self.bpms_names):
             key = str(bpm_name[2:4])
             cell_dictionary[key].append(bpm_name)
@@ -227,7 +233,12 @@ class Machine:
         self._quad2bpm_names = q2b_names
 
     def quad2bpm(self, quad: str) -> str:
-        """"""
+        """This function provides the closest BPM when given a quadrupole.
+        Args:
+            quad: The name of the quadrupole.
+        Returns:
+            The name of the closest BPM.
+        """
         try:
             return self._quad2bpm_names[quad]
         except KeyError:
@@ -253,9 +264,14 @@ class Machine:
         self._bpm2quad_names = b2q_names
 
     def bpm2quad(self, bpm: str) -> list[str]:
-        """"""
-        # bpm can be either PV or element, default element.
-        # Will return 1 to many.
+        """This function provides the closest quadrupoles when given a BPM.
+        Note: This process is 1 to many as the BPM2QUAD and QUAD2BPM functions are
+        non symetric. Therefore you could get multiple quadrupoles returned.
+        Args:
+            bpm: The name of the BPM.
+        Returns:
+            A list of the closest 1 or 2 quadrupole names.
+        """
         if bpm in self._bpm2quad_names:
             return self._bpm2quad_names[bpm]
         else:
@@ -265,12 +281,21 @@ class Machine:
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
     def get_enabled_bpms(self):
-        """"""
+        """This function returns an array showing which BPMs are enabled.
+        Returns:
+            An array with boolean integers in the indices of the BPMs.
+        """
         return self._lattice.get_element_values("BPM", "enabled")
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
     def measure_bpms(self, axis: str):
-        """"""
+        """This function returns an array with the current BPMs values in the axis
+        specified.
+        Args:
+            axis: The 'x' or 'y' axis.
+        Returns:
+            An array with the values read from the BPMs.
+        """
         return self._lattice.get_element_values("BPM", f"{axis}", pytac.RB)
 
     def get_element_from_name(self, name):
@@ -347,7 +372,10 @@ class Machine:
         return float(value)
 
     def get_beam_current(self) -> float:
-        """"""
+        """This function returns the beam current.
+        Returns:
+            The beam current.
+        """
         return float(self._lattice.get_value("beam_current"))
 
     def store_starting_beam_current(self):
@@ -403,7 +431,7 @@ class Machine:
         return response
 
     def get_diagnostics(self):
-        """"""
+        """This function writes all the diagnostics to the logging file."""
         diagnostics = self.config["DIAGNOSTICS"]
 
         for key, pv in diagnostics.items():
@@ -413,7 +441,7 @@ class Machine:
         log.debug("BEAM_CURRENT", self.get_beam_current())
 
     def apply_feedbacks(self):
-        """"""
+        """This function applies feedbacks for the times specified in the config."""
         feedbacks_bool = self.config["FEEDBACKS"]
         log.debug("Applying feedbacks")
 
@@ -458,7 +486,12 @@ class Machine:
 
     @staticmethod
     def get_quad_setpoint(quadrupole: EpicsElement) -> float:
-        """"""
+        """This function returns the setpoint of a quadrupole.
+        Args:
+            quadrupole: The EpicsElement object for the quadrupole.
+        Returns:
+            The current setpoint of the quadrupole.
+        """
         value = float(quadrupole.get_value("b1"))
         log.debug(f"Quadrupole get value: {value}")
         return value
@@ -467,7 +500,12 @@ class Machine:
     def set_quad_setpoint(
         quadrupole: EpicsElement, value: Union[float, int], sleep: bool = False
     ) -> None:
-        """"""
+        """This function sets a quadrupole setpoint.
+        Args:
+            quadrupole: The EpicsElement object for the quadrupole.
+            value: The value to set the quadrupole to, in amps.
+            sleep: Bool to indicate if the process should sleep afterwards.
+        """
         start_current = Machine.get_quad_setpoint(quadrupole)
         quadrupole.set_value("b1", value)
         if sleep:
@@ -477,7 +515,12 @@ class Machine:
 
     @staticmethod
     def get_corrector_setpoint(components: Components):
-        """"""
+        """This function returns the corrector setpoint.
+        Args:
+            components: The components object.
+        Returns:
+            The current setpoint of the corrector.
+        """
         value = float(components.corrector.get_value(components.kick))
         log.debug(f"Corrector {components.corrector_name} get value: {value}")
         return value
@@ -486,13 +529,18 @@ class Machine:
     def set_corrector_setpoint(
         components: Components, value: Union[float, int]
     ) -> None:
-        """"""
+        """This function sets a corrector setpoint.
+        Args:
+            components: The components object.
+            value: The value to set the corrector to, in amps.
+        """
         components.corrector.set_value(components.kick, value)
         log.debug(f"Corrector {components.corrector_name} set value: {value}")
 
     def zero_origins(self, folder_path: str):
-        """"""
-        # zeroes bcd and golden offsets. Golden must be restored later.
+        """This function zeroes all BPM BCD and Golden origin numbers.
+        The Golden origin numbers are also saved for reapplying later.
+        """
         log.debug("Zeroing BCD and Golden Offsets")
         golden_offsets = {}
         pv_names = []
@@ -515,8 +563,7 @@ class Machine:
         log.debug("Origins Zeroed")
 
     def restore_origins(self, folder_path: str):
-        """"""
-        # restore golden orbits.
+        """This function restores the Golden origin numbers to the BPMs."""
         log.debug("Restoring Golden Offsets")
 
         with open(os.path.join(folder_path, "golden_offsets.json")) as f:
@@ -533,7 +580,10 @@ class Machine:
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
     def get_bba_offsets(self) -> Tuple[list[float], list[float]]:
-        """"""
+        """This function returns all BBA offset numbers.
+        Returns:
+            Two lists of the current BBA x and y values.
+        """
         current_bba_x = [float(v) for v in caget(self.bba_x_pvs)]
         current_bba_y = [float(v) for v in caget(self.bba_y_pvs)]
 

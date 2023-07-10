@@ -1,12 +1,12 @@
 import logging as log
 import os
 from abc import ABC, abstractmethod
-from typing import List
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
+import pytac
 from cothread import Sleep
 from cothread.catools import caput
-from pytac.element import EpicsElement
 
 from dls_bba.components import Components
 from dls_bba.datatypes import CalculatedOffset, RawData, Results
@@ -14,32 +14,77 @@ from dls_bba.machine import ORIGIN_SUFFIXES, Machine
 
 
 class Algorithm(ABC):
+    """The abstract base class for the various Algorithm BBA methods."""
+
     def __init__(self, machine: Machine):
+        """The class is initialised with just the machine object.
+
+        Args:
+            machine: The machine object
+        """
         self._machine = machine
 
     @abstractmethod
-    def run(self, component_pair: list[Components]) -> RawData:
+    def run(self, component_pair: List[Components]) -> RawData:
+        """Run a single instance of BBA over both axes of a BPM.
+
+        Args:
+            component_pair: A list of x, y components for a single BPM.
+
+        Returns:
+            RawData object.
+        """
         pass
 
     @abstractmethod
     def analyse(self, rawdata: RawData) -> Results:
+        """Analyse a rawdata object and return the results.
+
+        Args:
+            rawdata: A RawData object.
+
+        Returns:
+            Results object.
+        """
         pass
 
-    def calculate_quad_setpoints(self, quadrupole: EpicsElement):
-        """"""
-        quad_step_percent = self._machine.config["QUADRUPOLE_STEP_PERCENT"] * 1e-2
+    def calculate_quad_setpoints(
+        self, quadrupole: pytac.element.EpicsElement
+    ) -> Tuple[float, float, float, float, float]:
+        """This function calculates the quadrupole setpoints.
+
+        Args:
+            quadrupole: The EpicsElement object for the quadrupole.
+
+        Returns:
+            Initial starting point to establish a known hysteresis curve.
+            The 'high' measurement point.
+            The 'low' measurement point.
+            The starting and ending setpoint.
+            The step size.
+        """
+        quad_step_percent: float = (
+            self._machine.config["QUADRUPOLE_STEP_PERCENT"] * 1e-2
+        )
 
         quad_setpoint = self._machine.get_quad_setpoint(quadrupole)
-        quad_step = quad_setpoint * quad_step_percent
-        quad_start_high = quad_setpoint + (2 * quad_step)
-        quad_high = quad_setpoint + quad_step
-        quad_low = quad_setpoint - quad_step
+        quad_step: float = quad_setpoint * quad_step_percent
+        quad_start_high: float = quad_setpoint + (2 * quad_step)
+        quad_high: float = quad_setpoint + quad_step
+        quad_low: float = quad_setpoint - quad_step
         return quad_start_high, quad_high, quad_low, quad_setpoint, quad_step
 
-    def get_slow_bba_corrector_steps(self, components: Components):
-        """"""
-        setpoint = self._machine.get_corrector_setpoint(components)
-        step = self._machine.corrector_kick(components)
+    def get_slow_bba_corrector_steps(self, component: Components) -> List[float]:
+        """This function calculates the five discrete corrector steps for SlowBBA.
+
+        Args:
+            component: A single component
+
+        Returns:
+            A list of the corrector steps.
+        """
+        setpoint = self._machine.get_corrector_setpoint(component)
+        step = self._machine.corrector_kick(component)
         corrector_steps = [
             setpoint + step,
             setpoint + (step / 2),
@@ -49,10 +94,22 @@ class Algorithm(ABC):
         ]
         return corrector_steps
 
-    def create_offsets_dict(self, results, metadata) -> dict[str, CalculatedOffset]:
-        offsets: dict[str, CalculatedOffset] = {}
-        bpm_name = metadata["bpm_name"]
-        bpm_index = metadata["bpm_index"]
+    def create_offsets_dict(
+        self, results: Dict[str, List[float]], metadata: Dict[str, Any]
+    ) -> Dict[str, CalculatedOffset]:
+        """This function converts a results object into a dictionary
+        with key offset values stored.
+
+        Args:
+            results: The results dictionary from a Results object.
+            metadata: The metadata dictionary from a Results object.
+
+        Returns:
+            A dictionary of old and new offsets, with keys as the BPM PVs.
+        """
+        offsets: Dict[str, CalculatedOffset] = {}
+        bpm_name: str = metadata["bpm_name"]
+        bpm_index: int = metadata["bpm_index"]
 
         for index, axis in enumerate(["x", "y"]):
             bpm_key = str(bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis=axis.upper()))
@@ -68,15 +125,23 @@ class Algorithm(ABC):
             offsets[bpm_key] = CalculatedOffset(
                 old_bba, new_bba, diff_value, diff_error
             )
-
         return offsets
 
     def calculate_new_offsets(
-        self, results: dict[str, List[float]], axis: str
+        self, results: Dict[str, List[float]], axis: str
     ) -> List[float]:
+        """This function calculates the offset values when given the results dictionary.
+
+        Args:
+            results: The results dictionary from a Results object
+            axis: The axis required.
+
+        Returns:
+            A list containing the value and the error.
+        """
         keys = [key for key in results.keys() if axis in key]
-        values = []
-        errors = []
+        values: List[float] = []
+        errors: List[float] = []
         for key in keys:
             values.append(results[key][0])
             errors.append(results[key][1])
@@ -85,12 +150,17 @@ class Algorithm(ABC):
         mean_value = float(np.mean(values))
         for value, error in zip(values, errors):
             sum_error += (error / value) ** 2
-        total_error = np.sqrt(sum_error) * mean_value
+        total_error = float(np.sqrt(sum_error) * mean_value)
         return [mean_value, total_error]
 
-    def use_bba_offsets(self, results_list: List[Results], save_location: str):
-        """"""
-        offsets_dict: dict[str, CalculatedOffset] = {}
+    def use_bba_offsets(self, results_list: List[Results], save_location: str) -> None:
+        """This function supplies the logic on how to handle the results objects.
+
+        Args:
+            results_list: A list of Results objects.
+            save_location: The folderpath to save the results to.
+        """
+        offsets_dict: Dict[str, CalculatedOffset] = {}
         for results in results_list:
             offsets_dict.update(results.offsets.items())
 
@@ -107,9 +177,15 @@ class Algorithm(ABC):
 
     def _save_bba_offsets(
         self,
-        offsets_dict: dict[str, CalculatedOffset],
+        offsets_dict: Dict[str, CalculatedOffset],
         save_location: str,
-    ):
+    ) -> None:
+        """This function saves the calculated offsets to a file in a human readable format.
+
+        Args:
+            offsets_dict: This holds all of the CalculatedOffset objects.
+            save_location: The folder path to save the file in.
+        """
         filename = os.path.join(save_location, "results.txt")
         with open(filename, "w") as writer:
             for key, value in offsets_dict.items():
@@ -121,10 +197,14 @@ class Algorithm(ABC):
                 writer.write(line)
             writer.close()
 
-    def _plot_bba_offsets(self, offsets_dict: dict[str, CalculatedOffset]):
-        """"""
-        change_in_x = []
-        change_in_dx = []
+    def _plot_bba_offsets(self, offsets_dict: Dict[str, CalculatedOffset]) -> None:
+        """This function plots the relative change in the new BBA offsets.
+
+        Args:
+            offsets_dict: This holds all of the CalculatedOffset objects.
+        """
+        change_in_x: List[float] = []
+        change_in_dx: List[float] = []
         for bpm_name in self._machine.bba_x_pvs:
             if bpm_name in offsets_dict.keys():
                 calc_offsets = offsets_dict[bpm_name]
@@ -134,8 +214,8 @@ class Algorithm(ABC):
                 change_in_x.append(0)
                 change_in_dx.append(0)
 
-        change_in_y = []
-        change_in_dy = []
+        change_in_y: List[float] = []
+        change_in_dy: List[float] = []
         for bpm_name in self._machine.bba_y_pvs:
             if bpm_name in offsets_dict.keys():
                 calc_offsets = offsets_dict[bpm_name]
@@ -163,10 +243,15 @@ class Algorithm(ABC):
 
     def _apply_bba_offsets(
         self,
-        offsets_dict: dict[str, CalculatedOffset],
-    ):
-        pv_names = []
-        pv_values = []
+        offsets_dict: Dict[str, CalculatedOffset],
+    ) -> None:
+        """This function applies the BBA offset values.
+
+        Args:
+            offsets_dict: This holds all of the CalculatedOffset objects.
+        """
+        pv_names: List[str] = []
+        pv_values: List[float] = []
         for key, value in offsets_dict.items():
             pv_names.append(key)
             pv_values.append(value.new_value)
