@@ -1,4 +1,5 @@
 import logging as log
+from typing import List, Tuple
 
 import numpy as np
 from cothread import Sleep
@@ -116,7 +117,9 @@ class FastBBA(Algorithm):
 
         return RawData(rawdata, metadata)
 
-    def select_data(self, data, axis, exc_data):
+    def select_data(
+        self, data: np.ndarray, axis: str, exc_data: Tuple[Excitation, Excitation]
+    ) -> List[np.ndarray]:
         """Extract FA data that covers the excitations exc_high and exc_low.
 
         The input data array should cover the full length of both excitations.

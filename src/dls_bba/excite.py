@@ -101,6 +101,7 @@ class Excitation(object):
         self, machine, component: Components, oscillation: Oscillation, start_time: int
     ) -> None:
         """The default constructor for the excitation object.
+
         Args:
             machine: The Machine object.
             component: The component object for the corrector of interest.
@@ -128,10 +129,10 @@ class Excitation(object):
 
 def excite(excitations: Tuple[Excitation, ...]) -> None:
     """Completes caputs which will start the excitation.
+
     Args:
         excitations: A tuple of excitation objects.
     """
-
     iocs: List[str] = excitations[0].iocs
 
     # Zero all timestamps
@@ -180,10 +181,11 @@ def excite(excitations: Tuple[Excitation, ...]) -> None:
     )
 
 
-def cancel_all_oscillations(config):
+def cancel_all_oscillations(config) -> None:
     """This function resets all of the IOCs to stop rogue oscillations.
+
     Args:
-        config: The configuration dictionary of the lattice object.
+        config: The configuration dictionary of the machine object.
     """
     # Set all to 0, then prime for all IOCS.
     iocs = config["CORRECTOR_IOCS"]

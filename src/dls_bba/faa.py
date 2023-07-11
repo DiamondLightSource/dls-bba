@@ -1,7 +1,9 @@
 import logging as log
+from typing import List
 
 import cothread
 import numpy
+import numpy as np
 from fa.falib import falib
 
 from dls_bba.exceptions import (
@@ -10,23 +12,31 @@ from dls_bba.exceptions import (
 )
 
 TICKS_PER_SECOND = 10072
+"""The numnber of FAA ticks per second."""
 TICKS_PER_HOUR = TICKS_PER_SECOND * 60 * 60
+"""The number of FAA ticks per hour."""
 IOC_REJECTION_TIMESTAMP = 2**32 - TICKS_PER_HOUR
+"""The tick number from which the power supply IOC will reject an oscillation."""
 IOC_WARNING_TIMESTAMP = 2**32 - 3 * TICKS_PER_HOUR
+"""The tick number from which to warn about IOC rejection."""
 MAX_BBA_DURATION = 6 * TICKS_PER_HOUR
+"""A theoretical maximum duration to run BBA."""
 
 
-def get_timestamp(decimated):
+def get_timestamp(decimated: bool) -> int:
     """Get the current FAA timestamp in ticks.
     Note: If faa timestamp is larger than 2**32 - 1 hour,
     then the power supply IOC will reject the oscillation.
+
     Args:
         decimated: A boolean to describe if decimated data is wanted.
+
     Returns:
         The FAA timestamp.
+
+    Raises:
+        FAAPowerSupplyIOCTimestampError if the FAA timestamp is too large.
     """
-    # TODO: If faa timestamp is larger than 2**32 - 1 hour,
-    # then the power supply IOC will reject the oscillation.
     s = falib.subscription([0], decimated=decimated)
     x = s.read(1)
     s.close()
@@ -52,7 +62,9 @@ class Buffer(object):
     EXTRA = 1000
     """The number of extra datapoints to ensure desired data is fetched."""
 
-    def __init__(self, ids, start_time, length, decimated):
+    def __init__(
+        self, ids: List[int], start_time: int, length: int, decimated: bool
+    ) -> None:
         """Create buffer.
 
         Note that length is in FA archiver timestamps, even if the data
@@ -74,7 +86,7 @@ class Buffer(object):
         else:
             self.timestamps = True
         self.ids = ids
-        self.cache = []
+        self.cache: List[np.ndarray] = []
         self.datapoints = int(length // 10) if decimated else length
         log.debug("FA buffer: length %s; datapoints %s", length, self.datapoints)
         self.dec = decimated
@@ -82,7 +94,7 @@ class Buffer(object):
         self.complete = False
         cothread.Spawn(self._fetch_data)
 
-    def _fetch_data(self):
+    def _fetch_data(self) -> None:
         try:
             sub = self.server.subscription(self.ids, decimated=self.dec)
             self.cache.append(sub.read(Buffer.SIZE))
@@ -94,10 +106,12 @@ class Buffer(object):
             log.warn("Fetching FA data failed: {}".format(e))
             self.complete = True
 
-    def get_data(self):
+    def get_data(self) -> np.ndarray:
         """This function returns the FAA data.
+
         Raises:
             FastAcquisitionArchiverError: If insufficient data is gathered.
+
         Returns:
             The data.
         """
