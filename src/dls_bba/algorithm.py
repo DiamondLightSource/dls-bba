@@ -168,9 +168,8 @@ class Algorithm(ABC):
         pv_names = []
         pv_values = []
         for key, value in offsets_dict.items():
-            calc_offsets = offsets_dict[key]
             pv_names.append(key)
-            pv_values.append(calc_offsets.new_value)
+            pv_values.append(value.new_value)
         caput(pv_names, pv_values, wait=True)
         log.info(f"{len(pv_names)} BBA Offsets Applied.")
         Sleep(0.2)
