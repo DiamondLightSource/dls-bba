@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 from cothread.catools import caput
@@ -84,7 +85,11 @@ class Oscillation:
 
     @property
     def length(self) -> int:
-        """This property provides the length of the oscillation in ticks."""
+        """This property provides the length of the oscillation in ticks.
+
+        Returns:
+            length of the oscillation in ticks.
+        """
         length = int(np.ceil(TICKS_PER_SECOND / self.frequency) * self.cycles)
         return length
 
@@ -93,16 +98,16 @@ class Excitation(object):
     """An excitation object contains all the information to perform an AC excitation."""
 
     def __init__(
-        self, machine, components: Components, oscillation: Oscillation, start_time: int
-    ):
+        self, machine, component: Components, oscillation: Oscillation, start_time: int
+    ) -> None:
         """The default constructor for the excitation object.
         Args:
-            lattice: The lattice object.
-            components: The component object for the corrector of interest.
+            machine: The Machine object.
+            component: The component object for the corrector of interest.
             oscillation: The oscillation object for the corrector of interest.
             start_time: The oscillation start time in FAA ticks.
         """
-        self.corrector = components.corrector
+        self.corrector = component.corrector
         self.oscillation: Oscillation = oscillation
         self.start_time: int = start_time
 
@@ -115,19 +120,19 @@ class Excitation(object):
             np.floor(self.oscillation.frequency * 2**32 / TICKS_PER_SECOND)
         )
 
-        fofb_corrector = FofbCorrector.from_corrector_table(machine, components)
+        fofb_corrector = FofbCorrector.from_corrector_table(machine, component)
         self.ioc = fofb_corrector.ioc
         self.fofb_index = fofb_corrector.fofb_index
         self.iocs = machine.config["CORRECTOR_IOCS"]
 
 
-def excite(excitations):
+def excite(excitations: Tuple[Excitation, ...]) -> None:
     """Completes caputs which will start the excitation.
     Args:
         excitations: A tuple of excitation objects.
     """
 
-    iocs = excitations[0].iocs
+    iocs: List[str] = excitations[0].iocs
 
     # Zero all timestamps
     caput(
@@ -136,7 +141,7 @@ def excite(excitations):
     )
 
     # Create dict of PVs to put
-    pvs = {}
+    pvs: Dict[str, Any] = {}
     for e in excitations:
         pvs.update(
             {
