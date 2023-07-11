@@ -34,6 +34,12 @@ class FastAcquisitionArchiverError(Exception):
     pass
 
 
+class FAAPowerSupplyIOCTimestampError(Exception):
+    """Raised when a timestamp that would be rejected by the power supply IOC is selected."""
+
+    pass
+
+
 class InvalidElementError(Exception):
     """Raised when a non existant element name is used."""
 
