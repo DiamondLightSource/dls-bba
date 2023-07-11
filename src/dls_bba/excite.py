@@ -23,6 +23,25 @@ class FofbCorrector:
     fofb_index: int
     slow: int
 
+    @classmethod
+    def from_corrector_table(cls, machine, components: Components):
+        """Create FofbCorrector tuple from pytac element."""
+        table = cls.get_corrector_table(machine)
+        name = components.corrector_name
+        # Corrector table indices start from 1
+        index = int(table["epics"].tolist().index(name)) + 1
+        ioc = table["ioc"][index]
+        fofb_index = int(table["farow"][index])
+        slow = 1 if name in machine.slow_correctors else 0
+        return cls(index, ioc, fofb_index, slow)
+
+    @staticmethod
+    def get_corrector_table(machine):
+        correctors_txt = machine.config["CORRECTORS_TXT_PATH"]
+        with open(correctors_txt, "r", encoding="utf8", newline="") as file:
+            data = np.genfromtxt(file, names=True, dtype=None, encoding="UTF-8")
+        return data
+
 
 @dataclass
 class Oscillation:
@@ -35,25 +54,6 @@ class Oscillation:
     def length(self):
         length = int(np.ceil(TICKS_PER_SECOND / self.frequency) * self.cycles)
         return length
-
-
-def get_corrector_table(machine):
-    correctors_txt = machine.config["CORRECTORS_TXT_PATH"]
-    with open(correctors_txt, "r", encoding="utf8", newline="") as file:
-        data = np.genfromtxt(file, names=True, dtype=None, encoding="UTF-8")
-    return data
-
-
-def get_fofb_corrector(machine, components: Components):
-    """Create FofbCorrector tuple from pytac element."""
-    table = get_corrector_table(machine)
-    name = components.corrector_name
-    # Corrector table indices start from 1
-    index = int(table["epics"].tolist().index(name)) + 1
-    ioc = table["ioc"][index]
-    fofb_index = int(table["farow"][index])
-    slow = 1 if name in machine.slow_correctors else 0
-    return FofbCorrector(index, ioc, fofb_index, slow)
 
 
 class Excitation(object):
@@ -75,7 +75,7 @@ class Excitation(object):
             np.floor(self.oscillation.frequency * 2**32 / TICKS_PER_SECOND)
         )
 
-        fofb_corrector = get_fofb_corrector(machine, components)
+        fofb_corrector = FofbCorrector.from_corrector_table(machine, components)
         self.ioc = fofb_corrector.ioc
         self.fofb_index = fofb_corrector.fofb_index
         self.iocs = machine.config["CORRECTOR_IOCS"]
