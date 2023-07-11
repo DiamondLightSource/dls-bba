@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 
 from dls_bba.cli import (
     cli_entrypoint,
+    cli_multi_test,
     cli_quadcenter_plot,
     cli_show_bpm_options,
     cli_show_cell_options,
@@ -72,6 +73,11 @@ def parse_arguments():
         type=str,
         help="Display the BPM values in the cell if given the identifier. Eg: '04'",
     )
+    parser.add_argument(
+        "--multi",
+        "-m",
+        action="store_true",
+    )
     return parser.parse_args()
 
 
@@ -79,13 +85,17 @@ def main():
     args = parse_arguments()
     if args.element_names:
         cli_show_bpm_options(args.config, args.individual)
-    if args.cell is not None:
+    if args.cell is not None and not args.multi:
         cli_show_cell_options(args.cell, args.config, args.individual)
     if args.quadcenter is not None:
         cli_quadcenter_plot(args.quadcenter)
-    if args.algorithm is not None:
+    if args.algorithm is not None and not args.multi:
         cli_entrypoint(
             args.algorithm, args.bpm, args.save_location, args.config, args.individual
+        )
+    if args.algorithm is not None and args.multi:
+        cli_multi_test(
+            args.algorithm, args.cell, args.save_location, args.config, args.individual
         )
 
 

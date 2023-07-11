@@ -60,6 +60,32 @@ def cli_entrypoint(
     setup_beam_based_alignment(machine, algorithm, components_pair_list, save_location)
 
 
+def cli_multi_test(
+    method: str,
+    cell_number: str,
+    folder_path: str,
+    extra_config_files: list[str],
+    additional_options: dict[str, Any],
+):
+    save_location = setup_folders(method, folder_path)
+    machine = Machine(extra_config_files, additional_options)
+    algorithm: Algorithm = ALGORITHMS[method](machine)
+
+    if cell_number not in machine.cell_dictionary.keys():
+        print("Invalid cell selected. Try cells '00' to '24'")
+    else:
+        elements = machine.cell_dictionary[cell_number]
+
+    save_location = setup_folders(method, folder_path)
+
+    pairings = []
+    for element in elements:
+        pairings.append(generate_component_pairings(machine, element))
+    verified = verify_component_pairing(machine, pairings)
+
+    setup_beam_based_alignment(machine, algorithm, verified, save_location)
+
+
 def cli_quadcenter_plot(file_path: str):
     """"""
     results_object = Results.from_file(file_path)
