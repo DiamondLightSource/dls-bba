@@ -50,8 +50,10 @@ class Configuration:
     @classmethod
     def from_configuration_files(cls, paths: Optional[List[Union[Path, str]]] = None):
         """A Configuration constructor from a list of paths.
+
         Args:
             paths: An optional list of paths with config files.
+
         Returns:
             A loaded Configuration object.
         """
@@ -73,8 +75,10 @@ class Configuration:
 
     def update_config(self, new_dictionary: dict) -> bool:
         """A function that determines if a reload of the lattice is necessary.
+
         Args:
             new_dictionary: The new fields to add to the configuration.
+
         Returns:
             True if reload required, False if not required.
         """
@@ -83,8 +87,10 @@ class Configuration:
 
     def apply_config_files(self, paths: List[Union[Path, str]]) -> bool:
         """This function goes through each method and applies it one by one.
+
         Args:
             paths: A list of configuration file paths.
+
         Returns:
             True if reload required, False if not required.
         """
@@ -98,6 +104,7 @@ class Configuration:
 
     def get_settings(self):
         """This function gets a copy of the configuration object.
+
         Returns:
             A dictionary of the configuration settings.
         """

@@ -14,8 +14,9 @@ class RawData:
     rawdata: dict
     metadata: dict
 
-    def save(self, folder_path):
+    def save(self, folder_path: str) -> None:
         """This function saves the rawdata and metadata.
+
         Args:
             folder_path: The folderpath to save the data to.
         """
@@ -37,10 +38,14 @@ class RawData:
         )
 
     @classmethod
-    def from_file(cls, filepath):
+    def from_file(cls, filepath: str) -> RawData:
         """This function loads the rawdata and metadata.
+
         Args:
             filepath: The filepath of the xxx-rawdata.mat file to load.
+
+        Returns:
+            A constructed RawData object.
         """
         dct = io.loadmat(filepath, simplify_cells=True)
         return cls(dct["rawdata"], dct["metadata"])
@@ -82,8 +87,10 @@ class Results:
     @classmethod
     def from_file(cls, filepath: str) -> Results:
         """This constructor loads a Results object when given a filepath.
+
         Args:
             filepath: The filepath to a xxx-results.mat file.
+
         Returns:
             A constructed Results object.
         """
@@ -99,7 +106,7 @@ class Results:
 
         return cls(results, dct["metadata"], dct["plotting"], offsets)
 
-    def save(self, folder_path):
+    def save(self, folder_path: str) -> None:
         """This function saves the current Results object to the given folder path.
         Note: Files with complex keys can be loaded in MATLAB. eg: object.("key").
 

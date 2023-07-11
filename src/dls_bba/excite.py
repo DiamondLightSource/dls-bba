@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 import numpy as np
@@ -5,6 +7,7 @@ from cothread.catools import caput
 
 from dls_bba.components import Components
 from dls_bba.faa import TICKS_PER_SECOND
+from dls_bba.machine import Machine
 
 NETWORK_LAG_S = 0.5
 """Additional time to account for Network Lag in seconds."""
@@ -33,10 +36,20 @@ class FofbCorrector:
     slow: int
 
     @classmethod
-    def from_corrector_table(cls, machine, components: Components):
-        """Create FofbCorrector tuple from pytac element."""
+    def from_corrector_table(
+        cls, machine: Machine, component: Components
+    ) -> FofbCorrector:
+        """Create FofbCorrector from component.
+
+        Args:
+            machine: The Machine object for the accelerator.
+            component: A component object.
+
+        Returns:
+            A constructed FofbCorrector object.
+        """
         table = cls.get_corrector_table(machine)
-        name = components.corrector_name
+        name = component.corrector_name
         # Corrector table indices start from 1
         index = int(table["epics"].tolist().index(name)) + 1
         ioc = table["ioc"][index]
@@ -45,7 +58,8 @@ class FofbCorrector:
         return cls(index, ioc, fofb_index, slow)
 
     @staticmethod
-    def get_corrector_table(machine):
+    def get_corrector_table(machine: Machine) -> np.ndarray:
+        """"""
         correctors_txt = machine.config["CORRECTORS_TXT_PATH"]
         with open(correctors_txt, "r", encoding="utf8", newline="") as file:
             data = np.genfromtxt(file, names=True, dtype=None, encoding="UTF-8")
@@ -69,7 +83,7 @@ class Oscillation:
     cycles: int
 
     @property
-    def length(self):
+    def length(self) -> int:
         """This property provides the length of the oscillation in ticks."""
         length = int(np.ceil(TICKS_PER_SECOND / self.frequency) * self.cycles)
         return length

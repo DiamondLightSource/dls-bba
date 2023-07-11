@@ -154,7 +154,7 @@ def generate_component_pairings(
     quadrupole or bpm name.
 
     Args:
-        lattice: The Lattice object for the accelerator.
+        machine: The Machine object for the accelerator.
         element_name: The name of the element.
 
     Returns:
@@ -194,7 +194,7 @@ def verify_component_pairing(
     function removes those elements and provides warnings where appropriate.
 
     Args:
-        lattice: The Lattice object for the accelerator.
+        machine: The Machine object for the accelerator.
         component_pairings: The list of component pair lists.
 
     Returns:
