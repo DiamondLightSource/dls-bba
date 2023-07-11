@@ -115,7 +115,7 @@ def excite(excitations):
             )
         pvs[f"{e.ioc}:EXCITE:START_TIMES"][index] = e.start_time
         pvs[f"{e.ioc}:EXCITE:AMPS"][index] = e.oscillation.amplitude
-        pvs[f"{e.ioc}:EXCITE:DELTAS"][index] = e.oscillation.delta
+        pvs[f"{e.ioc}:EXCITE:DELTAS"][index] = e.delta
         pvs[f"{e.ioc}:EXCITE:TICKS"][index] = e.count
 
     # caput the values
