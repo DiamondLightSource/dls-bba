@@ -1,15 +1,17 @@
+import signal
 import sys
 from pathlib import Path
 
 # isort: off
 import matplotlib
+from cothread.cothread import Callback, _QuitEvent
 
 matplotlib.use("Qt5Agg")  # noqa: E402
 # isort: on
 
 import cothread  # noqa: E402
 from PyQt6 import uic  # noqa: E402
-from PyQt6.QtWidgets import QMainWindow  # noqa: E402
+from PyQt6.QtWidgets import QApplication, QMainWindow  # noqa: E402
 
 from dls_bba.common import ALGORITHMS  # noqa: E402
 from dls_bba.machine import Machine  # noqa: E402
@@ -32,19 +34,121 @@ class MainWindow(QMainWindow):
         ][0]
         uic.loadUi(ui_file, self)
 
-        machine = Machine()
-        self.setup_main_window(machine)
+        self.machine = Machine()
+        self.setup_machine_args()
+        self.setup_main_window()
 
-    def setup_main_window(self, machine):
+    def setup_machine_args(self):
+        self.modes = {  # Mode name: [selection_strings, arguments]
+            "Whole Machine": [["Whole Machine"], self.machine.bpms_names],
+            "Cells": [
+                list(self.machine.cell_dictionary.keys()),
+                self.machine.cell_dictionary,
+            ],
+            "BPMs": [self.machine.bpms_names, self.machine.bpms_names],
+            "Quadrupoles": [self.machine.quads_names, self.machine.quads_names],
+            "PSPs": [["All PSPs"], self.machine.psps],
+        }
+
+    def setup_main_window(self):
         # Methods
-        self.box_method.addItems(ALGORITHMS.keys())
-        self.box_method.setCurrentText(list(ALGORITHMS.keys())[0])
+        self.method_dropdown.addItems(ALGORITHMS.keys())
+        self.method_dropdown.setCurrentText(list(ALGORITHMS.keys())[0])
         # Mode
+        self.display_on_screen("Please select a mode.", clear=True)
 
         # Mode Selection
+        self.options = None
+        self.display = None
+        self.selected = None
+        self.whole_machine.clicked.connect(lambda: self.select_mode("Whole Machine"))
+        self.cell.clicked.connect(lambda: self.select_mode("Cells"))
+        self.bpms.clicked.connect(lambda: self.select_mode("BPMs"))
+        self.quadrupoles.clicked.connect(lambda: self.select_mode("Quadrupoles"))
+        self.psps.clicked.connect(lambda: self.select_mode("PSPs"))
+
+        self.selected_toggle = 0
+        self.lock_unlock_pv.clicked.connect(lambda: self.select_options())
+
+        # Quitting
+        self.force_close = False
+
+    def select_mode(self, key):
+        values = self.modes[key]
+        selection_strings, options = values[0], values[1]
+        # Clear and redraw selection
+        self.pv_selection.clear()
+        self.pv_selection.addItems(selection_strings)
+
+        self.selection_strings = selection_strings
+        self.options = options
+
+    def select_options(self):
+        selected = self.pv_selection.selectedItems()
+
+        if len(selected) == 0:
+            msg = "Please select a mode."
+            self.display_on_screen(msg)
+
+        if len(selected) == 1 and any(
+            True for x in ["Whole Machine", "All PSPs"] if x in self.selection_strings
+        ):
+            print(f"One: {selected[0].text()}")
+
+        elif len(selected) == 1 and not any(
+            True for x in ["Whole Machine", "All PSPs"] if x in self.selection_strings
+        ):
+            print(f"One: {selected[0].text()}")
+
+        else:
+            print(f"More: {len(selected)}")
+
+    def display_on_screen(self, text, clear=False):
+        if clear:
+            self.screen.clear()
+            QApplication.processEvents()
+        self.screen.appendPlainText(text)
+        QApplication.processEvents()
+
+    # def display_choices(self, options=None):
+    #     self.pv_selection.clear()
+    #     if options is None:
+    #         self.pv_selection.addItems("Please select an option.")
+    #     else:
+    #         self.pv_selection.addItems(options)
+
+    # def select_options(self):
+    #     self.selected = self.pv_selection.selectedItems()
+
+    #     if self.selected is None:
+    #         self.display_choices(None)
+
+    #     if len(self.selected) > 1:
+    #         self.add_text(f"{len(self.selected)} elements selected.")
+    #     else:
+    #         self.add_text(f"{self.selected[0].text()} selected.")
+
+    def closeEvent(self, event=None):
+        if self.force_close:
+            print("Force Closed.")
+            # if mid_oscillation:
+            #     prime all IOCs
+            # reset all golden offsets and reset quad posisitons.
+        else:
+            print("Closed Gracefully.")
+        # In every scenario -> Reset all IOCs.
+        # set all start times to 0's, then prime.
+        print("Exited.")
 
 
 def start_gui():
     window = MainWindow()
     window.show()
-    cothread.WaitForQuit()
+    # cothread.WaitForQuit()
+
+    def graceful_exit():
+        window.closeEvent()
+        _QuitEvent.Signal()
+
+    signal.signal(signal.SIGINT, lambda signum, frame: Callback(graceful_exit))
+    _QuitEvent.Wait()
