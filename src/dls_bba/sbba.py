@@ -57,7 +57,7 @@ class SlowBBA(Algorithm):
 
                     for index, step in enumerate(corrector_step_list, start=1):
                         self._machine.set_corrector_setpoint(components, step)
-                        Sleep(0.1)  # Fixed time for orbit to stabilise.
+                        Sleep(0.5)  # Fixed time for orbit to stabilise.
                         measured_bpms = self._machine.measure_bpms(components.axis)
 
                         key = f"{quad_name}_{components.axis}_{movement}_{index}"
@@ -95,6 +95,7 @@ class SlowBBA(Algorithm):
         enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
         min_slope_fraction = metadata["MIN_SLOPE_FRACTION"]
         center_outlier_factor = metadata["CENTER_OUTLIER_FACTOR"]
+        bpm_index = metadata["bpm_index"]
 
         results = {}
         plotting = {}
@@ -124,20 +125,18 @@ class SlowBBA(Algorithm):
                 log.debug(f"Disabled BPMs: {bad_indices}")
 
                 # Get rid of bad bpms.
-                for index, _ in enumerate(self._machine.bpms):
+                for index in range(len(self._machine.bpms)):
                     if self._machine.fofb_disabled[axis][index] == 1:
                         bad_indices.append(index)
                 log.debug(f"Disabled and bad BPMs: {bad_indices}")
 
                 matrix = np.delete(matrix, bad_indices, axis=1)
 
-                # Relative corrector step from current setpoint
-                corrector_steps = metadata[key]["corrector_steps"]
-                corrector_steps = [
-                    step - corrector_steps[2] for step in corrector_steps
-                ]
+                for bad_i in bad_indices[::-1]:
+                    if bad_i <= bpm_index:
+                        bpm_index -= 1
 
-                fit = np.polynomial.polynomial.polyfit(corrector_steps, matrix, 1)
+                fit = np.polynomial.polynomial.polyfit(matrix[:, bpm_index], matrix, 1)
                 p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
                 gradients = list(p[:, 1])
 
@@ -180,8 +179,15 @@ class SlowBBA(Algorithm):
 
                 # First value is x, second is y
                 matrix_x = np.delete(matrix, bad_gradients, axis=1)
+                for bad_i in bad_gradients[::-1]:
+                    if bad_i <= bpm_index:
+                        bpm_index -= 1
                 matrix_xy = np.delete(matrix_x, stdev_list, axis=1)
-                plotting[key] = {"x": corrector_steps, "y": matrix_xy}
+                for bad_i in stdev_list[::-1]:
+                    if bad_i <= bpm_index:
+                        bpm_index -= 1
+
+                plotting[key] = {"x": matrix_xy[:, bpm_index], "y": matrix_xy}
 
         offsets = self.create_offsets_dict(results, metadata)
 
