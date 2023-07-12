@@ -47,7 +47,7 @@ class SimFastBBA(Algorithm):
                 quad_step,
             ) = self.calculate_quad_setpoints(quadrupole)
 
-            hcorr_kick = self._machine.corrector_kick(components_pair[0].corrector)
+            hcorr_kick = self._machine.corrector_kick(components_pair[0])
             hcorr_sp = self._machine.get_corrector_setpoint(components_pair[0])
 
             vcorr_kick = self._machine.corrector_kick(components_pair[1].corrector)
@@ -251,7 +251,7 @@ class SimFastBBA(Algorithm):
             for axis in ["x", "y"]:
                 key = f"{quad_name}_{axis}"
 
-                frequency_key = f"{axis.upper}_FREQUENCY"
+                frequency_key = f"{axis.upper()}_FREQUENCY"
                 frequency = metadata[frequency_key]
 
                 # Remove bad BPMs
@@ -263,7 +263,7 @@ class SimFastBBA(Algorithm):
 
                 # Take the difference between fits
                 q_diff = q_high_clean - q_low_clean
-                good = np.std(q_diff) > np.std(q_diff).max() / 2
+                good = q_diff.std(0) > q_diff.std(0).max() / 2
                 q_diff_good = q_diff[:, good]
 
                 # Use a single fit operation, then transform with the straight line equation
