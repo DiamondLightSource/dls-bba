@@ -289,6 +289,7 @@ class Machine:
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
     def get_enabled_bpms(self):
         """This function returns an array showing which BPMs are enabled.
+
         Returns:
             An array with boolean integers in the indices of the BPMs.
         """
@@ -298,8 +299,10 @@ class Machine:
     def measure_bpms(self, axis: str):
         """This function returns an array with the current BPMs values in the axis
         specified.
+
         Args:
             axis: The 'x' or 'y' axis.
+
         Returns:
             An array with the values read from the BPMs.
         """
@@ -495,8 +498,10 @@ class Machine:
     @staticmethod
     def get_quad_setpoint(quadrupole: EpicsElement) -> float:
         """This function returns the setpoint of a quadrupole.
+
         Args:
             quadrupole: The EpicsElement object for the quadrupole.
+
         Returns:
             The current setpoint of the quadrupole.
         """
@@ -509,6 +514,7 @@ class Machine:
         quadrupole: EpicsElement, value: Union[float, int], sleep: bool = False
     ) -> None:
         """This function sets a quadrupole setpoint.
+
         Args:
             quadrupole: The EpicsElement object for the quadrupole.
             value: The value to set the quadrupole to, in amps.
@@ -524,8 +530,10 @@ class Machine:
     @staticmethod
     def get_corrector_setpoint(components: Components):
         """This function returns the corrector setpoint.
+
         Args:
             components: The components object.
+
         Returns:
             The current setpoint of the corrector.
         """
@@ -538,6 +546,7 @@ class Machine:
         components: Components, value: Union[float, int]
     ) -> None:
         """This function sets a corrector setpoint.
+
         Args:
             components: The components object.
             value: The value to set the corrector to, in amps.
@@ -589,6 +598,7 @@ class Machine:
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
     def get_bba_offsets(self) -> Tuple[list[float], list[float]]:
         """This function returns all BBA offset numbers.
+
         Returns:
             Two lists of the current BBA x and y values.
         """
