@@ -4,7 +4,7 @@ import os
 from collections import defaultdict
 from functools import wraps
 from subprocess import run
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cothread
 
@@ -73,9 +73,9 @@ class Machine:
 
     def __init__(
         self,
-        extra_config_files: Optional[list[Any]] = None,
-        overrides: Optional[dict[str, Any]] = None,
-    ):
+        extra_config_files: Optional[List[Any]] = None,
+        overrides: Optional[Dict[str, Any]] = None,
+    ) -> None:
         """This constructor is the only way to initialise the class.
 
         Args:
@@ -87,17 +87,19 @@ class Machine:
 
     def _load_config(
         self,
-        extra_config_files: Optional[list[Any]] = None,
-        overrides: Optional[dict[str, Any]] = None,
-    ):
+        extra_config_files: Optional[List[Any]] = None,
+        overrides: Optional[Dict[str, Any]] = None,
+    ) -> None:
         """"""
         self.config = Configuration.from_configuration_files(extra_config_files)
         if overrides is not None:
             self.config.update_config(overrides)
 
     def _update_config(
-        self, extra_config_files: Optional[list[Any]] = None, dct: Optional[dict] = None
-    ):
+        self,
+        extra_config_files: Optional[List[Any]] = None,
+        dct: Optional[Dict[str, Any]] = None,
+    ) -> None:
         flag_files = False
         flag_dict = False
 
@@ -111,7 +113,7 @@ class Machine:
             log.debug("Major Config Change: Reloading Lattice")
             self._load_lattice_and_ringmode_elements()
 
-    def _load_lattice_and_ringmode_elements(self):
+    def _load_lattice_and_ringmode_elements(self) -> None:
         self._setup_pytac_lattice()
         self._load_element_and_name_lists()
         self._load_cell_dictionary_and_psps()
@@ -120,7 +122,7 @@ class Machine:
         self._get_effective_corrector()
         log.debug("Lattice Loaded")
 
-    def _setup_pytac_lattice(self):
+    def _setup_pytac_lattice(self) -> None:
         """"""
         ringmode = self.config["RINGMODE"]
         units = self.config["UNITS"]
@@ -142,7 +144,7 @@ class Machine:
         self._lattice.set_default_data_source(datasource)
         log.info(f"pytac datasource: {self._lattice.get_default_data_source()}")
 
-    def _load_element_and_name_lists(self):
+    def _load_element_and_name_lists(self) -> None:
         """"""
 
         self.bpms = self._lattice.get_elements("BPM")
@@ -199,7 +201,7 @@ class Machine:
                 psps.append(self.cell_dictionary[cell][int(index)])
         self.psps = psps
 
-    def _load_b2q_q2b(self):
+    def _load_b2q_q2b(self) -> None:
         """"""
         _Q2B_special_cases = self.config["QUAD2BPM_SPECIAL_CASES"]
         _B2Q_special_cases = self.config["BPM2QUAD_SPECIAL_CASES"]
@@ -214,7 +216,7 @@ class Machine:
         self._get_quad2bpm(_Q2B_special_cases)
         self._get_bpm2quad(_B2Q_special_cases)
 
-    def _get_quad2bpm(self, Q2B_special_cases):
+    def _get_quad2bpm(self, Q2B_special_cases) -> None:
         """"""
         # should only have a 1 to 1 pairing, and not every bpm is used. Every Quad must be used.
         q2b_names = {}
@@ -249,7 +251,7 @@ class Machine:
             log.critical(msg)
             raise InvalidElementError(msg)
 
-    def _get_bpm2quad(self, _B2Q_special_cases):
+    def _get_bpm2quad(self, _B2Q_special_cases) -> None:
         """"""
         # every bpm must be used, not every quad will be. 1 to many.
         b2q_names = defaultdict(list)
