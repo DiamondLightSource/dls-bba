@@ -77,6 +77,7 @@ class Machine:
         overrides: Optional[dict[str, Any]] = None,
     ):
         """This constructor is the only way to initialise the class.
+
         Args:
             extra_config_files: This is an optional list of filepaths of config files to load.
             overrides: This is an optional dictionary with explicit fields of the configuration to overwrite.
@@ -234,8 +235,10 @@ class Machine:
 
     def quad2bpm(self, quad: str) -> str:
         """This function provides the closest BPM when given a quadrupole.
+
         Args:
             quad: The name of the quadrupole.
+
         Returns:
             The name of the closest BPM.
         """
@@ -267,8 +270,10 @@ class Machine:
         """This function provides the closest quadrupoles when given a BPM.
         Note: This process is 1 to many as the BPM2QUAD and QUAD2BPM functions are
         non symetric. Therefore you could get multiple quadrupoles returned.
+
         Args:
             bpm: The name of the BPM.
+
         Returns:
             A list of the closest 1 or 2 quadrupole names.
         """
@@ -373,6 +378,7 @@ class Machine:
 
     def get_beam_current(self) -> float:
         """This function returns the beam current.
+
         Returns:
             The beam current.
         """
