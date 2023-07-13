@@ -88,7 +88,6 @@ class SlowBBA(Algorithm):
         return RawData(rawdata, metadata)
 
     def analyse(self, rawdata: RawData) -> Results:
-        # TODO: Does not reference the bpm?
         data = rawdata.rawdata
         metadata = rawdata.metadata
 
@@ -116,59 +115,49 @@ class SlowBBA(Algorithm):
                     low = data[key]
                     matrix[index, :] = np.subtract(high, low)
 
-                bad_indices = []
-
                 # Get rid of disabled bpms.
-                for index, value in reversed(list(enumerate(enabled_bpms))):
-                    if value == 0:
-                        bad_indices.append(index)
-                log.debug(f"Disabled BPMs: {bad_indices}")
+                disabled_bpms = np.logical_not(enabled_bpms)
+                log.debug(f"Disabled BPMs: {np.flatnonzero(disabled_bpms)}")
 
                 # Get rid of bad bpms.
-                for index in range(len(self._machine.bpms)):
-                    if self._machine.fofb_disabled[axis][index] == 1:
-                        bad_indices.append(index)
-                log.debug(f"Disabled and bad BPMs: {bad_indices}")
+                fofb_disabled_bpms = np.array(self._machine.fofb_disabled[axis] == 1)
+                log.debug(f"Bad BPMs: {np.flatnonzero(fofb_disabled_bpms)}")
 
-                matrix = np.delete(matrix, bad_indices, axis=1)
-
-                for bad_i in bad_indices[::-1]:
-                    if bad_i <= bpm_index:
-                        bpm_index -= 1
+                disabled = disabled_bpms | fofb_disabled_bpms
+                matrix = np.delete(matrix, disabled, axis=1)
+                # To keep the index inline with the original BPM.
+                bpm_index -= np.sum(disabled[:bpm_index])
 
                 fit = np.polynomial.polynomial.polyfit(matrix[:, bpm_index], matrix, 1)
                 p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
                 gradients = list(p[:, 1])
 
-                sorted_gradients = sorted((abs(v), i) for i, v in enumerate(gradients))
+                sorted_gradients = np.sort(gradients)
+                # Note: This misses once element if len(sorted_gradients) is odd.
+                second_half = np.array_split(sorted_gradients, 2)[1]
 
-                second_half = sorted_gradients[len(sorted_gradients) // 2 :]
                 if len(second_half) > 5:
-                    min_gradient, _ = second_half[-5]
+                    min_gradient = second_half[-5]
                 else:
-                    min_gradient, _ = second_half[-1]
+                    min_gradient = second_half[-1]
                 min_gradient = min_gradient * min_slope_fraction
 
-                bad_gradients = []
-                for v, i in sorted_gradients:
-                    if v < min_gradient:
-                        bad_gradients.append(i)
-                bad_gradients = sorted(bad_gradients)[::-1]
-
-                log.debug(f"Indices with too shallow gradients: {bad_gradients}")
+                bad_gradients = np.abs(gradients) < min_gradient
+                log.debug(
+                    f"Indices with too shallow gradients: {np.flatnonzero(bad_gradients)}"
+                )
                 p = np.delete(p, bad_gradients, axis=0)
                 log.debug(f"Size of p: {np.shape(p)}")
 
                 # Remove all values that are more than 1 stdev from the mean.
                 offset_mean = np.mean(p[:, 1])
                 offset_stdev = np.std(p[:, 1])
-                stdev_list = []
+
                 max_value = offset_mean + (offset_stdev * center_outlier_factor)
                 min_value = offset_mean - (offset_stdev * center_outlier_factor)
-                for index, offset in enumerate(p[:, 1]):
-                    if not min_value < offset < max_value:
-                        stdev_list.append(index)
-                p = np.delete(p, stdev_list, axis=0)
+
+                stdev_out_of_range = (p[:, 1] <= min_value) or (p[:, 1] >= max_value)
+                p = np.delete(p, stdev_out_of_range, axis=0)
 
                 offset_mean = np.mean(p[:, 1])
                 offset_stdev = np.std(p[:, 1])
@@ -178,16 +167,13 @@ class SlowBBA(Algorithm):
                 results[key] = [offset_mean, offset_stdev]
 
                 # First value is x, second is y
-                matrix_x = np.delete(matrix, bad_gradients, axis=1)
-                for bad_i in bad_gradients[::-1]:
-                    if bad_i <= bpm_index:
-                        bpm_index -= 1
-                matrix_xy = np.delete(matrix_x, stdev_list, axis=1)
-                for bad_i in stdev_list[::-1]:
-                    if bad_i <= bpm_index:
-                        bpm_index -= 1
+                matrix = np.delete(matrix, bad_gradients, axis=1)
+                bpm_index -= np.sum(bad_gradients[:bpm_index])
 
-                plotting[key] = {"x": matrix_xy[:, bpm_index].tolist(), "y": matrix_xy}
+                matrix = np.delete(matrix, stdev_out_of_range, axis=1)
+                bpm_index -= np.sum(stdev_out_of_range[:bpm_index])
+
+                plotting[key] = {"x": (matrix[:, bpm_index]).tolist(), "y": matrix}
 
         offsets = self.create_offsets_dict(results, metadata)
 
