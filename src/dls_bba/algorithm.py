@@ -90,6 +90,7 @@ class Algorithm(ABC):
                 break
             elif response == "y":
                 self._apply_bba_offsets(offsets_dict)
+                self._machine.apply_feedbacks()
                 break
 
     def _save_bba_offsets(
