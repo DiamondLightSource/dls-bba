@@ -2,7 +2,7 @@ from typing import Any
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.common import ALGORITHMS, setup_beam_based_alignment, setup_folders
-from dls_bba.components import generate_component_pairings, verify_component_pairing
+from dls_bba.components import get_component_pairs
 from dls_bba.datatypes import Results
 from dls_bba.machine import Machine
 
@@ -49,15 +49,12 @@ def cli_entrypoint(
 
     # TODO: Can be moved inside setup_beam_based_alignment.
     # Currently outside so setup will work with multiple component pairs.
-    unverified_component_pairings = [generate_component_pairings(machine, element)]
-    components_pair_list = verify_component_pairing(
-        machine, unverified_component_pairings
-    )
+    component_pairings = get_component_pairs(machine, element)
 
     # Argparse stops invalid methods being selected.
     algorithm: Algorithm = ALGORITHMS[method](machine)
 
-    setup_beam_based_alignment(machine, algorithm, components_pair_list, save_location)
+    setup_beam_based_alignment(machine, algorithm, component_pairings, save_location)
 
 
 def cli_quadcenter_plot(file_path: str):

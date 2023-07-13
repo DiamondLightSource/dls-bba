@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import logging as log
 from dataclasses import asdict, dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
-import numpy as np
 from pytac.element import EpicsElement
 
 from dls_bba.exceptions import ComponentConstructionError, ElementDisabledError
@@ -74,7 +73,7 @@ class Components:
     def name_to_element(
         machine: Machine,
         bpm_name: str,
-        quadrupoles_names: list[str],
+        quadrupoles_names: List[str],
         corrector_name: str,
     ):
         bpm = machine.bpms[machine.bpms_names.index(bpm_name)]
@@ -98,22 +97,33 @@ class Components:
         return a
 
 
-def generate_component_pairings(
-    machine: Machine, element_name: str
-) -> list[Components]:
-    """Can accept either bpm or quad name."""
-    if element_name in machine.bpms_names:
-        bpm = element_name
+def get_component_pairs(
+    machine: Machine, *element_names: str, verify: bool = True
+) -> List[List[Components]]:
+    """"""
+    component_pairs: List[List[Components]] = []
+
+    for element_name in element_names:
+        component_pairs.append(construct_component_pair(machine, element_name))
+
+    if verify:
+        component_pairs = verify_component_pairing(machine, component_pairs)
+
+    return component_pairs
+
+
+def construct_component_pair(machine: Machine, element: str) -> List[Components]:
+    if element in machine.bpms_names:
+        bpm = element
         quads = machine.bpm2quad(bpm)
-    elif element_name in machine.quads_names:
-        quad = element_name
+    elif element in machine.quads_names:
+        quad = element
         bpm = machine.quad2bpm(quad)
         quads = [quad]
     else:
-        message = f"Element {element_name} does not correspond to quadrupole or BPM"
+        message = f"Element {element} does not correspond to quadrupole or BPM"
         log.critical(message)
         raise ComponentConstructionError(message)
-
     hor_corr, ver_corr = machine.effective_correctors(bpm)
     horizontal_components = Components.from_name(
         machine, bpm, quads, hor_corr, "x", "x_kick"
@@ -125,22 +135,13 @@ def generate_component_pairings(
 
 
 def verify_component_pairing(
-    machine: Machine, component_pairings: list[list[Components]]
-) -> list[list[Components]]:
-    checked_pairings = []
-
-    disabled_bpms_indices = np.nonzero(np.logical_not(machine.get_enabled_bpms()))[
-        0
-    ].tolist()
-    disabled_fofb_bpm_indices_x = np.nonzero(machine.fofb_disabled["x"])[0].tolist()
-    disabled_fofb_bpm_indices_y = np.nonzero(machine.fofb_disabled["y"])[0].tolist()
-    disabled_fofb_indices = disabled_fofb_bpm_indices_x + disabled_fofb_bpm_indices_y
+    machine: Machine, component_pairings: List[List[Components]]
+) -> List[List[Components]]:
+    checked_pairings: List[List[Components]] = []
 
     for component_pair in component_pairings:
         try:
-            check_component(
-                component_pair, disabled_bpms_indices, disabled_fofb_indices
-            )
+            check_component(machine, component_pair)
         except ElementDisabledError:
             bpm_name = component_pair[0].bpm_name
             msg = f"BPM {bpm_name} skipped."
@@ -150,14 +151,13 @@ def verify_component_pairing(
     return checked_pairings
 
 
-def check_component(
-    component_pair: list[Components],
-    disabled_bpm_indices: list[int],
-    disabled_fofb_bpm_indices: list[int],
-):
+def check_component(machine: Machine, component_pair: List[Components]) -> None:
+    disabled_fofb_bpm_indices = (
+        machine.fofb_disabled_indices["x"] + machine.fofb_disabled_indices["y"]
+    )
     horizontal_component = component_pair[0]
 
-    if horizontal_component.bpm_index in disabled_bpm_indices:
+    if horizontal_component.bpm_index in machine.disabled_bpm_indices:
         msg = f"Cannot run BBA on disabled BPM: {horizontal_component.bpm_name}"
         log.error(msg)
         raise ElementDisabledError(msg)

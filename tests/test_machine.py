@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 
-from dls_bba.components import generate_component_pairings
+from dls_bba.components import get_component_pairs
 from dls_bba.configuration import DEFAULT_CONFIGS
 from dls_bba.exceptions import (
     CheckBeamCurrentError,
@@ -207,7 +207,7 @@ def test_update_config_fails_with_invalid_orm_file_path():
 def test_corrector_kick_valid_with_eng_units(machine_setup):
     machine = machine_setup
     bpm_name = machine.bpms_names[0]
-    components_pair = generate_component_pairings(machine, bpm_name)
+    components_pair = get_component_pairs(machine, bpm_name)[0]
     assert isinstance(machine.corrector_kick(components_pair[0]), float)
     assert machine._lattice.get_default_units()[:3] == "eng"
 
@@ -215,7 +215,7 @@ def test_corrector_kick_valid_with_eng_units(machine_setup):
 def test_corrector_kick_valid_with_phys_units():
     machine = Machine(overrides=extra_dict_with_reload)
     bpm_name = machine.bpms_names[0]
-    components_pair = generate_component_pairings(machine, bpm_name)
+    components_pair = get_component_pairs(machine, bpm_name)[0]
     assert isinstance(machine.corrector_kick(components_pair[0]), float)
     assert machine._lattice.get_default_units()[:3] == "phy"
 
