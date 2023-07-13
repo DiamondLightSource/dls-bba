@@ -73,7 +73,7 @@ class Components:
     def name_to_element(
         machine: Machine,
         bpm_name: str,
-        quadrupoles_names: list[str],
+        quadrupoles_names: List[str],
         corrector_name: str,
     ):
         bpm = machine.bpms[machine.bpms_names.index(bpm_name)]
@@ -97,7 +97,9 @@ class Components:
         return a
 
 
-def get_components(machine: Machine, element_names: Union[str, List[str]], verify=True):
+def get_component_pairs(
+    machine: Machine, element_names: Union[str, List[str]], verify=True
+) -> List[List[Components]]:
     """"""
     component_pairs: List[List[Components]] = []
 
@@ -113,7 +115,7 @@ def get_components(machine: Machine, element_names: Union[str, List[str]], verif
     return component_pairs
 
 
-def construct_component_pair(machine: Machine, element: str) -> list[Components]:
+def construct_component_pair(machine: Machine, element: str) -> List[Components]:
     if element in machine.bpms_names:
         bpm = element
         quads = machine.bpm2quad(bpm)
@@ -136,9 +138,9 @@ def construct_component_pair(machine: Machine, element: str) -> list[Components]
 
 
 def verify_component_pairing(
-    machine: Machine, component_pairings: list[list[Components]]
-) -> list[list[Components]]:
-    checked_pairings = []
+    machine: Machine, component_pairings: List[List[Components]]
+) -> List[List[Components]]:
+    checked_pairings: List[List[Components]] = []
 
     for component_pair in component_pairings:
         try:
@@ -152,7 +154,7 @@ def verify_component_pairing(
     return checked_pairings
 
 
-def check_component(machine: Machine, component_pair: list[Components]) -> None:
+def check_component(machine: Machine, component_pair: List[Components]) -> None:
     disabled_fofb_bpm_indices = (
         machine.fofb_disabled_indices["x"] + machine.fofb_disabled_indices["y"]
     )

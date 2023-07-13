@@ -2,7 +2,7 @@ from typing import Any, List, Union
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.common import ALGORITHMS, setup_beam_based_alignment, setup_folders
-from dls_bba.components import get_components
+from dls_bba.components import get_component_pairs
 from dls_bba.datatypes import Results
 from dls_bba.machine import Machine
 
@@ -49,7 +49,7 @@ def cli_entrypoint(
 
     # TODO: Can be moved inside setup_beam_based_alignment.
     # Currently outside so setup will work with multiple component pairs.
-    component_pairings = get_components(machine, element)
+    component_pairings = get_component_pairs(machine, element)
 
     # Argparse stops invalid methods being selected.
     algorithm: Algorithm = ALGORITHMS[method](machine)
