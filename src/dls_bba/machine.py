@@ -25,6 +25,7 @@ from dls_bba.exceptions import (
     ActiveFeedbacksError,
     ChannelAccessError,
     CheckBeamCurrentError,
+    FastOrbitFeedbackError,
     InvalidElementError,
     InvalidRingmodeError,
     LowCurrentError,
@@ -35,6 +36,7 @@ from dls_bba.exceptions import (
 
 # Cannot exist inside config files.
 BPM_RETRIES = os.getenv("BBA_BPM_RETRIES", 5)
+FOFB_RETRIES = 10
 
 ORIGIN_SUFFIXES = {
     "BBA": ":CF:BBA_{axis}_S",
@@ -53,12 +55,12 @@ def _retry_command(num_tries, excp_type):
                 try:
                     return fn(*args, **kwargs)
                 except (ca_nothing, ControlSystemException) as e:
-                    message = f"Failure no: {attempt} to run CA command:\n{e}"
-                    log.error(message)
+                    msg = f"Failure no: {attempt} to run CA command:\n{e}"
+                    log.error(msg)
                     if attempt == num_tries:
-                        message = f"Failed to run CA command {num_tries} times:\n{e}"
-                        log.critical(message)
-                        raise excp_type(message)
+                        msg = f"Failed to run CA command {num_tries} times:\n{e}"
+                        log.critical(msg)
+                        raise excp_type(msg)
                     cothread.Sleep(1)
 
         return retry_inner
@@ -125,9 +127,9 @@ class Machine:
         try:
             self._lattice = load_csv.load(ringmode, _cs)
         except FileNotFoundError as e:
-            message = f"Ringmode: {ringmode} does not exist in pytac."
-            log.critical(message)
-            raise InvalidRingmodeError(message, e)
+            msg = f"Ringmode: {ringmode} does not exist in pytac."
+            log.critical(msg)
+            raise InvalidRingmodeError(msg, e)
 
         self._lattice.set_default_units(eval(units))
         log.info(f"pytac units: {self._lattice.get_default_units()}")
@@ -292,9 +294,9 @@ class Machine:
         elif "-PC-V" in name:
             element = self.vstrs[self.vstrs_names.index(name)]
         else:
-            message = f"Method not created for element name: {name}"
-            log.critical(message)
-            raise NotImplementedError(message)
+            msg = f"Method not created for element name: {name}"
+            log.critical(msg)
+            raise NotImplementedError(msg)
         return element
 
     def _get_slow_correctors(self) -> list[str]:
@@ -325,9 +327,9 @@ class Machine:
         orm_filepath = self.config["ORBIT_RESPONSE_MATRIX_PATH"]
 
         if not os.path.exists(orm_filepath):
-            message = f"Response Matrix does not exist at: {orm_filepath}"
-            log.critical(message)
-            raise FileNotFoundError(message)
+            msg = f"Response Matrix does not exist at: {orm_filepath}"
+            log.critical(msg)
+            raise FileNotFoundError(msg)
 
         self._effective_corrector = defaultdict(list)
         data = loadmat(orm_filepath, appendmat=False, struct_as_record=False)
@@ -367,30 +369,30 @@ class Machine:
         critical_current_drop = self.config["CRITICAL_CURRENT_DROP"]
 
         if self._starting_beam_current is None:
-            message = "Starting beam current has not been stored."
-            log.critical(message)
-            raise CheckBeamCurrentError(message)
+            msg = "Starting beam current has not been stored."
+            log.critical(msg)
+            raise CheckBeamCurrentError(msg)
 
         change_in_current = self._starting_beam_current - self.get_beam_current()
         log.debug(f"Change in beam current: {change_in_current}")
 
         if change_in_current > critical_current_drop:
-            message = f"Beam current drop by >{critical_current_drop} mA"
-            log.critical(message)
-            raise LowCurrentError(message)
+            msg = f"Beam current drop by >{critical_current_drop} mA"
+            log.critical(msg)
+            raise LowCurrentError(msg)
 
         if change_in_current > warning_current_drop:
-            message = (
+            msg = (
                 f"Beam current drop by >{warning_current_drop} mA. Top-up or cancel.",
             )
-            log.error(message)
+            log.error(msg)
             while True:
-                resp_message = "Input y to continue after top-up, or n to cancel: "
-                response = self._ask_user(resp_message)
+                msg = "Input y to continue after top-up, or n to cancel: "
+                response = self._ask_user(msg)
                 if response == "n":
-                    message = "User cancelled BBA: Due to beam current drop."
-                    log.critical(message)
-                    raise LowCurrentError(message)
+                    msg = "User cancelled BBA: Due to beam current drop."
+                    log.critical(msg)
+                    raise LowCurrentError(msg)
                 elif response == "y":
                     change_in_current = (
                         self._starting_beam_current - self.get_beam_current()
@@ -398,8 +400,8 @@ class Machine:
                     if change_in_current < warning_current_drop:
                         break
                     minimum_current = self._starting_beam_current - warning_current_drop
-                    message = f"Current must be greater than {minimum_current} mA"
-                    log.warning(message)
+                    msg = f"Current must be greater than {minimum_current} mA"
+                    log.warning(msg)
             self._starting_beam_current = None
             return False
         self._starting_beam_current = None
@@ -427,15 +429,47 @@ class Machine:
 
         if feedbacks_bool:
             fofb_trigger = self.config["FOFB_NOGUI_PATH"]
+            fofb_max_orbit = self.config["FOFB_MAX_ORBIT_MICRONS"]
+            fofb_on_off = self.config["FEEDBACK_PVS"]["Fast_Orbit_Feedback"]
             tune_trigger = self.config["FEEDBACK_PVS"]["Tune_Feedback"]
             waittime = self.config["FEEDBACK_WAITTIME"]
             runtime = self.config["FEEDBACK_RUNTIME"]
 
             log.warn("Correcting orbit with FOFB and Tune Feedbacks")
 
+            max_value = self.get_largest_orbit()
+            if max_value > fofb_max_orbit:
+                msg = "Orbit is too large for FOFB. Please run SOFB."
+                log.error(msg)
+                while True:
+                    msg = "Press 'y' to continue after SOFB, or 'n' to cancel."
+                    response = self._ask_user(msg)
+                    if response == "n":
+                        msg = "User cancelled BBA: Due to uncorrected orbit"
+                        log.critical(msg)
+                        raise FastOrbitFeedbackError(msg)
+                    if response == "y":
+                        max_value = self.get_largest_orbit()
+                        if max_value > fofb_max_orbit:
+                            break
+
             run(f"{fofb_trigger} start", check=True, shell=True)
             caput(tune_trigger, 1, wait=True)
+
+            counter = 0
+            while True:
+                if counter == FOFB_RETRIES:
+                    msg = "BBA cancelled due to FOFB activation failure."
+                    log.critical(msg)
+                    raise FastOrbitFeedbackError(msg)
+
+                if caget(fofb_on_off) == 1:
+                    break
+                Sleep(0.5)
+                counter += 1
+
             Sleep(runtime)
+
             caput(tune_trigger, 0, wait=True)
             run(f"{fofb_trigger} stop", check=True, shell=True)
             Sleep(waittime)
@@ -447,10 +481,17 @@ class Machine:
 
         for name, pv in feedback_pvs.items():
             if caget(pv) != 0:
-                message = f"{name} unexpectly running."
-                log.critical(message)
-                raise ActiveFeedbacksError(message)
+                msg = f"{name} unexpectly running."
+                log.critical(msg)
+                raise ActiveFeedbacksError(msg)
 
+        max_value = self.get_largest_orbit()
+
+        if max_value >= max_orbit:
+            self.apply_feedbacks()
+
+    def get_largest_orbit(self) -> float:
+        """"""
         bpm_values = self.measure_bpms("x") + self.measure_bpms("y")
         enabled_bpms = self.get_enabled_bpms() + self.get_enabled_bpms()
         fofb_disabled_bpms = self.fofb_disabled["x"] + self.fofb_disabled["y"]
@@ -458,11 +499,9 @@ class Machine:
         acceptable_values = [
             v * e * f for v, e, f in zip(bpm_values, enabled_bpms, fofb_enabled_bpms)
         ]
-
         max_value = abs(max(acceptable_values, key=abs))
-
-        if max_value * 1000 >= max_orbit:
-            self.apply_feedbacks()
+        # Multiplied by 1000 to convert from mm to microns.
+        return max_value * 1000
 
     @staticmethod
     def get_quad_setpoint(quadrupole: EpicsElement) -> float:

@@ -97,8 +97,8 @@ class Algorithm(ABC):
         self._save_bba_offsets(offsets_dict, save_location)
         self._plot_bba_offsets(offsets_dict)
         while True:
-            message = "Apply these BBA offsets? (y / n) : "
-            response = input(message).lower().strip()
+            msg = "Apply these BBA offsets? (y / n) : "
+            response = input(msg).lower().strip()
             if response == "n":
                 break
             elif response == "y":
