@@ -25,6 +25,7 @@ from dls_bba.exceptions import (
     ActiveFeedbacksError,
     ChannelAccessError,
     CheckBeamCurrentError,
+    FastOrbitFeedbackError,
     InvalidElementError,
     InvalidRingmodeError,
     LowCurrentError,
@@ -427,15 +428,40 @@ class Machine:
 
         if feedbacks_bool:
             fofb_trigger = self.config["FOFB_NOGUI_PATH"]
+            fofb_max_orbit = self.config["FOFB_MAX_ORBIT_MICRONS"]
+            fofb_on_off = self.config["FEEDBACK_PVS"]["Fast_Orbit_Feedback"]
             tune_trigger = self.config["FEEDBACK_PVS"]["Tune_Feedback"]
             waittime = self.config["FEEDBACK_WAITTIME"]
             runtime = self.config["FEEDBACK_RUNTIME"]
 
             log.warn("Correcting orbit with FOFB and Tune Feedbacks")
 
+            max_value = self.get_largest_orbit()
+            if max_value > fofb_max_orbit:
+                msg = "Orbit is too large for FOFB. Please run SOFB."
+                log.error(msg)
+                while True:
+                    msg = "Press 'y' to continue after SOFB, or 'n' to cancel."
+                    response = self._ask_user(msg)
+                    if response == "n":
+                        message = "User cancelled BBA: Due to uncorrected orbit"
+                        log.critical(message)
+                        raise FastOrbitFeedbackError(message)
+                    if response == "y":
+                        max_value = self.get_largest_orbit()
+                        if max_value > fofb_max_orbit:
+                            break
+
             run(f"{fofb_trigger} start", check=True, shell=True)
             caput(tune_trigger, 1, wait=True)
+
+            while True:
+                if caget(fofb_on_off) == 1:
+                    break
+                Sleep(0.5)
+
             Sleep(runtime)
+
             caput(tune_trigger, 0, wait=True)
             run(f"{fofb_trigger} stop", check=True, shell=True)
             Sleep(waittime)
@@ -451,6 +477,13 @@ class Machine:
                 log.critical(message)
                 raise ActiveFeedbacksError(message)
 
+        max_value = self.get_largest_orbit()
+
+        if max_value * 1000 >= max_orbit:
+            self.apply_feedbacks()
+
+    def get_largest_orbit(self) -> float:
+        """"""
         bpm_values = self.measure_bpms("x") + self.measure_bpms("y")
         enabled_bpms = self.get_enabled_bpms() + self.get_enabled_bpms()
         fofb_disabled_bpms = self.fofb_disabled["x"] + self.fofb_disabled["y"]
@@ -458,11 +491,8 @@ class Machine:
         acceptable_values = [
             v * e * f for v, e, f in zip(bpm_values, enabled_bpms, fofb_enabled_bpms)
         ]
-
         max_value = abs(max(acceptable_values, key=abs))
-
-        if max_value * 1000 >= max_orbit:
-            self.apply_feedbacks()
+        return max_value
 
     @staticmethod
     def get_quad_setpoint(quadrupole: EpicsElement) -> float:

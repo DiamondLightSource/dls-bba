@@ -40,6 +40,12 @@ class FAAPowerSupplyIOCTimestampError(Exception):
     pass
 
 
+class FastOrbitFeedbackError(Exception):
+    """Raised when the orbit size is larger than FOFB can handle."""
+
+    pass
+
+
 class InvalidElementError(Exception):
     """Raised when a non existant element name is used."""
 
