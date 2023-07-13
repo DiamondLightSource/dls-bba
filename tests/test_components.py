@@ -1,6 +1,6 @@
 import pytest
 
-from dls_bba.components import Components, generate_component_pairings
+from dls_bba.components import Components, get_components
 from dls_bba.exceptions import ComponentConstructionError
 from dls_bba.machine import Machine
 
@@ -105,7 +105,7 @@ def test_component_construction_from_dictionary_is_valid(machine_setup):
 def test_component_pairing_generation_is_valid_from_single_bpm(machine_setup):
     machine = machine_setup
     bpm_name = machine.bpms_names[0]
-    components_pair = generate_component_pairings(machine, bpm_name)
+    components_pair = get_components(machine, bpm_name)[0]
     component_x, component_y = components_pair
 
     assert component_x.bpm_name == component_y.bpm_name
@@ -119,7 +119,7 @@ def test_component_pairing_generation_is_valid_from_single_bpm(machine_setup):
 def test_component_pairing_generation_is_valid_from_double_bpm(machine_setup):
     machine = machine_setup
     bpm_name = machine.bpms_names[67]
-    components_pair = generate_component_pairings(machine, bpm_name)
+    components_pair = get_components(machine, bpm_name)[0]
     component_x, component_y = components_pair
 
     assert component_x.bpm_name == component_y.bpm_name
@@ -133,7 +133,7 @@ def test_component_pairing_generation_is_valid_from_double_bpm(machine_setup):
 def test_component_pairing_generation_is_valid_from_quadrupole(machine_setup):
     machine = machine_setup
     quadrupole_name = machine.quads_names[0]
-    components_pair = generate_component_pairings(machine, quadrupole_name)
+    components_pair = get_components(machine, quadrupole_name)[0]
     component_x, component_y = components_pair
 
     assert component_x.bpm_name == component_y.bpm_name
@@ -148,4 +148,4 @@ def test_component_generation_with_invalid_element_raises_error(machine_setup):
     machine = machine_setup
     corrector_name = machine.hstrs_names[0]
     with pytest.raises(ComponentConstructionError):
-        generate_component_pairings(machine, corrector_name)
+        get_components(machine, corrector_name)

@@ -163,6 +163,14 @@ class Machine:
                 "BPM", "y_fofb_disabled", pytac.RB
             )
         ]
+        self.fofb_disabled_indices = {
+            "x": np.nonzero(self.fofb_disabled["x"])[0].tolist(),
+            "y": np.nonzero(self.fofb_disabled["y"])[0].tolist(),
+        }
+        self.disabled_bpm_indices = np.flatnonzero(
+            np.logical_not(self.get_enabled_bpms())
+        ).tolist()
+
         # Incompatability between pytaclattice and faa number of bpms.
         self.faa_bpm_list = [0] + [i for i, _ in enumerate(self.bpms, start=1)]
 
