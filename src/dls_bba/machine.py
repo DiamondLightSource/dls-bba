@@ -36,6 +36,7 @@ from dls_bba.exceptions import (
 
 # Cannot exist inside config files.
 BPM_RETRIES = os.getenv("BBA_BPM_RETRIES", 5)
+FOFB_RETRIES = 10
 
 ORIGIN_SUFFIXES = {
     "BBA": ":CF:BBA_{axis}_S",
@@ -457,14 +458,14 @@ class Machine:
 
             counter = 0
             while True:
-                if counter == 3:
+                if counter == FOFB_RETRIES:
                     msg = "BBA cancelled due to FOFB activation failure."
                     log.critical(msg)
                     raise FastOrbitFeedbackError(msg)
 
                 if caget(fofb_on_off) == 1:
                     break
-                Sleep(1)
+                Sleep(0.5)
                 counter += 1
 
             Sleep(runtime)
@@ -499,6 +500,7 @@ class Machine:
             v * e * f for v, e, f in zip(bpm_values, enabled_bpms, fofb_enabled_bpms)
         ]
         max_value = abs(max(acceptable_values, key=abs))
+        # Multiplied by 1000 to convert from mm to microns.
         return max_value * 1000
 
     @staticmethod
