@@ -1,4 +1,5 @@
 import logging as log
+from typing import List
 
 import numpy as np
 from cothread import Sleep
@@ -86,6 +87,19 @@ class SlowBBA(Algorithm):
 
         # Saving x and y in one file, as you cannot do just one axis.
         return RawData(rawdata, metadata)
+
+    def get_slow_bba_corrector_steps(self, components: Components) -> List[float]:
+        """"""
+        setpoint = self._machine.get_corrector_setpoint(components)
+        step = self._machine.corrector_kick(components)
+        corrector_steps = [
+            setpoint + step,
+            setpoint + (step / 2),
+            setpoint,
+            setpoint - (step / 2),
+            setpoint - step,
+        ]
+        return corrector_steps
 
     def analyse(self, rawdata: RawData) -> Results:
         data = rawdata.rawdata
