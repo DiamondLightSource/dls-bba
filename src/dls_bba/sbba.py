@@ -187,7 +187,7 @@ class SlowBBA(Algorithm):
                     if bad_i <= bpm_index:
                         bpm_index -= 1
 
-                plotting[key] = {"x": matrix_xy[:, bpm_index], "y": matrix_xy}
+                plotting[key] = {"x": matrix_xy[:, bpm_index].tolist(), "y": matrix_xy}
 
         offsets = self.create_offsets_dict(results, metadata)
 
