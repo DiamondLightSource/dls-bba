@@ -121,9 +121,9 @@ def construct_component_pair(machine: Machine, element: str) -> List[Components]
         bpm = machine.quad2bpm(quad)
         quads = [quad]
     else:
-        message = f"Element {element} does not correspond to quadrupole or BPM"
-        log.critical(message)
-        raise ComponentConstructionError(message)
+        msg = f"Element {element} does not correspond to quadrupole or BPM"
+        log.critical(msg)
+        raise ComponentConstructionError(msg)
     hor_corr, ver_corr = machine.effective_correctors(bpm)
     horizontal_components = Components.from_name(
         machine, bpm, quads, hor_corr, "x", "x_kick"
