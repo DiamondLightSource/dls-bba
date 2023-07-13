@@ -156,7 +156,7 @@ class SlowBBA(Algorithm):
                 max_value = offset_mean + (offset_stdev * center_outlier_factor)
                 min_value = offset_mean - (offset_stdev * center_outlier_factor)
 
-                stdev_out_of_range = (p[:, 1] <= min_value) or (p[:, 1] >= max_value)
+                stdev_out_of_range = (p[:, 1] <= min_value) | (p[:, 1] >= max_value)
                 p = np.delete(p, stdev_out_of_range, axis=0)
 
                 offset_mean = np.mean(p[:, 1])
