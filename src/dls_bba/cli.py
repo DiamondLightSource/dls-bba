@@ -1,4 +1,4 @@
-from typing import Any, List, Union
+from typing import Any
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.common import ALGORITHMS, setup_beam_based_alignment, setup_folders
@@ -37,7 +37,7 @@ def cli_show_cell_options(
 
 def cli_entrypoint(
     method: str,
-    element: Union[str, List[str]],
+    element: str,
     folder_path: str,
     extra_config_files: list[str],
     additional_options: dict[str, Any],

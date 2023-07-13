@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging as log
 from dataclasses import asdict, dataclass
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING, List
 
 from pytac.element import EpicsElement
 
@@ -98,16 +98,13 @@ class Components:
 
 
 def get_component_pairs(
-    machine: Machine, element_names: Union[str, List[str]], verify=True
+    machine: Machine, *element_names: str, verify: bool = True
 ) -> List[List[Components]]:
     """"""
     component_pairs: List[List[Components]] = []
 
-    if isinstance(element_names, str):
-        component_pairs.append(construct_component_pair(machine, element_names))
-    if isinstance(element_names, list) and isinstance(element_names[0], str):
-        for element_name in element_names:
-            component_pairs.append(construct_component_pair(machine, element_name))
+    for element_name in element_names:
+        component_pairs.append(construct_component_pair(machine, element_name))
 
     if verify:
         component_pairs = verify_component_pairing(machine, component_pairs)
