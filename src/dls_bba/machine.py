@@ -24,11 +24,9 @@ from dls_bba.configuration import Configuration
 from dls_bba.exceptions import (
     ActiveFeedbacksError,
     ChannelAccessError,
-    CheckBeamCurrentError,
     FastOrbitFeedbackError,
     InvalidElementError,
     InvalidRingmodeError,
-    LowCurrentError,
 )
 
 # matplotlib.use("Qt5Agg")
@@ -363,49 +361,6 @@ class Machine:
     def store_starting_beam_current(self):
         self._starting_beam_current = self.get_beam_current()
         log.debug(f"Stored Starting Beam Current: {self._starting_beam_current}")
-
-    def check_beam_current(self):
-        warning_current_drop = self.config["WARNING_CURRENT_DROP"]
-        critical_current_drop = self.config["CRITICAL_CURRENT_DROP"]
-
-        if self._starting_beam_current is None:
-            msg = "Starting beam current has not been stored."
-            log.critical(msg)
-            raise CheckBeamCurrentError(msg)
-
-        change_in_current = self._starting_beam_current - self.get_beam_current()
-        log.debug(f"Change in beam current: {change_in_current}")
-
-        if change_in_current > critical_current_drop:
-            msg = f"Beam current drop by >{critical_current_drop} mA"
-            log.critical(msg)
-            raise LowCurrentError(msg)
-
-        if change_in_current > warning_current_drop:
-            msg = (
-                f"Beam current drop by >{warning_current_drop} mA. Top-up or cancel.",
-            )
-            log.error(msg)
-            while True:
-                msg = "Input y to continue after top-up, or n to cancel: "
-                response = self._ask_user(msg)
-                if response == "n":
-                    msg = "User cancelled BBA: Due to beam current drop."
-                    log.critical(msg)
-                    raise LowCurrentError(msg)
-                elif response == "y":
-                    change_in_current = (
-                        self._starting_beam_current - self.get_beam_current()
-                    )
-                    if change_in_current < warning_current_drop:
-                        break
-                    minimum_current = self._starting_beam_current - warning_current_drop
-                    msg = f"Current must be greater than {minimum_current} mA"
-                    log.warning(msg)
-            self._starting_beam_current = None
-            return False
-        self._starting_beam_current = None
-        return True
 
     def _ask_user(self, msg):
         response = input(msg).lower().strip()
