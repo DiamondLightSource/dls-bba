@@ -2,6 +2,7 @@ import os
 from typing import List, Optional
 
 from dls_bba.algorithm import Algorithm
+from dls_bba.beam_current import BeamCurrentCheck
 from dls_bba.components import Components
 from dls_bba.datatypes import Results
 from dls_bba.excite import cancel_all_oscillations
@@ -38,12 +39,14 @@ def setup_beam_based_alignment(
     """"""
     results_list: List[Results] = []
     machine.zero_origins(save_location)
+    beam_current_decay = BeamCurrentCheck(machine)
 
     for components_pair in components_pairs:
         results = paired_beam_based_alignment(
             algorithm, machine, components_pair, save_location
         )
         results_list.append(results)
+        beam_current_decay.check_beam_decay()
 
     algorithm.use_bba_offsets(results_list, save_location)
 
@@ -58,13 +61,13 @@ def paired_beam_based_alignment(
     save_location: str,
 ):
     """"""
-    machine.store_starting_beam_current()
+    beam_current_drop = BeamCurrentCheck(machine)
 
     while True:
         machine.check_feedbacks()
         rawdata = algorithm.run(components_pair)
 
-        if machine.check_beam_current():
+        if beam_current_drop.check_beam_drop():
             break
 
     rawdata.save(save_location)

@@ -10,12 +10,6 @@ class ChannelAccessError(Exception):
     pass
 
 
-class CheckBeamCurrentError(Exception):
-    """Raised when check_beam_current is used incorrectly."""
-
-    pass
-
-
 class ComponentConstructionError(Exception):
     """Raised when an invalid element name is given for component construction."""
 
