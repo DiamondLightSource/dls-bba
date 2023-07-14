@@ -68,7 +68,7 @@ class MainWindow(QMainWindow):
         self.psps.clicked.connect(lambda: self.select_mode("PSPs"))
 
         self.selected_toggle = 0
-        self.lock_unlock_pv.clicked.connect(lambda: self.select_options())
+        self.lock_unlock_pv.clicked.connect(lambda: self.lock_unlock_selection())
 
         # Quitting
         self.force_close = False
@@ -83,25 +83,94 @@ class MainWindow(QMainWindow):
         self.selection_strings = selection_strings
         self.options = options
 
-    def select_options(self):
+    def lock_unlock_selection(self):
+        print(self.selected_toggle)
+        if self.selected_toggle == 0:
+            if self.select_options():
+                print("Y")
+                self.disable_mode_selection()
+                self.selected_toggle = 1
+            else:
+                print("N")
+                pass
+
+        if self.selected_toggle == 1:
+            self.options = None
+            self.display = None
+            self.selected = None
+            self.enable_mode_selection()
+            self.selected_toggle = 0
+
+    def enable_mode_selection(self):
+        self.whole_machine.setEnabled(True)
+        self.cell.setEnabled(True)
+        self.bpms.setEnabled(True)
+        self.quadrupoles.setEnabled(True)
+        self.psps.setEnabled(True)
+        self.pv_selection.setEnabled(True)
+        self.lock_unlock_pv.setText("Select")
+
+    def disable_mode_selection(self):
+        self.whole_machine.setEnabled(False)
+        self.cell.setEnabled(False)
+        self.bpms.setEnabled(False)
+        self.quadrupoles.setEnabled(False)
+        self.psps.setEnabled(False)
+        self.pv_selection.setEnabled(False)
+        self.lock_unlock_pv.setText("Unselect")
+
+    def select_options(self) -> bool:
         selected = self.pv_selection.selectedItems()
 
         if len(selected) == 0:
             msg = "Please select a mode."
-            self.display_on_screen(msg)
+            self.display_on_screen(msg, clear=True)
+            self.selected = None
+            return False
 
-        if len(selected) == 1 and any(
+        elif len(selected) == 1 and any(
             True for x in ["Whole Machine", "All PSPs"] if x in self.selection_strings
         ):
-            print(f"One: {selected[0].text()}")
+            msg = f"{self.selection_strings[0]} selected."
+            self.display_on_screen(msg, clear=True)
+            self.selected = self.options
+            return True
 
         elif len(selected) == 1 and not any(
             True for x in ["Whole Machine", "All PSPs"] if x in self.selection_strings
         ):
-            print(f"One: {selected[0].text()}")
+            if len(selected[0].text()) == 2:
+                cell_number = selected[0].text()
+                elements = self.machine.cell_dictionary[cell_number]
+                msg = f"Cell {cell_number} selected."
+                self.display_on_screen(msg, clear=True)
+                self.selected = elements
+                return True
+
+            else:
+                element = selected[0].text()
+                msg = f"{element} selected."
+                self.display_on_screen(msg, clear=True)
+                self.selected = element
+                return True
 
         else:
-            print(f"More: {len(selected)}")
+            if len(selected[0].text()) == 2:
+                cells = [element.text() for element in selected]
+                elements = []
+                for cell in cells:
+                    elements.extend(self.machine.cell_dictionary[cell])
+                msg = f"Cells {cells} selected."
+                self.display_on_screen(msg, clear=True)
+                self.selected = elements
+                return True
+
+            else:
+                elements = [element.text() for element in selected]
+                msg = f"{len(elements)} elements selected."
+                self.display_on_screen(msg, clear=True)
+                self.selected = elements
+                return True
 
     def display_on_screen(self, text, clear=False):
         if clear:
