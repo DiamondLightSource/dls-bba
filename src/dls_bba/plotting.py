@@ -103,8 +103,7 @@ def bowtie_plot(filepath: str, save_location: str, save: bool = False) -> plt.fi
 
             axs[a_index, q_index].plot(x, y, color=color)
 
-            value = results_object.offsets[key].diff_value
-            error = results_object.offsets[key].diff_error
+            value, error = results_object.results[key]
             axs[a_index, q_index].axvline(x=value, color="k")
             axs[a_index, q_index].axvspan(
                 xmin=value - abs(error), xmax=value + abs(error), color="gray"
