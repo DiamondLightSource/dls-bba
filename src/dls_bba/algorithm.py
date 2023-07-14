@@ -36,19 +36,6 @@ class Algorithm(ABC):
         quad_low = quad_setpoint - quad_step
         return quad_start_high, quad_high, quad_low, quad_setpoint, quad_step
 
-    def get_slow_bba_corrector_steps(self, components: Components):
-        """"""
-        setpoint = self._machine.get_corrector_setpoint(components)
-        step = self._machine.corrector_kick(components)
-        corrector_steps = [
-            setpoint + step,
-            setpoint + (step / 2),
-            setpoint,
-            setpoint - (step / 2),
-            setpoint - step,
-        ]
-        return corrector_steps
-
     def create_offsets_dict(self, results, metadata) -> dict[str, CalculatedOffset]:
         offsets: dict[str, CalculatedOffset] = {}
         bpm_name = metadata["bpm_name"]
@@ -103,6 +90,7 @@ class Algorithm(ABC):
                 break
             elif response == "y":
                 self._apply_bba_offsets(offsets_dict)
+                self._machine.apply_feedbacks()
                 break
 
     def _save_bba_offsets(
