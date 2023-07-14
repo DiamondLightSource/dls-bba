@@ -11,6 +11,7 @@ from pytac.element import EpicsElement
 from dls_bba.components import Components
 from dls_bba.datatypes import CalculatedOffset, RawData, Results
 from dls_bba.machine import ORIGIN_SUFFIXES, Machine
+from dls_bba.plotting import bba_offsets_plot
 
 
 class Algorithm(ABC):
@@ -82,7 +83,7 @@ class Algorithm(ABC):
             offsets_dict.update(results.offsets.items())
 
         self._save_bba_offsets(offsets_dict, save_location)
-        self._plot_bba_offsets(offsets_dict)
+        bba_offsets_plot(self._machine, offsets_dict, save_location)
         while True:
             msg = "Apply these BBA offsets? (y / n) : "
             response = input(msg).lower().strip()
@@ -108,46 +109,6 @@ class Algorithm(ABC):
                 log.info(line)
                 writer.write(line)
             writer.close()
-
-    def _plot_bba_offsets(self, offsets_dict: dict[str, CalculatedOffset]):
-        """"""
-        change_in_x = []
-        change_in_dx = []
-        for bpm_name in self._machine.bba_x_pvs:
-            if bpm_name in offsets_dict.keys():
-                calc_offsets = offsets_dict[bpm_name]
-                change_in_x.append(calc_offsets.diff_value)
-                change_in_dx.append(calc_offsets.diff_value)
-            else:
-                change_in_x.append(0)
-                change_in_dx.append(0)
-
-        change_in_y = []
-        change_in_dy = []
-        for bpm_name in self._machine.bba_y_pvs:
-            if bpm_name in offsets_dict.keys():
-                calc_offsets = offsets_dict[bpm_name]
-                change_in_x.append(calc_offsets.diff_value)
-                change_in_dx.append(calc_offsets.diff_value)
-            else:
-                change_in_y.append(0)
-                change_in_dy.append(0)
-
-        # # Plot
-        # fig, (ax1, ax2) = plt.subplots(2, sharex=True, tight_layout=True)
-        # fig.suptitle("Change in BBA values")
-        # ax1.set_xlim(0, 174)
-        # ax1.axhline(y=0, color="k", linestyle="-", alpha=0.5)
-        # ax1.plot(change_in_x, color="b")
-        # ax1.set_ylabel("Horizontal")
-        # ax1.grid(which="both", axis="both")
-        # ax2.plot(change_in_y, color="r")
-        # ax2.axhline(y=0, color="k", linestyle="-", alpha=0.5)
-        # ax2.set_ylabel("Vertical")
-        # ax2.grid(which="both", axis="both")
-        # fig.supxlabel("BPM Number")
-        # fig.supylabel("Change in BBA offset [mm]")
-        # plt.show()
 
     def _apply_bba_offsets(
         self,
