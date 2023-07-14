@@ -1,5 +1,7 @@
 import logging as log
 
+import numpy as np
+
 from dls_bba.exceptions import LowCurrentError
 from dls_bba.machine import Machine
 
@@ -23,7 +25,7 @@ class BeamCurrentCheck:
         10mA -> 0.5mA (5%)
         Yields: y = 1.88337x^0.253835 - 2.922332
         """
-        threshold = 1.88337 * self._initial_current**0.253835 - 2.922332
+        threshold = np.floor(1.88337 * self._initial_current**0.253835 - 2.922332)
         log.debug(f"Threshold: {threshold}mA")
         return threshold
 
