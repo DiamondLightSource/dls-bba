@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>2000</width>
-    <height>896</height>
+    <width>843</width>
+    <height>772</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -52,12 +52,12 @@
      <rect>
       <x>30</x>
       <y>10</y>
-      <width>1361</width>
-      <height>831</height>
+      <width>801</width>
+      <height>711</height>
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="front_tab">
      <attribute name="title">
@@ -517,9 +517,9 @@
       <property name="geometry">
        <rect>
         <x>0</x>
-        <y>10</y>
-        <width>771</width>
-        <height>491</height>
+        <y>20</y>
+        <width>791</width>
+        <height>651</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -527,6 +527,9 @@
         <widget class="QGroupBox" name="groupBox">
          <property name="title">
           <string>Normal Options</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
@@ -550,6 +553,9 @@
         <widget class="QGroupBox" name="groupBox_2">
          <property name="title">
           <string>Complex Options</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
@@ -582,6 +588,32 @@
            <property name="title">
             <string>Save Location</string>
            </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <widget class="QPushButton" name="button_save_loc">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>30</y>
+              <width>221</width>
+              <height>31</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Select Save Location</string>
+            </property>
+           </widget>
+           <widget class="QTextEdit" name="display_save_loc">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>70</y>
+              <width>221</width>
+              <height>41</height>
+             </rect>
+            </property>
+           </widget>
           </widget>
          </item>
          <item>
@@ -611,6 +643,120 @@
            <property name="title">
             <string>Loading and Plotting</string>
            </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <widget class="QPushButton" name="button_bba_folder">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>30</y>
+              <width>231</width>
+              <height>31</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Select BBA Folder</string>
+            </property>
+           </widget>
+           <widget class="QPushButton" name="apply_bba">
+            <property name="geometry">
+             <rect>
+              <x>173</x>
+              <y>120</y>
+              <width>61</width>
+              <height>27</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Apply</string>
+            </property>
+           </widget>
+           <widget class="QPushButton" name="load_bba">
+            <property name="geometry">
+             <rect>
+              <x>20</x>
+              <y>120</y>
+              <width>61</width>
+              <height>27</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Load</string>
+            </property>
+           </widget>
+           <widget class="QPushButton" name="plot_bba">
+            <property name="geometry">
+             <rect>
+              <x>100</x>
+              <y>120</y>
+              <width>61</width>
+              <height>27</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Plot</string>
+            </property>
+           </widget>
+           <widget class="QTextEdit" name="display_bba_folder">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>70</y>
+              <width>221</width>
+              <height>41</height>
+             </rect>
+            </property>
+           </widget>
+           <widget class="QPushButton" name="button_single_bba">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>170</y>
+              <width>221</width>
+              <height>27</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Select BBA Results File</string>
+            </property>
+           </widget>
+           <widget class="QTextEdit" name="display_single_bba">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>200</y>
+              <width>221</width>
+              <height>41</height>
+             </rect>
+            </property>
+           </widget>
+           <widget class="QPushButton" name="load_single_bba">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>250</y>
+              <width>111</width>
+              <height>27</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Load</string>
+            </property>
+           </widget>
+           <widget class="QPushButton" name="plot_single_bba">
+            <property name="geometry">
+             <rect>
+              <x>130</x>
+              <y>250</y>
+              <width>101</width>
+              <height>27</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Plot bowtie</string>
+            </property>
+           </widget>
           </widget>
          </item>
         </layout>
@@ -625,7 +771,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>2000</width>
+     <width>843</width>
      <height>24</height>
     </rect>
    </property>

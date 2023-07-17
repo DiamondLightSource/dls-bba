@@ -10,8 +10,8 @@ matplotlib.use("Qt5Agg")  # noqa: E402
 # isort: on
 
 import cothread  # noqa: E402
-from PyQt6 import uic, QtCore  # noqa: E402
-from PyQt6.QtWidgets import QApplication, QMainWindow  # noqa: E402
+from PyQt6 import QtCore, uic  # noqa: E402
+from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow  # noqa: E402
 
 from dls_bba.common import ALGORITHMS  # noqa: E402
 from dls_bba.machine import Machine  # noqa: E402
@@ -24,6 +24,8 @@ else:
     from importlib_resources import files
 
 UI_FILENAME: list[str] = ["fbba_gui.ui"]
+# DEFAULT_SAVE_LOCATION: str = "/dls/ops-physics/diamonddata/fastBBA"
+DEFAULT_SAVE_LOCATION = "/dls/physics/owr68555/11July2023"
 
 
 class MainWindow(QMainWindow):
@@ -70,8 +72,37 @@ class MainWindow(QMainWindow):
         self.selected_toggle = 0
         self.lock_unlock_pv.clicked.connect(lambda: self.lock_unlock_selection())
 
+        # File / Folder selection, plotting and applying.
+        self.button_save_loc.clicked.connect(lambda: self.select_save_location_folder())
+        self.display_save_loc.setPlainText(DEFAULT_SAVE_LOCATION)
+        self.button_bba_folder.clicked.connect(lambda: self.select_bba_folder())
+        self.display_bba_folder.setPlainText("Not Selected")
+        self.button_single_bba.clicked.connect(lambda: self.select_bba_file())
+        self.display_single_bba.setPlainText("Not Selected")
+
         # Quitting
         self.force_close = False
+
+    def select_save_location_folder(self):
+        folderpath = QFileDialog.getExistingDirectory(
+            self, "Select Folder to Save to", DEFAULT_SAVE_LOCATION
+        )
+        self.display_save_loc.setPlainText(folderpath)
+
+    def select_bba_folder(self):
+        folderpath = QFileDialog.getExistingDirectory(
+            self, "Select Folder to load", DEFAULT_SAVE_LOCATION
+        )
+        self.display_bba_folder.setPlainText(folderpath)
+
+    def select_bba_file(self):
+        filepath = QFileDialog.getOpenFileName(
+            self,
+            "Select a Results.mat File to load",
+            DEFAULT_SAVE_LOCATION,
+            "All Files (*);; MATLAB Files (*.mat)",
+        )
+        self.display_single_bba.setPlainText(filepath)
 
     def select_mode(self, key):
         values = self.modes[key]
