@@ -5,10 +5,10 @@ from unittest import mock
 
 import pytest
 
-from dls_bba.components import generate_component_pairings
+from dls_bba.beam_current import BeamCurrentCheck
+from dls_bba.components import get_component_pairs
 from dls_bba.configuration import DEFAULT_CONFIGS
 from dls_bba.exceptions import (
-    CheckBeamCurrentError,
     InvalidElementError,
     InvalidRingmodeError,
     LowCurrentError,
@@ -207,7 +207,7 @@ def test_update_config_fails_with_invalid_orm_file_path():
 def test_corrector_kick_valid_with_eng_units(machine_setup):
     machine = machine_setup
     bpm_name = machine.bpms_names[0]
-    components_pair = generate_component_pairings(machine, bpm_name)
+    components_pair = get_component_pairs(machine, bpm_name)[0]
     assert isinstance(machine.corrector_kick(components_pair[0]), float)
     assert machine._lattice.get_default_units()[:3] == "eng"
 
@@ -215,7 +215,7 @@ def test_corrector_kick_valid_with_eng_units(machine_setup):
 def test_corrector_kick_valid_with_phys_units():
     machine = Machine(overrides=extra_dict_with_reload)
     bpm_name = machine.bpms_names[0]
-    components_pair = generate_component_pairings(machine, bpm_name)
+    components_pair = get_component_pairs(machine, bpm_name)[0]
     assert isinstance(machine.corrector_kick(components_pair[0]), float)
     assert machine._lattice.get_default_units()[:3] == "phy"
 
@@ -226,52 +226,45 @@ def test_get_beam_current_valid(mock_get_value):
     assert machine.get_beam_current() == 1.0
 
 
-@mock.patch("pytac.lattice.Lattice.get_value", return_value=1.0)
-def test_store_starting_beam_current_is_stored_correctly(mock_get_value):
+@mock.patch("dls_bba.machine.Machine.get_beam_current", return_value=1.0)
+def test_starting_beam_current_is_stored_correctly(mock_get_value):
     machine = Machine()
-    machine.store_starting_beam_current()
-    assert machine._starting_beam_current == 1.0
+    beam_check = BeamCurrentCheck(machine)
+    assert beam_check._initial_current == 1.0
 
 
-def test_check_beam_current_fails_when_starting_current_not_stored():
-    machine = Machine()
-    with pytest.raises(CheckBeamCurrentError):
-        machine.check_beam_current()
-
-
-@mock.patch("pytac.lattice.Lattice.get_value", return_value=8.0)
+@mock.patch("dls_bba.machine.Machine.get_beam_current", side_effect=[9.1, 8.0])
 def test_check_beam_current_raises_error_when_beam_dumped(mock_get_value):
     machine = Machine(overrides=extra_dict_critical_drop)
-    machine._starting_beam_current = 10.0
+    beam_check = BeamCurrentCheck(machine)
     with pytest.raises(LowCurrentError):
-        machine.check_beam_current()
+        beam_check.check_beam_drop()
 
 
-@mock.patch("pytac.lattice.Lattice.get_value", return_value=8.0)
+@mock.patch("dls_bba.machine.Machine.get_beam_current", side_effect=[9.1, 8.0])
 @mock.patch("dls_bba.machine.Machine._ask_user", return_value="n")
 def test_check_beam_current_raises_error_when_topup_prompt_response_is_no(
     mock_get_value, mock_ask_user
 ):
     machine = Machine(overrides=extra_dict_warning_drop)
-    machine._starting_beam_current = 10.0
+    beam_check = BeamCurrentCheck(machine)
     with pytest.raises(LowCurrentError):
-        machine.check_beam_current()
+        beam_check.check_beam_drop()
 
 
-@mock.patch("dls_bba.machine.Machine.get_beam_current", side_effect=[8.0, 9.1])
+@mock.patch("dls_bba.machine.Machine.get_beam_current", side_effect=[9.1, 8.0, 9.2])
 @mock.patch("dls_bba.machine.Machine._ask_user", return_value="y")
+@mock.patch("dls_bba.machine.Machine.check_feedbacks", return_value=None)
 def test_check_beam_current_returns_false_when_topup_prompt_response_is_yes(
-    mock_get_beam_current, mock_ask_user
+    mock_get_beam_current, mock_ask_user, mock_check_feedbacks
 ):
     machine = Machine(overrides=extra_dict_warning_drop)
-    machine._starting_beam_current = 10.0
-    assert not machine.check_beam_current()
-    assert machine._starting_beam_current is None
+    beam_check = BeamCurrentCheck(machine)
+    assert not beam_check.check_beam_drop()
 
 
-@mock.patch("pytac.lattice.Lattice.get_value", return_value=1.0)
+@mock.patch("dls_bba.machine.Machine.get_beam_current", return_value=1.0)
 def test_check_beam_current_returns_true_when_valid(mock_get_value):
     machine = Machine()
-    machine.store_starting_beam_current()
-    assert machine.check_beam_current()
-    assert machine._starting_beam_current is None
+    beam_check = BeamCurrentCheck(machine)
+    assert beam_check.check_beam_drop()

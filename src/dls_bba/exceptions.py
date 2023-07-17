@@ -10,12 +10,6 @@ class ChannelAccessError(Exception):
     pass
 
 
-class CheckBeamCurrentError(Exception):
-    """Raised when check_beam_current is used incorrectly."""
-
-    pass
-
-
 class ComponentConstructionError(Exception):
     """Raised when an invalid element name is given for component construction."""
 
@@ -36,6 +30,12 @@ class FastAcquisitionArchiverError(Exception):
 
 class FAAPowerSupplyIOCTimestampError(Exception):
     """Raised when a timestamp that would be rejected by the power supply IOC is selected."""
+
+    pass
+
+
+class FastOrbitFeedbackError(Exception):
+    """Raised when the orbit size is larger than FOFB can handle."""
 
     pass
 
