@@ -11,7 +11,7 @@ matplotlib.use("Qt5Agg")  # noqa: E402
 
 import cothread  # noqa: E402
 from PyQt6 import uic, QtCore  # noqa: E402
-from PyQt6.QtWidgets import QApplication, QMainWindow, QAbstractItemView  # noqa: E402
+from PyQt6.QtWidgets import QApplication, QMainWindow  # noqa: E402
 
 from dls_bba.common import ALGORITHMS  # noqa: E402
 from dls_bba.machine import Machine  # noqa: E402
@@ -186,24 +186,6 @@ class MainWindow(QMainWindow):
             QApplication.processEvents()
         self.screen.appendPlainText(text)
         QApplication.processEvents()
-
-    # def display_choices(self, options=None):
-    #     self.pv_selection.clear()
-    #     if options is None:
-    #         self.pv_selection.addItems("Please select an option.")
-    #     else:
-    #         self.pv_selection.addItems(options)
-
-    # def select_options(self):
-    #     self.selected = self.pv_selection.selectedItems()
-
-    #     if self.selected is None:
-    #         self.display_choices(None)
-
-    #     if len(self.selected) > 1:
-    #         self.add_text(f"{len(self.selected)} elements selected.")
-    #     else:
-    #         self.add_text(f"{self.selected[0].text()} selected.")
 
     def closeEvent(self, event=None):
         if self.force_close:
