@@ -12,16 +12,11 @@ matplotlib.use("Qt5Agg")  # noqa: E402
 
 import cothread  # noqa: E402
 from PyQt6 import QtCore, uic  # noqa: E402
-from PyQt6.QtWidgets import (  # noqa: E402
-    QApplication,
-    QFileDialog,
-    QMainWindow,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow  # noqa: E402
 
 from dls_bba.common import ALGORITHMS  # noqa: E402
 from dls_bba.datatypes import Results  # noqa: E402
+from dls_bba.fbba import FastBBA
 from dls_bba.machine import Machine  # noqa: E402
 from dls_bba.plotting import bba_offsets_folder, bowtie_plot
 
@@ -90,26 +85,54 @@ class MainWindow(QMainWindow):
         self.display_single_bba.setPlainText("Not Selected")
 
         self.plot_bba.clicked.connect(lambda: self.plot_bba_folder())
-        #self.apply_bba.clicked.connect()
+        self.apply_bba.clicked.connect(lambda: self.apply_bba_folder())
 
         self.plot_single_bba.clicked.connect(lambda: self.plot_bba_file())
+        self.apply_single_bba.clicked.connect(lambda: self.apply_bba_file())
 
         self.tabWidget.setCurrentIndex(0)
         # Quitting
         self.force_close = False
 
+    def apply_bba_folder(self):
+        if self.loadfolder is None:
+            self.display_bba_folder.clear()
+            self.display_bba_folder.setPlainText("Please select a folder to apply.")
+
+        good_files = []
+        for file in os.listdir(self.loadfolder):
+            if file.endswith("-results.mat"):
+                good_files.append(os.path.join(self.loadfolder, file))
+
+        load_folder_results = [Results.from_file(file) for file in good_files]
+
+        offsets_dict = {}
+        for results in load_folder_results:
+            offsets_dict.update(results.offsets.items())
+
+        algorithm = FastBBA(self.machine)
+        algorithm.apply_bba_offsets(offsets_dict)
+
+    def apply_bba_file(self):
+        if self.loadfile is None:
+            self.display_bba_folder.clear()
+            self.display_bba_folder.setPlainText("Please select a file to apply.")
+
+        results_file = Results.from_file(self.loadfile)
+        algorithm = FastBBA(self.machine)
+        algorithm.apply_bba_offsets(results_file.offsets)
+
     def plot_bba_file(self):
         if self.loadfile is None:
             self.display_bba_folder.clear()
-            self.display_bba_folder.setPlainText("Please select a file to load.")
+            self.display_bba_folder.setPlainText("Please select a file to plot.")
 
         bowtie_plot(self.loadfile, os.path.dirname(self.loadfile), True)
 
     def plot_bba_folder(self):
-
         if self.loadfolder is None:
             self.display_bba_folder.clear()
-            self.display_bba_folder.setPlainText("Please select a folder to load.")
+            self.display_bba_folder.setPlainText("Please select a folder to plot.")
 
         good_files = []
         for file in os.listdir(self.loadfolder):

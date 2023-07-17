@@ -682,7 +682,7 @@
              </rect>
             </property>
             <property name="text">
-             <string>Plot</string>
+             <string>Plot All</string>
             </property>
            </widget>
            <widget class="QTextEdit" name="display_bba_folder">
@@ -723,12 +723,25 @@
              <rect>
               <x>10</x>
               <y>250</y>
-              <width>221</width>
+              <width>111</width>
               <height>27</height>
              </rect>
             </property>
             <property name="text">
-             <string>Plot bowtie</string>
+             <string>Plot Bowtie</string>
+            </property>
+           </widget>
+           <widget class="QPushButton" name="apply_single_bba">
+            <property name="geometry">
+             <rect>
+              <x>130</x>
+              <y>250</y>
+              <width>101</width>
+              <height>27</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Apply</string>
             </property>
            </widget>
           </widget>

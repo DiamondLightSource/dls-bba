@@ -90,7 +90,7 @@ class Algorithm(ABC):
             if response == "n":
                 break
             elif response == "y":
-                self._apply_bba_offsets(offsets_dict)
+                self.apply_bba_offsets(offsets_dict)
                 self._machine.apply_feedbacks()
                 break
 
@@ -110,7 +110,7 @@ class Algorithm(ABC):
                 writer.write(line)
             writer.close()
 
-    def _apply_bba_offsets(
+    def apply_bba_offsets(
         self,
         offsets_dict: dict[str, CalculatedOffset],
     ):
