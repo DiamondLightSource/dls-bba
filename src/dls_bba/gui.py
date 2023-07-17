@@ -10,8 +10,8 @@ matplotlib.use("Qt5Agg")  # noqa: E402
 # isort: on
 
 import cothread  # noqa: E402
-from PyQt6 import uic  # noqa: E402
-from PyQt6.QtWidgets import QApplication, QMainWindow  # noqa: E402
+from PyQt6 import uic, QtCore  # noqa: E402
+from PyQt6.QtWidgets import QApplication, QMainWindow, QAbstractItemView  # noqa: E402
 
 from dls_bba.common import ALGORITHMS  # noqa: E402
 from dls_bba.machine import Machine  # noqa: E402
@@ -79,20 +79,16 @@ class MainWindow(QMainWindow):
         # Clear and redraw selection
         self.pv_selection.clear()
         self.pv_selection.addItems(selection_strings)
-
+        self.last_list = selection_strings
         self.selection_strings = selection_strings
         self.options = options
 
-    def lock_unlock_selection(self):
-        print(self.selected_toggle)
+    def lock_unlock_selection(self) -> None:
         if self.selected_toggle == 0:
             if self.select_options():
-                print("Y")
                 self.disable_mode_selection()
                 self.selected_toggle = 1
-            else:
-                print("N")
-                pass
+                return
 
         if self.selected_toggle == 1:
             self.options = None
@@ -100,6 +96,7 @@ class MainWindow(QMainWindow):
             self.selected = None
             self.enable_mode_selection()
             self.selected_toggle = 0
+            return
 
     def enable_mode_selection(self):
         self.whole_machine.setEnabled(True)
@@ -107,8 +104,13 @@ class MainWindow(QMainWindow):
         self.bpms.setEnabled(True)
         self.quadrupoles.setEnabled(True)
         self.psps.setEnabled(True)
-        self.pv_selection.setEnabled(True)
         self.lock_unlock_pv.setText("Select")
+        # Set the list to full previously selected list.
+        self.pv_selection.clear()
+        self.pv_selection.addItems(self.last_list)
+        for i in range(self.pv_selection.count()):
+            it = self.pv_selection.item(i)
+            it.setFlags(it.flags() | QtCore.Qt.ItemFlag.ItemIsEnabled)
 
     def disable_mode_selection(self):
         self.whole_machine.setEnabled(False)
@@ -116,8 +118,14 @@ class MainWindow(QMainWindow):
         self.bpms.setEnabled(False)
         self.quadrupoles.setEnabled(False)
         self.psps.setEnabled(False)
-        self.pv_selection.setEnabled(False)
         self.lock_unlock_pv.setText("Unselect")
+        # Set the list to only selected items.
+        temp_selected = [item.text() for item in self.pv_selection.selectedItems()]
+        self.pv_selection.clear()
+        self.pv_selection.addItems(temp_selected)
+        for i in range(self.pv_selection.count()):
+            it = self.pv_selection.item(i)
+            it.setFlags(it.flags() & ~QtCore.Qt.ItemFlag.ItemIsEnabled)
 
     def select_options(self) -> bool:
         selected = self.pv_selection.selectedItems()
