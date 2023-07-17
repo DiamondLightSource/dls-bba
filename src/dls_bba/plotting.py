@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import Dict, List
 
 # isort: off
 import matplotlib
@@ -27,7 +27,7 @@ def bba_offsets_folder(
 
 def bba_offsets_plot(
     machine: Machine,
-    offsets_dict: dict[str, CalculatedOffset],
+    offsets_dict: Dict[str, CalculatedOffset],
     save_location: str,
     save: bool = False,
 ) -> plt.figure:
@@ -47,8 +47,8 @@ def bba_offsets_plot(
     for bpm_name in machine.bba_y_pvs:
         if bpm_name in offsets_dict.keys():
             calc_offsets = offsets_dict[bpm_name]
-            change_in_x.append(calc_offsets.diff_value)
-            change_in_dx.append(calc_offsets.diff_value)
+            change_in_y.append(calc_offsets.diff_value)
+            change_in_dy.append(calc_offsets.diff_value)
         else:
             change_in_y.append(0)
             change_in_dy.append(0)
@@ -66,9 +66,13 @@ def bba_offsets_plot(
     ax2.grid(which="both", axis="both")
     fig.supxlabel("BPM Number")
     fig.supylabel("Change in BBA offset [mm]")
+
+    plt.tight_layout()
+
     if save:
         path = os.path.join(save_location, "bba_offsets_plot.png")
         plt.savefig(path, dpi=300)
+
     plt.show()
 
     return fig
@@ -85,7 +89,7 @@ def bowtie_plot(filepath: str, save_location: str, save: bool = False) -> plt.fi
         if quad_name not in quad_names:
             quad_names.append(quad_name)
 
-    fig, axs = plt.subplots(nrows=2, ncols=len(quad_names))
+    fig, axs = plt.subplots(nrows=2, ncols=len(quad_names), squeeze=False)
 
     for q_index, quad_name in enumerate(quad_names):
         for a_index, axis in enumerate(["x", "y"]):
@@ -101,7 +105,7 @@ def bowtie_plot(filepath: str, save_location: str, save: bool = False) -> plt.fi
             x = results_object.plotting[key]["x"]
             y = results_object.plotting[key]["y"]
 
-            axs[a_index, q_index].plot(x, y, color=color)
+            axs[a_index, q_index].plot(x, y, color=color, lw=0.5)
 
             value, error = results_object.results[key]
             axs[a_index, q_index].axvline(x=value, color="k")
@@ -109,6 +113,8 @@ def bowtie_plot(filepath: str, save_location: str, save: bool = False) -> plt.fi
                 xmin=value - abs(error), xmax=value + abs(error), color="gray"
             )
             axs[a_index, q_index].grid(which="both", axis="both")
+
+    plt.tight_layout()
 
     if save:
         path = os.path.join(save_location, f"{bpm_name}_bowtie_plot.png")

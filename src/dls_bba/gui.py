@@ -1,3 +1,4 @@
+import os
 import signal
 import sys
 from pathlib import Path
@@ -11,10 +12,18 @@ matplotlib.use("Qt5Agg")  # noqa: E402
 
 import cothread  # noqa: E402
 from PyQt6 import QtCore, uic  # noqa: E402
-from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow  # noqa: E402
+from PyQt6.QtWidgets import (  # noqa: E402
+    QApplication,
+    QFileDialog,
+    QMainWindow,
+    QVBoxLayout,
+    QWidget,
+)
 
 from dls_bba.common import ALGORITHMS  # noqa: E402
+from dls_bba.datatypes import Results  # noqa: E402
 from dls_bba.machine import Machine  # noqa: E402
+from dls_bba.plotting import bba_offsets_folder, bowtie_plot
 
 _qapp = cothread.iqt()
 
@@ -80,29 +89,61 @@ class MainWindow(QMainWindow):
         self.button_single_bba.clicked.connect(lambda: self.select_bba_file())
         self.display_single_bba.setPlainText("Not Selected")
 
+        self.plot_bba.clicked.connect(lambda: self.plot_bba_folder())
+        #self.apply_bba.clicked.connect()
+
+        self.plot_single_bba.clicked.connect(lambda: self.plot_bba_file())
+
+        self.tabWidget.setCurrentIndex(0)
         # Quitting
         self.force_close = False
+
+    def plot_bba_file(self):
+        if self.loadfile is None:
+            self.display_bba_folder.clear()
+            self.display_bba_folder.setPlainText("Please select a file to load.")
+
+        bowtie_plot(self.loadfile, os.path.dirname(self.loadfile), True)
+
+    def plot_bba_folder(self):
+
+        if self.loadfolder is None:
+            self.display_bba_folder.clear()
+            self.display_bba_folder.setPlainText("Please select a folder to load.")
+
+        good_files = []
+        for file in os.listdir(self.loadfolder):
+            if file.endswith("-results.mat"):
+                good_files.append(os.path.join(self.loadfolder, file))
+
+        load_folder_results = [Results.from_file(file) for file in good_files]
+
+        bba_offsets_folder(self.machine, load_folder_results, self.loadfolder, False)
 
     def select_save_location_folder(self):
         folderpath = QFileDialog.getExistingDirectory(
             self, "Select Folder to Save to", DEFAULT_SAVE_LOCATION
         )
         self.display_save_loc.setPlainText(folderpath)
+        self.savepath = folderpath
 
     def select_bba_folder(self):
         folderpath = QFileDialog.getExistingDirectory(
             self, "Select Folder to load", DEFAULT_SAVE_LOCATION
         )
         self.display_bba_folder.setPlainText(folderpath)
+        self.loadfolder = folderpath
+        self.load_folder_results = None
 
     def select_bba_file(self):
         filepath = QFileDialog.getOpenFileName(
             self,
             "Select a Results.mat File to load",
             DEFAULT_SAVE_LOCATION,
-            "All Files (*);; MATLAB Files (*.mat)",
+            "Results MATLAB Files (*-results.mat)",
         )
-        self.display_single_bba.setPlainText(filepath)
+        self.display_single_bba.setPlainText(filepath[0])
+        self.loadfile = filepath[0]
 
     def select_mode(self, key):
         values = self.modes[key]
