@@ -11,14 +11,16 @@ matplotlib.use("Qt5Agg")  # noqa: E402
 # isort: on
 
 import cothread  # noqa: E402
+from cothread.catools import FORMAT_CTRL, caget
 from PyQt6 import QtCore, uic  # noqa: E402
 from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow  # noqa: E402
 
 from dls_bba.common import ALGORITHMS  # noqa: E402
 from dls_bba.datatypes import Results  # noqa: E402
-from dls_bba.fbba import FastBBA
+from dls_bba.fbba import FastBBA  # noqa: E402
+from dls_bba.isotime import get_isotime  # noqa: E402
 from dls_bba.machine import Machine  # noqa: E402
-from dls_bba.plotting import bba_offsets_folder, bowtie_plot
+from dls_bba.plotting import bba_offsets_folder, bowtie_plot  # noqa: E402
 
 _qapp = cothread.iqt()
 
@@ -43,6 +45,7 @@ class MainWindow(QMainWindow):
         self.machine = Machine()
         self.setup_machine_args()
         self.setup_main_window()
+        self.show_config()
 
     def setup_machine_args(self):
         self.modes = {  # Mode name: [selection_strings, arguments]
@@ -90,9 +93,103 @@ class MainWindow(QMainWindow):
         self.plot_single_bba.clicked.connect(lambda: self.plot_bba_file())
         self.apply_single_bba.clicked.connect(lambda: self.apply_bba_file())
 
+        # Front page buttons
+        # self.button_start.clicked.connect()
+        # self.button_pause.clicked.connect()
+        # self.button_stop.clicked.connect()
+        # self.button_reset.clicked.connect()
+
+        # Configuration options
+        self.config_ringmode.addItems(self.get_ringmode_options())
+        self.config_apply_1.clicked.connect(lambda: self.update_config())
+        self.config_apply_2.clicked.connect(lambda: self.update_config())
+        self.config_load_apply.clicked.connect(lambda: self.load_config_file())
+
         self.tabWidget.setCurrentIndex(0)
         # Quitting
         self.force_close = False
+
+    def load_config_file(self):
+        self.display_config_load.clear()
+        file = QFileDialog.getOpenFileName(
+            self,
+            "Select a config .json File to load",
+            DEFAULT_SAVE_LOCATION,
+            "JSON files (*.json)",
+        )
+        list_file = [file[0]]
+        self.machine._update_config(extra_config_files=list_file)
+        self.show_config()
+        # Allow for lattice reload.
+        cothread.Yield()
+        self.display_config_load.setText(f"Config File Applied at {get_isotime()}")
+
+    def get_ringmode_options(self):
+        ringmodes = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums
+        return ringmodes
+
+    def update_config(self):
+        dct = {
+            "FEEDBACKS": self.config_use_feedbacks.isChecked(),
+            "CORRECTOR_KICK_RADIANS": self.config_corr_kick.value(),
+            "QUADRUPOLE_STEP_PERCENT": self.config_quad_step.value(),
+            "WARNING_CURRENT_DROP": self.config_warning_current.value(),
+            "CRITICAL_CURRENT_DROP": self.config_critical_current.value(),
+            "FEEDBACK_WAITTIME": self.config_waittime.value(),
+            "FEEDBACK_RUNTIME": self.config_runtime.value(),
+            "MAX_ORBIT_CORRECTION_MICRONS": self.config_max_orbit.value(),
+            "MIN_SLOPE_FRACTION": self.config_sbba_min_frac.value(),
+            "CENTER_OUTLIER_FACTOR": self.confifg_sbba_stdev.value(),
+            "DECIMATED": self.config_use_decimation.isChecked(),
+            "X_CYCLES": self.config_x_cycles.value(),
+            "X_FREQUENCY": self.config_x_freq.value(),
+            "Y_CYCLES": self.config_y_cycles.value(),
+            "Y_FREQUENCY": self.config_y_freq.value(),
+            "RINGMODE": self.config_ringmode.currentText(),
+            "UNITS": self.config_units.currentText(),
+            "DATASOURCE": self.config_datasource.currentText(),
+            "COTHREAD_CONTROL_SYSTEM_TIMEOUT": self.config_ccs_timeout.value(),
+            "COTHREAD_CONTROL_SYSTEM_WAIT_FLAG": self.config_ccs_wait.isChecked(),
+            "FOFB_NOGUI_PATH": self.config_fofb_nogui_path.toPlainText(),
+            "FOFB_MAX_ORBIT_MICRONS": self.config_fofb_max_orbit.value(),
+            "ORBIT_RESPONSE_MATRIX_PATH": self.config_orm_path.toPlainText(),
+            "CORRECTORS_TXT_PATH": self.config_corrector_txt_path.toPlainText(),
+        }
+
+        self.machine._update_config(dct=dct)
+        self.show_config()
+        # Allow for lattice reload.
+        cothread.Yield()
+        self.config_display_1.setText(f"Config Applied at {get_isotime()}")
+        self.config_display_2.setText(f"Config Applied at {get_isotime()}")
+
+    def show_config(self):
+        config = self.machine.config
+        self.config_use_feedbacks.setChecked(config["FEEDBACKS"])
+        self.config_corr_kick.setValue(config["CORRECTOR_KICK_RADIANS"])
+        self.config_quad_step.setValue(config["QUADRUPOLE_STEP_PERCENT"])
+        self.config_warning_current.setValue(config["WARNING_CURRENT_DROP"])
+        self.config_critical_current.setValue(config["CRITICAL_CURRENT_DROP"])
+        self.config_waittime.setValue(config["FEEDBACK_WAITTIME"])
+        self.config_runtime.setValue(config["FEEDBACK_RUNTIME"])
+        self.config_max_orbit.setValue(config["MAX_ORBIT_CORRECTION_MICRONS"])
+        self.config_sbba_min_frac.setValue(config["MIN_SLOPE_FRACTION"])
+        self.confifg_sbba_stdev.setValue(config["CENTER_OUTLIER_FACTOR"])
+        self.config_use_decimation.setChecked(config["DECIMATED"])
+        self.config_x_cycles.setValue(config["X_CYCLES"])
+        self.config_x_freq.setValue(config["X_FREQUENCY"])
+        self.config_y_cycles.setValue(config["Y_CYCLES"])
+        self.config_y_freq.setValue(config["Y_FREQUENCY"])
+
+        self.config_ringmode.setCurrentText(config["RINGMODE"])
+        self.config_units.setCurrentText(config["UNITS"])
+        self.config_datasource.setCurrentText(config["DATASOURCE"])
+        self.config_ccs_timeout.setValue(config["COTHREAD_CONTROL_SYSTEM_TIMEOUT"])
+        self.config_ccs_wait.setChecked(config["COTHREAD_CONTROL_SYSTEM_WAIT_FLAG"])
+        self.config_fofb_nogui_path.setText(config["FOFB_NOGUI_PATH"])
+        self.config_fofb_max_orbit.setValue(config["FOFB_MAX_ORBIT_MICRONS"])
+        self.config_orm_path.setText(config["ORBIT_RESPONSE_MATRIX_PATH"])
+        self.config_corrector_txt_path.setText(config["CORRECTORS_TXT_PATH"])
 
     def apply_bba_folder(self):
         if self.loadfolder is None:

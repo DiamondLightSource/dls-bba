@@ -132,7 +132,7 @@ class Machine:
         self._lattice.set_default_units(eval(units))
         log.info(f"pytac units: {self._lattice.get_default_units()}")
 
-        self._lattice.set_default_data_source(datasource)
+        self._lattice.set_default_data_source(eval(datasource))
         log.info(f"pytac datasource: {self._lattice.get_default_data_source()}")
 
     def _load_element_and_name_lists(self):
