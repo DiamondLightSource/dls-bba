@@ -105,9 +105,23 @@ class MainWindow(QMainWindow):
         self.config_apply_2.clicked.connect(lambda: self.update_config())
         self.config_load_apply.clicked.connect(lambda: self.load_config_file())
 
+        self.button_golden.clicked.connect(lambda: self.reapply_golden_orbits())
+
         self.tabWidget.setCurrentIndex(0)
         # Quitting
         self.force_close = False
+
+    def reapply_golden_orbits(self):
+        self.display_golden.clear()
+        file = QFileDialog.getOpenFileName(
+            self,
+            "Select a golden .json File to load",
+            DEFAULT_SAVE_LOCATION,
+            "JSON files (*.json)",
+        )
+        selected_file = file[0]
+        self.machine.restore_origins(selected_file)
+        self.display_golden.setText(f"Golden Orbits restored at {get_isotime()}")
 
     def load_config_file(self):
         self.display_config_load.clear()
@@ -131,7 +145,7 @@ class MainWindow(QMainWindow):
     def update_config(self):
         dct = {
             "FEEDBACKS": self.config_use_feedbacks.isChecked(),
-            "CORRECTOR_KICK_RADIANS": self.config_corr_kick.value(),
+            "CORRECTOR_KICK_RADIANS": self.config_corr_kick.value() * 1e-6,
             "QUADRUPOLE_STEP_PERCENT": self.config_quad_step.value(),
             "WARNING_CURRENT_DROP": self.config_warning_current.value(),
             "CRITICAL_CURRENT_DROP": self.config_critical_current.value(),
@@ -166,7 +180,7 @@ class MainWindow(QMainWindow):
     def show_config(self):
         config = self.machine.config
         self.config_use_feedbacks.setChecked(config["FEEDBACKS"])
-        self.config_corr_kick.setValue(config["CORRECTOR_KICK_RADIANS"])
+        self.config_corr_kick.setValue(config["CORRECTOR_KICK_RADIANS"] * 1e6)
         self.config_quad_step.setValue(config["QUADRUPOLE_STEP_PERCENT"])
         self.config_warning_current.setValue(config["WARNING_CURRENT_DROP"])
         self.config_critical_current.setValue(config["CRITICAL_CURRENT_DROP"])
