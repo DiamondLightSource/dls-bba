@@ -61,7 +61,6 @@ class Ticker:
                     running = worker.work()
 
                 elif action == "pause":
-                    self.__set_state("Pausing")
                     worker.pause()
                     self.__set_state("Paused")
                     action = self.__action.Wait()

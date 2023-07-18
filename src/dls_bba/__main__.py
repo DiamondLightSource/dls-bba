@@ -1,11 +1,6 @@
 from argparse import ArgumentParser
 
-from dls_bba.cli import (
-    cli_entrypoint,
-    cli_quadcenter_plot,
-    cli_show_bpm_options,
-    cli_show_cell_options,
-)
+from dls_bba.cli import cli_quadcenter_plot, cli_show_bpm_options, cli_show_cell_options
 from dls_bba.common import ALGORITHMS
 from dls_bba.gui import start_gui
 from dls_bba.worker import Worker, run_worker

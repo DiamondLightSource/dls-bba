@@ -1,7 +1,5 @@
 from typing import Any, Dict, List, Optional
 
-import cothread
-
 from dls_bba.algorithm import Algorithm
 from dls_bba.beam_current import BeamCurrentCheck
 from dls_bba.common import ALGORITHMS, setup_folders
@@ -24,14 +22,15 @@ class Worker:
         self.machine = Machine(extra_config_files, additional_options)
         self.components_pairs = get_component_pairs(self.machine, elements)
         self.algorithm: Algorithm = ALGORITHMS[method](self.machine)
+        self.save_rawdata = self.machine.config["SAVE_RAWDATA"]
+        self.save_results = self.machine.config["SAVE_RESULTS"]
+        self.results_list: List[Results] = []
+        self.beam_current_decay: Optional[BeamCurrentCheck] = None
         print("Worker init")
 
     def start(self):
         print("Start start")
-        self.save_rawdata = self.machine.config["SAVE_RAWDATA"]
-        self.save_results = self.machine.config["SAVE_RESULTS"]
 
-        self.results_list: List[Results] = []
         self.machine.zero_origins(self.save_location)
         self.beam_current_decay = BeamCurrentCheck(self.machine)
         print("Start end")
@@ -39,10 +38,10 @@ class Worker:
     def work(self):
         """Must return true if more work to be done."""
         # Select first pair and remove it from list.
-        if len(self.components_pairs) == 0:
+        if not self.components_pairs:
             return False
         print("Work start")
-        pair = self.components_pairs[0]
+        pair = self.components_pairs.pop(0)
 
         beam_current_drop = BeamCurrentCheck(self.machine)
 
@@ -55,20 +54,22 @@ class Worker:
 
         if self.save_rawdata:
             rawdata.save(self.save_location)
+
         results = self.algorithm.analyse(rawdata)
         if self.save_results:
             results.save(self.save_location)
+
+        assert self.beam_current_decay is not None
+        self.beam_current_decay.check_beam_decay()
+
         print("Work end")
-        self.components_pairs = self.components_pairs[1:]
         return True
 
     def pause(self):
         print("Paused")
-        cothread.Sleep(1)
 
     def resume(self):
         print("Resumed")
-        pass
 
     def finish(self):
         print("Finishing")
