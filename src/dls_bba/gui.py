@@ -94,6 +94,7 @@ class MainWindow(QMainWindow):
 
         # Front page buttons
         # self.button_start.clicked.connect()
+        # Make sure when starting to reload the lattice fully with config again.
         # self.button_pause.clicked.connect()
         # self.button_stop.clicked.connect()
         # self.button_reset.clicked.connect()
@@ -145,7 +146,7 @@ class MainWindow(QMainWindow):
         dct = {
             "FEEDBACKS": self.config_use_feedbacks.isChecked(),
             "MAX_ORBIT_CORRECTION_MICRONS": self.config_max_orbit.value(),
-            "MIN_CURRENT": self.config_current_limit.value()
+            "MIN_CURRENT": self.config_current_limit.value(),
         }
         self.machine._update_config(dct=dct)
         self.show_config()
@@ -260,7 +261,7 @@ class MainWindow(QMainWindow):
             self.display_bba_folder.clear()
             self.display_bba_folder.setPlainText("Please select a file to plot.")
 
-        bowtie_plot(self.loadfile, os.path.dirname(self.loadfile), True)
+        bowtie_plot(self.loadfile, os.path.dirname(self.loadfile), self.machine.config["SAVE_PLOTS"])
 
     def plot_bba_folder(self):
         if self.loadfolder is None:
@@ -274,7 +275,7 @@ class MainWindow(QMainWindow):
 
         load_folder_results = [Results.from_file(file) for file in good_files]
 
-        bba_offsets_folder(self.machine, load_folder_results, self.loadfolder, False)
+        bba_offsets_folder(self.machine, load_folder_results, self.loadfolder, self.machine.config["SAVE_PLOTS"])
 
     def select_save_location_folder(self):
         folderpath = QFileDialog.getExistingDirectory(

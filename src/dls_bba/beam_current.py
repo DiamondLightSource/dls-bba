@@ -1,7 +1,5 @@
 import logging as log
 
-import numpy as np
-
 from dls_bba.exceptions import LowCurrentError
 from dls_bba.machine import Machine
 
@@ -16,26 +14,12 @@ class BeamCurrentCheck:
         msg = f"Stored Starting Beam Current: {self._initial_current}"
         log.debug(msg)
 
-    def _get_topup_threshold(self):
-        """
-        An attempt to find an appropriate topup threshold.
-        300mA -> 5mA (1.6%)
-        150mA -> 4mA (2.6%)
-        50mA -> 2mA (4%)
-        10mA -> 0.5mA (5%)
-        Yields: y = 1.88337x^0.253835 - 2.922332
-        """
-        threshold = np.floor(1.88337 * self._initial_current**0.253835 - 2.922332)
-        log.debug(f"Threshold: {threshold}mA")
-        return threshold
-
     def check_beam_decay(self) -> None:
-        decay_current = self._get_topup_threshold()
+        decay_current = self._machine.config["MIN_CURRENT"]
         current_current = self._machine.get_beam_current()
-        change_in_current = self._initial_current - current_current
-        log.debug(f"Change in current: {change_in_current}")
+        log.debug(f"Current: {current_current}; Decay limit: {decay_current}")
 
-        if change_in_current >= decay_current:
+        if decay_current >= current_current:
             self.topup_beam()
 
     def check_beam_drop(self) -> bool:
