@@ -32,7 +32,6 @@ class Worker:
 
     def start(self):
         print("Start start")
-
         self.machine.zero_origins(self.save_location)
         self.beam_current_decay = BeamCurrentCheck(self.machine)
         print("Start end")
@@ -44,7 +43,7 @@ class Worker:
             return False
         print("Work start")
         pair = self.components_pairs.pop(0)
-        cothread.Sleep(1)
+        # cothread.Sleep(1)
 
         beam_current_drop = BeamCurrentCheck(self.machine)
 

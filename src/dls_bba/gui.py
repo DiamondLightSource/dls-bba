@@ -153,10 +153,10 @@ class MainWindow(QMainWindow):
         self.display_bba_folder.setPlainText("Not Selected")
         self.button_single_bba.clicked.connect(lambda: self.select_bba_file())
         self.display_single_bba.setPlainText("Not Selected")
-
+        self.loadfolder = None
         self.plot_bba.clicked.connect(lambda: self.plot_bba_folder())
         self.apply_bba.clicked.connect(lambda: self.apply_bba_folder())
-
+        self.loadfile = None
         self.plot_single_bba.clicked.connect(lambda: self.plot_bba_file())
         self.apply_single_bba.clicked.connect(lambda: self.apply_bba_file())
 
@@ -399,8 +399,8 @@ class MainWindow(QMainWindow):
 
     def apply_bba_file(self):
         if self.loadfile is None:
-            self.display_bba_folder.clear()
-            self.display_bba_folder.setPlainText("Please select a file to apply.")
+            self.display_single_bba.clear()
+            self.display_single_bba.setPlainText("Please select a file to apply.")
             return
 
         results_file = Results.from_file(self.loadfile)
@@ -409,8 +409,8 @@ class MainWindow(QMainWindow):
 
     def plot_bba_file(self):
         if self.loadfile is None:
-            self.display_bba_folder.clear()
-            self.display_bba_folder.setPlainText("Please select a file to plot.")
+            self.display_single_bba.clear()
+            self.display_single_bba.setPlainText("Please select a file to plot.")
             return
 
         bowtie_plot(
@@ -443,7 +443,8 @@ class MainWindow(QMainWindow):
         folderpath = QFileDialog.getExistingDirectory(
             self, "Select Folder to Save to", self.machine.config["SAVE_LOCATION"]
         )
-        if folderpath is None:
+        if folderpath == "":
+            self.display_save_loc.clear()
             self.display_save_loc.setPlainText(self.machine.config["SAVE_LOCATION"])
         else:
             self.display_save_loc.setPlainText(folderpath)
@@ -453,6 +454,10 @@ class MainWindow(QMainWindow):
         folderpath = QFileDialog.getExistingDirectory(
             self, "Select Folder to load", self.machine.config["SAVE_LOCATION"]
         )
+        if folderpath == "":
+            self.display_bba_folder.clear()
+            self.display_bba_folder.setPlainText("No folder selected.")
+            return
         self.display_bba_folder.setPlainText(folderpath)
         self.loadfolder = folderpath
         self.load_folder_results = None
@@ -466,6 +471,10 @@ class MainWindow(QMainWindow):
             self.tmp_single_filepath,
             "Results MATLAB Files (*-results.mat)",
         )
+        if filepath[0] == "":
+            self.display_single_bba.clear()
+            self.display_single_bba.setPlainText("No folder selected.")
+            return
         self.display_single_bba.setPlainText(filepath[0])
         self.tmp_single_filepath = os.path.dirname(filepath[0])
         self.loadfile = filepath[0]
