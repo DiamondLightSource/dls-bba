@@ -555,7 +555,7 @@
              <string>Minimum Current [mA]</string>
             </property>
            </widget>
-           <widget class="QTextEdit" name="config_display_4">
+           <widget class="QTextEdit" name="display_most_recent">
             <property name="geometry">
              <rect>
               <x>10</x>
@@ -584,7 +584,7 @@
              <string>Most Recent Data</string>
             </property>
            </widget>
-           <widget class="QPushButton" name="config_apply_4">
+           <widget class="QPushButton" name="button_plot_recent">
             <property name="geometry">
              <rect>
               <x>310</x>
@@ -597,7 +597,7 @@
              <string>Plot</string>
             </property>
            </widget>
-           <widget class="QPushButton" name="config_apply_5">
+           <widget class="QPushButton" name="button_apply_recent">
             <property name="geometry">
              <rect>
               <x>400</x>

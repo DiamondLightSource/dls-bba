@@ -63,7 +63,7 @@ class Ticker:
                 elif action == "pause":
                     worker.pause()
                     self.__set_state("Paused")
-                    action = self.__action.Wait()
+                    action, _ = self.__action.Wait()
                     worker.resume()
                     self.__set_state("Running")
 
@@ -166,8 +166,10 @@ class MainWindow(QMainWindow):
         self.button_start.clicked.connect(self.start_ticker)
         self.button_pause.clicked.connect(self.pause_resume_ticker)
         self.button_stop.clicked.connect(self.stop_ticker)
-
         self.button_reset.clicked.connect(lambda: self.reset_iocs())
+        self.recent_folder = None
+        self.button_plot_recent.clicked.connect(lambda: self.plot_recent())
+        self.button_apply_recent.clicked.connect(lambda: self.apply_recent())
 
         # Configuration options
         self.tmp_single_filepath = None
@@ -201,8 +203,19 @@ class MainWindow(QMainWindow):
         self.button_pause.setEnabled(False)
         self.button_stop.setEnabled(False)
 
+        directory = self.machine.config["SAVE_LOCATION"]
+        newest_folder = max(
+            [os.path.join(directory, d) for d in os.listdir(directory)],
+            key=os.path.getmtime,
+        )
+        self.display_most_recent.setText(newest_folder)
+        self.recent_folder = newest_folder
+
     def ticker_update(self, old_state, new_state):
         print("Ticker state:", old_state, "=>", new_state)
+
+        if old_state == "Complete" and new_state == "Idle":
+            self.stop_ticker()
 
     def get_worker(self):
         method = self.method_dropdown.currentText()
@@ -210,10 +223,52 @@ class MainWindow(QMainWindow):
         print(method)
         print(self.selected, type(self.selected), type(self.selected[0]))
         print(folder_path)
-        return Worker(method, self.selected, folder_path)
+        return Worker(
+            method, self.selected, folder_path, additional_options=self.update_config()
+        )
 
     def reset_iocs(self):
         cancel_all_oscillations(self.machine.config)
+
+    def plot_recent(self):
+        if self.recent_folder is None:
+            self.display_most_recent.clear()
+            self.display_most_recent.setText("Cannot plot recent until BBA has run.")
+            return
+
+        good_files = []
+        for file in os.listdir(self.recent_folder):
+            if file.endswith("-results.mat"):
+                good_files.append(os.path.join(self.recent_folder, file))
+
+        load_folder_results = [Results.from_file(file) for file in good_files]
+
+        bba_offsets_folder(
+            self.machine,
+            load_folder_results,
+            self.recent_folder,
+            self.machine.config["SAVE_PLOTS"],
+        )
+
+    def apply_recent(self):
+        if self.recent_folder is None:
+            self.display_most_recent.clear()
+            self.display_most_recent.setText("Cannot apply recent until BBA has run.")
+            return
+
+        good_files = []
+        for file in os.listdir(self.recent_folder):
+            if file.endswith("-results.mat"):
+                good_files.append(os.path.join(self.recent_folder, file))
+
+        load_folder_results = [Results.from_file(file) for file in good_files]
+
+        offsets_dict = {}
+        for results in load_folder_results:
+            offsets_dict.update(results.offsets.items())
+
+        algorithm = FastBBA(self.machine)
+        algorithm.apply_bba_offsets(offsets_dict)
 
     def reapply_golden_orbits(self):
         self.display_golden.clear()
@@ -245,7 +300,7 @@ class MainWindow(QMainWindow):
         self.machine._update_config(extra_config_files=list_file)
         self.show_config()
         # Allow for lattice reload.
-        cothread.Yield()
+        cothread.Yield()  # TODO: Why does this need to yield?
         self.display_config_load.setText(f"Config File Applied at {get_isotime()}")
 
     def get_ringmode_options(self):
@@ -286,6 +341,7 @@ class MainWindow(QMainWindow):
         self.machine._update_config(dct=dct)
         self.show_config()
         cothread.Yield()
+        return dct
 
     def show_config(self):
         config = self.machine.config
@@ -325,6 +381,7 @@ class MainWindow(QMainWindow):
         if self.loadfolder is None:
             self.display_bba_folder.clear()
             self.display_bba_folder.setPlainText("Please select a folder to apply.")
+            return
 
         good_files = []
         for file in os.listdir(self.loadfolder):
@@ -344,6 +401,7 @@ class MainWindow(QMainWindow):
         if self.loadfile is None:
             self.display_bba_folder.clear()
             self.display_bba_folder.setPlainText("Please select a file to apply.")
+            return
 
         results_file = Results.from_file(self.loadfile)
         algorithm = FastBBA(self.machine)
@@ -353,6 +411,7 @@ class MainWindow(QMainWindow):
         if self.loadfile is None:
             self.display_bba_folder.clear()
             self.display_bba_folder.setPlainText("Please select a file to plot.")
+            return
 
         bowtie_plot(
             self.loadfile,
@@ -364,6 +423,7 @@ class MainWindow(QMainWindow):
         if self.loadfolder is None:
             self.display_bba_folder.clear()
             self.display_bba_folder.setPlainText("Please select a folder to plot.")
+            return
 
         good_files = []
         for file in os.listdir(self.loadfolder):
@@ -383,8 +443,11 @@ class MainWindow(QMainWindow):
         folderpath = QFileDialog.getExistingDirectory(
             self, "Select Folder to Save to", self.machine.config["SAVE_LOCATION"]
         )
-        self.display_save_loc.setPlainText(folderpath)
-        self.savepath = folderpath
+        if folderpath is None:
+            self.display_save_loc.setPlainText(self.machine.config["SAVE_LOCATION"])
+        else:
+            self.display_save_loc.setPlainText(folderpath)
+            self.savepath = folderpath
 
     def select_bba_folder(self):
         folderpath = QFileDialog.getExistingDirectory(

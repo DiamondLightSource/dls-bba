@@ -1,5 +1,7 @@
 from typing import Any, Dict, List, Optional
 
+import cothread
+
 from dls_bba.algorithm import Algorithm
 from dls_bba.beam_current import BeamCurrentCheck
 from dls_bba.common import ALGORITHMS, setup_folders
@@ -42,6 +44,7 @@ class Worker:
             return False
         print("Work start")
         pair = self.components_pairs.pop(0)
+        cothread.Sleep(1)
 
         beam_current_drop = BeamCurrentCheck(self.machine)
 
