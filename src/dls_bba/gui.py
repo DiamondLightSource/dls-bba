@@ -100,10 +100,8 @@ class MainWindow(QMainWindow):
         # self.button_reset.clicked.connect()
 
         # Configuration options
+        self.tmp_single_filepath = None
         self.config_ringmode.addItems(self.get_ringmode_options())
-        self.config_apply_front.clicked.connect(lambda: self.update_config_front_page())
-        self.config_apply_normal.clicked.connect(lambda: self.update_config_normal())
-        self.config_apply_complex.clicked.connect(lambda: self.update_config_complex())
         self.config_load_apply.clicked.connect(lambda: self.load_config_file())
         self.button_golden.clicked.connect(lambda: self.reapply_golden_orbits())
 
@@ -119,6 +117,9 @@ class MainWindow(QMainWindow):
             self.machine.config["SAVE_LOCATION"],
             "JSON files (*.json)",
         )
+        if file == ("", ""):
+            self.display_golden.setText("No file selected.")
+            return
         selected_file = file[0]
         self.machine.restore_origins(selected_file)
         self.display_golden.setText(f"Golden Orbits restored at {get_isotime()}")
@@ -131,6 +132,9 @@ class MainWindow(QMainWindow):
             self.machine.config["SAVE_LOCATION"],
             "JSON files (*.json)",
         )
+        if file == ("", ""):
+            self.display_config_load.setText("No file selected.")
+            return
         list_file = [file[0]]
         self.machine._update_config(extra_config_files=list_file)
         self.show_config()
@@ -142,19 +146,11 @@ class MainWindow(QMainWindow):
         ringmodes = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums
         return ringmodes
 
-    def update_config_front_page(self):
+    def update_config(self):
         dct = {
             "FEEDBACKS": self.config_use_feedbacks.isChecked(),
             "MAX_ORBIT_CORRECTION_MICRONS": self.config_max_orbit.value(),
             "MIN_CURRENT": self.config_current_limit.value(),
-        }
-        self.machine._update_config(dct=dct)
-        self.show_config()
-        cothread.Yield()
-        self.config_display_front.setText(f"Config Applied at {get_isotime()}")
-
-    def update_config_normal(self):
-        dct = {
             "CORRECTOR_KICK_RADIANS": self.config_corr_kick.value() * 1e-6,
             "QUADRUPOLE_STEP_PERCENT": self.config_quad_step.value(),
             "WARNING_CURRENT_DROP": self.config_warning_current.value(),
@@ -171,14 +167,6 @@ class MainWindow(QMainWindow):
             "SAVE_RAWDATA": self.save_rawdata.isChecked(),
             "SAVE_RESULTS": self.save_results.isChecked(),
             "SAVE_PLOTS": self.save_plots.isChecked(),
-        }
-        self.machine._update_config(dct=dct)
-        self.show_config()
-        cothread.Yield()
-        self.config_display_1.setText(f"Config Applied at {get_isotime()}")
-
-    def update_config_complex(self):
-        dct = {
             "RINGMODE": self.config_ringmode.currentText(),
             "UNITS": self.config_units.currentText(),
             "DATASOURCE": self.config_datasource.currentText(),
@@ -192,7 +180,6 @@ class MainWindow(QMainWindow):
         self.machine._update_config(dct=dct)
         self.show_config()
         cothread.Yield()
-        self.config_display_2.setText(f"Config Applied at {get_isotime()}")
 
     def show_config(self):
         config = self.machine.config
@@ -261,7 +248,11 @@ class MainWindow(QMainWindow):
             self.display_bba_folder.clear()
             self.display_bba_folder.setPlainText("Please select a file to plot.")
 
-        bowtie_plot(self.loadfile, os.path.dirname(self.loadfile), self.machine.config["SAVE_PLOTS"])
+        bowtie_plot(
+            self.loadfile,
+            os.path.dirname(self.loadfile),
+            self.machine.config["SAVE_PLOTS"],
+        )
 
     def plot_bba_folder(self):
         if self.loadfolder is None:
@@ -275,7 +266,12 @@ class MainWindow(QMainWindow):
 
         load_folder_results = [Results.from_file(file) for file in good_files]
 
-        bba_offsets_folder(self.machine, load_folder_results, self.loadfolder, self.machine.config["SAVE_PLOTS"])
+        bba_offsets_folder(
+            self.machine,
+            load_folder_results,
+            self.loadfolder,
+            self.machine.config["SAVE_PLOTS"],
+        )
 
     def select_save_location_folder(self):
         folderpath = QFileDialog.getExistingDirectory(
@@ -293,13 +289,16 @@ class MainWindow(QMainWindow):
         self.load_folder_results = None
 
     def select_bba_file(self):
+        if self.tmp_single_filepath is None:
+            self.tmp_single_filepath = self.machine.config["SAVE_LOCATION"]
         filepath = QFileDialog.getOpenFileName(
             self,
             "Select a Results.mat File to load",
-            self.machine.config["SAVE_LOCATION"],
+            self.tmp_single_filepath,
             "Results MATLAB Files (*-results.mat)",
         )
         self.display_single_bba.setPlainText(filepath[0])
+        self.tmp_single_filepath = os.path.dirname(filepath[0])
         self.loadfile = filepath[0]
 
     def select_mode(self, key):
@@ -320,10 +319,10 @@ class MainWindow(QMainWindow):
                 return
 
         if self.selected_toggle == 1:
+            self.enable_mode_selection()
             self.options = None
             self.display = None
             self.selected = None
-            self.enable_mode_selection()
             self.selected_toggle = 0
             return
 
@@ -340,6 +339,8 @@ class MainWindow(QMainWindow):
         for i in range(self.pv_selection.count()):
             it = self.pv_selection.item(i)
             it.setFlags(it.flags() | QtCore.Qt.ItemFlag.ItemIsEnabled)
+            if it.text() in self.selected:
+                it.setSelected(True)
 
     def disable_mode_selection(self):
         self.whole_machine.setEnabled(False)
