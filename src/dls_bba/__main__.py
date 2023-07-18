@@ -8,6 +8,7 @@ from dls_bba.cli import (
 )
 from dls_bba.common import ALGORITHMS
 from dls_bba.gui import start_gui
+from dls_bba.worker import Worker, run_worker
 
 from . import __version__
 
@@ -76,6 +77,7 @@ def parse_arguments():
 
 
 def main():
+    # TODO: Convert multiple bpm args into a list before passing.
     args = parse_arguments()
     if args.element_names:
         cli_show_bpm_options(args.config, args.individual)
@@ -84,9 +86,10 @@ def main():
     if args.quadcenter is not None:
         cli_quadcenter_plot(args.quadcenter)
     if args.algorithm is not None:
-        cli_entrypoint(
-            args.algorithm, args.bpm, args.save_location, args.config, args.individual
+        worker = Worker(
+            args.algorithm, [args.bpm], args.save_location, args.config, args.individual
         )
+        run_worker(worker)
 
 
 def parse_gui_arguments(args=None):

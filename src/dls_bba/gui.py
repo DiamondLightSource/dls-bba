@@ -11,16 +11,18 @@ matplotlib.use("Qt5Agg")  # noqa: E402
 # isort: on
 
 import cothread  # noqa: E402
-from cothread.catools import FORMAT_CTRL, caget
+from cothread.catools import FORMAT_CTRL, caget  # noqa: E402
 from PyQt6 import QtCore, uic  # noqa: E402
 from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow  # noqa: E402
 
 from dls_bba.common import ALGORITHMS  # noqa: E402
 from dls_bba.datatypes import Results  # noqa: E402
+from dls_bba.excite import cancel_all_oscillations  # noqa E402
 from dls_bba.fbba import FastBBA  # noqa: E402
 from dls_bba.isotime import get_isotime  # noqa: E402
 from dls_bba.machine import Machine  # noqa: E402
 from dls_bba.plotting import bba_offsets_folder, bowtie_plot  # noqa: E402
+from dls_bba.worker import Worker  # noqa: E402
 
 _qapp = cothread.iqt()
 
@@ -31,6 +33,73 @@ else:
 
 UI_FILENAME: list[str] = ["fbba_gui.ui"]
 # DEFAULT_SAVE_LOCATION: str = "/dls/ops-physics/diamonddata/fastBBA"
+delay = 1
+
+
+class Ticker:
+    #    def __init__(self, worker, on_update):
+    def __init__(self, on_update):
+        self.__action = cothread.Event()
+        self.__on_update = on_update
+        self.__state = "Idle"
+        cothread.Spawn(self.__ticker)
+
+    def __ticker(self):
+        while True:
+            action = ""
+            while action != "run":
+                action, worker = self.__action.Wait()
+            self.__set_state("Running")
+
+            worker.start()
+            running = True
+            while action == "run" and running:
+                if self.__action:
+                    action, _ = self.__action.Wait()
+
+                if action == "run":
+                    running = worker.work()
+
+                elif action == "pause":
+                    self.__set_state("Pausing")
+                    worker.pause()
+                    self.__set_state("Paused")
+                    action = self.__action.Wait()
+                    worker.resume()
+                    self.__set_state("Running")
+
+            self.__set_state("Complete")
+            worker.finish()
+            self.__set_state("Idle")
+
+    def __set_state(self, state):
+        old_state = self.__state
+        self.__state = state
+        self.__on_update(old_state, state)
+
+    def start_ticker(self, worker):
+        self.__action.Signal(("run", worker))
+
+    def pause_ticker(self):
+        self.__action.Signal(("pause", None))
+
+    def stop_ticker(self):
+        self.__action.Signal(("stop", None))
+
+    def resume_ticker(self):
+        self.__action.Signal(("run", None))
+
+    def pause_resume_ticker(self):
+        if self.__state == "Running":
+            self.pause_ticker()
+        elif self.__state == "Paused":
+            self.resume_ticker()
+        else:
+            print("Don't know what to do with", self.__state)
+
+    @property
+    def state(self):
+        return self.__state
 
 
 class MainWindow(QMainWindow):
@@ -61,7 +130,7 @@ class MainWindow(QMainWindow):
     def setup_main_window(self):
         # Methods
         self.method_dropdown.addItems(ALGORITHMS.keys())
-        self.method_dropdown.setCurrentText(list(ALGORITHMS.keys())[0])
+        self.method_dropdown.setCurrentText(list(ALGORITHMS.keys())[2])
         # Mode
         self.display_on_screen("Please select a mode.", clear=True)
 
@@ -93,11 +162,13 @@ class MainWindow(QMainWindow):
         self.apply_single_bba.clicked.connect(lambda: self.apply_bba_file())
 
         # Front page buttons
-        # self.button_start.clicked.connect()
-        # Make sure when starting to reload the lattice fully with config again.
-        # self.button_pause.clicked.connect()
-        # self.button_stop.clicked.connect()
-        # self.button_reset.clicked.connect()
+        self.ticker = Ticker(self.ticker_update)
+        self.pause_counter = 0
+        self.button_start.clicked.connect(self.start_ticker)
+        self.button_pause.clicked.connect(self.pause_resume_ticker)
+        self.button_stop.clicked.connect(self.stop_ticker)
+
+        self.button_reset.clicked.connect(lambda: self.reset_iocs())
 
         # Configuration options
         self.tmp_single_filepath = None
@@ -106,8 +177,44 @@ class MainWindow(QMainWindow):
         self.button_golden.clicked.connect(lambda: self.reapply_golden_orbits())
 
         self.tabWidget.setCurrentIndex(0)
-        # Quitting
-        self.force_close = False
+
+    def start_ticker(self):
+        self.update_config()
+        self.button_start.setEnabled(False)
+        self.button_pause.setEnabled(True)
+        self.button_stop.setEnabled(True)
+        print("gui start")
+        self.ticker.start_ticker(self.get_worker())
+
+    def pause_resume_ticker(self):
+        print("gui pause/resume")
+        self.ticker.pause_resume_ticker()
+        print(f"State: {self.ticker.state}")
+        if self.ticker.state == "Running":
+            self.button_pause.setText("Resume")
+        elif self.ticker.state == "Paused":
+            self.button_pause.setText("Pause")
+
+    def stop_ticker(self):
+        print("gui stop")
+        self.ticker.stop_ticker()
+        self.button_start.setEnabled(True)
+        self.button_pause.setEnabled(False)
+        self.button_stop.setEnabled(False)
+
+    def ticker_update(self, old_state, new_state):
+        print("Ticker state:", old_state, "=>", new_state)
+
+    def get_worker(self):
+        method = self.method_dropdown.currentText()
+        folder_path = self.machine.config["SAVE_LOCATION"]
+        print(method)
+        print(self.selected, type(self.selected), type(self.selected[0]))
+        print(folder_path)
+        return Worker(method, self.selected, folder_path)
+
+    def reset_iocs(self):
+        cancel_all_oscillations(self.machine.config)
 
     def reapply_golden_orbits(self):
         self.display_golden.clear()
@@ -327,6 +434,7 @@ class MainWindow(QMainWindow):
             return
 
     def enable_mode_selection(self):
+        self.button_start.setEnabled(False)
         self.whole_machine.setEnabled(True)
         self.cell.setEnabled(True)
         self.bpms.setEnabled(True)
@@ -343,6 +451,7 @@ class MainWindow(QMainWindow):
                 it.setSelected(True)
 
     def disable_mode_selection(self):
+        self.button_start.setEnabled(True)
         self.whole_machine.setEnabled(False)
         self.cell.setEnabled(False)
         self.bpms.setEnabled(False)
@@ -418,7 +527,7 @@ class MainWindow(QMainWindow):
         QApplication.processEvents()
 
     def closeEvent(self, event=None):
-        if self.force_close:
+        if self.ticker.state != "Idle":
             print("Force Closed.")
             # if mid_oscillation:
             #     prime all IOCs
