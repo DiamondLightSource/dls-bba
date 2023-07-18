@@ -31,7 +31,6 @@ else:
 
 UI_FILENAME: list[str] = ["fbba_gui.ui"]
 # DEFAULT_SAVE_LOCATION: str = "/dls/ops-physics/diamonddata/fastBBA"
-DEFAULT_SAVE_LOCATION = "/dls/physics/owr68555/11July2023"
 
 
 class MainWindow(QMainWindow):
@@ -81,7 +80,7 @@ class MainWindow(QMainWindow):
 
         # File / Folder selection, plotting and applying.
         self.button_save_loc.clicked.connect(lambda: self.select_save_location_folder())
-        self.display_save_loc.setPlainText(DEFAULT_SAVE_LOCATION)
+        self.display_save_loc.setPlainText(self.machine.config["SAVE_LOCATION"])
         self.button_bba_folder.clicked.connect(lambda: self.select_bba_folder())
         self.display_bba_folder.setPlainText("Not Selected")
         self.button_single_bba.clicked.connect(lambda: self.select_bba_file())
@@ -101,10 +100,10 @@ class MainWindow(QMainWindow):
 
         # Configuration options
         self.config_ringmode.addItems(self.get_ringmode_options())
-        self.config_apply_1.clicked.connect(lambda: self.update_config())
-        self.config_apply_2.clicked.connect(lambda: self.update_config())
+        self.config_apply_front.clicked.connect(lambda: self.update_config_front_page())
+        self.config_apply_normal.clicked.connect(lambda: self.update_config_normal())
+        self.config_apply_complex.clicked.connect(lambda: self.update_config_complex())
         self.config_load_apply.clicked.connect(lambda: self.load_config_file())
-
         self.button_golden.clicked.connect(lambda: self.reapply_golden_orbits())
 
         self.tabWidget.setCurrentIndex(0)
@@ -116,7 +115,7 @@ class MainWindow(QMainWindow):
         file = QFileDialog.getOpenFileName(
             self,
             "Select a golden .json File to load",
-            DEFAULT_SAVE_LOCATION,
+            self.machine.config["SAVE_LOCATION"],
             "JSON files (*.json)",
         )
         selected_file = file[0]
@@ -128,7 +127,7 @@ class MainWindow(QMainWindow):
         file = QFileDialog.getOpenFileName(
             self,
             "Select a config .json File to load",
-            DEFAULT_SAVE_LOCATION,
+            self.machine.config["SAVE_LOCATION"],
             "JSON files (*.json)",
         )
         list_file = [file[0]]
@@ -142,16 +141,25 @@ class MainWindow(QMainWindow):
         ringmodes = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums
         return ringmodes
 
-    def update_config(self):
+    def update_config_front_page(self):
         dct = {
             "FEEDBACKS": self.config_use_feedbacks.isChecked(),
+            "MAX_ORBIT_CORRECTION_MICRONS": self.config_max_orbit.value(),
+            "MIN_CURRENT": self.config_current_limit.value()
+        }
+        self.machine._update_config(dct=dct)
+        self.show_config()
+        cothread.Yield()
+        self.config_display_front.setText(f"Config Applied at {get_isotime()}")
+
+    def update_config_normal(self):
+        dct = {
             "CORRECTOR_KICK_RADIANS": self.config_corr_kick.value() * 1e-6,
             "QUADRUPOLE_STEP_PERCENT": self.config_quad_step.value(),
             "WARNING_CURRENT_DROP": self.config_warning_current.value(),
             "CRITICAL_CURRENT_DROP": self.config_critical_current.value(),
             "FEEDBACK_WAITTIME": self.config_waittime.value(),
             "FEEDBACK_RUNTIME": self.config_runtime.value(),
-            "MAX_ORBIT_CORRECTION_MICRONS": self.config_max_orbit.value(),
             "MIN_SLOPE_FRACTION": self.config_sbba_min_frac.value(),
             "CENTER_OUTLIER_FACTOR": self.confifg_sbba_stdev.value(),
             "DECIMATED": self.config_use_decimation.isChecked(),
@@ -159,6 +167,17 @@ class MainWindow(QMainWindow):
             "X_FREQUENCY": self.config_x_freq.value(),
             "Y_CYCLES": self.config_y_cycles.value(),
             "Y_FREQUENCY": self.config_y_freq.value(),
+            "SAVE_RAWDATA": self.save_rawdata.isChecked(),
+            "SAVE_RESULTS": self.save_results.isChecked(),
+            "SAVE_PLOTS": self.save_plots.isChecked(),
+        }
+        self.machine._update_config(dct=dct)
+        self.show_config()
+        cothread.Yield()
+        self.config_display_1.setText(f"Config Applied at {get_isotime()}")
+
+    def update_config_complex(self):
+        dct = {
             "RINGMODE": self.config_ringmode.currentText(),
             "UNITS": self.config_units.currentText(),
             "DATASOURCE": self.config_datasource.currentText(),
@@ -169,24 +188,24 @@ class MainWindow(QMainWindow):
             "ORBIT_RESPONSE_MATRIX_PATH": self.config_orm_path.toPlainText(),
             "CORRECTORS_TXT_PATH": self.config_corrector_txt_path.toPlainText(),
         }
-
         self.machine._update_config(dct=dct)
         self.show_config()
-        # Allow for lattice reload.
         cothread.Yield()
-        self.config_display_1.setText(f"Config Applied at {get_isotime()}")
         self.config_display_2.setText(f"Config Applied at {get_isotime()}")
 
     def show_config(self):
         config = self.machine.config
+
         self.config_use_feedbacks.setChecked(config["FEEDBACKS"])
+        self.config_max_orbit.setValue(config["MAX_ORBIT_CORRECTION_MICRONS"])
+        self.config_current_limit.setValue(config["MIN_CURRENT"])
+
         self.config_corr_kick.setValue(config["CORRECTOR_KICK_RADIANS"] * 1e6)
         self.config_quad_step.setValue(config["QUADRUPOLE_STEP_PERCENT"])
         self.config_warning_current.setValue(config["WARNING_CURRENT_DROP"])
         self.config_critical_current.setValue(config["CRITICAL_CURRENT_DROP"])
         self.config_waittime.setValue(config["FEEDBACK_WAITTIME"])
         self.config_runtime.setValue(config["FEEDBACK_RUNTIME"])
-        self.config_max_orbit.setValue(config["MAX_ORBIT_CORRECTION_MICRONS"])
         self.config_sbba_min_frac.setValue(config["MIN_SLOPE_FRACTION"])
         self.confifg_sbba_stdev.setValue(config["CENTER_OUTLIER_FACTOR"])
         self.config_use_decimation.setChecked(config["DECIMATED"])
@@ -194,6 +213,9 @@ class MainWindow(QMainWindow):
         self.config_x_freq.setValue(config["X_FREQUENCY"])
         self.config_y_cycles.setValue(config["Y_CYCLES"])
         self.config_y_freq.setValue(config["Y_FREQUENCY"])
+        self.save_rawdata.setChecked(config["SAVE_RAWDATA"])
+        self.save_results.setChecked(config["SAVE_RESULTS"])
+        self.save_plots.setChecked(config["SAVE_PLOTS"])
 
         self.config_ringmode.setCurrentText(config["RINGMODE"])
         self.config_units.setCurrentText(config["UNITS"])
@@ -256,14 +278,14 @@ class MainWindow(QMainWindow):
 
     def select_save_location_folder(self):
         folderpath = QFileDialog.getExistingDirectory(
-            self, "Select Folder to Save to", DEFAULT_SAVE_LOCATION
+            self, "Select Folder to Save to", self.machine.config["SAVE_LOCATION"]
         )
         self.display_save_loc.setPlainText(folderpath)
         self.savepath = folderpath
 
     def select_bba_folder(self):
         folderpath = QFileDialog.getExistingDirectory(
-            self, "Select Folder to load", DEFAULT_SAVE_LOCATION
+            self, "Select Folder to load", self.machine.config["SAVE_LOCATION"]
         )
         self.display_bba_folder.setPlainText(folderpath)
         self.loadfolder = folderpath
@@ -273,7 +295,7 @@ class MainWindow(QMainWindow):
         filepath = QFileDialog.getOpenFileName(
             self,
             "Select a Results.mat File to load",
-            DEFAULT_SAVE_LOCATION,
+            self.machine.config["SAVE_LOCATION"],
             "Results MATLAB Files (*-results.mat)",
         )
         self.display_single_bba.setPlainText(filepath[0])
