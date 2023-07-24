@@ -80,6 +80,7 @@ class FastBBA(Algorithm):
                 quad_lag_s = quad_step / QUAD_SLEW_RATE
                 quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
 
+                log.info("Quadrupole to High Setpoint")
                 self._machine.set_quad_setpoint(quadrupole, quad_high)
                 Sleep(quad_lag_s / 2)
 
@@ -98,6 +99,7 @@ class FastBBA(Algorithm):
                 excite((exc_high,))
                 Sleep((NETWORK_LAG + exc_high.count + SAFETY_NET) / TICKS_PER_SECOND)
                 # Move quad from high to low
+                log.info("Quadrupole to Low Setpoint")
                 self._machine.set_quad_setpoint(quadrupole, quad_low)
                 # Set up second excitation
                 excite((exc_low,))
@@ -111,6 +113,7 @@ class FastBBA(Algorithm):
                 key = f"{quad_name}_{components.axis}_Low"
                 rawdata[key] = selected_data[1]
 
+                log.info("Reset Quadrupole Setpoint")
                 self._machine.set_quad_setpoint(quadrupole, quad_sp)
                 Sleep(quad_lag_s / 2)
 
