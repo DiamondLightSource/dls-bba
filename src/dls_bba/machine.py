@@ -380,7 +380,7 @@ class Machine:
     def apply_feedbacks(self):
         """"""
         feedbacks_bool = self.config["FEEDBACKS"]
-        log.debug("Applying feedbacks")
+        log.info("Applying feedbacks")
 
         if feedbacks_bool:
             fofb_trigger = self.config["FOFB_NOGUI_PATH"]
@@ -443,6 +443,7 @@ class Machine:
         max_value = self.get_largest_orbit()
 
         if max_value >= max_orbit:
+            log.info(f"Orbit larger than {max_value} um. Running Feedbacks")
             self.apply_feedbacks()
 
     def get_largest_orbit(self) -> float:
@@ -495,7 +496,7 @@ class Machine:
     def zero_origins(self, folder_path: str):
         """"""
         # zeroes bcd and golden offsets. Golden must be restored later.
-        log.debug("Zeroing BCD and Golden Offsets")
+        log.info("Zeroing BCD and Golden Offsets")
         golden_offsets = {}
         pv_names = []
 
@@ -519,7 +520,7 @@ class Machine:
     def restore_origins(self, folder_path: str):
         """"""
         # restore golden orbits.
-        log.debug("Restoring Golden Offsets")
+        log.info("Restoring Golden Offsets")
 
         with open(os.path.join(folder_path, "golden_offsets.json")) as f:
             golden_offsets = json.load(f)

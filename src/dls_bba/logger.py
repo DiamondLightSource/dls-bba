@@ -7,13 +7,16 @@ FILE_LOG_FORMAT = (
 )
 
 
-def get_new_logger(folder_path):
+def get_new_logger(folder_path, gui=None):
     """"""
     logger = log.getLogger()
     logger.setLevel(log.NOTSET)
     filename = "log.log"
     # Console handler
-    console_handler = log.StreamHandler()
+    if gui is None:
+        console_handler = log.StreamHandler()
+    else:
+        console_handler = gui
     console_handler.setLevel(log.INFO)
     console_handler.setFormatter(log.Formatter(CONSOLE_LOG_FORMAT))
     logger.addHandler(console_handler)

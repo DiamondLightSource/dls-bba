@@ -68,7 +68,7 @@ def bba_offsets_plot(
     ax2.set_ylabel("Vertical [um]")
     ax2.grid(which="both", axis="both")
     fig.supxlabel("BPM Number")
-    fig.supylabel("Change in BBA offset [mm]")
+    fig.supylabel("Change in BBA offset")
 
     plt.tight_layout()
 

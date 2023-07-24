@@ -82,7 +82,7 @@ def main():
         cli_quadcenter_plot(args.quadcenter)
     if args.algorithm is not None:
         worker = Worker(
-            args.algorithm, [args.bpm], args.save_location, args.config, args.individual
+            args.algorithm, [args.bpm], args.save_location, None, args.config, args.individual
         )
         run_worker(worker)
 

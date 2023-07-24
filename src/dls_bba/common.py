@@ -20,13 +20,13 @@ ALGORITHMS: dict[str, type[Algorithm]] = {
 }
 
 
-def setup_folders(method: str, folder_path: Optional[str] = None) -> str:
+def setup_folders(method: str, folder_path: Optional[str] = None, gui=None) -> str:
     """"""
     foldername = f"{method}-{get_isotime()}"
     file = os.getcwd() if folder_path is None else folder_path
     bba_folderpath = os.path.join(file, foldername)
     os.makedirs(bba_folderpath)
-    get_new_logger(bba_folderpath)
+    get_new_logger(bba_folderpath, gui)
     return bba_folderpath
 
 

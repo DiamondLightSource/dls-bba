@@ -2,6 +2,7 @@ import os
 import signal
 import sys
 from pathlib import Path
+import logging as log
 
 # isort: off
 import matplotlib
@@ -94,11 +95,17 @@ class Ticker:
         elif self.__state == "Paused":
             self.resume_ticker()
         else:
-            print("Don't know what to do with", self.__state)
+            msg = f"Don't know what to do with state: {self.__state}"
+            log.error(msg)
 
     @property
     def state(self):
         return self.__state
+
+
+class GuiLogger(log.Handler):
+    def emit(self, record):
+        self.edit.appendPlainText(self.format(record))
 
 
 class MainWindow(QMainWindow):
@@ -113,6 +120,11 @@ class MainWindow(QMainWindow):
         self.setup_machine_args()
         self.setup_main_window()
         self.show_config()
+        self.setup_qtextedit_logging()
+
+    def setup_qtextedit_logging(self):
+        self.logger = GuiLogger()
+        self.logger.edit = self.screen
 
     def setup_machine_args(self):
         self.modes = {  # Mode name: [selection_strings, arguments]
@@ -180,24 +192,24 @@ class MainWindow(QMainWindow):
         self.tabWidget.setCurrentIndex(0)
 
     def start_ticker(self):
+        log.debug("GUI Start")
         self.update_config()
         self.button_start.setEnabled(False)
         self.button_pause.setEnabled(True)
         self.button_stop.setEnabled(True)
-        print("gui start")
         self.ticker.start_ticker(self.get_worker())
 
     def pause_resume_ticker(self):
-        print("gui pause/resume")
+        log.warn("GUI Pause/Resume")
         self.ticker.pause_resume_ticker()
-        print(f"State: {self.ticker.state}")
+        log.debug(f"State: {self.ticker.state}")
         if self.ticker.state == "Running":
             self.button_pause.setText("Resume")
         elif self.ticker.state == "Paused":
             self.button_pause.setText("Pause")
 
     def stop_ticker(self):
-        print("gui stop")
+        log.critical("GUI Stop")
         self.ticker.stop_ticker()
         self.button_start.setEnabled(True)
         self.button_pause.setEnabled(False)
@@ -212,7 +224,8 @@ class MainWindow(QMainWindow):
         self.recent_folder = newest_folder
 
     def ticker_update(self, old_state, new_state):
-        print("Ticker state:", old_state, "=>", new_state)
+        msg = f"Ticker state: {old_state} => {new_state}"
+        log.debug(msg)
 
         if old_state == "Complete" and new_state == "Idle":
             self.stop_ticker()
@@ -220,11 +233,10 @@ class MainWindow(QMainWindow):
     def get_worker(self):
         method = self.method_dropdown.currentText()
         folder_path = self.machine.config["SAVE_LOCATION"]
-        print(method)
-        print(self.selected, type(self.selected), type(self.selected[0]))
-        print(folder_path)
+        if isinstance(self.selected, str):
+            self.selected = [self.selected]
         return Worker(
-            method, self.selected, folder_path, additional_options=self.update_config()
+            method, self.selected, folder_path, logger=self.logger, additional_options=self.update_config()
         )
 
     def reset_iocs(self):
@@ -538,7 +550,7 @@ class MainWindow(QMainWindow):
             it.setFlags(it.flags() & ~QtCore.Qt.ItemFlag.ItemIsEnabled)
 
     def select_options(self) -> bool:
-        selected = self.pv_selection.selectedItems()
+        selected = self.pv_selection.selectedItems()  # type: ignore
 
         if len(selected) == 0:
             msg = "Please select a mode."
@@ -599,15 +611,12 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event=None):
         if self.ticker.state != "Idle":
-            print("Force Closed.")
-            # if mid_oscillation:
-            #     prime all IOCs
-            # reset all golden offsets and reset quad posisitons.
+            log.critical("Force Closed.")
+            log.critical("Golden Orbit not reapplied to BPMs. Please reapply.")
         else:
-            print("Closed Gracefully.")
-        # In every scenario -> Reset all IOCs.
-        # set all start times to 0's, then prime.
-        print("Exited.")
+            log.info("Closed Gracefully.")
+        cancel_all_oscillations(self.machine.config)
+        log.info("Exited.")
 
 
 def start_gui():

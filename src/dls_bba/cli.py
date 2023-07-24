@@ -1,4 +1,5 @@
 from typing import Any
+import logging as log
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.common import ALGORITHMS, setup_beam_based_alignment, setup_folders
@@ -13,7 +14,7 @@ def cli_show_bpm_options(
 ):
     """"""
     machine = Machine(extra_config_files, additional_options)
-    print(machine.bpms_names)
+    log.info(machine.bpms_names)
 
 
 def cli_show_cell_options(
@@ -24,9 +25,9 @@ def cli_show_cell_options(
     """"""
     machine = Machine(extra_config_files, additional_options)
     if cell_number not in machine.cell_dictionary.keys():
-        print("Invalid cell selected. Try cells '00' to '24'")
+        log.info("Invalid cell selected. Try cells '00' to '24'")
     else:
-        print(machine.cell_dictionary[cell_number])
+        log.info(machine.cell_dictionary[cell_number])
 
 
 def cli_entrypoint(

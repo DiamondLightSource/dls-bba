@@ -1,6 +1,5 @@
+import logging as log
 from typing import Any, Dict, List, Optional
-
-import cothread
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.beam_current import BeamCurrentCheck
@@ -17,10 +16,11 @@ class Worker:
         method: str,
         elements: str,
         folder_path: str,
+        logger: Optional[log.Handler],
         extra_config_files: Optional[List[str]] = None,
         additional_options: Optional[Dict[str, Any]] = None,
     ):
-        self.save_location = setup_folders(method, folder_path)
+        self.save_location = setup_folders(method, folder_path, logger)
         self.machine = Machine(extra_config_files, additional_options)
         self.components_pairs = get_component_pairs(self.machine, elements)
         self.algorithm: Algorithm = ALGORITHMS[method](self.machine)
@@ -28,22 +28,21 @@ class Worker:
         self.save_results = self.machine.config["SAVE_RESULTS"]
         self.results_list: List[Results] = []
         self.beam_current_decay: Optional[BeamCurrentCheck] = None
-        print("Worker init")
+        log.debug("Worker initialised")
 
     def start(self):
-        print("Start start")
+        log.debug("Worker Start Started.")
         self.machine.zero_origins(self.save_location)
         self.beam_current_decay = BeamCurrentCheck(self.machine)
-        print("Start end")
+        log.debug("Worker Start Finished.")
 
     def work(self):
         """Must return true if more work to be done."""
         # Select first pair and remove it from list.
         if not self.components_pairs:
             return False
-        print("Work start")
+        log.debug("Work start")
         pair = self.components_pairs.pop(0)
-        # cothread.Sleep(1)
 
         beam_current_drop = BeamCurrentCheck(self.machine)
 
@@ -64,21 +63,21 @@ class Worker:
         assert self.beam_current_decay is not None
         self.beam_current_decay.check_beam_decay()
 
-        print("Work end")
+        log.debug("Work end")
         return True
 
     def pause(self):
-        print("Paused")
+        log.debug("Paused")
 
     def resume(self):
-        print("Resumed")
+        log.debug("Resumed")
 
     def finish(self):
-        print("Finishing")
+        log.debug("Finishing")
         self.algorithm.use_bba_offsets(self.results_list, self.save_location)
         cancel_all_oscillations(self.machine.config)
         self.machine.restore_origins(self.save_location)
-        print("Finished")
+        log.debug("Finished")
 
 
 def run_worker(worker):
