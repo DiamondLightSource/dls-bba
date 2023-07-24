@@ -98,12 +98,13 @@ class Components:
 
 
 def get_component_pairs(
-    machine: Machine, *element_names: str, verify: bool = True
+    machine: Machine, element_names: List[str], verify: bool = True
 ) -> List[List[Components]]:
     """"""
     component_pairs: List[List[Components]] = []
 
     for element_name in element_names:
+        log.debug(element_name)
         component_pairs.append(construct_component_pair(machine, element_name))
 
     if verify:

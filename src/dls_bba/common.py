@@ -1,5 +1,6 @@
 import os
 from typing import List, Optional
+import logging as log
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.beam_current import BeamCurrentCheck
