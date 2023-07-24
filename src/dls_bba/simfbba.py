@@ -50,7 +50,7 @@ class SimFastBBA(Algorithm):
             hcorr_kick = self._machine.corrector_kick(components_pair[0])
             hcorr_sp = self._machine.get_corrector_setpoint(components_pair[0])
 
-            vcorr_kick = self._machine.corrector_kick(components_pair[1].corrector)
+            vcorr_kick = self._machine.corrector_kick(components_pair[1])
             vcorr_sp = self._machine.get_corrector_setpoint(components_pair[1])
 
             kick = {"x": hcorr_kick, "y": vcorr_kick}
