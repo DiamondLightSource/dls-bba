@@ -17,15 +17,22 @@ MM_TO_UM_UNIT_CONV = 1000
 
 def bba_offsets_folder(
     machine: Machine,
-    results_list: List[Results],
-    save_location: str,
+    folder_path: str,
     save: bool = False,
 ) -> None:
+
+    good_files = []
+    for file in os.listdir(folder_path):
+        if file.endswith("-results.mat"):
+            good_files.append(os.path.join(folder_path, file))
+
+    load_folder_results = [Results.from_file(file) for file in good_files]
+
     offsets_dict: dict[str, CalculatedOffset] = {}
-    for results in results_list:
+    for results in load_folder_results:
         offsets_dict.update(results.offsets.items())
 
-    bba_offsets_plot(machine, offsets_dict, save_location, save)
+    bba_offsets_plot(machine, offsets_dict, os.path.dirname(folder_path), save)
 
 
 def bba_offsets_plot(
