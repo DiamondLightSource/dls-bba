@@ -181,7 +181,6 @@ class Machine:
         self.bba_y_pvs = [
             name + ORIGIN_SUFFIXES["BBA"].format(axis="Y") for name in self.bpms_names
         ]
-        self._starting_beam_current = None
 
     def _load_cell_dictionary_and_psps(self):
         """"""
@@ -357,10 +356,6 @@ class Machine:
     def get_beam_current(self) -> float:
         """"""
         return float(self._lattice.get_value("beam_current"))
-
-    def store_starting_beam_current(self):
-        self._starting_beam_current = self.get_beam_current()
-        log.debug(f"Stored Starting Beam Current: {self._starting_beam_current}")
 
     def _ask_user(self, msg):
         response = input(msg).lower().strip()
