@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List
+from typing import Dict
 
 # isort: off
 import matplotlib
@@ -20,7 +20,6 @@ def bba_offsets_folder(
     folder_path: str,
     save: bool = False,
 ) -> None:
-
     good_files = []
     for file in os.listdir(folder_path):
         if file.endswith("-results.mat"):
@@ -88,7 +87,7 @@ def bba_offsets_plot(
     return fig
 
 
-def bowtie_plot(filepath: str, save_location: str, save: bool = False) -> plt.figure:
+def bowtie_plot(filepath: str, save: bool = False) -> plt.figure:
     results_object = Results.from_file(filepath)
     bpm_name = results_object.metadata["bpm_name"]
     keys = results_object.results.keys()
@@ -132,7 +131,7 @@ def bowtie_plot(filepath: str, save_location: str, save: bool = False) -> plt.fi
     plt.tight_layout()
 
     if save:
-        path = os.path.join(save_location, f"{bpm_name}_bowtie_plot.png")
+        path = os.path.join(os.path.dirname(filepath), f"{bpm_name}_bowtie_plot.png")
         plt.savefig(path, dpi=300)
 
     plt.show()
