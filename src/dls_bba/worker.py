@@ -38,6 +38,7 @@ class Worker:
 
     def start(self):
         log.debug("Worker Start Started.")
+        self.machine.check_feedbacks()
         self.machine.zero_origins(self.save_location)
         self.beam_current_decay = BeamCurrentCheck(self.machine)
         log.debug("Worker Start Finished.")
