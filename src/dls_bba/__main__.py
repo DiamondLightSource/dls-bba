@@ -18,15 +18,15 @@ def parse_arguments():
 
     parent_parser.add_argument("--version", "-v", action="version", version=__version__)
     parent_parser.add_argument(
-        "--config",
+        "--config_files",
         "-c",
         default=None,
         type=str,
         help="Additional configuration filepaths.",
     )
     parent_parser.add_argument(
-        "--individual",
-        "-i",
+        "--additional_config",
+        "-a",
         default=None,
         type=dict,
         help="Additional individual configuration options",
@@ -79,7 +79,7 @@ def parse_arguments():
 
 
 def sort_elements(args) -> List[str]:
-    machine = Machine(args.config, args.individual)
+    machine = Machine(args.config_files, args.additional_config)
     elements = []
 
     if args.wholemachine:
@@ -115,15 +115,15 @@ def main():
     elif args.which == "run":
         elements = sort_elements(args)
         cli_entrypoint(
-            args.method, elements, args.save_location, args.config, args.individual
+            args.method, elements, args.save_location, args.config_files, args.additional_config
         )
 
     elif args.which == "plot":
         if args.quadcenter:
-            machine = Machine(args.config, args.individual)
+            machine = Machine(args.config_files, args.additional_config)
             bowtie_plot(args.save_location, machine.config["SAVE_PLOTS"])
         if args.difference:
-            machine = Machine(args.config, args.individual)
+            machine = Machine(args.config_files, args.additional_config)
             bba_offsets_folder(machine, args.difference, machine.config["SAVE_PLOTS"])
 
 
