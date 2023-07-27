@@ -94,7 +94,7 @@ class Machine:
         if overrides is not None:
             self.config.update_config(overrides)
 
-    def _update_config(
+    def update_config(
         self, extra_config_files: Optional[list[Any]] = None, dct: Optional[dict] = None
     ):
         flag_files = False

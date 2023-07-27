@@ -35,6 +35,7 @@ else:
 UI_FILENAME: list[str] = ["fbba_gui.ui"]
 # DEFAULT_SAVE_LOCATION: str = "/dls/ops-physics/diamonddata/fastBBA"
 delay = 1
+RAD_TO_URAD_CONV = 1e6
 
 
 class Ticker:
@@ -309,7 +310,7 @@ class MainWindow(QMainWindow):
             self.display_config_load.setText("No file selected.")
             return
         list_file = [file[0]]
-        self.machine._update_config(extra_config_files=list_file)
+        self.machine.update_config(extra_config_files=list_file)
         self.show_config()
         # Allow for lattice reload.
         cothread.Yield()  # TODO: Why does this need to yield?
@@ -321,10 +322,11 @@ class MainWindow(QMainWindow):
 
     def update_config(self):
         dct = {
+            "SAVE_LOCATION": self.display_save_loc.toPlainText(),
             "FEEDBACKS": self.config_use_feedbacks.isChecked(),
             "MAX_ORBIT_CORRECTION_MICRONS": self.config_max_orbit.value(),
             "MIN_CURRENT": self.config_current_limit.value(),
-            "CORRECTOR_KICK_RADIANS": self.config_corr_kick.value() * 1e-6,
+            "CORRECTOR_KICK_RADIANS": self.config_corr_kick.value() / RAD_TO_URAD_CONV,
             "QUADRUPOLE_STEP_PERCENT": self.config_quad_step.value(),
             "WARNING_CURRENT_DROP": self.config_warning_current.value(),
             "CRITICAL_CURRENT_DROP": self.config_critical_current.value(),
@@ -350,7 +352,7 @@ class MainWindow(QMainWindow):
             "ORBIT_RESPONSE_MATRIX_PATH": self.config_orm_path.toPlainText(),
             "CORRECTORS_TXT_PATH": self.config_corrector_txt_path.toPlainText(),
         }
-        self.machine._update_config(dct=dct)
+        self.machine.update_config(dct=dct)
         self.show_config()
         cothread.Yield()
         return dct
@@ -362,7 +364,7 @@ class MainWindow(QMainWindow):
         self.config_max_orbit.setValue(config["MAX_ORBIT_CORRECTION_MICRONS"])
         self.config_current_limit.setValue(config["MIN_CURRENT"])
 
-        self.config_corr_kick.setValue(config["CORRECTOR_KICK_RADIANS"] * 1e6)
+        self.config_corr_kick.setValue(config["CORRECTOR_KICK_RADIANS"] * RAD_TO_URAD_CONV)
         self.config_quad_step.setValue(config["QUADRUPOLE_STEP_PERCENT"])
         self.config_warning_current.setValue(config["WARNING_CURRENT_DROP"])
         self.config_critical_current.setValue(config["CRITICAL_CURRENT_DROP"])
@@ -388,6 +390,8 @@ class MainWindow(QMainWindow):
         self.config_fofb_max_orbit.setValue(config["FOFB_MAX_ORBIT_MICRONS"])
         self.config_orm_path.setText(config["ORBIT_RESPONSE_MATRIX_PATH"])
         self.config_corrector_txt_path.setText(config["CORRECTORS_TXT_PATH"])
+
+        self.display_save_loc.setPlainText(config["SAVE_LOCATION"])
 
     def apply_bba_folder(self):
         if self.loadfolder is None:
@@ -613,10 +617,10 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event=None):
         if self.ticker.state != "Idle":
             log.critical("Force Closed.")
+            cancel_all_oscillations(self.machine.config)
             log.critical("Golden Orbit not reapplied to BPMs. Please reapply.")
         else:
             log.info("Closed Gracefully.")
-        cancel_all_oscillations(self.machine.config)
         log.info("Exited.")
 
 
