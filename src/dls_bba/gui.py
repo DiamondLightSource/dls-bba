@@ -327,7 +327,7 @@ class MainWindow(QMainWindow):
     def update_config(self):
         dct = {
             "SAVE_LOCATION": self.display_save_loc.toPlainText(),
-            "FEEDBACKS": self.config_use_feedbacks.isChecked(),
+            "FEEDBACKS": self.config_use_fofb.isChecked(),
             "MAX_ORBIT_CORRECTION_MICRONS": self.config_max_orbit.value(),
             "MIN_CURRENT": self.config_current_limit.value(),
             "CORRECTOR_KICK_RADIANS": self.config_corr_kick.value() / RAD_TO_URAD_CONV,
@@ -335,6 +335,7 @@ class MainWindow(QMainWindow):
             "WARNING_CURRENT_DROP": self.config_warning_current.value(),
             "FEEDBACK_WAITTIME": self.config_waittime.value(),
             "FEEDBACK_RUNTIME": self.config_runtime.value(),
+            "SOFB_RUNTIME": self.config_sofb_runtime.value(),
             "MIN_SLOPE_FRACTION": self.config_sbba_min_frac.value(),
             "CENTER_OUTLIER_FACTOR": self.confifg_sbba_stdev.value(),
             "DECIMATED": self.config_use_decimation.isChecked(),
@@ -363,7 +364,7 @@ class MainWindow(QMainWindow):
     def show_config(self):
         config = self.machine.config
 
-        self.config_use_feedbacks.setChecked(config["FEEDBACKS"])
+        self.config_use_fofb.setChecked(config["FOFB_FEEDBACKS"])
         self.config_max_orbit.setValue(config["MAX_ORBIT_CORRECTION_MICRONS"])
         self.config_current_limit.setValue(config["MIN_CURRENT"])
 
@@ -374,6 +375,7 @@ class MainWindow(QMainWindow):
         self.config_warning_current.setValue(config["WARNING_CURRENT_DROP"])
         self.config_waittime.setValue(config["FEEDBACK_WAITTIME"])
         self.config_runtime.setValue(config["FEEDBACK_RUNTIME"])
+        self.config_sofb_runtime.setValue(config["SOFB_RUNTIME"])
         self.config_sbba_min_frac.setValue(config["MIN_SLOPE_FRACTION"])
         self.confifg_sbba_stdev.setValue(config["CENTER_OUTLIER_FACTOR"])
         self.config_use_decimation.setChecked(config["DECIMATED"])
