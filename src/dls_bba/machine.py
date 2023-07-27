@@ -380,7 +380,7 @@ class Machine:
     def apply_feedbacks(self):
         """"""
         feedbacks_bool = self.config["FEEDBACKS"]
-        log.debug("Applying feedbacks")
+        log.info("Applying feedbacks")
 
         if feedbacks_bool:
             fofb_trigger = self.config["FOFB_NOGUI_PATH"]
@@ -443,6 +443,7 @@ class Machine:
         max_value = self.get_largest_orbit()
 
         if max_value >= max_orbit:
+            log.info(f"Orbit larger than {max_value} um. Running Feedbacks")
             self.apply_feedbacks()
 
     def get_largest_orbit(self) -> float:
