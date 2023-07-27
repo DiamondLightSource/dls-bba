@@ -297,7 +297,7 @@ class MainWindow(QMainWindow):
         if file == ("", ""):
             self.display_golden.setText("No file selected.")
             return
-        selected_file = file[0]
+        selected_file = os.path.dirname(file[0])
         self.machine.restore_origins(selected_file)
         self.display_golden.setText(f"Golden Orbits restored at {get_isotime()}")
 
