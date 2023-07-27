@@ -1,12 +1,11 @@
 from argparse import ArgumentParser
-import os
 from typing import List
 
 from dls_bba.cli import cli_entrypoint
 from dls_bba.common import ALGORITHMS
 from dls_bba.gui import start_gui
 from dls_bba.machine import Machine
-from dls_bba.plotting import bowtie_plot
+from dls_bba.plotting import bba_offsets_folder, bowtie_plot
 
 from . import __version__
 
@@ -18,6 +17,20 @@ def parse_arguments():
     subparsers = parent_parser.add_subparsers(title="actions")
 
     parent_parser.add_argument("--version", "-v", action="version", version=__version__)
+    parent_parser.add_argument(
+        "--config",
+        "-c",
+        default=None,
+        type=str,
+        help="Additional configuration filepaths.",
+    )
+    parent_parser.add_argument(
+        "--individual",
+        "-i",
+        default=None,
+        type=dict,
+        help="Additional individual configuration options",
+    )
 
     parser_info = subparsers.add_parser(
         "info", parents=[parent_parser], add_help=False, description="Get information"
@@ -46,21 +59,6 @@ def parse_arguments():
     group.add_argument("--difference", "-d", action="store_true", help="")
 
     for subparser in [parser_info, parser_run]:
-        subparser.add_argument(
-            "--config",
-            "-c",
-            default=None,
-            type=str,
-            help="Additional configuration filepaths.",
-        )
-        subparser.add_argument(
-            "--individual",
-            "-i",
-            default=None,
-            type=dict,
-            help="Additional individual configuration options",
-        )
-
         group = subparser.add_mutually_exclusive_group(required=True)
         group.add_argument("--wholemachine", "-w", action="store_true", help="")
         group.add_argument("--psps", "-p", action="store_true", help="")
@@ -100,7 +98,9 @@ def sort_elements(args) -> List[str]:
             elements = [machine.bpms_names[args.bpm - 1]]
     if args.quad is not None:
         if args.quad > len(machine.quads_names) and (args.quad >= 1):
-            print(f"Invalid Quad selected. Try:  1 <= Quads <= {len(machine.quads_names)}")
+            print(
+                f"Invalid Quad selected. Try:  1 <= Quads <= {len(machine.quads_names)}"
+            )
         else:
             elements = [machine.quads_names[args.quad - 1]]
     return elements
@@ -120,10 +120,11 @@ def main():
 
     elif args.which == "plot":
         if args.quadcenter:
-            # cli_quadcenter_plot(args.save_location)
-            bowtie_plot(args.save_location, os.path.dirname(args.save_location), True)
+            machine = Machine(args.config, args.individual)
+            bowtie_plot(args.save_location, machine.config["SAVE_PLOTS"])
         if args.difference:
-            pass
+            machine = Machine(args.config, args.individual)
+            bba_offsets_folder(machine, args.difference, machine.config["SAVE_PLOTS"])
 
 
 def parse_gui_arguments(args=None):

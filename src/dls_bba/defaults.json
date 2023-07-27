@@ -14,5 +14,8 @@
     "X_CYCLES": 22,
     "X_FREQUENCY": 11,
     "Y_CYCLES": 26,
-    "Y_FREQUENCY": 13
+    "Y_FREQUENCY": 13,
+    "SAVE_RAWDATA": true,
+    "SAVE_RESULTS": true,
+    "SAVE_PLOTS": true
 }
