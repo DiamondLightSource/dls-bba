@@ -38,6 +38,7 @@ def setup_beam_based_alignment(
 ):
     """"""
     results_list: List[Results] = []
+    machine.check_feedbacks()
     machine.zero_origins(save_location)
     beam_current_decay = BeamCurrentCheck(machine)
 
