@@ -1,7 +1,7 @@
 {
     "RINGMODE": "I04",
     "UNITS": "pytac.ENG",
-    "DATASOURCE": "pytac.live",
+    "DATASOURCE": "pytac.LIVE",
     "COTHREAD_CONTROL_SYSTEM_TIMEOUT": 10.0,
     "COTHREAD_CONTROL_SYSTEM_WAIT_FLAG": true,
     "FOFB_NOGUI_PATH": "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py",
