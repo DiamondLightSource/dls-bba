@@ -53,7 +53,8 @@ class SlowBBA(Algorithm):
                     ("High", quad_high),
                     ("Low", quad_low),
                 ]:
-                    log.debug(f"Corrector Movement: {movement}")
+
+                    log.info(f"Quadrupole to {movement} Setpoint")
                     self._machine.set_quad_setpoint(quadrupole, quad_movement, True)
 
                     for index, step in enumerate(corrector_step_list, start=1):
@@ -81,6 +82,7 @@ class SlowBBA(Algorithm):
                     )
                 # Reset Quad and Corrector once finished.
                 self._machine.set_corrector_setpoint(components, corrector_step_list[2])
+                log.info("Reset Quadrupole Setpoint")
                 self._machine.set_quad_setpoint(quadrupole, quad_sp, True)
             # run feedbacks after each axis.
             self._machine.check_feedbacks()
