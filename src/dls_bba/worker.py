@@ -88,7 +88,8 @@ class Worker:
 
 
 def show_progress(left):
-    log.info(f"{100*left}% left")
+    percent = "%.2f" % (100*left)
+    log.info(f"{percent}% left")
 
 
 def run_worker(worker):
