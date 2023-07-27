@@ -26,6 +26,7 @@ class SlowBBA(Algorithm):
         metadata["bpm_name"] = components_pair[0].bpm_name
         metadata["bpm_index"] = components_pair[0].bpm_index
 
+        log.info(f"BPM: {components_pair[0].bpm_name}")
         for components in components_pair:
             log.debug(f"Component: {components}")
             for quadrupole, quad_name in zip(

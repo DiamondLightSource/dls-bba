@@ -32,6 +32,7 @@ class SimFastBBA(Algorithm):
         metadata["bpm_index"] = components_pair[0].bpm_index
         decimated = config["DECIMATED"]
 
+        log.info(f"BPM: {components_pair[0].bpm_name}")
         for quadrupole, quad_name in zip(
             components_pair[0].quadrupoles, components_pair[0].quadrupoles_names
         ):
