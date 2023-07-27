@@ -115,7 +115,11 @@ def main():
     elif args.which == "run":
         elements = sort_elements(args)
         cli_entrypoint(
-            args.method, elements, args.save_location, args.config_files, args.additional_config
+            args.method,
+            elements,
+            args.save_location,
+            args.config_files,
+            args.additional_config,
         )
 
     elif args.which == "plot":
