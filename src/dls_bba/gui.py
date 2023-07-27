@@ -249,16 +249,8 @@ class MainWindow(QMainWindow):
             self.display_most_recent.setText("Cannot plot recent until BBA has run.")
             return
 
-        good_files = []
-        for file in os.listdir(self.recent_folder):
-            if file.endswith("-results.mat"):
-                good_files.append(os.path.join(self.recent_folder, file))
-
-        load_folder_results = [Results.from_file(file) for file in good_files]
-
         bba_offsets_folder(
             self.machine,
-            load_folder_results,
             self.recent_folder,
             self.machine.config["SAVE_PLOTS"],
         )
@@ -431,7 +423,6 @@ class MainWindow(QMainWindow):
 
         bowtie_plot(
             self.loadfile,
-            os.path.dirname(self.loadfile),
             self.machine.config["SAVE_PLOTS"],
         )
 
@@ -441,16 +432,8 @@ class MainWindow(QMainWindow):
             self.display_bba_folder.setPlainText("Please select a folder to plot.")
             return
 
-        good_files = []
-        for file in os.listdir(self.loadfolder):
-            if file.endswith("-results.mat"):
-                good_files.append(os.path.join(self.loadfolder, file))
-
-        load_folder_results = [Results.from_file(file) for file in good_files]
-
         bba_offsets_folder(
             self.machine,
-            load_folder_results,
             self.loadfolder,
             self.machine.config["SAVE_PLOTS"],
         )
