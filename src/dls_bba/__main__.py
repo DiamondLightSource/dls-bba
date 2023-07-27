@@ -92,12 +92,12 @@ def sort_elements(args) -> List[str]:
         else:
             elements = machine.cell_dictionary[args.cell]
     if args.bpm is not None:
-        if (args.bpm > len(machine.bpms_names)) and (args.bpm >= 1):
+        if (args.bpm > len(machine.bpms_names)) or (args.bpm <= 0):
             print(f"Invalid BPM selected. Try:  1 <= BPMs <= {len(machine.bpms_names)}")
         else:
             elements = [machine.bpms_names[args.bpm - 1]]
     if args.quad is not None:
-        if args.quad > len(machine.quads_names) and (args.quad >= 1):
+        if args.quad > len(machine.quads_names) or (args.quad <= 0):
             print(
                 f"Invalid Quad selected. Try:  1 <= Quads <= {len(machine.quads_names)}"
             )
