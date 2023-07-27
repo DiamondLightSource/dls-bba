@@ -236,6 +236,7 @@ class MainWindow(QMainWindow):
 
     def progress(self, fraction_left):
         percent_completed = ((1 - fraction_left) * 100)
+        log.info(f"Percent Completed: {percent_completed}%")
         self.progressBar.setValue(round(percent_completed))
 
     def reset_progressbar(self):
