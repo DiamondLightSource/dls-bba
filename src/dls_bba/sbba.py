@@ -53,7 +53,6 @@ class SlowBBA(Algorithm):
                     ("High", quad_high),
                     ("Low", quad_low),
                 ]:
-
                     log.info(f"Quadrupole to {movement} Setpoint")
                     self._machine.set_quad_setpoint(quadrupole, quad_movement, True)
 
