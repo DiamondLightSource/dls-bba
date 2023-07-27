@@ -40,12 +40,11 @@ def get_new_logger(folder_path: str, gui=None) -> None:
     logger.setLevel(log.NOTSET)
     filename = "log.log"
 
-    sys.stderr = StreamToLogger(logger, log.CRITICAL)
-
     # Console handler
     if gui is None:
         console_handler = log.StreamHandler()
     else:
+        sys.stderr = StreamToLogger(logger, log.CRITICAL)
         console_handler = gui
     console_handler.setLevel(log.INFO)
     console_handler.setFormatter(log.Formatter(CONSOLE_LOG_FORMAT))
