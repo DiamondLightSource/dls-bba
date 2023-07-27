@@ -234,7 +234,8 @@ class MainWindow(QMainWindow):
             self.stop_ticker()
 
     def progress(self, fraction_left):
-        self.progressBar.setValue(1 - fraction_left)
+        percent_completed = ((1 - fraction_left) * 100)
+        self.progressBar.setValue(round(percent_completed))
 
     def reset_progressbar(self):
         self.progressBar.setValue(0)

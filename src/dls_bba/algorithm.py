@@ -140,6 +140,7 @@ class Algorithm(ABC):
             offsets_dict.update(results.offsets.items())
 
         self._save_bba_offsets(offsets_dict, save_location)
+        # TODO: This is needed for CLI but not for GUI
         bba_offsets_plot(self._machine, offsets_dict, save_location)
         while True:
             msg = "Apply these BBA offsets? (y / n) : "
