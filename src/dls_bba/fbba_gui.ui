@@ -472,7 +472,7 @@
              </item>
             </layout>
            </widget>
-           <widget class="QCheckBox" name="config_use_feedbacks">
+           <widget class="QCheckBox" name="config_use_fofb">
             <property name="geometry">
              <rect>
               <x>30</x>
@@ -815,10 +815,10 @@
            </rect>
           </property>
           <property name="text">
-           <string>Critical Current [mA]</string>
+           <string>SOFB Runtime [s]</string>
           </property>
          </widget>
-         <widget class="QDoubleSpinBox" name="config_critical_current">
+         <widget class="QDoubleSpinBox" name="config_sofb_runtime">
           <property name="geometry">
            <rect>
             <x>10</x>
@@ -831,10 +831,10 @@
            <number>1</number>
           </property>
           <property name="minimum">
-           <double>0.100000000000000</double>
+           <double>1.000000000000000</double>
           </property>
           <property name="maximum">
-           <double>300.000000000000000</double>
+           <double>100.000000000000000</double>
           </property>
           <property name="value">
            <double>20.000000000000000</double>
@@ -900,14 +900,14 @@
          <widget class="QLabel" name="label_8">
           <property name="geometry">
            <rect>
-            <x>80</x>
+            <x>100</x>
             <y>180</y>
-            <width>161</width>
+            <width>121</width>
             <height>31</height>
            </rect>
           </property>
           <property name="text">
-           <string>Feedbacks Runtime [s]</string>
+           <string>FOFB Runtime [s]</string>
           </property>
          </widget>
          <widget class="QDoubleSpinBox" name="config_sbba_min_frac">
