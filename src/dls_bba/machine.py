@@ -374,55 +374,80 @@ class Machine:
 
     def apply_feedbacks(self):
         """"""
-        feedbacks_bool = self.config["FEEDBACKS"]
+        use_fofb = self.config["FOFB_FEEDBACKS"]
         log.info("Applying feedbacks")
 
-        if feedbacks_bool:
-            fofb_trigger = self.config["FOFB_NOGUI_PATH"]
+        if use_fofb:
             fofb_max_orbit = self.config["FOFB_MAX_ORBIT_MICRONS"]
-            fofb_on_off = self.config["FEEDBACK_PVS"]["Fast_Orbit_Feedback"]
-            tune_trigger = self.config["FEEDBACK_PVS"]["Tune_Feedback"]
-            waittime = self.config["FEEDBACK_WAITTIME"]
-            runtime = self.config["FEEDBACK_RUNTIME"]
-
-            log.warn("Correcting orbit with FOFB and Tune Feedbacks")
 
             max_value = self.get_largest_orbit()
             if max_value > fofb_max_orbit:
-                msg = "Orbit is too large for FOFB. Please run SOFB."
+                msg = "Orbit is too large for FOFB. Running SOFB."
                 log.error(msg)
                 while True:
-                    msg = "Press 'y' to continue after SOFB, or 'n' to cancel."
-                    response = self._ask_user(msg)
-                    if response == "n":
-                        msg = "User cancelled BBA: Due to uncorrected orbit"
-                        log.critical(msg)
-                        raise FastOrbitFeedbackError(msg)
-                    if response == "y":
-                        max_value = self.get_largest_orbit()
-                        if max_value > fofb_max_orbit:
-                            break
+                    self.run_sofb()
+                    max_value = self.get_largest_orbit()
+                    if max_value > fofb_max_orbit:
+                        break
 
-            run(f"{fofb_trigger} start", check=True, shell=True)
-            caput(tune_trigger, 1, wait=True)
+            self.run_fofb()
 
-            counter = 0
+        else:
+            self.run_sofb()
+
+    def confirm_fofb_activation(self) -> bool:
+        fofb_on_off = self.config["FEEDBACK_PVS"]["Fast_Orbit_Feedback"]
+        counter = 0
+        while True:
+            if counter == FOFB_RETRIES:
+                msg = "BBA cancelled due to FOFB activation failure."
+                log.critical(msg)
+                raise FastOrbitFeedbackError(msg)
+
+            if caget(fofb_on_off) == 1:
+                return True
+            Sleep(0.5)
+            counter += 1
+
+    def max_orbit_too_big_for_fofb(self):
+        fofb_max_orbit = self.config["FOFB_MAX_ORBIT_MICRONS"]
+        max_value = self.get_largest_orbit()
+        if max_value > fofb_max_orbit:
+            msg = "Orbit is too large for FOFB. Running SOFB."
+            log.error(msg)
             while True:
-                if counter == FOFB_RETRIES:
-                    msg = "BBA cancelled due to FOFB activation failure."
-                    log.critical(msg)
-                    raise FastOrbitFeedbackError(msg)
-
-                if caget(fofb_on_off) == 1:
+                self.run_sofb()
+                max_value = self.get_largest_orbit()
+                if max_value > fofb_max_orbit:
                     break
-                Sleep(0.5)
-                counter += 1
 
-            Sleep(runtime)
+    def run_sofb(self):
+        sofb_trigger = self.config["FEEDBACK_PVS"]["Slow_Orbit_Feedback"]
+        tune_trigger = self.config["FEEDBACK_PVS"]["Tune_Feedback"]
+        sofb_runtime = self.config["SOFB_RUNTIME"]
+        waittime = self.config["FEEDBACK_WAITTIME"]
+        caput(sofb_trigger, 1, wait=True)
+        caput(tune_trigger, 1, wait=True)
+        Sleep(sofb_runtime)
+        caput(tune_trigger, 0, wait=True)
+        caput(sofb_trigger, 0, wait=True)
+        Sleep(waittime)
 
-            caput(tune_trigger, 0, wait=True)
-            run(f"{fofb_trigger} stop", check=True, shell=True)
-            Sleep(waittime)
+    def run_fofb(self):
+        tune_trigger = self.config["FEEDBACK_PVS"]["Tune_Feedback"]
+        fofb_trigger = self.config["FOFB_NOGUI_PATH"]
+        waittime = self.config["FEEDBACK_WAITTIME"]
+        runtime = self.config["FEEDBACK_RUNTIME"]
+        run(f"{fofb_trigger} start", check=True, shell=True)
+        caput(tune_trigger, 1, wait=True)
+
+        if self.confirm_fofb_activation():
+            pass
+        Sleep(runtime)
+
+        caput(tune_trigger, 0, wait=True)
+        run(f"{fofb_trigger} stop", check=True, shell=True)
+        Sleep(waittime)
 
     def check_feedbacks(self):
         """"""
