@@ -501,7 +501,7 @@ class Machine:
     def zero_origins(self, folder_path: str):
         """"""
         # zeroes bcd and golden offsets. Golden must be restored later.
-        log.debug("Zeroing BCD and Golden Offsets")
+        log.info("Zeroing BCD and Golden Offsets")
         golden_offsets = {}
         pv_names = []
 
@@ -525,7 +525,7 @@ class Machine:
     def restore_origins(self, folder_path: str):
         """"""
         # restore golden orbits.
-        log.debug("Restoring Golden Offsets")
+        log.info("Restoring Golden Offsets")
 
         with open(os.path.join(folder_path, "golden_offsets.json")) as f:
             golden_offsets = json.load(f)
