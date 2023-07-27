@@ -1,8 +1,8 @@
+import logging as log
 import os
 import signal
 import sys
 from pathlib import Path
-import logging as log
 
 # isort: off
 import matplotlib
@@ -39,10 +39,10 @@ RAD_TO_URAD_CONV = 1e6
 
 
 class Ticker:
-    #    def __init__(self, worker, on_update):
-    def __init__(self, on_update):
+    def __init__(self, on_update, progress):
         self.__action = cothread.Event()
         self.__on_update = on_update
+        self.__progress = progress
         self.__state = "Idle"
         cothread.Spawn(self.__ticker)
 
@@ -54,13 +54,15 @@ class Ticker:
             self.__set_state("Running")
 
             worker.start()
-            running = True
-            while action == "run" and running:
+            fraction = 1
+            self.__progress(fraction)
+            while action == "run" and fraction > 0:
                 if self.__action:
                     action, _ = self.__action.Wait()
 
                 if action == "run":
-                    running = worker.work()
+                    fraction = worker.work()
+                    self.__progress(fraction)
 
                 elif action == "pause":
                     worker.pause()
@@ -174,7 +176,8 @@ class MainWindow(QMainWindow):
         self.apply_single_bba.clicked.connect(lambda: self.apply_bba_file())
 
         # Front page buttons
-        self.ticker = Ticker(self.ticker_update)
+        self.ticker = Ticker(self.ticker_update, self.progress)
+        self.reset_progressbar()
         self.pause_counter = 0
         self.button_start.clicked.connect(self.start_ticker)
         self.button_pause.clicked.connect(self.pause_resume_ticker)
@@ -231,13 +234,23 @@ class MainWindow(QMainWindow):
         if old_state == "Complete" and new_state == "Idle":
             self.stop_ticker()
 
+    def progress(self, fraction_left):
+        self.progressBar.setValue(1 - fraction_left)
+
+    def reset_progressbar(self):
+        self.progressBar.setValue(0)
+
     def get_worker(self):
         method = self.method_dropdown.currentText()
         folder_path = self.machine.config["SAVE_LOCATION"]
         if isinstance(self.selected, str):
             self.selected = [self.selected]
         return Worker(
-            method, self.selected, folder_path, logger=self.logger, additional_options=self.update_config()
+            method,
+            self.selected,
+            folder_path,
+            logger=self.logger,
+            additional_options=self.update_config(),
         )
 
     def reset_iocs(self):
@@ -321,7 +334,6 @@ class MainWindow(QMainWindow):
             "CORRECTOR_KICK_RADIANS": self.config_corr_kick.value() / RAD_TO_URAD_CONV,
             "QUADRUPOLE_STEP_PERCENT": self.config_quad_step.value(),
             "WARNING_CURRENT_DROP": self.config_warning_current.value(),
-            "CRITICAL_CURRENT_DROP": self.config_critical_current.value(),
             "FEEDBACK_WAITTIME": self.config_waittime.value(),
             "FEEDBACK_RUNTIME": self.config_runtime.value(),
             "MIN_SLOPE_FRACTION": self.config_sbba_min_frac.value(),
@@ -356,10 +368,11 @@ class MainWindow(QMainWindow):
         self.config_max_orbit.setValue(config["MAX_ORBIT_CORRECTION_MICRONS"])
         self.config_current_limit.setValue(config["MIN_CURRENT"])
 
-        self.config_corr_kick.setValue(config["CORRECTOR_KICK_RADIANS"] * RAD_TO_URAD_CONV)
+        self.config_corr_kick.setValue(
+            config["CORRECTOR_KICK_RADIANS"] * RAD_TO_URAD_CONV
+        )
         self.config_quad_step.setValue(config["QUADRUPOLE_STEP_PERCENT"])
         self.config_warning_current.setValue(config["WARNING_CURRENT_DROP"])
-        self.config_critical_current.setValue(config["CRITICAL_CURRENT_DROP"])
         self.config_waittime.setValue(config["FEEDBACK_WAITTIME"])
         self.config_runtime.setValue(config["FEEDBACK_RUNTIME"])
         self.config_sbba_min_frac.setValue(config["MIN_SLOPE_FRACTION"])

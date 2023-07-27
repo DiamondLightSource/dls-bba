@@ -115,7 +115,14 @@ def main():
 
     elif args.command == "run":
         elements = sort_elements(args)
-        worker = Worker(args.algorithm, elements, args.filepath, None, args.config_files, args.additional_config)
+        worker = Worker(
+            args.algorithm,
+            elements,
+            args.filepath,
+            None,
+            args.config_files,
+            args.additional_config,
+        )
         run_worker(worker)
 
     elif args.command == "plot":
