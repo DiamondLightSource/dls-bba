@@ -30,6 +30,7 @@ def setup_folders_and_logger(
     Args:
         method: The method of BBA.
         folder_path: The parent folder path to save to.
+        gui: The GUI logging handler if it exists.
 
     Returns:
         The folder path to save/load from/to.

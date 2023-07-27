@@ -33,6 +33,7 @@ def get_new_logger(folder_path: str, gui=None) -> None:
 
     Args:
         folder_path: The path to the folder where the log file will be saved.
+        gui: The GUI logging handler if it exists.
     """
 
     logger = log.getLogger()

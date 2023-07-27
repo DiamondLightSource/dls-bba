@@ -21,9 +21,14 @@ class Worker:
         additional_options: Optional[Dict[str, Any]] = None,
     ):
         self.machine = Machine(extra_config_files, additional_options)
-        folder_path = folder_path if folder_path is not None else self.machine.config["SAVE_LOCATION"]
+        folder_path = (
+            folder_path
+            if folder_path is not None
+            else self.machine.config["SAVE_LOCATION"]
+        )
         self.save_location = setup_folders_and_logger(method, folder_path, logger)
         self.components_pairs = get_component_pairs(self.machine, elements)
+        self.starting_length = len(self.components_pairs)
         self.algorithm: Algorithm = ALGORITHMS[method](self.machine)
         self.save_rawdata = self.machine.config["SAVE_RAWDATA"]
         self.save_results = self.machine.config["SAVE_RESULTS"]
@@ -41,7 +46,7 @@ class Worker:
         """Must return true if more work to be done."""
         # Select first pair and remove it from list.
         if not self.components_pairs:
-            return False
+            return 0
         log.debug("Work start")
         pair = self.components_pairs.pop(0)
 
@@ -65,7 +70,7 @@ class Worker:
         self.beam_current_decay.check_beam_decay()
 
         log.debug("Work end")
-        return True
+        return len(self.components_pairs) / self.starting_length
 
     def pause(self):
         log.debug("Paused")
@@ -81,8 +86,14 @@ class Worker:
         log.debug("Finished")
 
 
+def show_progress(left):
+    log.info(f"{100*left}% left")
+
+
 def run_worker(worker):
     worker.start()
-    while worker.work():
-        pass
+    fraction = 1
+    while fraction > 0:
+        fraction = worker.work()
+        show_progress(fraction)
     worker.finish()
