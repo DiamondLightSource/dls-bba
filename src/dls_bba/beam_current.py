@@ -24,15 +24,9 @@ class BeamCurrentCheck:
 
     def check_beam_drop(self) -> bool:
         warning_current_drop = self._machine.config["WARNING_CURRENT_DROP"]
-        critical_current_drop = self._machine.config["CRITICAL_CURRENT_DROP"]
         current_current = self._machine.get_beam_current()
         change_in_current = self._initial_current - current_current
         log.debug(f"Change in current: {change_in_current}")
-
-        if change_in_current > critical_current_drop:
-            msg = f"Beam current drop by >{critical_current_drop} mA"
-            log.critical(msg)
-            raise LowCurrentError(msg)
 
         if change_in_current > warning_current_drop:
             self.topup_beam()
