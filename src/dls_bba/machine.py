@@ -101,8 +101,8 @@ class Machine:
         if overrides is not None:
             self.config.update_config(overrides)
 
-    def _update_config(
-        self, extra_config_files: Optional[List[Any]] = None, dct: Optional[Dict] = None
+    def update_config(
+        self, extra_config_files: Optional[list[Any]] = None, dct: Optional[dict] = None
     ) -> None:
         """Update the configuration files and check if a reload is required.
 

@@ -1,6 +1,7 @@
 {
-    "FOFB_FEEDBACKS": true,
-    "FEEDBACKS": true,
+    "FOFB_FEEDBACKS": false,
+    "SAVE_LOCATION": "/dls/physics/owr68555/25July2023",
+    "FEEDBACKS": false,
     "CORRECTOR_KICK_RADIANS": 2e-5,
     "QUADRUPOLE_STEP_PERCENT": 1,
     "WARNING_CURRENT_DROP": 5,

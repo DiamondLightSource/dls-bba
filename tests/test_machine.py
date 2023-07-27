@@ -53,7 +53,7 @@ def test_machine_construction_is_valid_with_additional_files():
 
 def test_machine_can_be_updated_with_additional_files():
     machine = Machine()
-    machine._update_config(extra_config_files=default_config_resources)
+    machine.update_config(extra_config_files=default_config_resources)
     assert isinstance(machine, Machine)
 
 
@@ -81,7 +81,7 @@ def test_machine_construction_is_valid_with_additional_args_that_require_reload(
 
 def test_machine_can_be_updated_with_additional_args():
     machine = Machine()
-    machine._update_config(dct=extra_dict_no_reload)
+    machine.update_config(dct=extra_dict_no_reload)
     key = list(extra_dict_no_reload.keys())[0]
     value = extra_dict_no_reload[key]
     assert machine.config[key] == value
@@ -89,7 +89,7 @@ def test_machine_can_be_updated_with_additional_args():
 
 def test_machine_can_be_updated_with_additional_args_that_require_reload():
     machine = Machine()
-    machine._update_config(dct=extra_dict_with_reload)
+    machine.update_config(dct=extra_dict_with_reload)
     key = list(extra_dict_with_reload.keys())[0]
     value = extra_dict_with_reload[key]
     assert machine.config[key] == value
@@ -201,7 +201,7 @@ def test_get_element_from_name_fails_with_invalid_name(machine_setup):
 def test_update_config_fails_with_invalid_orm_file_path():
     machine = Machine()
     with pytest.raises(FileNotFoundError):
-        machine._update_config(dct=extra_dict_invalid_orm_path)
+        machine.update_config(dct=extra_dict_invalid_orm_path)
 
 
 def test_corrector_kick_valid_with_eng_units(machine_setup):

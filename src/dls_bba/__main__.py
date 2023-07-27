@@ -2,11 +2,12 @@ import json
 from argparse import ArgumentParser, Namespace
 from typing import Dict, List
 
-from dls_bba.cli import cli_entrypoint
+# from dls_bba.cli import cli_entrypoint
 from dls_bba.common import ALGORITHMS
 from dls_bba.gui import start_gui
 from dls_bba.machine import Machine
 from dls_bba.plotting import bba_offsets_folder, bowtie_plot
+from dls_bba.worker import Worker, run_worker
 
 from . import __version__
 
@@ -100,8 +101,8 @@ def parse_arguments() -> Namespace:
 
     for subparser in [parser_run, parser_plot]:
         subparser.add_argument(
-            "--save_location",
-            "-s",
+            "--filepath",
+            "-f",
             type=str,
             default=None,
             help="the location to save files to",
@@ -159,18 +160,20 @@ def main() -> None:
 
     elif args.command == "run":
         elements = sort_elements(args)
-        cli_entrypoint(
+        worker = Worker(
             args.algorithm,
             elements,
-            args.save_location,
+            args.filepath,
+            None,
             args.config_files,
             args.additional_config,
         )
+        run_worker(worker)
 
     elif args.command == "plot":
         if args.quadcenter:
             machine = Machine(args.config_files, args.additional_config)
-            bowtie_plot(args.save_location, machine.config["SAVE_PLOTS"])
+            bowtie_plot(args.filepath, machine.config["SAVE_PLOTS"])
         if args.difference:
             machine = Machine(args.config_files, args.additional_config)
             bba_offsets_folder(machine, args.difference, machine.config["SAVE_PLOTS"])

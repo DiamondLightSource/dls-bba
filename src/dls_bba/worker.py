@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.beam_current import BeamCurrentCheck
-from dls_bba.common import ALGORITHMS, setup_folders
+from dls_bba.common import ALGORITHMS, setup_folders_and_logger
 from dls_bba.components import get_component_pairs
 from dls_bba.datatypes import Results
 from dls_bba.excite import cancel_all_oscillations
@@ -14,14 +14,15 @@ class Worker:
     def __init__(
         self,
         method: str,
-        elements: str,
-        folder_path: str,
+        elements: List[str],
+        folder_path: Optional[str],
         logger: Optional[log.Handler],
         extra_config_files: Optional[List[str]] = None,
         additional_options: Optional[Dict[str, Any]] = None,
     ):
-        self.save_location = setup_folders(method, folder_path, logger)
         self.machine = Machine(extra_config_files, additional_options)
+        folder_path = folder_path if folder_path is not None else self.machine.config["SAVE_LOCATION"]
+        self.save_location = setup_folders_and_logger(method, folder_path, logger)
         self.components_pairs = get_component_pairs(self.machine, elements)
         self.algorithm: Algorithm = ALGORITHMS[method](self.machine)
         self.save_rawdata = self.machine.config["SAVE_RAWDATA"]
