@@ -26,7 +26,7 @@ def parse_arguments():
     )
     parent_parser.add_argument(
         "--additional_config",
-        "-a",
+        "-o",
         default=None,
         type=dict,
         help="Additional individual configuration options",
@@ -42,8 +42,8 @@ def parse_arguments():
     )
     parser_run.set_defaults(which="run")
     parser_run.add_argument(
-        "--method",
-        "-m",
+        "--algorithm",
+        "-a",
         default=None,
         type=str,
         choices=ALGORITHMS.keys(),
@@ -115,7 +115,7 @@ def main():
     elif args.which == "run":
         elements = sort_elements(args)
         cli_entrypoint(
-            args.method,
+            args.algorithm,
             elements,
             args.save_location,
             args.config_files,

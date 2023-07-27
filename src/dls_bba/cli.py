@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.common import ALGORITHMS, setup_beam_based_alignment, setup_folders
@@ -8,9 +8,9 @@ from dls_bba.machine import Machine
 
 def cli_entrypoint(
     method: str,
-    element: str,
+    element: List[str],
     folder_path: str,
-    extra_config_files: list[str],
+    extra_config_files: List[str],
     additional_options: dict[str, Any],
 ):
     """"""
@@ -20,7 +20,7 @@ def cli_entrypoint(
 
     # TODO: Can be moved inside setup_beam_based_alignment.
     # Currently outside so setup will work with multiple component pairs.
-    component_pairings = get_component_pairs(machine, [element])
+    component_pairings = get_component_pairs(machine, element)
 
     # Argparse stops invalid methods being selected.
     algorithm: Algorithm = ALGORITHMS[method](machine)
