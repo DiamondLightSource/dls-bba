@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.common import ALGORITHMS, setup_beam_based_alignment, setup_folders
@@ -34,10 +34,17 @@ def cli_show_cell_options(
     else:
         print(machine.cell_dictionary[cell_number])
 
+def cli_get_machine(
+    extra_config_files: list[str],
+    additional_options: dict[str, Any]):
+
+    machine = Machine(extra_config_files, additional_options)
+    return machine.bpms_names[111:]
+
 
 def cli_entrypoint(
     method: str,
-    element: str,
+    element: List[str],
     folder_path: str,
     extra_config_files: list[str],
     additional_options: dict[str, Any],

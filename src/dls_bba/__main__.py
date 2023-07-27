@@ -5,6 +5,7 @@ from dls_bba.cli import (
     cli_quadcenter_plot,
     cli_show_bpm_options,
     cli_show_cell_options,
+    cli_get_machine
 )
 from dls_bba.common import ALGORITHMS
 # from dls_bba.gui import start_gui
@@ -72,6 +73,12 @@ def parse_arguments():
         type=str,
         help="Display the BPM values in the cell if given the identifier. Eg: '04'",
     )
+    parser.add_argument(
+        "--whole",
+        "-w",
+        action="store_true",
+        help=""
+    )
     return parser.parse_args()
 
 
@@ -84,9 +91,11 @@ def main():
     if args.quadcenter is not None:
         cli_quadcenter_plot(args.quadcenter)
     if args.algorithm is not None:
-        cli_entrypoint(
-            args.algorithm, args.bpm, args.save_location, args.config, args.individual
-        )
+        if args.whole:
+            bpms = cli_get_machine(args.config, args.individual)
+        else:
+            bpms = [args.bpm]
+        cli_entrypoint(args.algorithm, bpms, args.save_location, args.config, args.individual)
 
 
 def parse_gui_arguments(args=None):
