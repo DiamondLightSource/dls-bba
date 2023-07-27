@@ -71,7 +71,11 @@ def paired_beam_based_alignment(
         if beam_current_drop.check_beam_drop():
             break
 
-    rawdata.save(save_location)
+    if machine.config["SAVE_RAWDATA"]:
+        rawdata.save(save_location)
+
     results = algorithm.analyse(rawdata)
-    results.save(save_location)
+    if machine.config["SAVE_RESULTS"]:
+        results.save(save_location)
+
     return results
