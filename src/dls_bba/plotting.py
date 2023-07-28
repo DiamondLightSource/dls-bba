@@ -3,6 +3,7 @@ from typing import Dict
 
 # isort: off
 import matplotlib
+import numpy as np
 
 matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt  # noqa E402
@@ -40,13 +41,14 @@ def bba_offsets_plot(
     save_location: str,
     save: bool = False,
 ) -> plt.figure:
+    x = np.arange(1, len(machine.bba_x_pvs) + 1)
     change_in_x = []
     change_in_dx = []
     for bpm_name in machine.bba_x_pvs:
         if bpm_name in offsets_dict.keys():
             calc_offsets = offsets_dict[bpm_name]
             change_in_x.append(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV)
-            change_in_dx.append(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV)
+            change_in_dx.append(abs(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV))
         else:
             change_in_x.append(0)
             change_in_dx.append(0)
@@ -57,7 +59,7 @@ def bba_offsets_plot(
         if bpm_name in offsets_dict.keys():
             calc_offsets = offsets_dict[bpm_name]
             change_in_y.append(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV)
-            change_in_dy.append(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV)
+            change_in_dy.append(abs(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV))
         else:
             change_in_y.append(0)
             change_in_dy.append(0)
@@ -66,10 +68,10 @@ def bba_offsets_plot(
     fig.suptitle("Change in BBA values")
     ax1.set_xlim(0, 174)
     ax1.axhline(y=0, color="k", linestyle="-", alpha=0.5)
-    ax1.errorbar(change_in_x, change_in_dx, color="b", capsize=5)
+    ax1.errorbar(x, change_in_x, yerr=change_in_dx, color="b", capsize=5, ecolor=(0.5, 0.5, 0.5))
     ax1.set_ylabel("Horizontal [um]")
     ax1.grid(which="both", axis="both")
-    ax2.errorbar(change_in_y, change_in_dy, color="r", capsize=5)
+    ax2.errorbar(x, change_in_y, yerr=change_in_dy, color="r", capsize=5, ecolor=(0.5, 0.5, 0.5))
     ax2.axhline(y=0, color="k", linestyle="-", alpha=0.5)
     ax2.set_ylabel("Vertical [um]")
     ax2.grid(which="both", axis="both")
