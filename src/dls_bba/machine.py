@@ -363,11 +363,6 @@ class Machine:
         """"""
         return float(self._lattice.get_value("beam_current"))
 
-    def _ask_user(self, msg):
-        response = input(msg).lower().strip()
-        log.debug(f"User Response: {response}")
-        return response
-
     def get_diagnostics(self):
         """"""
         diagnostics = self.config["DIAGNOSTICS"]

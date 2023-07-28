@@ -68,10 +68,14 @@ def bba_offsets_plot(
     fig.suptitle("Change in BBA values")
     ax1.set_xlim(0, 174)
     ax1.axhline(y=0, color="k", linestyle="-", alpha=0.5)
-    ax1.errorbar(x, change_in_x, yerr=change_in_dx, color="b", capsize=5, ecolor=(0.5, 0.5, 0.5))
+    ax1.errorbar(
+        x, change_in_x, yerr=change_in_dx, color="b", capsize=5, ecolor=(0.5, 0.5, 0.5)
+    )
     ax1.set_ylabel("Horizontal [um]")
     ax1.grid(which="both", axis="both")
-    ax2.errorbar(x, change_in_y, yerr=change_in_dy, color="r", capsize=5, ecolor=(0.5, 0.5, 0.5))
+    ax2.errorbar(
+        x, change_in_y, yerr=change_in_dy, color="r", capsize=5, ecolor=(0.5, 0.5, 0.5)
+    )
     ax2.axhline(y=0, color="k", linestyle="-", alpha=0.5)
     ax2.set_ylabel("Vertical [um]")
     ax2.grid(which="both", axis="both")

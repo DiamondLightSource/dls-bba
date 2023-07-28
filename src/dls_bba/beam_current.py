@@ -1,12 +1,14 @@
 import logging as log
+from typing import Callable
 
 from dls_bba.exceptions import LowCurrentError
 from dls_bba.machine import Machine
 
 
 class BeamCurrentCheck:
-    def __init__(self, machine: Machine) -> None:
+    def __init__(self, machine: Machine, question: Callable[[str], bool]) -> None:
         self._machine = machine
+        self.question = question
         self._store_initial_current()
 
     def _store_initial_current(self) -> None:
@@ -41,15 +43,16 @@ class BeamCurrentCheck:
             msg = f"Please topup current to > {start_current}mA."
             log.error(msg)
             msg = "Input y to continue after top-up, or n to cancel: "
-            response = self._machine._ask_user(msg)
+            response = self.question(msg)
 
-            if response == "n":
+            if response:
+                current = self._machine.get_beam_current()
+                if current > start_current:
+                    break
+
+            else:
                 msg = "User cancelled BBA: Due to beam current drop."
                 log.critical(msg)
                 raise LowCurrentError(msg)
 
-            elif response == "y":
-                current = self._machine.get_beam_current()
-                if current > start_current:
-                    break
         self._machine.check_feedbacks()

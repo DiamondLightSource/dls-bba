@@ -14,7 +14,12 @@ matplotlib.use("Qt5Agg")  # noqa: E402
 import cothread  # noqa: E402
 from cothread.catools import FORMAT_CTRL, caget  # noqa: E402
 from PyQt6 import QtCore, uic  # noqa: E402
-from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow  # noqa: E402
+from PyQt6.QtWidgets import (  # noqa: E402
+    QApplication,
+    QFileDialog,
+    QMainWindow,
+    QMessageBox,
+)
 
 from dls_bba.common import ALGORITHMS  # noqa: E402
 from dls_bba.datatypes import Results  # noqa: E402
@@ -124,6 +129,10 @@ class MainWindow(QMainWindow):
         self.setup_main_window()
         self.show_config()
         self.setup_qtextedit_logging()
+
+    def question(self, msg):
+        button = QMessageBox.question(self, "Question dialog", msg)
+        return button == QMessageBox.StandardButton.Yes
 
     def setup_qtextedit_logging(self):
         self.logger = GuiLogger()
@@ -235,7 +244,7 @@ class MainWindow(QMainWindow):
             self.stop_ticker()
 
     def progress(self, fraction_left):
-        percent_completed = ((1 - fraction_left) * 100)
+        percent_completed = (1 - fraction_left) * 100
         log.info(f"Percent Completed: {percent_completed}%")
         self.progressBar.setValue(round(percent_completed))
 
@@ -250,6 +259,7 @@ class MainWindow(QMainWindow):
         return Worker(
             method,
             self.selected,
+            self.question,
             folder_path,
             logger=self.logger,
             additional_options=self.update_config(),
