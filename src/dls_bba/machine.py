@@ -378,24 +378,13 @@ class Machine:
         log.info("Applying feedbacks")
 
         if use_fofb:
-            fofb_max_orbit = self.config["FOFB_MAX_ORBIT_MICRONS"]
-
-            max_value = self.get_largest_orbit()
-            if max_value > fofb_max_orbit:
-                msg = "Orbit is too large for FOFB. Running SOFB."
-                log.error(msg)
-                while True:
-                    self.run_sofb()
-                    max_value = self.get_largest_orbit()
-                    if max_value > fofb_max_orbit:
-                        break
-
+            self.max_orbit_too_big_for_fofb()
             self.run_fofb()
 
         else:
             self.run_sofb()
 
-    def confirm_fofb_activation(self) -> bool:
+    def confirm_fofb_activation(self) -> None:
         fofb_on_off = self.config["FEEDBACK_PVS"]["Fast_Orbit_Feedback"]
         counter = 0
         while True:
@@ -405,21 +394,18 @@ class Machine:
                 raise FastOrbitFeedbackError(msg)
 
             if caget(fofb_on_off) == 1:
-                return True
+                break
             Sleep(0.5)
             counter += 1
 
     def max_orbit_too_big_for_fofb(self):
         fofb_max_orbit = self.config["FOFB_MAX_ORBIT_MICRONS"]
         max_value = self.get_largest_orbit()
-        if max_value > fofb_max_orbit:
+        while max_value >= fofb_max_orbit:
             msg = "Orbit is too large for FOFB. Running SOFB."
             log.error(msg)
-            while True:
-                self.run_sofb()
-                max_value = self.get_largest_orbit()
-                if max_value > fofb_max_orbit:
-                    break
+            self.run_sofb()
+            max_value = self.get_largest_orbit()
 
     def run_sofb(self):
         sofb_trigger = self.config["FEEDBACK_PVS"]["Slow_Orbit_Feedback"]
@@ -441,8 +427,7 @@ class Machine:
         run(f"{fofb_trigger} start", check=True, shell=True)
         caput(tune_trigger, 1, wait=True)
 
-        if self.confirm_fofb_activation():
-            pass
+        self.confirm_fofb_activation()
         Sleep(runtime)
 
         caput(tune_trigger, 0, wait=True)
