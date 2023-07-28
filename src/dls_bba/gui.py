@@ -131,7 +131,7 @@ class MainWindow(QMainWindow):
         self.setup_qtextedit_logging()
 
     def question(self, msg):
-        button = QMessageBox.question(self, "Question dialog", msg)
+        button = QMessageBox.question(self, "BBA User Prompt", msg)
         return button == QMessageBox.StandardButton.Yes
 
     def setup_qtextedit_logging(self):

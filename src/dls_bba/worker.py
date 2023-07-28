@@ -83,7 +83,7 @@ class Worker:
 
     def finish(self):
         log.debug("Finishing")
-        self.algorithm.use_bba_offsets(self.results_list, self.save_location)
+        self.algorithm.use_bba_offsets(self.results_list, self.save_location, self.question)
         cancel_all_oscillations(self.machine.config)
         self.machine.restore_origins(self.save_location)
         log.debug("Finished")
@@ -105,6 +105,7 @@ def run_worker(worker):
 
 def ask_question(msg: str) -> bool:
     while True:
+        log.debug(f"Question: {msg}")
         response = input(msg).lower().strip()
         log.debug(f"User Response: {response}")
         if response in "yn":
