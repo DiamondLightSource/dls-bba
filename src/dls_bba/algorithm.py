@@ -76,13 +76,17 @@ class Algorithm(ABC):
         total_error = np.sqrt(sum_error) * mean_value
         return [mean_value, total_error]
 
-    def use_bba_offsets(self, results_list: List[Results], save_location: str, question: Callable[[str], bool]):
-        """"""
+    def reformat_and_save_offsets(self, results_list: List[Results], save_location: str,):
         offsets_dict: dict[str, CalculatedOffset] = {}
         for results in results_list:
             offsets_dict.update(results.offsets.items())
 
         self._save_bba_offsets(offsets_dict, save_location)
+        return offsets_dict
+
+    def use_bba_offsets(self, results_list: List[Results], save_location: str, question: Callable[[str], bool]):
+        """"""
+        offsets_dict = self.reformat_and_save_offsets(results_list, save_location)
         bba_offsets_plot(self._machine, offsets_dict, save_location)
         while True:
             if question("Apply these BBA offsets? (y / n) :"):
