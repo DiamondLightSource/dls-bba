@@ -1,7 +1,7 @@
 import logging as log
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
 from cothread import Sleep
@@ -128,28 +128,30 @@ class Algorithm(ABC):
         total_error = np.sqrt(sum_error) * mean_value
         return [mean_value, total_error]
 
-    def use_bba_offsets(self, results_list: List[Results], save_location: str) -> None:
+    def use_bba_offsets(
+        self,
+        results_list: List[Results],
+        save_location: str,
+        question: Callable[[str], bool],
+    ) -> None:
         """Saves, plots and asks the user if they want to apply the BBA offsets.
 
         Args:
             results_list: The list of results to use.
             save_location: The location to save the results to.
         """
-        offsets_dict: Dict[str, CalculatedOffset] = {}
+        offsets_dict: dict[str, CalculatedOffset] = {}
         for results in results_list:
             offsets_dict.update(results.offsets.items())
 
         self._save_bba_offsets(offsets_dict, save_location)
-        # TODO: This is needed for CLI but not for GUI
         bba_offsets_plot(self._machine, offsets_dict, save_location)
         while True:
-            msg = "Apply these BBA offsets? (y / n) : "
-            response = input(msg).lower().strip()
-            if response == "n":
-                break
-            elif response == "y":
+            if question("Apply these BBA offsets? (y / n) :"):
                 self.apply_bba_offsets(offsets_dict)
                 self._machine.apply_feedbacks()
+                break
+            else:
                 break
 
     def _save_bba_offsets(
