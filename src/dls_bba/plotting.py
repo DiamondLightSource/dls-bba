@@ -32,7 +32,7 @@ def bba_offsets_folder(
     for results in load_folder_results:
         offsets_dict.update(results.offsets.items())
 
-    bba_offsets_plot(machine, offsets_dict, os.path.dirname(folder_path), save)
+    bba_offsets_plot(machine, offsets_dict, folder_path, save)
 
 
 def bba_offsets_plot(
