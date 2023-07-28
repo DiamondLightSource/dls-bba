@@ -1,4 +1,5 @@
 import logging as log
+import traceback
 from typing import Any, Callable, Dict, List, Optional
 
 from dls_bba.algorithm import Algorithm
@@ -88,6 +89,13 @@ class Worker:
         self.machine.restore_origins(self.save_location)
         log.debug("Finished")
 
+    def forced_finish(self):
+        log.debug("Forced finish")
+        self.algorithm.reformat_and_save_offsets(self.results_list, self.save_location)
+        cancel_all_oscillations(self.machine.config)
+        self.machine.restore_origins(self.save_location)
+        log.debug("")
+
 
 def show_progress(left):
     percent = "%.2f" % (100 * left)
@@ -95,12 +103,16 @@ def show_progress(left):
 
 
 def run_worker(worker):
-    worker.start()
-    fraction = 1
-    while fraction > 0:
-        fraction = worker.work()
-        show_progress(fraction)
-    worker.finish()
+    try:
+        worker.start()
+        fraction = 1
+        while fraction > 0:
+            fraction = worker.work()
+            show_progress(fraction)
+        worker.finish()
+    except Exception:
+        traceback.print_exc()
+        worker.forced_finish()
 
 
 def ask_question(msg: str) -> bool:

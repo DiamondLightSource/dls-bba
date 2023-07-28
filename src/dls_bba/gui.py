@@ -2,6 +2,7 @@ import logging as log
 import os
 import signal
 import sys
+import traceback
 from pathlib import Path
 from typing import List
 
@@ -50,34 +51,45 @@ class Ticker:
         self.__state = "Idle"
         cothread.Spawn(self.__ticker)
 
+    def __do_tick(self, worker):
+        self.__set_state("Running")
+        worker.start()
+        fraction = 1
+        self.__progress(fraction)
+
+        action = "run"
+        while action == "run" and fraction > 0:
+            if self.__action:
+                action, _ = self.__action.Wait()
+
+            if action == "run":
+                fraction = worker.work()
+                self.__progress(fraction)
+
+            elif action == "pause":
+                worker.pause()
+                self.__set_state("Paused")
+                action, _ = self.__action.Wait()
+                worker.resume()
+                self.__set_state("Running")
+
+        self.__set_state("Complete")
+        worker.finish()
+        self.__set_state("Idle")
+
     def __ticker(self):
         while True:
             action = ""
             while action != "run":
                 action, worker = self.__action.Wait()
-            self.__set_state("Running")
 
-            worker.start()
-            fraction = 1
-            self.__progress(fraction)
-            while action == "run" and fraction > 0:
-                if self.__action:
-                    action, _ = self.__action.Wait()
-
-                if action == "run":
-                    fraction = worker.work()
-                    self.__progress(fraction)
-
-                elif action == "pause":
-                    worker.pause()
-                    self.__set_state("Paused")
-                    action, _ = self.__action.Wait()
-                    worker.resume()
-                    self.__set_state("Running")
-
-            self.__set_state("Complete")
-            worker.finish()
-            self.__set_state("Idle")
+            try:
+                self.__do_tick(worker)
+            except Exception:
+                traceback.print_exc()
+                self.__set_state("Complete")
+                worker.forced_finish()
+                self.__set_state("Idle")
 
     def __set_state(self, state):
         old_state = self.__state
@@ -209,6 +221,7 @@ class MainWindow(QMainWindow):
         self.button_start.setEnabled(False)
         self.button_pause.setEnabled(True)
         self.button_stop.setEnabled(True)
+        self.lock_unlock_pv.setEnabled(False)
         self.ticker.start_ticker(self.get_worker())
 
     def pause_resume_ticker(self):
@@ -226,6 +239,7 @@ class MainWindow(QMainWindow):
         self.button_start.setEnabled(True)
         self.button_pause.setEnabled(False)
         self.button_stop.setEnabled(False)
+        self.lock_unlock_pv.setEnabled(True)
 
         directory = self.machine.config["SAVE_LOCATION"]
         newest_folder = max(
