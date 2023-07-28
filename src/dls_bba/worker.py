@@ -1,5 +1,5 @@
 import logging as log
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.beam_current import BeamCurrentCheck
@@ -15,6 +15,7 @@ class Worker:
         self,
         method: str,
         elements: List[str],
+        question: Callable[[str], bool],
         folder_path: Optional[str],
         logger: Optional[log.Handler],
         extra_config_files: Optional[List[str]] = None,
@@ -30,6 +31,7 @@ class Worker:
         self.components_pairs = get_component_pairs(self.machine, elements)
         self.starting_length = len(self.components_pairs)
         self.algorithm: Algorithm = ALGORITHMS[method](self.machine)
+        self.question = question
         self.save_rawdata = self.machine.config["SAVE_RAWDATA"]
         self.save_results = self.machine.config["SAVE_RESULTS"]
         self.results_list: List[Results] = []
@@ -40,7 +42,7 @@ class Worker:
         log.debug("Worker Start Started.")
         self.machine.check_feedbacks()
         self.machine.zero_origins(self.save_location)
-        self.beam_current_decay = BeamCurrentCheck(self.machine)
+        self.beam_current_decay = BeamCurrentCheck(self.machine, self.question)
         log.debug("Worker Start Finished.")
 
     def work(self):
@@ -51,7 +53,7 @@ class Worker:
         log.debug("Work start")
         pair = self.components_pairs.pop(0)
 
-        beam_current_drop = BeamCurrentCheck(self.machine)
+        beam_current_drop = BeamCurrentCheck(self.machine, self.question)
 
         while True:
             self.machine.check_feedbacks()
@@ -88,7 +90,7 @@ class Worker:
 
 
 def show_progress(left):
-    percent = "%.2f" % (100*left)
+    percent = "%.2f" % (100 * left)
     log.info(f"{percent}% left")
 
 
@@ -99,3 +101,13 @@ def run_worker(worker):
         fraction = worker.work()
         show_progress(fraction)
     worker.finish()
+
+
+def ask_question(msg: str) -> bool:
+    while True:
+        response = input(msg).lower().strip()
+        log.debug(f"User Response: {response}")
+        if response in "yn":
+            return response == "y"
+        else:
+            print("Please answer y or n")

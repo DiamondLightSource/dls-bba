@@ -7,7 +7,7 @@ from dls_bba.common import ALGORITHMS
 from dls_bba.gui import start_gui
 from dls_bba.machine import Machine
 from dls_bba.plotting import bba_offsets_folder, bowtie_plot
-from dls_bba.worker import Worker, run_worker
+from dls_bba.worker import Worker, ask_question, run_worker
 
 from . import __version__
 
@@ -163,6 +163,7 @@ def main() -> None:
         worker = Worker(
             args.algorithm,
             elements,
+            ask_question,
             args.filepath,
             None,
             args.config_files,
