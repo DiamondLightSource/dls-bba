@@ -1215,16 +1215,6 @@
             <height>31</height>
            </rect>
           </property>
-          <item>
-           <property name="text">
-            <string>pytac.ENG</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>pytac.PHYS</string>
-           </property>
-          </item>
          </widget>
          <widget class="QLabel" name="label_17">
           <property name="geometry">
@@ -1248,11 +1238,6 @@
             <height>31</height>
            </rect>
           </property>
-          <item>
-           <property name="text">
-            <string>pytac.LIVE</string>
-           </property>
-          </item>
          </widget>
          <widget class="QLabel" name="label_18">
           <property name="geometry">
