@@ -2,7 +2,6 @@ import json
 from argparse import ArgumentParser, Namespace
 from typing import Dict, List
 
-# from dls_bba.cli import cli_entrypoint
 from dls_bba.common import ALGORITHMS
 from dls_bba.gui import start_gui
 from dls_bba.machine import Machine
