@@ -22,10 +22,13 @@ from PyQt6.QtWidgets import (  # noqa: E402
     QMessageBox,
 )
 
-from dls_bba.common import ALGORITHMS  # noqa: E402
-from dls_bba.datatypes import Results  # noqa: E402
+from dls_bba.common import (  # noqa: E402
+    ALGORITHMS,
+    apply_folder,
+    apply_golden,
+    apply_single,
+)
 from dls_bba.excite import cancel_all_oscillations  # noqa E402
-from dls_bba.fbba import FastBBA  # noqa: E402
 from dls_bba.isotime import get_isotime  # noqa: E402
 from dls_bba.machine import DATASOURCE, UNITS, Machine  # noqa: E402
 from dls_bba.plotting import bba_offsets_folder, bowtie_plot  # noqa: E402
@@ -305,19 +308,7 @@ class MainWindow(QMainWindow):
             self.display_most_recent.setText("Cannot apply recent until BBA has run.")
             return
 
-        good_files = []
-        for file in os.listdir(self.recent_folder):
-            if file.endswith("-results.mat"):
-                good_files.append(os.path.join(self.recent_folder, file))
-
-        load_folder_results = [Results.from_file(file) for file in good_files]
-
-        offsets_dict = {}
-        for results in load_folder_results:
-            offsets_dict.update(results.offsets.items())
-
-        algorithm = FastBBA(self.machine)
-        algorithm.apply_bba_offsets(offsets_dict)
+        apply_folder(self.recent_folder, self.machine)
 
     def reapply_golden_orbits(self):
         self.display_golden.clear()
@@ -330,8 +321,7 @@ class MainWindow(QMainWindow):
         if file == ("", ""):
             self.display_golden.setText("No file selected.")
             return
-        selected_file = os.path.dirname(file[0])
-        self.machine.restore_origins(selected_file)
+        apply_golden(file[0], self.machine)
         self.display_golden.setText(f"Golden Orbits restored at {get_isotime()}")
 
     def load_config_file(self):
@@ -437,19 +427,7 @@ class MainWindow(QMainWindow):
             self.display_bba_folder.setPlainText("Please select a folder to apply.")
             return
 
-        good_files = []
-        for file in os.listdir(self.loadfolder):
-            if file.endswith("-results.mat"):
-                good_files.append(os.path.join(self.loadfolder, file))
-
-        load_folder_results = [Results.from_file(file) for file in good_files]
-
-        offsets_dict = {}
-        for results in load_folder_results:
-            offsets_dict.update(results.offsets.items())
-
-        algorithm = FastBBA(self.machine)
-        algorithm.apply_bba_offsets(offsets_dict)
+        apply_folder(self.loadfolder, self.machine)
 
     def apply_bba_file(self):
         if self.loadfile is None:
@@ -457,9 +435,7 @@ class MainWindow(QMainWindow):
             self.display_single_bba.setPlainText("Please select a file to apply.")
             return
 
-        results_file = Results.from_file(self.loadfile)
-        algorithm = FastBBA(self.machine)
-        algorithm.apply_bba_offsets(results_file.offsets)
+        apply_single(self.loadfile, self.machine)
 
     def plot_bba_file(self):
         if self.loadfile is None:

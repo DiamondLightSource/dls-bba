@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from typing import List
 
-from dls_bba.common import ALGORITHMS
+from dls_bba.common import ALGORITHMS, apply_folder, apply_golden, apply_single
 from dls_bba.gui import start_gui
 from dls_bba.machine import Machine
 from dls_bba.plotting import bba_offsets_folder, bowtie_plot
@@ -58,13 +58,17 @@ def parse_arguments():
     group.add_argument("--quadcenter", "-Q", action="store_true", help="")
     group.add_argument("--difference", "-d", action="store_true", help="")
 
-    parser_apply = subparsers.add_parser("apply", parents=[parent_parser], add_help=False, description="Apply results")
+    parser_apply = subparsers.add_parser(
+        "apply", parents=[parent_parser], add_help=False, description="Apply results"
+    )
     parser_apply.set_defaults(command="apply")
-    parser_apply.add_argument("--load", "-l", type=str, default=None, help="The location to load from.")
+    parser_apply.add_argument(
+        "--load", "-l", type=str, default=None, help="The location to load from."
+    )
     group = parser_apply.add_mutually_exclusive_group(required=True)
     group.add_argument("--golden", "-g", action="store_true", help="")
     group.add_argument("--single", "-s", action="store_true", help="")
-    group.add_argument("--folder", "-f", action="store_true", help="")
+    group.add_argument("--multiple", "-m", action="store_true", help="")
 
     for subparser in [parser_info, parser_run]:
         group = subparser.add_mutually_exclusive_group(required=True)
@@ -143,11 +147,11 @@ def main():
 
     elif args.command == "apply":
         if args.golden:
-            pass
+            apply_golden(args.load, None, args.config_files, args.additional_config)
         if args.single:
-            pass
+            apply_single(args.load, None, args.config_files, args.additional_config)
         if args.folder:
-            pass
+            apply_folder(args.load, None, args.config_files, args.additional_config)
 
 
 def parse_gui_arguments(args=None):
