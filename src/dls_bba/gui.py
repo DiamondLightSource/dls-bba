@@ -2,8 +2,9 @@ import logging as log
 import os
 import signal
 import sys
-from pathlib import Path
 import traceback
+from pathlib import Path
+
 # isort: off
 import matplotlib
 from cothread.cothread import Callback, _QuitEvent

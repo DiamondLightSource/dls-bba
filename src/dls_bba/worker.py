@@ -84,7 +84,9 @@ class Worker:
 
     def finish(self):
         log.debug("Finishing")
-        self.algorithm.use_bba_offsets(self.results_list, self.save_location, self.question)
+        self.algorithm.use_bba_offsets(
+            self.results_list, self.save_location, self.question
+        )
         cancel_all_oscillations(self.machine.config)
         self.machine.restore_origins(self.save_location)
         log.debug("Finished")
