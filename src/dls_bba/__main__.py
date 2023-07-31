@@ -88,7 +88,7 @@ def sort_elements(args) -> List[str]:
         elements = machine.psps
     if args.cell is not None:
         if args.cell not in machine.cell_dictionary.keys():
-            print("Invalid cell selected. Try cells '00' to '24'")
+            print("Invalid cell selected. Try cells '01' to '24'")
         else:
             elements = machine.cell_dictionary[args.cell]
     if args.bpm is not None:
