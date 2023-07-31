@@ -151,6 +151,7 @@ class Algorithm(ABC):
         Args:
             results_list: The list of results to use.
             save_location: The location to save the results to.
+            question: The question function for the console or gui.
         """
         offsets_dict = self.reformat_and_save_offsets(results_list, save_location)
         bba_offsets_plot(self._machine, offsets_dict, save_location)
