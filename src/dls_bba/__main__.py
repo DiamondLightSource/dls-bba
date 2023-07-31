@@ -35,12 +35,12 @@ def parse_arguments():
     parser_info = subparsers.add_parser(
         "info", parents=[parent_parser], add_help=False, description="Get information"
     )
-    parser_info.set_defaults(which="info")
+    parser_info.set_defaults(command="info")
 
     parser_run = subparsers.add_parser(
         "run", parents=[parent_parser], add_help=False, description="Run BBA"
     )
-    parser_run.set_defaults(which="run")
+    parser_run.set_defaults(command="run")
     parser_run.add_argument(
         "--algorithm",
         "-a",
@@ -53,7 +53,7 @@ def parse_arguments():
     parser_plot = subparsers.add_parser(
         "plot", parents=[parent_parser], add_help=False, description="Plot results"
     )
-    parser_plot.set_defaults(which="plot")
+    parser_plot.set_defaults(command="plot")
     group = parser_plot.add_mutually_exclusive_group(required=True)
     group.add_argument("--quadcenter", "-Q", action="store_true", help="")
     group.add_argument("--difference", "-d", action="store_true", help="")
@@ -108,11 +108,11 @@ def sort_elements(args) -> List[str]:
 
 def main():
     args = parse_arguments()
-    if args.which == "info":
+    if args.command == "info":
         elements = sort_elements(args)
         print(elements)
 
-    elif args.which == "run":
+    elif args.command == "run":
         elements = sort_elements(args)
         cli_entrypoint(
             args.algorithm,
@@ -122,7 +122,7 @@ def main():
             args.additional_config,
         )
 
-    elif args.which == "plot":
+    elif args.command == "plot":
         if args.quadcenter:
             machine = Machine(args.config_files, args.additional_config)
             bowtie_plot(args.save_location, machine.config["SAVE_PLOTS"])
