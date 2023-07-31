@@ -6,6 +6,7 @@ from cothread import Sleep
 from dls_bba.algorithm import Algorithm
 from dls_bba.components import Components
 from dls_bba.datatypes import RawData, Results
+from dls_bba.exceptions import OscillationLengthError
 from dls_bba.excite import NETWORK_LAG, SAFETY_NET, Excitation, Oscillation, excite
 from dls_bba.faa import TICKS_PER_SECOND, Buffer, get_timestamp
 from dls_bba.isotime import get_isotime
@@ -91,7 +92,10 @@ class SimFastBBA(Algorithm):
                 oscillations[axis] = Oscillation(
                     kick[axis], components_pair[index], frequency, cycles
                 )
-            # TODO: X and Y oscillations must be same tick length. Must check.
+
+            if oscillations["x"].length != oscillations["y"].length:
+                msg = f"X: {oscillations['x'].length} != Y: {oscillations['y'].length}"
+                raise OscillationLengthError(msg)
 
             quad_lag_s = quad_step / QUAD_SLEW_RATE
             quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
