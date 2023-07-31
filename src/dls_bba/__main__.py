@@ -129,10 +129,10 @@ def main():
     elif args.command == "plot":
         if args.quadcenter:
             machine = Machine(args.config_files, args.additional_config)
-            bowtie_plot(args.filepath, machine.config["SAVE_PLOTS"])
+            bowtie_plot(args.filepath, True)
         if args.difference:
             machine = Machine(args.config_files, args.additional_config)
-            bba_offsets_folder(machine, args.difference, machine.config["SAVE_PLOTS"])
+            bba_offsets_folder(machine, args.filepath, True)
 
 
 def parse_gui_arguments(args=None):
