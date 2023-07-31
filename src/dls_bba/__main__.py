@@ -73,6 +73,14 @@ def parse_arguments() -> Namespace:
         help="plot the relative differences across an entire BBA run",
     )
 
+    parser_apply = subparsers.add_parser("apply", parents=[parent_parser], add_help=False, description="Apply results")
+    parser_apply.set_defaults(command="apply")
+    parser_apply.add_argument("--load", "-l", type=str, default=None, help="The location to load from.")
+    group = parser_apply.add_mutually_exclusive_group(required=True)
+    group.add_argument("--golden", "-g", action="store_true", help="")
+    group.add_argument("--single", "-s", action="store_true", help="")
+    group.add_argument("--folder", "-f", action="store_true", help="")
+
     for subparser in [parser_info, parser_run]:
         group = subparser.add_mutually_exclusive_group(required=True)
         group.add_argument(
@@ -177,6 +185,14 @@ def main() -> None:
         if args.difference:
             machine = Machine(args.config_files, args.additional_config)
             bba_offsets_folder(machine, args.filepath, True)
+
+    elif args.command == "apply":
+        if args.golden:
+            pass
+        if args.single:
+            pass
+        if args.folder:
+            pass
 
 
 def parse_gui_arguments(args=None) -> None:
