@@ -41,7 +41,13 @@ ORIGIN_SUFFIXES = {
     "BCD": ":CF:BCD_{axis}_S",
     "GOLDEN": ":CF:GOLDEN_{axis}_S",
 }
-
+UNITS = {
+    "ENG": pytac.ENG,
+    "PHYS": pytac.PHYS
+}
+DATASOURCE = {
+    "LIVE": pytac.LIVE
+}
 QUAD_SLEW_RATE = 0.5  # Amps/Second
 
 
@@ -129,10 +135,10 @@ class Machine:
             log.critical(msg)
             raise InvalidRingmodeError(msg, e)
 
-        self._lattice.set_default_units(eval(units))
+        self._lattice.set_default_units(UNITS[units])
         log.info(f"pytac units: {self._lattice.get_default_units()}")
 
-        self._lattice.set_default_data_source(datasource)
+        self._lattice.set_default_data_source(DATASOURCE[datasource])
         log.info(f"pytac datasource: {self._lattice.get_default_data_source()}")
 
     def _load_element_and_name_lists(self):
@@ -501,7 +507,7 @@ class Machine:
     def zero_origins(self, folder_path: str):
         """"""
         # zeroes bcd and golden offsets. Golden must be restored later.
-        log.debug("Zeroing BCD and Golden Offsets")
+        log.info("Zeroing BCD and Golden Offsets")
         golden_offsets = {}
         pv_names = []
 
@@ -525,7 +531,7 @@ class Machine:
     def restore_origins(self, folder_path: str):
         """"""
         # restore golden orbits.
-        log.debug("Restoring Golden Offsets")
+        log.info("Restoring Golden Offsets")
 
         with open(os.path.join(folder_path, "golden_offsets.json")) as f:
             golden_offsets = json.load(f)

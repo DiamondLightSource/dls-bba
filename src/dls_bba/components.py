@@ -98,7 +98,7 @@ class Components:
 
 
 def get_component_pairs(
-    machine: Machine, *element_names: str, verify: bool = True
+    machine: Machine, element_names: List[str], verify: bool = True
 ) -> List[List[Components]]:
     """"""
     component_pairs: List[List[Components]] = []
