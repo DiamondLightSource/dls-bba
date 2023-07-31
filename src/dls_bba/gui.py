@@ -216,7 +216,7 @@ class MainWindow(QMainWindow):
         self.tabWidget.setCurrentIndex(0)
 
     def start_ticker(self):
-        log.debug("GUI Start")
+        log.info("GUI Start Pressed")
         self.update_config()
         self.button_start.setEnabled(False)
         self.button_pause.setEnabled(True)
@@ -225,7 +225,7 @@ class MainWindow(QMainWindow):
         self.ticker.start_ticker(self.get_worker())
 
     def pause_resume_ticker(self):
-        log.warn("GUI Pause/Resume")
+        log.info("GUI Pause/Resume Pressed")
         self.ticker.pause_resume_ticker()
         log.debug(f"State: {self.ticker.state}")
         if self.ticker.state == "Running":
@@ -234,7 +234,7 @@ class MainWindow(QMainWindow):
             self.button_pause.setText("Pause")
 
     def stop_ticker(self):
-        log.critical("GUI Stop")
+        log.info("GUI Stop Pressed")
         self.ticker.stop_ticker()
         self.button_start.setEnabled(True)
         self.button_pause.setEnabled(False)

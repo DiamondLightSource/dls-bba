@@ -94,7 +94,7 @@ class Worker:
         self.algorithm.reformat_and_save_offsets(self.results_list, self.save_location)
         cancel_all_oscillations(self.machine.config)
         self.machine.restore_origins(self.save_location)
-        log.debug("")
+        log.debug("Forced finish finished")
 
 
 def show_progress(left):
