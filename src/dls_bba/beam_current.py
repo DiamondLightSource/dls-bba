@@ -15,11 +15,11 @@ class BeamCurrentCheck:
         log.debug(msg)
 
     def check_beam_decay(self) -> None:
-        decay_current = self._machine.config["MIN_CURRENT"]
+        min_current = self._machine.config["MIN_CURRENT"]
         current_current = self._machine.get_beam_current()
-        log.debug(f"Current: {current_current}; Decay limit: {decay_current}")
+        log.debug(f"Current: {current_current}; Decay limit: {min_current}")
 
-        if decay_current >= current_current:
+        if current_current < min_current:
             self.topup_beam()
 
     def check_beam_drop(self) -> bool:
