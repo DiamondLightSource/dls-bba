@@ -41,7 +41,13 @@ ORIGIN_SUFFIXES = {
     "BCD": ":CF:BCD_{axis}_S",
     "GOLDEN": ":CF:GOLDEN_{axis}_S",
 }
-
+UNITS = {
+    "ENG": pytac.ENG,
+    "PHYS": pytac.PHYS
+}
+DATASOURCE = {
+    "LIVE": pytac.LIVE
+}
 QUAD_SLEW_RATE = 0.5  # Amps/Second
 
 
@@ -129,10 +135,10 @@ class Machine:
             log.critical(msg)
             raise InvalidRingmodeError(msg, e)
 
-        self._lattice.set_default_units(eval(units))
+        self._lattice.set_default_units(UNITS[units])
         log.info(f"pytac units: {self._lattice.get_default_units()}")
 
-        self._lattice.set_default_data_source(eval(datasource))
+        self._lattice.set_default_data_source(DATASOURCE[datasource])
         log.info(f"pytac datasource: {self._lattice.get_default_data_source()}")
 
     def _load_element_and_name_lists(self):
