@@ -41,13 +41,8 @@ ORIGIN_SUFFIXES = {
     "BCD": ":CF:BCD_{axis}_S",
     "GOLDEN": ":CF:GOLDEN_{axis}_S",
 }
-UNITS = {
-    "ENG": pytac.ENG,
-    "PHYS": pytac.PHYS
-}
-DATASOURCE = {
-    "LIVE": pytac.LIVE
-}
+UNITS = {"ENG": pytac.ENG, "PHYS": pytac.PHYS}
+DATASOURCE = {"LIVE": pytac.LIVE}
 QUAD_SLEW_RATE = 0.5  # Amps/Second
 
 
