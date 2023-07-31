@@ -27,7 +27,7 @@ from dls_bba.datatypes import Results  # noqa: E402
 from dls_bba.excite import cancel_all_oscillations  # noqa E402
 from dls_bba.fbba import FastBBA  # noqa: E402
 from dls_bba.isotime import get_isotime  # noqa: E402
-from dls_bba.machine import Machine  # noqa: E402
+from dls_bba.machine import DATASOURCE, UNITS, Machine  # noqa: E402
 from dls_bba.plotting import bba_offsets_folder, bowtie_plot  # noqa: E402
 from dls_bba.worker import Worker  # noqa: E402
 
@@ -183,6 +183,11 @@ class MainWindow(QMainWindow):
         self.lock_unlock_pv.clicked.connect(lambda: self.lock_unlock_selection())
 
         # File / Folder selection, plotting and applying.
+        self.config_units.addItems(UNITS.keys())
+        self.config_units.setCurrentText(list(UNITS.keys())[0])
+        self.config_datasource.addItems(DATASOURCE.keys())
+        self.config_datasource.setCurrentText(list(DATASOURCE.keys())[0])
+
         self.button_save_loc.clicked.connect(lambda: self.select_save_location_folder())
         self.display_save_loc.setPlainText(self.machine.config["SAVE_LOCATION"])
         self.button_bba_folder.clicked.connect(lambda: self.select_bba_folder())
