@@ -1,17 +1,10 @@
 import os
-from typing import Optional  # List
+from typing import Optional
 
 from dls_bba.algorithm import Algorithm
-
-# from dls_bba.beam_current import BeamCurrentCheck
-# from dls_bba.components import Components
-# from dls_bba.datatypes import Results
-# from dls_bba.excite import cancel_all_oscillations
 from dls_bba.fbba import FastBBA
 from dls_bba.isotime import get_isotime
 from dls_bba.logger import get_new_logger
-
-# from dls_bba.machine import Machine
 from dls_bba.sbba import SlowBBA
 from dls_bba.simfbba import SimFastBBA
 
@@ -32,54 +25,3 @@ def setup_folders_and_logger(
     os.makedirs(bba_folderpath)
     get_new_logger(bba_folderpath, gui)
     return bba_folderpath
-
-
-# def setup_beam_based_alignment(
-#     machine: Machine,
-#     algorithm: Algorithm,
-#     components_pairs: list[list[Components]],
-#     save_location: str,
-# ):
-#     """"""
-#     results_list: List[Results] = []
-#     machine.check_feedbacks()
-#     machine.zero_origins(save_location)
-#     beam_current_decay = BeamCurrentCheck(machine)
-
-#     for components_pair in components_pairs:
-#         results = paired_beam_based_alignment(
-#             algorithm, machine, components_pair, save_location
-#         )
-#         results_list.append(results)
-#         beam_current_decay.check_beam_decay()
-
-#     algorithm.use_bba_offsets(results_list, save_location)
-
-#     cancel_all_oscillations(machine.config)
-#     machine.restore_origins(save_location)
-
-
-# def paired_beam_based_alignment(
-#     algorithm: Algorithm,
-#     machine: Machine,
-#     components_pair: list[Components],
-#     save_location: str,
-# ):
-#     """"""
-#     beam_current_drop = BeamCurrentCheck(machine)
-
-#     while True:
-#         machine.check_feedbacks()
-#         rawdata = algorithm.run(components_pair)
-
-#         if beam_current_drop.check_beam_drop():
-#             break
-
-#     if machine.config["SAVE_RAWDATA"]:
-#         rawdata.save(save_location)
-
-#     results = algorithm.analyse(rawdata)
-#     if machine.config["SAVE_RESULTS"]:
-#         results.save(save_location)
-
-#     return results
