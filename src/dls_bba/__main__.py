@@ -3,7 +3,6 @@ from typing import List
 
 from dls_bba.cli import cli_entrypoint
 from dls_bba.common import ALGORITHMS
-from dls_bba.gui import start_gui
 from dls_bba.machine import Machine
 from dls_bba.plotting import bba_offsets_folder, bowtie_plot
 
@@ -139,7 +138,6 @@ def parse_gui_arguments(args=None):
 
 def gui_main():
     parse_gui_arguments()
-    start_gui()
 
 
 # test with: python -m dls_bba
