@@ -14,8 +14,6 @@ from PyQt6.QtWidgets import QMainWindow  # noqa: E402
 from dls_bba.common import ALGORITHMS  # noqa: E402
 from dls_bba.machine import Machine  # noqa: E402
 
-_qapp = cothread.iqt()
-
 if sys.version_info > (3, 9):
     from importlib.resources import files
 else:
@@ -45,6 +43,7 @@ class MainWindow(QMainWindow):
 
 
 def start_gui():
+    _qapp = cothread.iqt()  # noqa
     window = MainWindow()
     window.show()
     cothread.WaitForQuit()
