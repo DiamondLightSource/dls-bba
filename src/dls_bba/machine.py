@@ -380,15 +380,20 @@ class Machine:
 
     def apply_feedbacks(self):
         """"""
+        use_feedbacks = self.config["FEEDBACKS"]
         use_fofb = self.config["FOFB_FEEDBACKS"]
-        log.info("Applying feedbacks")
 
-        if use_fofb:
-            self.max_orbit_too_big_for_fofb()
-            self.run_fofb()
+        if use_feedbacks:
+            log.info("Applying feedbacks")
 
+            if use_fofb:
+                self.max_orbit_too_big_for_fofb()
+                self.run_fofb()
+
+            else:
+                self.run_sofb()
         else:
-            self.run_sofb()
+            log.warn("Orbit needs correction but feedbacks are disabled.")
 
     def confirm_fofb_activation(self) -> None:
         fofb_on_off = self.config["FEEDBACK_PVS"]["Fast_Orbit_Feedback"]
@@ -454,7 +459,7 @@ class Machine:
         max_value = self.get_largest_orbit()
 
         if max_value >= max_orbit:
-            log.info(f"Orbit larger than {max_value} um. Running Feedbacks")
+            log.info(f"Orbit larger than {max_orbit} um.")
             self.apply_feedbacks()
 
     def get_largest_orbit(self) -> float:
