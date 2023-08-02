@@ -52,7 +52,7 @@ class Oscillation:
 
     @property
     def length(self):
-        length = int(TICKS_PER_SECOND * (self.cycles / self.frequency))
+        length = round(TICKS_PER_SECOND * (self.cycles / self.frequency))
         return length
 
 
