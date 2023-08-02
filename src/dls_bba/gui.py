@@ -348,7 +348,8 @@ class MainWindow(QMainWindow):
     def update_config(self):
         dct = {
             "SAVE_LOCATION": self.display_save_loc.toPlainText(),
-            "FEEDBACKS": self.config_use_fofb.isChecked(),
+            "FEEDBACKS": self.config_use_feedbacks.isChecked(),
+            "FOFB_FEEDBACKS": self.config_use_fofb.isChecked(),
             "MAX_ORBIT_CORRECTION_MICRONS": self.config_max_orbit.value(),
             "MIN_CURRENT": self.config_current_limit.value(),
             "CORRECTOR_KICK_RADIANS": self.config_corr_kick.value() / RAD_TO_URAD_CONV,
@@ -385,6 +386,7 @@ class MainWindow(QMainWindow):
     def show_config(self):
         config = self.machine.config
 
+        self.config_use_feedbacks.setChecked(config["FEEDBACKS"])
         self.config_use_fofb.setChecked(config["FOFB_FEEDBACKS"])
         self.config_max_orbit.setValue(config["MAX_ORBIT_CORRECTION_MICRONS"])
         self.config_current_limit.setValue(config["MIN_CURRENT"])
