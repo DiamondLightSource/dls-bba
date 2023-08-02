@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from subprocess import check_output
 
-import requests
+import requests  # type: ignore
 
 import dls_bba
 
@@ -63,6 +63,8 @@ nitpick_ignore = [
     ("py:class", "'object'"),
     ("py:class", "'id'"),
     ("py:class", "typing_extensions.Literal"),
+    # Added, but custom for dls-bba
+    ("py:class", "PyQt6.QtWidgets.QMainWindow"),
 ]
 
 # Both the class’ and the __init__ method’s docstring are concatenated and
@@ -98,7 +100,12 @@ pygments_style = "sphinx"
 
 # This means you can link things like `str` and `asyncio` to the relevant
 # docs in the python documentation.
-intersphinx_mapping = dict(python=("https://docs.python.org/3/", None))
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "pytac": ("https://diamondlightsource.github.io/pytac/main/", None),
+    "PyQt6": ("https://www.riverbankcomputing.com/static/Docs/PyQt6/", None),
+}
 
 # A dictionary of graphviz graph attributes for inheritance diagrams.
 inheritance_graph_attrs = dict(rankdir="TB")
