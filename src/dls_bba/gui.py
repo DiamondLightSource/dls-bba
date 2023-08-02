@@ -631,7 +631,7 @@ class MainWindow(QMainWindow):
 
 
 def start_gui():
-    _qapp = cothread.iqt()  # noqa
+    _qapp = cothread.iqt(poll_interval=0.01)  # noqa
     window = MainWindow()
     window.show()
     # cothread.WaitForQuit()
