@@ -1,31 +1,54 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
+from typing import Any, Dict, Tuple
 
 import numpy as np
 from cothread.catools import caput
 
 from dls_bba.components import Components
 from dls_bba.faa import TICKS_PER_SECOND
+from dls_bba.machine import Machine
 
 NETWORK_LAG_S = 0.5
+"""Time in seconds to wait for network lag."""
 SAFETY_NET_S = 0.1
+"""Time in seconds to wait for safety net."""
 NETWORK_LAG = int(NETWORK_LAG_S * TICKS_PER_SECOND)
+"""Time in ticks to wait for network lag."""
 SAFETY_NET = int(SAFETY_NET_S * TICKS_PER_SECOND)
+"""Time in ticks to wait for safety net."""
 
 PLANES = 2
+"""Number of planes (x, y) in the machine."""
 MAX_CORRECTORS = 9
+"""Maximum number of correctors per plane per cell."""
 N = MAX_CORRECTORS * PLANES
+"""Maximum number of correctors per cell."""
 
 
 @dataclass
 class FofbCorrector:
+    """The FOFB Corrector information."""
+
     index: int
     ioc: str
     fofb_index: int
     slow: int
 
     @classmethod
-    def from_corrector_table(cls, machine, components: Components):
-        """Create FofbCorrector tuple from pytac element."""
+    def from_corrector_table(
+        cls, machine: Machine, components: Components
+    ) -> FofbCorrector:
+        """Create FofbCorrector class from Components object.
+
+        Args:
+            machine: The machine object.
+            components: The components object.
+
+        Returns:
+            The FofbCorrector object.
+        """
         table = cls.get_corrector_table(machine)
         name = components.corrector_name
         # Corrector table indices start from 1
@@ -36,7 +59,15 @@ class FofbCorrector:
         return cls(index, ioc, fofb_index, slow)
 
     @staticmethod
-    def get_corrector_table(machine):
+    def get_corrector_table(machine: Machine):
+        """Get the corrector IOC table.
+
+        Args:
+            machine: The machine object.
+
+        Returns:
+            The corrector IOC table.
+        """
         correctors_txt = machine.config["CORRECTORS_TXT_PATH"]
         with open(correctors_txt, "r", encoding="utf8", newline="") as file:
             data = np.genfromtxt(file, names=True, dtype=None, encoding="UTF-8")
@@ -45,13 +76,16 @@ class FofbCorrector:
 
 @dataclass
 class Oscillation:
+    """The oscillation parameters."""
+
     amplitude: float
     component: Components
     frequency: int
     cycles: int
 
     @property
-    def length(self):
+    def length(self) -> int:
+        """The length of the oscillation in ticks."""
         length = round(TICKS_PER_SECOND * (self.cycles / self.frequency))
         return length
 
@@ -60,8 +94,20 @@ class Excitation(object):
     """An excitation performed on a corrector."""
 
     def __init__(
-        self, machine, components: Components, oscillation: Oscillation, start_time: int
-    ):
+        self,
+        machine: Machine,
+        components: Components,
+        oscillation: Oscillation,
+        start_time: int,
+    ) -> None:
+        """Set up the excitation information.
+
+        Args:
+            machine: The machine object.
+            components: The components object.
+            oscillation: The oscillation parameters.
+            start_time: The time in ticks to start the excitation.
+        """
         self.corrector = components.corrector
         self.oscillation: Oscillation = oscillation
         self.start_time: int = start_time
@@ -81,7 +127,7 @@ class Excitation(object):
         self.iocs = machine.config["CORRECTOR_IOCS"]
 
 
-def excite(excitations):
+def excite(excitations: Tuple[Excitation, ...]) -> None:
     """Completes caputs which will start the excitation."""
 
     iocs = excitations[0].iocs
@@ -93,7 +139,7 @@ def excite(excitations):
     )
 
     # Create dict of PVs to put
-    pvs = {}
+    pvs: Dict[str, Any] = {}
     for e in excitations:
         pvs.update(
             {
@@ -132,7 +178,7 @@ def excite(excitations):
     )
 
 
-def cancel_all_oscillations(config):
+def cancel_all_oscillations(config: Dict[str, Any]) -> None:
     """"""
     # Set all to 0, then prime for all IOCS.
     iocs = config["CORRECTOR_IOCS"]

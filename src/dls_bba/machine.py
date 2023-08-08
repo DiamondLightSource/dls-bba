@@ -4,12 +4,9 @@ import os
 from collections import defaultdict
 from functools import wraps
 from subprocess import run
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cothread
-
-# import matplotlib
-# import matplotlib.pyplot as plt
 import numpy as np
 import pytac
 from cothread import Sleep
@@ -29,26 +26,26 @@ from dls_bba.exceptions import (
     InvalidRingmodeError,
 )
 
-# matplotlib.use("Qt5Agg")
-
-
 # Cannot exist inside config files.
 BPM_RETRIES = os.getenv("BBA_BPM_RETRIES", 5)
+"""Number of times to retry a BPM connection."""
 FOFB_RETRIES = 10
+"""Number of times to retry triggering FOFB."""
 
 ORIGIN_SUFFIXES = {
     "BBA": ":CF:BBA_{axis}_S",
     "BCD": ":CF:BCD_{axis}_S",
     "GOLDEN": ":CF:GOLDEN_{axis}_S",
 }
-UNITS = {
-    "ENG": pytac.ENG,
-    "PHYS": pytac.PHYS
-}
-DATASOURCE = {
-    "LIVE": pytac.LIVE
-}
-QUAD_SLEW_RATE = 0.5  # Amps/Second
+"""Suffixes for the origin PVs."""
+UNITS = {"ENG": pytac.ENG, "PHYS": pytac.PHYS}
+"""Units for the machine."""
+DATASOURCE = {"LIVE": pytac.LIVE}
+"""Data sources for the machine."""
+QUAD_SLEW_RATE = 0.5
+"""Slew rate for quadrupoles in amps per second."""
+MM_MICRON_CONVERSION = 1000
+"""Conversion factor from mm to microns."""
 
 
 def _retry_command(num_tries, excp_type):
@@ -73,30 +70,46 @@ def _retry_command(num_tries, excp_type):
 
 
 class Machine:
-    """"""
+    """The Machine class is the main interface to the machine."""
 
     def __init__(
         self,
-        extra_config_files: Optional[list[Any]] = None,
-        overrides: Optional[dict[str, Any]] = None,
-    ):
-        """"""
+        extra_config_files: Optional[List[Any]] = None,
+        overrides: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Initialise the Machine class.
+
+        Args:
+            extra_config_files: List of extra configuration files to load.
+            overrides: Dictionary of configuration overrides.
+        """
         self._load_config(extra_config_files, overrides)
         self._load_lattice_and_ringmode_elements()
 
     def _load_config(
         self,
-        extra_config_files: Optional[list[Any]] = None,
-        overrides: Optional[dict[str, Any]] = None,
-    ):
-        """"""
+        extra_config_files: Optional[List[Any]] = None,
+        overrides: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Load the provided configuration files and overrides.
+
+        Args:
+            extra_config_files: List of extra configuration files to load.
+            overrides: Dictionary of configuration overrides.
+        """
         self.config = Configuration.from_configuration_files(extra_config_files)
         if overrides is not None:
             self.config.update_config(overrides)
 
     def _update_config(
-        self, extra_config_files: Optional[list[Any]] = None, dct: Optional[dict] = None
-    ):
+        self, extra_config_files: Optional[List[Any]] = None, dct: Optional[Dict] = None
+    ) -> None:
+        """Update the configuration files and check if a reload is required.
+
+        Args:
+            extra_config_files: List of extra configuration files to load.
+            dct: Dictionary of configuration overrides.
+        """
         flag_files = False
         flag_dict = False
 
@@ -110,7 +123,8 @@ class Machine:
             log.debug("Major Config Change: Reloading Lattice")
             self._load_lattice_and_ringmode_elements()
 
-    def _load_lattice_and_ringmode_elements(self):
+    def _load_lattice_and_ringmode_elements(self) -> None:
+        """Load the lattice and ringmode elements."""
         self._setup_pytac_lattice()
         self._load_element_and_name_lists()
         self._load_cell_dictionary_and_psps()
@@ -119,8 +133,12 @@ class Machine:
         self._get_effective_corrector()
         log.debug("Lattice Loaded")
 
-    def _setup_pytac_lattice(self):
-        """"""
+    def _setup_pytac_lattice(self) -> None:
+        """Load the pytac lattice with a specially constructed control system.
+
+        Raises:
+            InvalidRingmodeError: If the ringmode does not exist in pytac.
+        """
         ringmode = self.config["RINGMODE"]
         units = self.config["UNITS"]
         datasource = self.config["DATASOURCE"]
@@ -141,22 +159,28 @@ class Machine:
         self._lattice.set_default_data_source(DATASOURCE[datasource])
         log.info(f"pytac datasource: {self._lattice.get_default_data_source()}")
 
-    def _load_element_and_name_lists(self):
-        """"""
+    def _load_element_and_name_lists(self) -> None:
+        """Load the elements and names lists."""
 
-        self.bpms = self._lattice.get_elements("BPM")
-        self.bpms_names = [bpm.get_device("x").name for bpm in self.bpms]
+        self.bpms: List[EpicsElement] = self._lattice.get_elements("BPM")
+        self.bpms_names: List[str] = [bpm.get_device("x").name for bpm in self.bpms]
 
-        self.hstrs = self._lattice.get_elements("HSTR")
-        self.hstrs_names = [hstr.get_device("x_kick").name for hstr in self.hstrs]
+        self.hstrs: List[EpicsElement] = self._lattice.get_elements("HSTR")
+        self.hstrs_names: List[str] = [
+            hstr.get_device("x_kick").name for hstr in self.hstrs
+        ]
 
-        self.vstrs = self._lattice.get_elements("VSTR")
-        self.vstrs_names = [vstr.get_device("y_kick").name for vstr in self.vstrs]
+        self.vstrs: List[EpicsElement] = self._lattice.get_elements("VSTR")
+        self.vstrs_names: List[str] = [
+            vstr.get_device("y_kick").name for vstr in self.vstrs
+        ]
 
-        self.quads = self._lattice.get_elements("quadrupole")
-        self.quads_names = [quad.get_device("b1").name for quad in self.quads]
+        self.quads: List[EpicsElement] = self._lattice.get_elements("quadrupole")
+        self.quads_names: List[str] = [
+            quad.get_device("b1").name for quad in self.quads
+        ]
 
-        self.fofb_disabled = {}
+        self.fofb_disabled: Dict[str, List[int]] = {}
         self.fofb_disabled["x"] = [
             int(v)
             for v in self._lattice.get_element_values(
@@ -169,11 +193,11 @@ class Machine:
                 "BPM", "y_fofb_disabled", pytac.RB
             )
         ]
-        self.fofb_disabled_indices = {
+        self.fofb_disabled_indices: Dict[str, List[int]] = {
             "x": np.nonzero(self.fofb_disabled["x"])[0].tolist(),
             "y": np.nonzero(self.fofb_disabled["y"])[0].tolist(),
         }
-        self.disabled_bpm_indices = np.flatnonzero(
+        self.disabled_bpm_indices: List[int] = np.flatnonzero(
             np.logical_not(self.get_enabled_bpms())
         ).tolist()
 
@@ -188,8 +212,8 @@ class Machine:
             name + ORIGIN_SUFFIXES["BBA"].format(axis="Y") for name in self.bpms_names
         ]
 
-    def _load_cell_dictionary_and_psps(self):
-        """"""
+    def _load_cell_dictionary_and_psps(self) -> None:
+        """Populate the cell dictionary and psps."""
         PSPdict = self.config._config["PSPS"]
 
         # Cell Dictionary defined by PV names.
@@ -205,10 +229,10 @@ class Machine:
                 psps.append(self.cell_dictionary[cell][int(index)])
         self.psps = psps
 
-    def _load_b2q_q2b(self):
-        """"""
-        _Q2B_special_cases = self.config["QUAD2BPM_SPECIAL_CASES"]
-        _B2Q_special_cases = self.config["BPM2QUAD_SPECIAL_CASES"]
+    def _load_b2q_q2b(self) -> None:
+        """Load the BPM to Quadrupole and Quadrupole to BPM dictionaries."""
+        _Q2B_special_cases: Dict[str, str] = self.config["QUAD2BPM_SPECIAL_CASES"]
+        _B2Q_special_cases: Dict[str, List[str]] = self.config["BPM2QUAD_SPECIAL_CASES"]
 
         self._bpms_s = self._lattice.get_family_s("BPM")
         self._quads_s = self._lattice.get_family_s("quadrupole")
@@ -220,10 +244,13 @@ class Machine:
         self._get_quad2bpm(_Q2B_special_cases)
         self._get_bpm2quad(_B2Q_special_cases)
 
-    def _get_quad2bpm(self, Q2B_special_cases):
-        """"""
-        # should only have a 1 to 1 pairing, and not every bpm is used. Every Quad must be used.
-        q2b_names = {}
+    def _get_quad2bpm(self, Q2B_special_cases: Dict[str, str]) -> None:
+        """Generate the quad2bpm dictionary. 1 to 1. Asymmetrical.
+
+        Args:
+            Q2B_special_cases: Dictionary of special cases for the quad2bpm dictionary.
+        """
+        q2b_names: Dict[str, str] = {}
 
         for quad, quad_name, quad_mid in zip(
             self.quads, self.quads_names, self._quads_mid
@@ -240,7 +267,14 @@ class Machine:
         self._quad2bpm_names = q2b_names
 
     def quad2bpm(self, quad: str) -> str:
-        """"""
+        """Return the BPM name for a given quadrupole name.
+
+        Args:
+            quad: Quadrupole name.
+
+        Returns:
+            BPM name.
+        """
         try:
             return self._quad2bpm_names[quad]
         except KeyError:
@@ -248,10 +282,13 @@ class Machine:
             log.critical(msg)
             raise InvalidElementError(msg)
 
-    def _get_bpm2quad(self, _B2Q_special_cases):
-        """"""
-        # every bpm must be used, not every quad will be. 1 to many.
-        b2q_names = defaultdict(list)
+    def _get_bpm2quad(self, _B2Q_special_cases: Dict[str, List[str]]) -> None:
+        """Generate the bpm2quad dictionary. 1 to many. Asymmetrical.
+
+        Args:
+            _B2Q_special_cases: Dictionary of special cases for the bpm2quad dictionary.
+        """
+        b2q_names: Dict[str, List[str]] = defaultdict(list)
 
         for bpm_name in self.bpms_names:
             if bpm_name not in _B2Q_special_cases:
@@ -265,10 +302,15 @@ class Machine:
 
         self._bpm2quad_names = b2q_names
 
-    def bpm2quad(self, bpm: str) -> list[str]:
-        """"""
-        # bpm can be either PV or element, default element.
-        # Will return 1 to many.
+    def bpm2quad(self, bpm: str) -> List[str]:
+        """Return the quadrupole names for a given BPM name.
+
+        Args:
+            bpm: BPM name.
+
+        Returns:
+            List of quadrupole names.
+        """
         if bpm in self._bpm2quad_names:
             return self._bpm2quad_names[bpm]
         else:
@@ -277,17 +319,27 @@ class Machine:
             raise InvalidElementError(msg)
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
-    def get_enabled_bpms(self):
+    def get_enabled_bpms(self) -> List[Any]:
         """"""
         return self._lattice.get_element_values("BPM", "enabled")
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
-    def measure_bpms(self, axis: str):
+    def measure_bpms(self, axis: str) -> List[Any]:
         """"""
         return self._lattice.get_element_values("BPM", f"{axis}", pytac.RB)
 
-    def get_element_from_name(self, name):
-        """"""
+    def get_element_from_name(self, name: str) -> EpicsElement:
+        """Return the element object for a given element name.
+
+        Args:
+            name: Element name.
+
+        Returns:
+            Element object.
+
+        Raises:
+            NotImplementedError: If the element name is not recognised.
+        """
         if "-DI-EBPM-" in name:
             element = self.bpms[self.bpms_names.index(name)]
         elif "-PC-Q" in name:
@@ -302,9 +354,13 @@ class Machine:
             raise NotImplementedError(msg)
         return element
 
-    def _get_slow_correctors(self) -> list[str]:
-        """"""
-        # SRxxS or xSCOR correctors are slow
+    def _get_slow_correctors(self) -> List[str]:
+        """Return a list of slow corrector names.
+        A corrector is slow if its name is in the format SR__S or _SCOR.
+
+        Returns:
+            List of slow corrector names.
+        """
         slow_correctors = []
         for corrector_name in self.hstrs_names + self.vstrs_names:
             split_name = corrector_name.split("-")
@@ -312,8 +368,13 @@ class Machine:
                 slow_correctors.append(corrector_name)
         return slow_correctors
 
-    def _get_best_corrector_for_bpm(self, index: int, bpm_name: str):
-        """"""
+    def _get_best_corrector_for_bpm(self, index: int, bpm_name: str) -> None:
+        """Populate the effective corrector dictionary with the best corrector for a given BPM.
+
+        Args:
+            index: Index of the BPM in the ORM.
+            bpm_name: BPM name.
+        """
         h_row = self._horizontal_orm[index, :]
         v_row = self._vertical_orm[index, :]
 
@@ -325,8 +386,12 @@ class Machine:
 
         self._effective_corrector[bpm_name] = [hstr_name, vstr_name]
 
-    def _get_effective_corrector(self):
-        """"""
+    def _get_effective_corrector(self) -> None:
+        """Setup the effective corrector dictionary and load the Orbit Response Matrix.
+
+        Raises:
+            FileNotFoundError: If the ORM file does not exist.
+        """
         orm_filepath = self.config["ORBIT_RESPONSE_MATRIX_PATH"]
 
         if not os.path.exists(orm_filepath):
@@ -334,7 +399,7 @@ class Machine:
             log.critical(msg)
             raise FileNotFoundError(msg)
 
-        self._effective_corrector = defaultdict(list)
+        self._effective_corrector: Dict[str, List[str]] = defaultdict(list)
         data = loadmat(orm_filepath, appendmat=False, struct_as_record=False)
         self._horizontal_orm, self._vertical_orm = (
             data["Rmat"][0][0].Data,
@@ -344,11 +409,26 @@ class Machine:
         for index, bpm_name in enumerate(self.bpms_names):
             self._get_best_corrector_for_bpm(index, bpm_name)
 
-    def effective_correctors(self, bpm: str) -> list[str]:
+    def effective_correctors(self, bpm: str) -> List[str]:
+        """Return the best corrector names for a given BPM name.
+
+        Args:
+            bpm: BPM name.
+
+        Returns:
+            List of corrector names.
+        """
         return self._effective_corrector[bpm]
 
     def corrector_kick(self, component: Components) -> float:
-        """PV ONLY"""
+        """Return the corrector kick value for a given corrector.
+
+        Args:
+            component: Corrector object.
+
+        Returns:
+            Corrector kick value.
+        """
         radian_kick = self.config["CORRECTOR_KICK_RADIANS"]
 
         if str(self.config["UNITS"]) == "pytac.ENG":
@@ -360,16 +440,28 @@ class Machine:
         return float(value)
 
     def get_beam_current(self) -> float:
-        """"""
+        """Return the beam current.
+
+        Returns:
+            Beam current in mA.
+        """
         return float(self._lattice.get_value("beam_current"))
 
-    def _ask_user(self, msg):
+    def _ask_user(self, msg: str) -> str:
+        """Ask the user a question and return their response.
+
+        Args:
+            msg: Message to display to the user.
+
+        Returns:
+            User response.
+        """
         response = input(msg).lower().strip()
         log.debug(f"User Response: {response}")
         return response
 
-    def get_diagnostics(self):
-        """"""
+    def get_diagnostics(self) -> None:
+        """Get the values of the diagnostic PVs and log them."""
         diagnostics = self.config["DIAGNOSTICS"]
 
         for key, pv in diagnostics.items():
@@ -378,8 +470,8 @@ class Machine:
 
         log.debug("BEAM_CURRENT", self.get_beam_current())
 
-    def apply_feedbacks(self):
-        """"""
+    def apply_feedbacks(self) -> None:
+        """Apply the relevant feedbacks to the machine."""
         use_feedbacks = self.config["FEEDBACKS"]
         use_fofb = self.config["FOFB_FEEDBACKS"]
 
@@ -396,6 +488,11 @@ class Machine:
             log.warn("Orbit needs correction but feedbacks are disabled.")
 
     def confirm_fofb_activation(self) -> None:
+        """Confirm that the FOFB has activated correctly.
+
+        Raises:
+            FastOrbitFeedbackError: If the FOFB does not activate.
+        """
         fofb_on_off = self.config["FEEDBACK_PVS"]["Fast_Orbit_Feedback"]
         counter = 0
         while True:
@@ -409,7 +506,8 @@ class Machine:
             Sleep(0.5)
             counter += 1
 
-    def max_orbit_too_big_for_fofb(self):
+    def max_orbit_too_big_for_fofb(self) -> None:
+        """Check if the maximum orbit is too large for FOFB and run SOFB if so."""
         fofb_max_orbit = self.config["FOFB_MAX_ORBIT_MICRONS"]
         max_value = self.get_largest_orbit()
         while max_value >= fofb_max_orbit:
@@ -418,7 +516,8 @@ class Machine:
             self.run_sofb()
             max_value = self.get_largest_orbit()
 
-    def run_sofb(self):
+    def run_sofb(self) -> None:
+        """Run SOFB and Tune feedbacks."""
         sofb_trigger = self.config["FEEDBACK_PVS"]["Slow_Orbit_Feedback"]
         tune_trigger = self.config["FEEDBACK_PVS"]["Tune_Feedback"]
         sofb_runtime = self.config["SOFB_RUNTIME"]
@@ -430,7 +529,8 @@ class Machine:
         caput(sofb_trigger, 0, wait=True)
         Sleep(waittime)
 
-    def run_fofb(self):
+    def run_fofb(self) -> None:
+        """Run FOFB and Tune feedbacks."""
         tune_trigger = self.config["FEEDBACK_PVS"]["Tune_Feedback"]
         fofb_trigger = self.config["FOFB_NOGUI_PATH"]
         waittime = self.config["FEEDBACK_WAITTIME"]
@@ -445,8 +545,12 @@ class Machine:
         run(f"{fofb_trigger} stop", check=True, shell=True)
         Sleep(waittime)
 
-    def check_feedbacks(self):
-        """"""
+    def check_feedbacks(self) -> None:
+        """Check if feedbacks are running and apply feedbacks if the orbit is too large.
+
+        Raises:
+            ActiveFeedbacksError: If feedbacks are running.
+        """
         max_orbit = self.config["MAX_ORBIT_CORRECTION_MICRONS"]
         feedback_pvs = self.config["FEEDBACK_PVS"]
 
@@ -463,21 +567,32 @@ class Machine:
             self.apply_feedbacks()
 
     def get_largest_orbit(self) -> float:
-        """"""
+        """Return the largest orbit value in the machine.
+        This does factor which BPMs are enabled and which are disabled.
+
+        Returns:
+            Largest orbit value in the machine in microns.
+        """
         bpm_values = self.measure_bpms("x") + self.measure_bpms("y")
         enabled_bpms = self.get_enabled_bpms() + self.get_enabled_bpms()
         fofb_disabled_bpms = self.fofb_disabled["x"] + self.fofb_disabled["y"]
         fofb_enabled_bpms = np.logical_not(fofb_disabled_bpms).astype(int)
-        acceptable_values = [
+        acceptable_values: List[float] = [
             v * e * f for v, e, f in zip(bpm_values, enabled_bpms, fofb_enabled_bpms)
         ]
         max_value = abs(max(acceptable_values, key=abs))
-        # Multiplied by 1000 to convert from mm to microns.
-        return max_value * 1000
+        return max_value * MM_MICRON_CONVERSION
 
     @staticmethod
     def get_quad_setpoint(quadrupole: EpicsElement) -> float:
-        """"""
+        """Get the quadrupole setpoint.
+
+        Args:
+            quadrupole: Quadrupole to get the setpoint of.
+
+        Returns:
+            Quadrupole setpoint in A.
+        """
         value = float(quadrupole.get_value("b1"))
         log.debug(f"Quadrupole get value: {value}")
         return value
@@ -486,7 +601,13 @@ class Machine:
     def set_quad_setpoint(
         quadrupole: EpicsElement, value: Union[float, int], sleep: bool = False
     ) -> None:
-        """"""
+        """Set the quadrupole setpoint.
+
+        Args:
+            quadrupole: Quadrupole to set the setpoint of.
+            value: Value to set the quadrupole to.
+            sleep: Whether to sleep after setting the quadrupole.
+        """
         start_current = Machine.get_quad_setpoint(quadrupole)
         quadrupole.set_value("b1", value)
         if sleep:
@@ -495,8 +616,15 @@ class Machine:
         log.debug(f"Quadrupole set value: {value}")
 
     @staticmethod
-    def get_corrector_setpoint(components: Components):
-        """"""
+    def get_corrector_setpoint(components: Components) -> float:
+        """Get the corrector setpoint.
+
+        Args:
+            components: Components to get the corrector setpoint of.
+
+        Returns:
+            Corrector setpoint in A.
+        """
         value = float(components.corrector.get_value(components.kick))
         log.debug(f"Corrector {components.corrector_name} get value: {value}")
         return value
@@ -505,13 +633,21 @@ class Machine:
     def set_corrector_setpoint(
         components: Components, value: Union[float, int]
     ) -> None:
-        """"""
+        """Set the corrector setpoint.
+
+        Args:
+            components: Components to set the corrector setpoint of.
+            value: Value to set the corrector to.
+        """
         components.corrector.set_value(components.kick, value)
         log.debug(f"Corrector {components.corrector_name} set value: {value}")
 
-    def zero_origins(self, folder_path: str):
-        """"""
-        # zeroes bcd and golden offsets. Golden must be restored later.
+    def zero_origins(self, folder_path: str) -> None:
+        """Zero the BCD and Golden offsets. Additionally, save the golden offsets to a file.
+
+        Args:
+            folder_path: Path to save the golden offsets to.
+        """
         log.info("Zeroing BCD and Golden Offsets")
         golden_offsets = {}
         pv_names = []
@@ -533,9 +669,12 @@ class Machine:
         Sleep(0.2)
         log.debug("Origins Zeroed")
 
-    def restore_origins(self, folder_path: str):
-        """"""
-        # restore golden orbits.
+    def restore_origins(self, folder_path: str) -> None:
+        """Restore the golden offsets from a file.
+
+        Args:
+            folder_path: Path to the golden offsets file.
+        """
         log.info("Restoring Golden Offsets")
 
         with open(os.path.join(folder_path, "golden_offsets.json")) as f:
@@ -551,8 +690,12 @@ class Machine:
         log.debug("Origins Restored")
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
-    def get_bba_offsets(self) -> Tuple[list[float], list[float]]:
-        """"""
+    def get_bba_offsets(self) -> Tuple[List[float], List[float]]:
+        """Get the current BBA offsets.
+
+        Returns:
+            Tuple of lists of the current BBA offsets in mm.
+        """
         current_bba_x = [float(v) for v in caget(self.bba_x_pvs)]
         current_bba_y = [float(v) for v in caget(self.bba_y_pvs)]
 

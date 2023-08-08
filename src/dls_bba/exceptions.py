@@ -55,6 +55,8 @@ class InvalidRingmodeError(Exception):
 class OscillationLengthError(Exception):
     """Raised when the oscillations are not equal in length."""
 
+    pass
+
 
 class LowCurrentError(Exception):
     """Raised when the current drops below the critical threshold."""

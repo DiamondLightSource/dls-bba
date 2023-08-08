@@ -1,5 +1,6 @@
-from argparse import ArgumentParser
-from typing import List
+import json
+from argparse import ArgumentParser, Namespace
+from typing import Dict, List
 
 from dls_bba.cli import cli_entrypoint
 from dls_bba.common import ALGORITHMS
@@ -12,8 +13,9 @@ from . import __version__
 __all__ = ["main"]
 
 
-def parse_arguments():
-    parent_parser = ArgumentParser(description="The parent parser")
+def parse_arguments() -> Namespace:
+    """Parse the command line arguments."""
+    parent_parser = ArgumentParser(description="The parent BBA parser")
     subparsers = parent_parser.add_subparsers(title="actions")
 
     parent_parser.add_argument("--version", "-v", action="version", version=__version__)
@@ -28,8 +30,8 @@ def parse_arguments():
         "--additional_config",
         "-o",
         default=None,
-        type=dict,
-        help="Additional individual configuration options",
+        type=json.loads,
+        help="Additional individual configuration options (stringified dict)",
     )
 
     parser_info = subparsers.add_parser(
@@ -79,8 +81,20 @@ def parse_arguments():
 
 
 def sort_elements(args) -> List[str]:
+    """Return the elements selected from the argparser.
+
+    Args:
+        args: The parsed arguments from the argparser.
+
+    Returns:
+        A list of elements.
+    """
+    # Additional config must be in the correct format Dict[str, Any]
+    assert isinstance(args.additional_config, Dict)
+    assert all(isinstance(key, str) for key in args.additional_config.keys())
+
     machine = Machine(args.config_files, args.additional_config)
-    elements = []
+    elements: List[str] = []
 
     if args.wholemachine:
         elements = machine.bpms_names
@@ -106,7 +120,8 @@ def sort_elements(args) -> List[str]:
     return elements
 
 
-def main():
+def main() -> None:
+    """The main CLI entrypoint for the BBA package."""
     args = parse_arguments()
     if args.command == "info":
         elements = sort_elements(args)
@@ -131,13 +146,15 @@ def main():
             bba_offsets_folder(machine, args.difference, machine.config["SAVE_PLOTS"])
 
 
-def parse_gui_arguments(args=None):
+def parse_gui_arguments(args=None) -> None:
+    """Allow the GUI to accept -v and --version arguments."""
     parser = ArgumentParser()
     parser.add_argument("-v", "--version", action="version", version=__version__)
     args = parser.parse_args(args)
 
 
-def gui_main():
+def gui_main() -> None:
+    """The main GUI entrypoint for the BBA package."""
     parse_gui_arguments()
     start_gui()
 

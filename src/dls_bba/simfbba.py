@@ -1,4 +1,5 @@
 import logging as log
+from typing import Any, Dict, List
 
 import numpy as np
 from cothread import Sleep
@@ -12,17 +13,32 @@ from dls_bba.faa import TICKS_PER_SECOND, Buffer, get_timestamp
 from dls_bba.isotime import get_isotime
 from dls_bba.machine import QUAD_SLEW_RATE, Machine
 
-# To convert from nanometers to millimeters
 NM_TO_MM_UNIT_CONV = 1000000
+"""Convert nanometers to millimeters"""
 
 
 class SimFastBBA(Algorithm):
-    def __init__(self, machine: Machine):
+    """Simultaneous Fast BBA Algorithm."""
+
+    def __init__(self, machine: Machine) -> None:
+        """Initialise the Simultaneous Fast BBA Algorithm.
+
+        Args:
+            machine: The machine.
+        """
         super().__init__(machine)
 
-    def run(self, components_pair: list[Components]) -> RawData:
-        rawdata = {}
-        metadata = {}
+    def run(self, components_pair: List[Components]) -> RawData:
+        """The Simultaneous Fast BBA Process.
+
+        Args:
+            components_pair: The components pair to use.
+
+        Returns:
+            The RawData object.
+        """
+        rawdata: Dict[str, Any] = {}
+        metadata: Dict[str, Any] = {}
         config = self._machine.config.get_settings()
         metadata.update(config)
         metadata["method"] = "SimFastBBA"
@@ -30,7 +46,7 @@ class SimFastBBA(Algorithm):
         metadata["enabled_bpms"] = self._machine.get_enabled_bpms()
         metadata["bpm_name"] = components_pair[0].bpm_name
         metadata["bpm_index"] = components_pair[0].bpm_index
-        decimated = config["DECIMATED"]
+        decimated: bool = config["DECIMATED"]
 
         for quadrupole, quad_name in zip(
             components_pair[0].quadrupoles, components_pair[0].quadrupoles_names
@@ -162,11 +178,22 @@ class SimFastBBA(Algorithm):
 
         return RawData(rawdata, metadata)
 
-    def select_data(self, data, plane_index, exc_data):
+    def select_data(
+        self,
+        data: np.ndarray,
+        plane_index: int,
+        exc_data: List[Excitation],
+    ) -> List[np.ndarray]:
         """Extract FA data that covers the excitations exc_high and exc_low.
-
         The input data array should cover the full length of both excitations.
 
+        Args:
+            data: Full FA data array.
+            plane_index: Index of the plane to extract data for.
+            exc_data: List of excitations to extract data for.
+
+        Returns:
+            List of arrays containing the data for each excitation.
         """
         # Note: array data must include the timestamps.
         exc_high, exc_low = exc_data
@@ -185,8 +212,8 @@ class SimFastBBA(Algorithm):
         # Extract timestamps from data
         times = data[:, 0, 0]
         data = data[:, 1:, :]
-        high_start = np.searchsorted(times, exc_high.start_time)
-        low_start = np.searchsorted(times, exc_low.start_time)
+        high_start = int(np.searchsorted(times, exc_high.start_time))
+        low_start = int(np.searchsorted(times, exc_low.start_time))
         log.debug("Searched start times: %s, %s", high_start, low_start)
         # Ensure we include the entire oscillation if using decimated data.
         length = np.ceil(exc_high.count / 10) if decimated else exc_high.count
@@ -196,7 +223,9 @@ class SimFastBBA(Algorithm):
         assert high_data.shape == low_data.shape
         return [high_data, low_data]
 
-    def extract_freq_excite(self, data, known_freq, bpm_index):
+    def extract_freq_excite(
+        self, data: np.ndarray, known_freq: int, bpm_index: int
+    ) -> np.ndarray:
         # Synchronous Detector Method
 
         # Incoming data arranged as [Time, Axis]
@@ -237,6 +266,14 @@ class SimFastBBA(Algorithm):
         return clean_wave
 
     def analyse(self, rawdata: RawData) -> Results:
+        """Analyse the rawdata and calculate the offsets to apply.
+
+        Args:
+            rawdata: The rawdata to analyse.
+
+        Returns:
+            The results of the analysis.
+        """
         data = rawdata.rawdata
         metadata = rawdata.metadata
 
@@ -245,8 +282,8 @@ class SimFastBBA(Algorithm):
         bpm_index = bpm_number - np.sum(
             enabled_bpms[:bpm_number] == False  # noqa false positive
         )
-        results = {}
-        plotting = {}
+        results: Dict[str, List[float]] = {}
+        plotting: Dict[str, Dict[str, np.ndarray]] = {}
 
         quad_names = []
         for key in data.keys():

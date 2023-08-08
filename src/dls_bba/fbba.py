@@ -1,4 +1,5 @@
 import logging as log
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 from cothread import Sleep
@@ -11,17 +12,32 @@ from dls_bba.faa import TICKS_PER_SECOND, Buffer, get_timestamp
 from dls_bba.isotime import get_isotime
 from dls_bba.machine import QUAD_SLEW_RATE, Machine
 
-# To convert from nanometers to millimeters
 NM_TO_MM_UNIT_CONV = 1000000
+"""Conversion factor from nanometers to millimeters."""
 
 
 class FastBBA(Algorithm):
-    def __init__(self, machine: Machine):
+    """Fast BBA algorithm."""
+
+    def __init__(self, machine: Machine) -> None:
+        """Initialise Fast BBA algorithm.
+
+        Args:
+            machine: Machine object.
+        """
         super().__init__(machine)
 
-    def run(self, components_pair: list[Components]) -> RawData:
-        rawdata = {}
-        metadata = {}
+    def run(self, components_pair: List[Components]) -> RawData:
+        """The Fast BBA Process.
+
+        Args:
+            components_pair: The components pair to run the algorithm on.
+
+        Returns:
+            The RawData object
+        """
+        rawdata: Dict[str, Any] = {}
+        metadata: Dict[str, Any] = {}
         config = self._machine.config.get_settings()
         metadata.update(config)
         metadata["method"] = "FastBBA"
@@ -29,7 +45,7 @@ class FastBBA(Algorithm):
         metadata["enabled_bpms"] = self._machine.get_enabled_bpms()
         metadata["bpm_name"] = components_pair[0].bpm_name
         metadata["bpm_index"] = components_pair[0].bpm_index
-        decimated = config["DECIMATED"]
+        decimated: bool = config["DECIMATED"]
 
         for components in components_pair:
             log.debug(f"Component: {components}")
@@ -119,11 +135,22 @@ class FastBBA(Algorithm):
 
         return RawData(rawdata, metadata)
 
-    def select_data(self, data, axis, exc_data):
+    def select_data(
+        self,
+        data: np.ndarray,
+        axis: str,
+        exc_data: Tuple[Excitation, Excitation],
+    ) -> List[np.ndarray]:
         """Extract FA data that covers the excitations exc_high and exc_low.
-
         The input data array should cover the full length of both excitations.
 
+        Args:
+            data: The full FA data array.
+            axis: The axis to extract data for.
+            exc_data: The excitations to extract data for.
+
+        Returns:
+            A list of two arrays containing the data for exc_high and exc_low.
         """
         if axis == "x":
             plane = 0
@@ -147,8 +174,8 @@ class FastBBA(Algorithm):
         # Extract timestamps from data
         times = data[:, 0, 0]
         data = data[:, 1:, :]
-        high_start = np.searchsorted(times, exc_high.start_time)
-        low_start = np.searchsorted(times, exc_low.start_time)
+        high_start = int(np.searchsorted(times, exc_high.start_time))
+        low_start = int(np.searchsorted(times, exc_low.start_time))
         log.debug("Searched start times: %s, %s", high_start, low_start)
         # Ensure we include the entire oscillation if using decimated data.
         length = np.ceil(exc_high.count / 10) if decimated else exc_high.count
@@ -158,7 +185,9 @@ class FastBBA(Algorithm):
         assert high_data.shape == low_data.shape
         return [high_data, low_data]
 
-    def extract_freq_excite(self, data, known_freq, bpm_index):
+    def extract_freq_excite(
+        self, data: np.ndarray, known_freq: int, bpm_index: int
+    ) -> np.ndarray:
         # Synchronous Detector Method
 
         # Incoming data arranged as [Time, Axis]
@@ -199,6 +228,14 @@ class FastBBA(Algorithm):
         return clean_wave
 
     def analyse(self, rawdata: RawData) -> Results:
+        """Analyse the rawdata and calculate the offsets to apply.
+
+        Args:
+            rawdata: The rawdata to analyse.
+
+        Returns:
+            The results of the analysis.
+        """
         data = rawdata.rawdata
         metadata = rawdata.metadata
 
@@ -208,8 +245,8 @@ class FastBBA(Algorithm):
         bpm_index = bpm_number - np.sum(
             enabled_bpms[:bpm_number] == False  # noqa false positive
         )
-        results = {}
-        plotting = {}
+        results: Dict[str, List[float]] = {}
+        plotting: Dict[str, Dict[str, np.ndarray]] = {}
 
         quad_names = []
         for key in data.keys():
