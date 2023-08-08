@@ -18,6 +18,8 @@ class RawData:
     def save(self, folder_path: str) -> None:
         """Save the RawData object to a .mat file.
 
+        Can load files in MATLAB with object.("key").
+
         Args:
             folder_path: The path to the folder to save the .mat file to.
         """
@@ -30,7 +32,6 @@ class RawData:
         filename = f"{method}-{isotime}-{bpm_name}-rawdata.mat"
 
         dct = {"rawdata": rawdata, "metadata": metadata}
-        # Can load files in matlab: object.("key")
         io.savemat(
             os.path.join(folder_path, filename),
             dct,
@@ -100,7 +101,13 @@ class Results:
         return cls(results, dct["metadata"], dct["plotting"], offsets)
 
     def save(self, folder_path: str) -> None:
-        """"""
+        """Save the Results object to a .mat file.
+
+        Can load files in MATLAB with object.("key").
+
+        Args:
+            folder_path: The path to the folder to save the .mat file to.
+        """
         results: Dict[str, List[float]] = self.results
         metadata: Dict[str, Any] = self.metadata
         plotting: Dict[str, Dict[str, np.ndarray]] = self.plotting
@@ -111,7 +118,7 @@ class Results:
         bpm_name: str = metadata["bpm_name"]
         filename = f"{method}-{isotime}-{bpm_name}-results.mat"
 
-        offsets_dict = {}
+        offsets_dict: Dict[str, Dict[str, float]] = {}
         for key, values in offsets.items():
             offsets_dict[key] = asdict(values)
 
@@ -121,7 +128,6 @@ class Results:
             "plotting": plotting,
             "offsets": offsets_dict,
         }
-        # Can load files in matlab: object.("key")
         io.savemat(
             os.path.join(folder_path, filename),
             dct,

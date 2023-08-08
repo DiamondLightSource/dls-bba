@@ -185,6 +185,7 @@ class SimFastBBA(Algorithm):
         exc_data: List[Excitation],
     ) -> List[np.ndarray]:
         """Extract FA data that covers the excitations exc_high and exc_low.
+
         The input data array should cover the full length of both excitations.
 
         Args:
@@ -226,12 +227,22 @@ class SimFastBBA(Algorithm):
     def extract_freq_excite(
         self, data: np.ndarray, known_freq: int, bpm_index: int
     ) -> np.ndarray:
-        # Synchronous Detector Method
+        """Extract and clean the data for a given BPM and known frequency.
 
+        The data is cleaned using the Synchronous Detector Method, where the
+        incoming data is arranged as [Time, Axis]. The mixing function creates
+        a clean waveform at the known frequency, and a dummy axis must be created
+        to preserve shape through numpy operations.
+
+        Args:
+            data: The raw data array.
+            known_freq: The known frequency of the excitation.
+            bpm_index: The index of the BPM to extract data for.
+
+        Returns:
+            The cleaned data array.
+        """
         # Incoming data arranged as [Time, Axis]
-
-        # The mixing function creates a clean waveform at the known frequency
-        # A dummy axis must be created to preserve shape through numpy operations
         # mix aranged as [Time, 1]
         mix = np.exp(
             2j * np.pi * known_freq / TICKS_PER_SECOND * np.arange(1, len(data) + 1).T

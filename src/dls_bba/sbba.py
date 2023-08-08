@@ -105,7 +105,15 @@ class SlowBBA(Algorithm):
         return RawData(rawdata, metadata)
 
     def get_slow_bba_corrector_steps(self, components: Components) -> List[float]:
-        """"""
+        """Get the corrector steps for the slow BBA.
+
+        Args:
+            components: The components to use.
+
+        Returns:
+            The corrector steps in a list. Where s is the setpoint and k is the kick:
+            [s + k, s + (k / 2), s, s - (k / 2), s - k]
+        """
         setpoint = self._machine.get_corrector_setpoint(components)
         step = self._machine.corrector_kick(components)
         corrector_steps = [

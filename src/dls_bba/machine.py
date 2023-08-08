@@ -320,12 +320,23 @@ class Machine:
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
     def get_enabled_bpms(self) -> List[Any]:
-        """"""
+        """Get the enabled status of the BPMs.
+
+        Returns:
+            List of enabled status of the BPMs.
+        """
         return self._lattice.get_element_values("BPM", "enabled")
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
     def measure_bpms(self, axis: str) -> List[Any]:
-        """"""
+        """Measure the BPMs.
+
+        Args:
+            axis: Axis to measure.
+
+        Returns:
+            List of BPM measurements.
+        """
         return self._lattice.get_element_values("BPM", f"{axis}", pytac.RB)
 
     def get_element_from_name(self, name: str) -> EpicsElement:
@@ -356,6 +367,7 @@ class Machine:
 
     def _get_slow_correctors(self) -> List[str]:
         """Return a list of slow corrector names.
+
         A corrector is slow if its name is in the format SR__S or _SCOR.
 
         Returns:
@@ -369,7 +381,7 @@ class Machine:
         return slow_correctors
 
     def _get_best_corrector_for_bpm(self, index: int, bpm_name: str) -> None:
-        """Populate the effective corrector dictionary with the best corrector for a given BPM.
+        """Create the effective corrector dictionary for a given BPM.
 
         Args:
             index: Index of the BPM in the ORM.

@@ -163,6 +163,8 @@ def get_component_pairs(
 def construct_component_pair(machine: Machine, element: str) -> List[Components]:
     """Constructs a component pair from the given element.
 
+    A component pair is the x, y pair of component objects for a single BPM.
+
     Args:
         machine: The machine object.
         element: The name of the element.
@@ -194,7 +196,8 @@ def construct_component_pair(machine: Machine, element: str) -> List[Components]
 def verify_component_pairing(
     machine: Machine, component_pairings: List[List[Components]]
 ) -> List[List[Components]]:
-    """This function returns valid component pairings given the current machine state.
+    """Returns valid component pairings given the current machine state.
+
     Elements that are disabled will be valid upon component object construction, this
     function removes those elements and provides warnings where appropriate.
 
@@ -220,9 +223,10 @@ def verify_component_pairing(
 
 
 def check_component(machine: Machine, component_pair: List[Components]) -> None:
-    """This function checks the individual components that they are not invalid.
-    Disabled BPMs cannot perform BBA, whereas Feedback Disabled BPMs can, but the
-    result must be treated with caution.
+    """Checks that individual components are not invalid.
+
+    Disabled BPMs cannot perform BBA, and are removed from the lists.
+    Feedback disabled BPMs can perform BBA, but the results may be invalid.
 
     Args:
         machine: The machine object.

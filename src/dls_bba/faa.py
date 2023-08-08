@@ -24,6 +24,7 @@ MAX_BBA_DURATION = 6 * TICKS_PER_HOUR
 
 def get_timestamp(decimated: bool) -> int:
     """Get the FAA timestamp.
+
     Note: If the timestamp is larger than 2**32 - 1 hour,
     then the power supply IOC will reject the oscillation.
 
@@ -97,6 +98,10 @@ class Buffer(object):
         cothread.Spawn(self._fetch_data)
 
     def _fetch_data(self) -> None:
+        """Fetch the data from the FA archiver.
+
+        Keep fetching data until the desired data is fetched.
+        """
         try:
             sub = self.server.subscription(self.ids, decimated=self.dec)
             self.cache.append(sub.read(Buffer.SIZE))

@@ -7,6 +7,7 @@ import numpy as np
 from cothread.catools import caput
 
 from dls_bba.components import Components
+from dls_bba.configuration import Configuration
 from dls_bba.faa import TICKS_PER_SECOND
 from dls_bba.machine import Machine
 
@@ -128,7 +129,11 @@ class Excitation(object):
 
 
 def excite(excitations: Tuple[Excitation, ...]) -> None:
-    """Completes caputs which will start the excitation."""
+    """Completes caputs which will start the excitation.
+
+    Args:
+        excitations: The excitations to set up.
+    """
 
     iocs = excitations[0].iocs
 
@@ -178,8 +183,12 @@ def excite(excitations: Tuple[Excitation, ...]) -> None:
     )
 
 
-def cancel_all_oscillations(config: Dict[str, Any]) -> None:
-    """"""
+def cancel_all_oscillations(config: Configuration) -> None:
+    """Cancels all oscillations on all correctors IOCs.
+
+    Args:
+        config: The configuration object.
+    """
     # Set all to 0, then prime for all IOCS.
     iocs = config["CORRECTOR_IOCS"]
     pvs = {}

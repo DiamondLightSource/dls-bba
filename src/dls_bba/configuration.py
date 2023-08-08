@@ -61,7 +61,7 @@ class Configuration:
     def from_configuration_files(
         cls, paths: Optional[Union[List[Path], List[str]]] = None
     ) -> Configuration:
-        """Construct a Configuration object using given configuration .json filepaths."""
+        """Construct a Configuration object using given config .json filepaths."""
         config = cls()
         config.apply_default_config()
 

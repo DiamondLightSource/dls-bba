@@ -23,9 +23,7 @@ class BeamCurrentCheck:
         log.debug(msg)
 
     def check_beam_decay(self) -> None:
-        """Check if the beam current has decayed below the minimum current and
-        if so prompt for topup.
-        """
+        """Check if the beam current has decayed below the minimum current."""
         min_current = self._machine.config["MIN_CURRENT"]
         current_current = self._machine.get_beam_current()
         log.debug(f"Current: {current_current}; Decay limit: {min_current}")
@@ -34,7 +32,7 @@ class BeamCurrentCheck:
             self.topup_beam()
 
     def check_beam_drop(self) -> bool:
-        """Check if the beam current has dropped below the warning current drop in one measurement.
+        """Check if the beam current has dropped below the warning current drop.
 
         Returns:
             True if beam has not dropped below warning current drop, False if it has.

@@ -3,7 +3,7 @@ dls-bba
 
 |code_ci| |docs_ci| |coverage| |pypi_version| |license|
 
-dls-bba is a Python 3 implimentation of beam-based alignment processes.
+dls-bba is a Python 3 implementation of beam-based alignment processes.
 
 ============== ==============================================================
 PyPI           ``pip install dls-bba``
@@ -39,8 +39,8 @@ Introduction
 Description
 -----------
 
-This repository is a Python 3 implimentation of slow, fast and simultaneous beam-based alignment for Diamond Light Source.
-The slow BBA process was written in MATLAB, but has been converted to be included into the tool, whereas the fast based processes were written specifically in Python.
+This repository is a Python 3 implementation of slow, fast and simultaneous beam-based alignment for Diamond Light Source.
+The slow BBA process is intended to replicate the behaviour of MATLAB BBA.
 Both command line and graphical user based interfaces have been included alongside the standard python module level interface for ease of use.
 
 Instructions
