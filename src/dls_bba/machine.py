@@ -319,16 +319,16 @@ class Machine:
             raise InvalidElementError(msg)
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
-    def get_enabled_bpms(self) -> List[Any]:
+    def get_enabled_bpms(self) -> List[int]:
         """Get the enabled status of the BPMs.
 
         Returns:
-            List of enabled status of the BPMs.
+            List of enabled status of the BPMs, where 1 is enabled and 0 is disabled.
         """
-        return self._lattice.get_element_values("BPM", "enabled")
+        return [int(x) for x in self._lattice.get_element_values("BPM", "enabled")]
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
-    def measure_bpms(self, axis: str) -> List[Any]:
+    def measure_bpms(self, axis: str) -> List[float]:
         """Measure the BPMs.
 
         Args:
@@ -337,7 +337,7 @@ class Machine:
         Returns:
             List of BPM measurements.
         """
-        return self._lattice.get_element_values("BPM", f"{axis}", pytac.RB)
+        return [float(x) for x in self._lattice.get_element_values("BPM", f"{axis}", pytac.RB)]
 
     def get_element_from_name(self, name: str) -> EpicsElement:
         """Return the element object for a given element name.
