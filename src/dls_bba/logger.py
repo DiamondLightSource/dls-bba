@@ -40,6 +40,7 @@ def get_new_logger(folder_path: str, gui_handler=None):
     logger = log.getLogger()
     logger.setLevel(log.NOTSET)
     logger.handlers.clear()
+    # TODO: This clear is the issue regarding GUI rerunning.
     filename = "log.log"
 
     console_handler = log.StreamHandler()
