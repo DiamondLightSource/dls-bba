@@ -19,5 +19,6 @@
     "Y_FREQUENCY": 13,
     "SAVE_RAWDATA": true,
     "SAVE_RESULTS": true,
-    "SAVE_PLOTS": true
+    "SAVE_PLOTS": true,
+    "RESELECTION_LIMIT": 30
 }

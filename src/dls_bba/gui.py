@@ -10,6 +10,8 @@ from typing import List
 import matplotlib
 from cothread.cothread import Callback, _QuitEvent
 
+from dls_bba.datatypes import Results
+
 matplotlib.use("Qt5Agg")  # noqa: E402
 # isort: on
 
@@ -31,7 +33,7 @@ from dls_bba.common import (  # noqa: E402
 )
 from dls_bba.excite import cancel_all_oscillations  # noqa E402
 from dls_bba.isotime import get_isotime  # noqa: E402
-from dls_bba.machine import DATASOURCE, UNITS, Machine  # noqa: E402
+from dls_bba.machine import DATASOURCE, ORIGIN_SUFFIXES, UNITS, Machine  # noqa: E402
 from dls_bba.plotting import bba_offsets_folder, bowtie_plot  # noqa: E402
 from dls_bba.worker import Worker  # noqa: E402
 
@@ -256,6 +258,31 @@ class MainWindow(QMainWindow):
         )
         self.display_most_recent.setText(newest_folder)
         self.recent_folder = newest_folder
+        self.reselect_elements()
+
+    def reselect_elements(self):
+        reselect_limit = self.machine.config["RESELECTION_LIMIT"]
+
+        good_files = []
+        for file in os.listdir(self.recent_folder):
+            if file.endswith("-results.mat"):
+                good_files.append(os.path.join(self.recent_folder, file))
+
+        load_folder_results = [Results.from_file(file) for file in good_files]
+        reselect = []
+        for result in load_folder_results:
+            bpm_name = result.metadata["bpm_name"]
+            x_key = str(bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="x"))
+            y_key = str(bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="y"))
+            if abs(result.offsets[x_key]["diff_value"]) >= reselect_limit or abs(result.offsets[y_key]["diff_value"]) >= reselect_limit:
+                reselect.append(bpm_name)
+
+        msg = f"Reselected {len(reselect)} elements with > {reselect_limit}um change."
+        self.display_on_screen(msg)
+        self.pv_selection.clear()
+        self.pv_selection.addItems(reselect)
+        self.last_list = reselect
+        self.selection_strings = reselect
 
     def ticker_update(self, old_state, new_state):
         msg = f"Ticker state: {old_state} => {new_state}"
@@ -368,6 +395,7 @@ class MainWindow(QMainWindow):
             "SAVE_RAWDATA": self.save_rawdata.isChecked(),
             "SAVE_RESULTS": self.save_results.isChecked(),
             "SAVE_PLOTS": self.save_plots.isChecked(),
+            "RESELECTION_LIMIT": self.config_reselection.value(),
             "RINGMODE": self.config_ringmode.currentText(),
             "UNITS": self.config_units.currentText(),
             "DATASOURCE": self.config_datasource.currentText(),
@@ -409,6 +437,7 @@ class MainWindow(QMainWindow):
         self.save_rawdata.setChecked(config["SAVE_RAWDATA"])
         self.save_results.setChecked(config["SAVE_RESULTS"])
         self.save_plots.setChecked(config["SAVE_PLOTS"])
+        self.config_reselection.setValue(config["RESELECTION_LIMIT"])
 
         self.config_ringmode.setCurrentText(config["RINGMODE"])
         self.config_units.setCurrentText(config["UNITS"])
