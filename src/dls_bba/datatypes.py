@@ -72,7 +72,7 @@ class Results:
         metadata: Dict[str, Any],
         plotting: Dict[str, Dict[str, np.ndarray]],
         offsets: Dict[str, CalculatedOffset],
-    ):
+    ) -> None:
         self.results: Dict[str, List[float]] = results
         self.metadata: Dict[str, Any] = metadata
         self.plotting: Dict[str, Dict[str, np.ndarray]] = plotting

@@ -60,7 +60,7 @@ class FofbCorrector:
         return cls(index, ioc, fofb_index, slow)
 
     @staticmethod
-    def get_corrector_table(machine: Machine):
+    def get_corrector_table(machine: Machine) -> np.ndarray:
         """Get the corrector IOC table.
 
         Args:

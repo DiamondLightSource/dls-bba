@@ -337,7 +337,10 @@ class Machine:
         Returns:
             List of BPM measurements.
         """
-        return [float(x) for x in self._lattice.get_element_values("BPM", f"{axis}", pytac.RB)]
+        return [
+            float(x)
+            for x in self._lattice.get_element_values("BPM", f"{axis}", pytac.RB)
+        ]
 
     def get_element_from_name(self, name: str) -> EpicsElement:
         """Return the element object for a given element name.
