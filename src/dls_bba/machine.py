@@ -535,30 +535,30 @@ class Machine:
         """Run SOFB and Tune feedbacks."""
         sofb_trigger = self.config["FEEDBACK_PVS"]["Slow_Orbit_Feedback"]
         tune_trigger = self.config["FEEDBACK_PVS"]["Tune_Feedback"]
-        sofb_runtime = self.config["SOFB_RUNTIME"]
-        waittime = self.config["FEEDBACK_WAITTIME"]
+        sofb_run_time = self.config["SOFB_RUN_TIME"]
+        wait_time = self.config["FEEDBACK_WAIT_TIME"]
         caput(sofb_trigger, 1, wait=True)
         caput(tune_trigger, 1, wait=True)
-        Sleep(sofb_runtime)
+        Sleep(sofb_run_time)
         caput(tune_trigger, 0, wait=True)
         caput(sofb_trigger, 0, wait=True)
-        Sleep(waittime)
+        Sleep(wait_time)
 
     def run_fofb(self) -> None:
         """Run FOFB and Tune feedbacks."""
         tune_trigger = self.config["FEEDBACK_PVS"]["Tune_Feedback"]
         fofb_trigger = self.config["FOFB_NOGUI_PATH"]
-        waittime = self.config["FEEDBACK_WAITTIME"]
-        runtime = self.config["FEEDBACK_RUNTIME"]
+        wait_time = self.config["FEEDBACK_WAIT_TIME"]
+        run_time = self.config["FEEDBACK_RUN_TIME"]
         run(f"{fofb_trigger} start", check=True, shell=True)
         caput(tune_trigger, 1, wait=True)
 
         self.confirm_fofb_activation()
-        Sleep(runtime)
+        Sleep(run_time)
 
         caput(tune_trigger, 0, wait=True)
         run(f"{fofb_trigger} stop", check=True, shell=True)
-        Sleep(waittime)
+        Sleep(wait_time)
 
     def check_feedbacks(self) -> None:
         """Check if feedbacks are running and apply feedbacks if the orbit is too large.

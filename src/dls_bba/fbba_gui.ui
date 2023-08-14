@@ -831,10 +831,10 @@
            </rect>
           </property>
           <property name="text">
-           <string>SOFB Runtime [s]</string>
+           <string>SOFB Run time [s]</string>
           </property>
          </widget>
-         <widget class="QDoubleSpinBox" name="config_sofb_runtime">
+         <widget class="QDoubleSpinBox" name="config_sofb_run_time">
           <property name="geometry">
            <rect>
             <x>10</x>
@@ -856,7 +856,7 @@
            <double>20.000000000000000</double>
           </property>
          </widget>
-         <widget class="QDoubleSpinBox" name="config_waittime">
+         <widget class="QDoubleSpinBox" name="config_wait_time">
           <property name="geometry">
            <rect>
             <x>10</x>
@@ -888,10 +888,10 @@
            </rect>
           </property>
           <property name="text">
-           <string>Feedbacks Waittime [s]</string>
+           <string>Feedbacks Wait time [s]</string>
           </property>
          </widget>
-         <widget class="QDoubleSpinBox" name="config_runtime">
+         <widget class="QDoubleSpinBox" name="config_run_time">
           <property name="geometry">
            <rect>
             <x>10</x>
@@ -923,7 +923,7 @@
            </rect>
           </property>
           <property name="text">
-           <string>FOFB Runtime [s]</string>
+           <string>FOFB Run time [s]</string>
           </property>
          </widget>
          <widget class="QDoubleSpinBox" name="config_sbba_min_frac">

@@ -391,9 +391,9 @@ class MainWindow(QMainWindow):
             "CORRECTOR_KICK_RADIANS": self.config_corr_kick.value() / RAD_TO_URAD_CONV,
             "QUADRUPOLE_STEP_PERCENT": self.config_quad_step.value(),
             "WARNING_CURRENT_DROP": self.config_warning_current.value(),
-            "FEEDBACK_WAITTIME": self.config_waittime.value(),
-            "FEEDBACK_RUNTIME": self.config_runtime.value(),
-            "SOFB_RUNTIME": self.config_sofb_runtime.value(),
+            "FEEDBACK_WAIT_TIME": self.config_wait_time.value(),
+            "FEEDBACK_RUN_TIME": self.config_run_time.value(),
+            "SOFB_RUN_TIME": self.config_sofb_run_time.value(),
             "MIN_SLOPE_FRACTION": self.config_sbba_min_frac.value(),
             "CENTER_OUTLIER_FACTOR": self.confifg_sbba_stdev.value(),
             "DECIMATED": self.config_use_decimation.isChecked(),
@@ -433,9 +433,9 @@ class MainWindow(QMainWindow):
         )
         self.config_quad_step.setValue(config["QUADRUPOLE_STEP_PERCENT"])
         self.config_warning_current.setValue(config["WARNING_CURRENT_DROP"])
-        self.config_waittime.setValue(config["FEEDBACK_WAITTIME"])
-        self.config_runtime.setValue(config["FEEDBACK_RUNTIME"])
-        self.config_sofb_runtime.setValue(config["SOFB_RUNTIME"])
+        self.config_wait_time.setValue(config["FEEDBACK_WAIT_TIME"])
+        self.config_run_time.setValue(config["FEEDBACK_RUN_TIME"])
+        self.config_sofb_run_time.setValue(config["SOFB_RUN_TIME"])
         self.config_sbba_min_frac.setValue(config["MIN_SLOPE_FRACTION"])
         self.confifg_sbba_stdev.setValue(config["CENTER_OUTLIER_FACTOR"])
         self.config_use_decimation.setChecked(config["DECIMATED"])
