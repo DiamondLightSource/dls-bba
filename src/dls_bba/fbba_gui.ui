@@ -1354,7 +1354,7 @@
            <double>3.000000000000000</double>
           </property>
          </widget>
-         <widget class="QTextEdit" name="config_fofb_nogui_path">
+         <widget class="QTextEdit" name="config_fofb_executable_path">
           <property name="geometry">
            <rect>
             <x>10</x>
@@ -1374,13 +1374,16 @@
           <property name="geometry">
            <rect>
             <x>120</x>
-            <y>250</y>
+            <y>240</y>
             <width>121</width>
-            <height>16</height>
+            <height>41</height>
            </rect>
           </property>
           <property name="text">
-           <string>FOFB No GUI Path</string>
+           <string>FOFB Executable Path</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
           </property>
          </widget>
          <widget class="QLabel" name="label_21">

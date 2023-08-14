@@ -410,7 +410,7 @@ class MainWindow(QMainWindow):
             "DATASOURCE": self.config_datasource.currentText(),
             "COTHREAD_CONTROL_SYSTEM_TIMEOUT": self.config_ccs_timeout.value(),
             "COTHREAD_CONTROL_SYSTEM_WAIT_FLAG": self.config_ccs_wait.isChecked(),
-            "FOFB_NOGUI_PATH": self.config_fofb_nogui_path.toPlainText(),
+            "FOFB_EXECUTABLE_PATH": self.config_fofb_executable_path.toPlainText(),
             "FOFB_MAX_ORBIT_MICRONS": self.config_fofb_max_orbit.value(),
             "ORBIT_RESPONSE_MATRIX_PATH": self.config_orm_path.toPlainText(),
             "CORRECTORS_TXT_PATH": self.config_corrector_txt_path.toPlainText(),
@@ -453,7 +453,7 @@ class MainWindow(QMainWindow):
         self.config_datasource.setCurrentText(config["DATASOURCE"])
         self.config_ccs_timeout.setValue(config["COTHREAD_CONTROL_SYSTEM_TIMEOUT"])
         self.config_ccs_wait.setChecked(config["COTHREAD_CONTROL_SYSTEM_WAIT_FLAG"])
-        self.config_fofb_nogui_path.setText(config["FOFB_NOGUI_PATH"])
+        self.config_fofb_executable_path.setText(config["FOFB_EXECUTABLE_PATH"])
         self.config_fofb_max_orbit.setValue(config["FOFB_MAX_ORBIT_MICRONS"])
         self.config_orm_path.setText(config["ORBIT_RESPONSE_MATRIX_PATH"])
         self.config_corrector_txt_path.setText(config["CORRECTORS_TXT_PATH"])
