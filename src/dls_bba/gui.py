@@ -184,7 +184,7 @@ class MainWindow(QMainWindow):
         self.psps.clicked.connect(lambda: self.select_mode("PSPs"))
 
         self.selected_toggle = 0
-        self.lock_unlock_pv.clicked.connect(lambda: self.lock_unlock_selection())
+        self.lock_unlock_pv.clicked.connect(self.lock_unlock_selection)
 
         # File / Folder selection, plotting and applying.
         self.config_units.addItems(UNITS.keys())
@@ -192,18 +192,18 @@ class MainWindow(QMainWindow):
         self.config_datasource.addItems(DATASOURCE.keys())
         self.config_datasource.setCurrentText(list(DATASOURCE.keys())[0])
 
-        self.button_save_loc.clicked.connect(lambda: self.select_save_location_folder())
+        self.button_save_loc.clicked.connect(self.select_save_location_folder)
         self.display_save_loc.setPlainText(self.machine.config["SAVE_LOCATION"])
-        self.button_bba_folder.clicked.connect(lambda: self.select_bba_folder())
+        self.button_bba_folder.clicked.connect(self.select_bba_folder)
         self.display_bba_folder.setPlainText("Not Selected")
-        self.button_single_bba.clicked.connect(lambda: self.select_bba_file())
+        self.button_single_bba.clicked.connect(self.select_bba_file)
         self.display_single_bba.setPlainText("Not Selected")
         self.loadfolder = None
-        self.plot_bba.clicked.connect(lambda: self.plot_bba_folder())
-        self.apply_bba.clicked.connect(lambda: self.apply_bba_folder())
+        self.plot_bba.clicked.connect(self.plot_bba_folder)
+        self.apply_bba.clicked.connect(self.apply_bba_folder)
         self.loadfile = None
-        self.plot_single_bba.clicked.connect(lambda: self.plot_bba_file())
-        self.apply_single_bba.clicked.connect(lambda: self.apply_bba_file())
+        self.plot_single_bba.clicked.connect(self.plot_bba_file)
+        self.apply_single_bba.clicked.connect(self.apply_bba_file)
 
         # Front page buttons
         self.ticker = Ticker(self.ticker_update, self.progress)
@@ -212,16 +212,16 @@ class MainWindow(QMainWindow):
         self.button_start.clicked.connect(self.start_ticker)
         self.button_pause.clicked.connect(self.pause_resume_ticker)
         self.button_stop.clicked.connect(self.stop_ticker)
-        self.button_reset.clicked.connect(lambda: self.reset_iocs())
+        self.button_reset.clicked.connect(self.reset_iocs)
         self.recent_folder = None
-        self.button_plot_recent.clicked.connect(lambda: self.plot_recent())
-        self.button_apply_recent.clicked.connect(lambda: self.apply_recent())
+        self.button_plot_recent.clicked.connect(self.plot_recent)
+        self.button_apply_recent.clicked.connect(self.apply_recent)
 
         # Configuration options
         self.tmp_single_filepath = None
         self.config_ringmode.addItems(self.get_ringmode_options())
-        self.config_load_apply.clicked.connect(lambda: self.load_config_file())
-        self.button_golden.clicked.connect(lambda: self.reapply_golden_orbits())
+        self.config_load_apply.clicked.connect(self.load_config_file)
+        self.button_golden.clicked.connect(self.reapply_golden_orbits)
 
         self.tabWidget.setCurrentIndex(0)
 
