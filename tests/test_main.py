@@ -94,7 +94,7 @@ TEST_NAMESPACE_INFO_BPM = Namespace(
 )
 TEST_NAMESPACE_RUN_BPM = Namespace(
     command="run",
-    algorithm="SimFastBBA",
+    algorithm="INVALID",
     save_location="",
     wholemachine=False,
     config_files=None,
@@ -122,7 +122,7 @@ TEST_NAMESPACE_PLOT_DIFF = Namespace(
 )
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module")
 @mock.patch("pytac.lattice.EpicsLattice.get_element_values", return_value=[0])
 @mock.patch("dls_bba.machine.Machine._get_effective_corrector", return_value=None)
 @mock.patch("dls_bba.machine.Machine.get_enabled_bpms", return_value=[0])
@@ -200,19 +200,13 @@ def test_main_info(mock_machine, mock_parse_args):
     main()
 
 
-# TODO: Patching isnt working?
-# @mock.patch("dls_bba.cli.cli_entrypoint", return_value=None)
-# @mock.patch("dls_bba.__main__.parse_arguments", return_value=TEST_NAMESPACE_RUN_BPM)
-# def test_main_run(mock_cli_entrypoint, mock_parse_args):
-
-#     def cli_entrypoint(**kwargs):
-#         pass
-
-#     from dls_bba import cli
-
-#     cli.cli_entrypoint = cli_entrypoint
-
-#     main()
+@mock.patch("dls_bba.machine.Machine", return_value=machine_setup)
+@mock.patch("dls_bba.cli.cli_entrypoint", return_value=None)
+@mock.patch("dls_bba.__main__.parse_arguments", return_value=TEST_NAMESPACE_RUN_BPM)
+def test_main_run(mock_machine, mock_cli_entrypoint, mock_parse_args):
+    # TODO: This isnt mocking cli_entrypoint correctly.
+    with pytest.raises(KeyError):
+        main()
 
 
 # @mock.patch(

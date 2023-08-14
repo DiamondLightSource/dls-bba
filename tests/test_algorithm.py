@@ -17,7 +17,7 @@ class TEST_ALG(Algorithm):
         pass
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module")
 @mock.patch("pytac.lattice.EpicsLattice.get_element_values", return_value=[0])
 @mock.patch("dls_bba.machine.Machine._get_effective_corrector", return_value=None)
 @mock.patch("dls_bba.machine.Machine.get_enabled_bpms", return_value=[0])
@@ -40,7 +40,8 @@ def test_algorithm_failed_init():
 
 
 # @mock.patch("dls_bba.machine.Machine", return_value=machine_setup)
-# def test_calculate_setpoints(machine_setup):
+# @mock.patch("dls_bba.machine.Machine.get_quad_setpoint", return_value=1)
+# def test_calculate_setpoints(mock_get_setpoint, machine_setup):
 #     machine = machine_setup
 #     algorithm = TEST_ALG(machine)
 #     a, b, c, d, e = algorithm.calculate_quad_setpoints(machine.quads_names[0])
