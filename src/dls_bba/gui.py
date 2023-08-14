@@ -227,6 +227,11 @@ class MainWindow(QMainWindow):
 
     def start_ticker(self):
         log.info("GUI Start Pressed")
+        if not self.selected:
+            msg = "No elements selected."
+            self.display_on_screen(msg)
+            return
+
         self.update_config()
         self.button_start.setEnabled(False)
         self.button_pause.setEnabled(True)
@@ -274,7 +279,10 @@ class MainWindow(QMainWindow):
             bpm_name = result.metadata["bpm_name"]
             x_key = str(bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="x"))
             y_key = str(bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="y"))
-            if abs(result.offsets[x_key]["diff_value"]) >= reselect_limit or abs(result.offsets[y_key]["diff_value"]) >= reselect_limit:
+            if (
+                abs(result.offsets[x_key]["diff_value"]) >= reselect_limit
+                or abs(result.offsets[y_key]["diff_value"]) >= reselect_limit
+            ):
                 reselect.append(bpm_name)
 
         msg = f"Reselected {len(reselect)} elements with > {reselect_limit}um change."
@@ -283,6 +291,7 @@ class MainWindow(QMainWindow):
         self.pv_selection.addItems(reselect)
         self.last_list = reselect
         self.selection_strings = reselect
+        self.selected = reselect
 
     def ticker_update(self, old_state, new_state):
         msg = f"Ticker state: {old_state} => {new_state}"
