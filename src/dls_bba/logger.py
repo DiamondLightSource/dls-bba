@@ -38,21 +38,26 @@ def get_new_logger(folder_path: str, gui_handler=None):
         gui: The GUI logging handler if it exists.
     """
     logger = log.getLogger()
-    logger.setLevel(log.NOTSET)
-    logger.handlers.clear()
-    # TODO: This clear is the issue regarding GUI rerunning.
     filename = "log.log"
 
-    console_handler = log.StreamHandler()
-    console_handler.setLevel(log.DEBUG)
-    console_handler.setFormatter(log.Formatter(CONSOLE_LOG_FORMAT))
-    logger.addHandler(console_handler)
+    if len(logger.handlers) == 1:
+        logger.setLevel(log.NOTSET)
+        logger.handlers.clear()
+        # TODO: This clear is the issue regarding GUI rerunning. Can only be run when first making the logger.
 
-    if gui_handler is not None:
-        sys.stderr = StreamToLogger(logger, log.CRITICAL)
-        gui_handler.setLevel(log.INFO)
-        gui_handler.setFormatter(log.Formatter(GUI_LOG_FORMAT))
-        logger.addHandler(gui_handler)
+        console_handler = log.StreamHandler()
+        console_handler.setLevel(log.DEBUG)
+        console_handler.setFormatter(log.Formatter(CONSOLE_LOG_FORMAT))
+        logger.addHandler(console_handler)
+
+        if gui_handler is not None:
+            sys.stderr = StreamToLogger(logger, log.CRITICAL)
+            gui_handler.setLevel(log.INFO)
+            gui_handler.setFormatter(log.Formatter(GUI_LOG_FORMAT))
+            logger.addHandler(gui_handler)
+
+    else:
+        logger.handlers = logger.handlers[:-1]
 
     file_handler = log.FileHandler(os.path.join(folder_path, filename))
     file_handler.setLevel(log.DEBUG)
