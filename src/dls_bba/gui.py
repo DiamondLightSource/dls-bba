@@ -551,7 +551,7 @@ class MainWindow(QMainWindow):
         """
         dct = {
             "SAVE_LOCATION": self.display_save_loc.toPlainText(),
-            "FEEDBACKS": self.config_use_feedbacks.isChecked(),
+            "USE_FEEDBACKS": self.config_use_feedbacks.isChecked(),
             "FOFB_FEEDBACKS": self.config_use_fofb.isChecked(),
             "MAX_ORBIT_CORRECTION_MICRONS": self.config_max_orbit.value(),
             "MIN_CURRENT": self.config_current_limit.value(),
@@ -591,7 +591,7 @@ class MainWindow(QMainWindow):
         """Load the config from the config object to the GUI."""
         config = self.machine.config
 
-        self.config_use_feedbacks.setChecked(config["FEEDBACKS"])
+        self.config_use_feedbacks.setChecked(config["USE_FEEDBACKS"])
         self.config_use_fofb.setChecked(config["FOFB_FEEDBACKS"])
         self.config_max_orbit.setValue(config["MAX_ORBIT_CORRECTION_MICRONS"])
         self.config_current_limit.setValue(config["MIN_CURRENT"])
@@ -860,7 +860,7 @@ class MainWindow(QMainWindow):
 
 def start_gui() -> None:
     """Start the GUI."""
-    _qapp = cothread.iqt(poll_interval=0.01)  # noqa
+    _qapp = cothread.iqt()  # noqa
     window = MainWindow()
     window.show()
     # cothread.WaitForQuit()

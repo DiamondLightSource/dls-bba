@@ -155,13 +155,9 @@ class Algorithm(ABC):
         """
         offsets_dict = self.reformat_and_save_offsets(results_list, save_location)
         bba_offsets_plot(self._machine, offsets_dict, save_location)
-        while True:
-            if question("Apply these BBA offsets? (y / n) :"):
-                self.apply_bba_offsets(offsets_dict)
-                self._machine.apply_feedbacks()
-                break
-            else:
-                break
+        if question("Apply these BBA offsets? (y / n) :"):
+            self.apply_bba_offsets(offsets_dict)
+            self._machine.apply_feedbacks()
 
     def _save_bba_offsets(
         self,

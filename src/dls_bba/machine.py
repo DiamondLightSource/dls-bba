@@ -487,7 +487,7 @@ class Machine:
 
     def apply_feedbacks(self) -> None:
         """Apply the relevant feedbacks to the machine."""
-        use_feedbacks = self.config["FEEDBACKS"]
+        use_feedbacks = self.config["USE_FEEDBACKS"]
         use_fofb = self.config["FOFB_FEEDBACKS"]
 
         if use_feedbacks:
