@@ -4,7 +4,7 @@ import signal
 import sys
 import traceback
 from pathlib import Path
-from typing import List
+from typing import Any, Callable, Dict, List, Optional, Union
 
 # isort: off
 import matplotlib
@@ -43,23 +43,39 @@ else:
     from importlib_resources import files
 
 UI_FILENAME: list[str] = ["fbba_gui.ui"]
+"""The name of the .ui file."""
 # DEFAULT_SAVE_LOCATION: str = "/dls/ops-physics/diamonddata/fastBBA"
-delay = 1
-RAD_TO_URAD_CONV = 1e6
+RAD_TO_URAD_CONV: float = 1e6
+"""Conversion value from radians to microradians."""
 
 
 class Ticker:
-    def __init__(self, on_update, progress):
+    """The Ticker controls how the state changes of the process get returned to the GUI."""
+
+    def __init__(
+        self, on_update: Callable[[str, str], None], progress: Callable[[float], None]
+    ) -> None:
+        """Initialise the Ticker.
+
+        Args:
+            on_update: A function that handles state changes.
+            progress: A function that handles the progress fraction.
+        """
         self.__action = cothread.Event()
         self.__on_update = on_update
         self.__progress = progress
         self.__state = "Idle"
         cothread.Spawn(self.__ticker)
 
-    def __do_tick(self, worker):
+    def __do_tick(self, worker: Worker) -> None:
+        """Complete ticks for the duration of the process.
+
+        Args:
+            worker: The worker that controls the process.
+        """
         self.__set_state("Running")
         worker.start()
-        fraction = 1
+        fraction: Union[float, int] = 1
         self.__progress(fraction)
 
         action = "run"
@@ -82,7 +98,8 @@ class Ticker:
         worker.finish()
         self.__set_state("Idle")
 
-    def __ticker(self):
+    def __ticker(self) -> None:
+        """The individual ticks for the BBA process."""
         while True:
             action = ""
             while action != "run":
@@ -96,24 +113,30 @@ class Ticker:
                 worker.forced_finish()
                 self.__set_state("Idle")
 
-    def __set_state(self, state):
+    def __set_state(self, state: str) -> None:
+        """Set the new state."""
         old_state = self.__state
         self.__state = state
         self.__on_update(old_state, state)
 
-    def start_ticker(self, worker):
+    def start_ticker(self, worker: Worker) -> None:
+        """Start the ticker."""
         self.__action.Signal(("run", worker))
 
-    def pause_ticker(self):
+    def pause_ticker(self) -> None:
+        """Pause the ticker."""
         self.__action.Signal(("pause", None))
 
-    def stop_ticker(self):
+    def stop_ticker(self) -> None:
+        """Stop the ticker."""
         self.__action.Signal(("stop", None))
 
-    def resume_ticker(self):
+    def resume_ticker(self) -> None:
+        """Resume the ticker."""
         self.__action.Signal(("run", None))
 
-    def pause_resume_ticker(self):
+    def pause_resume_ticker(self) -> None:
+        """Pause or Resume the ticker."""
         if self.__state == "Running":
             self.pause_ticker()
         elif self.__state == "Paused":
@@ -123,7 +146,8 @@ class Ticker:
             log.error(msg)
 
     @property
-    def state(self):
+    def state(self) -> str:
+        """Return the current state of the ticker."""
         return self.__state
 
 
@@ -239,7 +263,8 @@ class MainWindow(QMainWindow):
         self.lock_unlock_pv.setEnabled(False)
         self.ticker.start_ticker(self.get_worker())
 
-    def pause_resume_ticker(self):
+    def pause_resume_ticker(self) -> None:
+        """Pause / Resume Ticker."""
         log.info("GUI Pause/Resume Pressed")
         self.ticker.pause_resume_ticker()
         log.debug(f"State: {self.ticker.state}")
@@ -248,7 +273,8 @@ class MainWindow(QMainWindow):
         elif self.ticker.state == "Paused":
             self.button_pause.setText("Pause")
 
-    def stop_ticker(self):
+    def stop_ticker(self) -> None:
+        """Stop Ticker."""
         log.info("GUI Stop Pressed")
         self.ticker.stop_ticker()
         self.button_start.setEnabled(True)
@@ -257,7 +283,7 @@ class MainWindow(QMainWindow):
         self.lock_unlock_pv.setEnabled(True)
 
         directory = self.machine.config["SAVE_LOCATION"]
-        newest_folder = max(
+        newest_folder: str = max(
             [os.path.join(directory, d) for d in os.listdir(directory)],
             key=os.path.getmtime,
         )
@@ -265,10 +291,12 @@ class MainWindow(QMainWindow):
         self.recent_folder = newest_folder
         self.reselect_elements()
 
-    def reselect_elements(self):
+    def reselect_elements(self) -> None:
+        """Reselect any elements that have a change in offset larger than the limit."""
         reselect_limit = self.machine.config["RESELECTION_LIMIT"]
 
         good_files = []
+        assert isinstance(self.recent_folder, str)
         for file in os.listdir(self.recent_folder):
             if file.endswith("-results.mat"):
                 good_files.append(os.path.join(self.recent_folder, file))
@@ -280,8 +308,8 @@ class MainWindow(QMainWindow):
             x_key = str(bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="x"))
             y_key = str(bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="y"))
             if (
-                abs(result.offsets[x_key]["diff_value"]) >= reselect_limit
-                or abs(result.offsets[y_key]["diff_value"]) >= reselect_limit
+                abs(result.offsets[x_key].diff_value) >= reselect_limit
+                or abs(result.offsets[y_key].diff_value) >= reselect_limit
             ):
                 reselect.append(bpm_name)
 
@@ -293,26 +321,44 @@ class MainWindow(QMainWindow):
         self.selection_strings = reselect
         self.selected = reselect
 
-    def ticker_update(self, old_state, new_state):
+    def ticker_update(self, old_state: str, new_state: str) -> None:
+        """Update the ticker and handle when the process is finished.
+
+        Args:
+            old_state: The old state string.
+            new_state:  The new state string.
+        """
         msg = f"Ticker state: {old_state} => {new_state}"
         log.debug(msg)
 
         if old_state == "Complete" and new_state == "Idle":
             self.stop_ticker()
 
-    def progress(self, fraction_left):
+    def progress(self, fraction_left: float) -> None:
+        """Update the progress bar.
+
+        Args:
+            fraction_left: The fraction left of the run.
+        """
         percent_completed = (1 - fraction_left) * 100
         log.info(f"Percent Completed: {percent_completed}%")
-        self.progressBar.setValue(round(percent_completed))
+        self.progressBar.setValue(round(percent_completed))  # type: ignore
 
-    def reset_progressbar(self):
+    def reset_progressbar(self) -> None:
+        """Reset the progressbar to 0."""
         self.progressBar.setValue(0)
 
-    def get_worker(self):
+    def get_worker(self) -> Worker:
+        """Get the worker to perform BBA.
+
+        Returns:
+            An initialised Worker.
+        """
         method = self.method_dropdown.currentText()
         folder_path = self.machine.config["SAVE_LOCATION"]
         if isinstance(self.selected, str):
             self.selected = [self.selected]
+        assert isinstance(self.selected, list) and isinstance(self.selected[0], str)
         return Worker(
             method,
             self.selected,
@@ -322,10 +368,12 @@ class MainWindow(QMainWindow):
             additional_options=self.update_config(),
         )
 
-    def reset_iocs(self):
+    def reset_iocs(self) -> None:
+        """Reset all Corrector IOCS."""
         cancel_all_oscillations(self.machine.config)
 
-    def plot_recent(self):
+    def plot_recent(self) -> None:
+        """Plot the recent data."""
         if self.recent_folder is None:
             self.display_most_recent.clear()
             self.display_most_recent.setText("Cannot plot recent until BBA has run.")
@@ -337,7 +385,8 @@ class MainWindow(QMainWindow):
             self.machine.config["SAVE_PLOTS"],
         )
 
-    def apply_recent(self):
+    def apply_recent(self) -> None:
+        """Apply the recent data."""
         if self.recent_folder is None:
             self.display_most_recent.clear()
             self.display_most_recent.setText("Cannot apply recent until BBA has run.")
@@ -345,7 +394,8 @@ class MainWindow(QMainWindow):
 
         apply_folder(self.recent_folder, self.machine)
 
-    def reapply_golden_orbits(self):
+    def reapply_golden_orbits(self) -> None:
+        """Reapply the golden orbits from the provided file."""
         self.display_golden.clear()
         file = QFileDialog.getOpenFileName(
             self,
@@ -359,7 +409,8 @@ class MainWindow(QMainWindow):
         apply_golden(file[0], self.machine)
         self.display_golden.setText(f"Golden Orbits restored at {get_isotime()}")
 
-    def load_config_file(self):
+    def load_config_file(self) -> None:
+        """Load and apply the config file to the GUI."""
         self.display_config_load.clear()
         file = QFileDialog.getOpenFileName(
             self,
@@ -377,11 +428,21 @@ class MainWindow(QMainWindow):
         cothread.Yield()  # TODO: Why does this need to yield?
         self.display_config_load.setText(f"Config File Applied at {get_isotime()}")
 
-    def get_ringmode_options(self):
+    def get_ringmode_options(self) -> List[str]:
+        """Get the current ringmode options from the machine.
+
+        Returns:
+            A list of the current ringmodes.
+        """
         ringmodes = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums
         return ringmodes
 
-    def update_config(self):
+    def update_config(self) -> Dict[str, Any]:
+        """Update the machine config with the current config in the GUI.
+
+        Returns:
+            A dictionary of the new config.
+        """
         dct = {
             "SAVE_LOCATION": self.display_save_loc.toPlainText(),
             "FEEDBACKS": self.config_use_feedbacks.isChecked(),
@@ -420,7 +481,8 @@ class MainWindow(QMainWindow):
         cothread.Yield()
         return dct
 
-    def show_config(self):
+    def show_config(self) -> None:
+        """Load the config from the config object to the GUI."""
         config = self.machine.config
 
         self.config_use_feedbacks.setChecked(config["FEEDBACKS"])
@@ -460,7 +522,8 @@ class MainWindow(QMainWindow):
 
         self.display_save_loc.setPlainText(config["SAVE_LOCATION"])
 
-    def apply_bba_folder(self):
+    def apply_bba_folder(self) -> None:
+        """Apply all results files in the given folder."""
         if self.loadfolder is None:
             self.display_bba_folder.clear()
             self.display_bba_folder.setPlainText("Please select a folder to apply.")
@@ -468,7 +531,8 @@ class MainWindow(QMainWindow):
 
         apply_folder(self.loadfolder, self.machine)
 
-    def apply_bba_file(self):
+    def apply_bba_file(self) -> None:
+        """Apply the individual BBA results file selected."""
         if self.loadfile is None:
             self.display_single_bba.clear()
             self.display_single_bba.setPlainText("Please select a file to apply.")
@@ -476,7 +540,8 @@ class MainWindow(QMainWindow):
 
         apply_single(self.loadfile, self.machine)
 
-    def plot_bba_file(self):
+    def plot_bba_file(self) -> None:
+        """Plot the individual BBA results file selected."""
         if self.loadfile is None:
             self.display_single_bba.clear()
             self.display_single_bba.setPlainText("Please select a file to plot.")
@@ -487,7 +552,8 @@ class MainWindow(QMainWindow):
             self.machine.config["SAVE_PLOTS"],
         )
 
-    def plot_bba_folder(self):
+    def plot_bba_folder(self) -> None:
+        """Plot all results files in the given folder."""
         if self.loadfolder is None:
             self.display_bba_folder.clear()
             self.display_bba_folder.setPlainText("Please select a folder to plot.")
@@ -499,7 +565,8 @@ class MainWindow(QMainWindow):
             self.machine.config["SAVE_PLOTS"],
         )
 
-    def select_save_location_folder(self):
+    def select_save_location_folder(self) -> None:
+        """Select the save location."""
         folderpath = QFileDialog.getExistingDirectory(
             self, "Select Folder to Save to", self.machine.config["SAVE_LOCATION"]
         )
@@ -510,7 +577,8 @@ class MainWindow(QMainWindow):
             self.display_save_loc.setPlainText(folderpath)
             self.savepath = folderpath
 
-    def select_bba_folder(self):
+    def select_bba_folder(self) -> None:
+        """Select a folder of old data to load."""
         folderpath = QFileDialog.getExistingDirectory(
             self, "Select Folder to load", self.machine.config["SAVE_LOCATION"]
         )
@@ -520,9 +588,9 @@ class MainWindow(QMainWindow):
             return
         self.display_bba_folder.setPlainText(folderpath)
         self.loadfolder = folderpath
-        self.load_folder_results = None
 
-    def select_bba_file(self):
+    def select_bba_file(self) -> None:
+        """Select an individual results file to load."""
         if self.tmp_single_filepath is None:
             self.tmp_single_filepath = self.machine.config["SAVE_LOCATION"]
         filepath = QFileDialog.getOpenFileName(
@@ -540,6 +608,7 @@ class MainWindow(QMainWindow):
         self.loadfile = filepath[0]
 
     def select_mode(self, key):
+        """Display the correct PV options for the mode selected."""
         values = self.modes[key]
         selection_strings, options = values[0], values[1]
         # Clear and redraw selection
@@ -550,6 +619,7 @@ class MainWindow(QMainWindow):
         self.options = options
 
     def lock_unlock_selection(self) -> None:
+        """Toggle locking and unlocking the PV selection."""
         if self.selected_toggle == 0:
             if self.select_options():
                 self.disable_mode_selection()
@@ -559,12 +629,12 @@ class MainWindow(QMainWindow):
         if self.selected_toggle == 1:
             self.enable_mode_selection()
             self.options = None
-            self.display = None
             self.selected = None
             self.selected_toggle = 0
             return
 
     def enable_mode_selection(self):
+        """Enable selection of options."""
         self.button_start.setEnabled(False)
         self.whole_machine.setEnabled(True)
         self.cell.setEnabled(True)
@@ -583,6 +653,7 @@ class MainWindow(QMainWindow):
                 it.setSelected(True)
 
     def disable_mode_selection(self):
+        """Disable selection of options."""
         self.button_start.setEnabled(True)
         self.whole_machine.setEnabled(False)
         self.cell.setEnabled(False)
@@ -599,8 +670,13 @@ class MainWindow(QMainWindow):
             it.setFlags(it.flags() & ~QtCore.Qt.ItemFlag.ItemIsEnabled)
 
     def select_options(self) -> bool:
-        selected = self.pv_selection.selectedItems()  # type: ignore
+        """Select options and find the correct element names where needed.
 
+        Returns:
+            True if elements are selected, False if nothing selected.
+        """
+        selected = self.pv_selection.selectedItems()  # type: ignore
+        assert isinstance(self.selection_strings, list)
         if len(selected) == 0:
             msg = "Please select a mode."
             self.display_on_screen(msg, clear=True)
@@ -612,6 +688,7 @@ class MainWindow(QMainWindow):
         ):
             msg = f"{self.selection_strings[0]} selected."
             self.display_on_screen(msg, clear=True)
+            assert isinstance(self.options, list) and isinstance(self.options[0], str)
             self.selected = self.options
             return True
 
@@ -651,14 +728,21 @@ class MainWindow(QMainWindow):
                 self.selected = elements
                 return True
 
-    def display_on_screen(self, text, clear=False):
+    def display_on_screen(self, text: str, clear=False) -> None:
+        """Display a message on the GUI Screen.
+
+        Args:
+            text: The message to display
+            clear: If to clear the screen beforehand.
+        """
         if clear:
-            self.screen.clear()
+            self.main_screen.clear()
             QApplication.processEvents()
-        self.screen.appendPlainText(text)
+        self.main_screen.appendPlainText(text)
         QApplication.processEvents()
 
-    def closeEvent(self, event=None):
+    def closeEvent(self, event=None) -> None:
+        """Signal the close event."""
         if self.ticker.state != "Idle":
             log.critical("Force Closed.")
             cancel_all_oscillations(self.machine.config)
@@ -668,13 +752,15 @@ class MainWindow(QMainWindow):
         log.info("Exited.")
 
 
-def start_gui():
+def start_gui() -> None:
+    """Start the GUI."""
     _qapp = cothread.iqt(poll_interval=0.01)  # noqa
     window = MainWindow()
     window.show()
     # cothread.WaitForQuit()
 
-    def graceful_exit():
+    def graceful_exit() -> None:
+        """When closed, trigger a close event."""
         window.closeEvent()
         _QuitEvent.Signal()
 

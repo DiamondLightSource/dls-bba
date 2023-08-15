@@ -221,7 +221,7 @@ class Machine:
         for _, bpm_name in zip(self.bpms, self.bpms_names):
             key = str(bpm_name[2:4])
             cell_dictionary[key].append(bpm_name)
-        self.cell_dictionary = cell_dictionary
+        self.cell_dictionary: Dict[str, List[str]] = cell_dictionary
         # Primaries and Source Points.
         psps = []
         for cell, indices in PSPdict.items():

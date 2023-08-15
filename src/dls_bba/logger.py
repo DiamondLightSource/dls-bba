@@ -1,6 +1,7 @@
 import logging as log
 import os
 import sys
+from typing import Optional
 
 CONSOLE_LOG_FORMAT = "%(levelname)-7s: [%(filename)s:%(lineno)d] — %(message)s"
 """The format of the log message when printed to the console."""
@@ -12,25 +13,25 @@ FILE_LOG_FORMAT = (
 """The format of the log message when printed to the log file."""
 
 
-class StreamToLogger(object):
+class StreamToLogger:
     """
     Fake file-like stream object that redirects writes to a logger instance.
     """
 
-    def __init__(self, logger, level):
+    def __init__(self, logger: log.Logger, level: int) -> None:
         self.logger = logger
         self.level = level
         self.linebuf = ""
 
-    def write(self, buf):
+    def write(self, buf: str) -> None:
         for line in buf.rstrip().splitlines():
             self.logger.log(self.level, line.rstrip())
 
-    def flush(self):
+    def flush(self) -> None:
         pass
 
 
-def get_new_logger(folder_path: str, gui_handler=None):
+def get_new_logger(folder_path: str, gui_handler: Optional[log.Handler] = None) -> None:
     """Setup the logger.
 
     Args:
@@ -51,7 +52,7 @@ def get_new_logger(folder_path: str, gui_handler=None):
         logger.addHandler(console_handler)
 
         if gui_handler is not None:
-            sys.stderr = StreamToLogger(logger, log.CRITICAL)
+            sys.stderr = StreamToLogger(logger, log.CRITICAL)  # type: ignore
             gui_handler.setLevel(log.INFO)
             gui_handler.setFormatter(log.Formatter(GUI_LOG_FORMAT))
             logger.addHandler(gui_handler)

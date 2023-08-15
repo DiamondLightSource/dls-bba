@@ -1,6 +1,6 @@
 import logging as log
 import traceback
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.beam_current import BeamCurrentCheck
@@ -21,7 +21,18 @@ class Worker:
         logger: Optional[log.Handler],
         extra_config_files: Optional[List[str]] = None,
         additional_options: Optional[Dict[str, Any]] = None,
-    ):
+    ) -> None:
+        """Initialise the worker and setup for performing a BBA.
+
+        Args:
+            method: The BBA method.
+            elements: The elements to perform a BBA on.
+            question: The question function dependant on if using the GUI or CLI.
+            folder_path: The save location folder path.
+            logger: The GUI logger handler.
+            extra_config_files: List of extra configuration files to load.
+            additional_options: Dictionary of configuration overrides.
+        """
         self.machine = Machine(extra_config_files, additional_options)
         folder_path = (
             folder_path
@@ -39,15 +50,20 @@ class Worker:
         self.beam_current_decay: Optional[BeamCurrentCheck] = None
         log.debug("Worker initialised")
 
-    def start(self):
+    def start(self) -> None:
+        """Start the BBA process."""
         log.debug("Worker Start Started.")
         self.machine.check_feedbacks()
         self.machine.zero_origins(self.save_location)
         self.beam_current_decay = BeamCurrentCheck(self.machine, self.question)
         log.debug("Worker Start Finished.")
 
-    def work(self):
-        """Must return true if more work to be done."""
+    def work(self) -> float:
+        """Complete an iteration of the BBA process.
+
+        Returns:
+            A fraction of the remaining BBA pairs over the total number of pairs.
+        """
         # Select first pair and remove it from list.
         if not self.components_pairs:
             return 0
@@ -76,13 +92,16 @@ class Worker:
         log.debug("Work end")
         return len(self.components_pairs) / self.starting_length
 
-    def pause(self):
+    def pause(self) -> None:
+        """The process is paused."""
         log.debug("Paused")
 
-    def resume(self):
+    def resume(self) -> None:
+        """The process is resumed."""
         log.debug("Resumed")
 
-    def finish(self):
+    def finish(self) -> None:
+        """The process is finished."""
         log.debug("Finishing")
         self.algorithm.use_bba_offsets(
             self.results_list, self.save_location, self.question
@@ -91,7 +110,8 @@ class Worker:
         self.machine.restore_origins(self.save_location)
         log.debug("Finished")
 
-    def forced_finish(self):
+    def forced_finish(self) -> None:
+        """The process is finished (forced/unexpected)."""
         log.debug("Forced finish")
         self.algorithm.reformat_and_save_offsets(self.results_list, self.save_location)
         cancel_all_oscillations(self.machine.config)
@@ -99,15 +119,25 @@ class Worker:
         log.debug("Forced finish finished")
 
 
-def show_progress(left):
+def show_progress(left: float) -> None:
+    """Log the percentage progress of the BBA.
+
+    args:
+        left: The fraction of work remaining.
+    """
     percent = "%.2f" % (100 * left)
     log.info(f"{percent}% left")
 
 
-def run_worker(worker):
+def run_worker(worker: Worker) -> None:
+    """Run the BBA.
+
+    args:
+        worker: The worker to run BBA from.
+    """
     try:
         worker.start()
-        fraction = 1
+        fraction: Union[int, float] = 1
         while fraction > 0:
             fraction = worker.work()
             show_progress(fraction)
@@ -118,6 +148,14 @@ def run_worker(worker):
 
 
 def ask_question(msg: str) -> bool:
+    """The CLI callable for asking a question.
+
+    Args:
+        msg: The message you want to ask.
+
+    Returns:
+        A bool response.
+    """
     while True:
         log.debug(f"Question: {msg}")
         response = input(msg).lower().strip()
