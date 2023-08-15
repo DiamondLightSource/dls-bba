@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt  # noqa E402
 from dls_bba.datatypes import CalculatedOffset, Results  # noqa E402
 from dls_bba.machine import Machine  # noqa E402
 
-# To convert from millimeters to micrometers
 MM_TO_UM_UNIT_CONV = 1000
+"""The conversion factor from millimeters to micrometers."""
 
 
 def bba_offsets_folder(
@@ -21,6 +21,13 @@ def bba_offsets_folder(
     folder_path: str,
     save: bool = False,
 ) -> None:
+    """Load all results.mat files in a folder and plot the change in BBA offsets.
+
+    Args:
+        machine: The machine object.
+        folder_path: The path to the folder containing the results.mat files.
+        save: Whether to save the plot to the same directory as the results.mat files.
+    """
     good_files = []
     for file in os.listdir(folder_path):
         if file.endswith("-results.mat"):
@@ -28,7 +35,7 @@ def bba_offsets_folder(
 
     load_folder_results = [Results.from_file(file) for file in good_files]
 
-    offsets_dict: dict[str, CalculatedOffset] = {}
+    offsets_dict: Dict[str, CalculatedOffset] = {}
     for results in load_folder_results:
         offsets_dict.update(results.offsets.items())
 
@@ -41,6 +48,17 @@ def bba_offsets_plot(
     save_location: str,
     save: bool = False,
 ) -> plt.figure:
+    """Plot the change in BBA offsets for all BPMs.
+
+    Args:
+        machine: The machine object.
+        offsets_dict: The dictionary of BPM BBA PVs and calculated offsets.
+        save_location: The directory to save the plot to.
+        save: Whether to save the plot to the save_location directory.
+
+    Returns:
+        The figure object.
+    """
     x = np.arange(1, len(machine.bba_x_pvs) + 1)
     change_in_x = []
     change_in_dx = []
@@ -68,10 +86,14 @@ def bba_offsets_plot(
     fig.suptitle("Change in BBA values")
     ax1.set_xlim(0, 174)
     ax1.axhline(y=0, color="k", linestyle="-", alpha=0.5)
-    ax1.errorbar(x, change_in_x, yerr=change_in_dx, color="b", capsize=5, ecolor=(0.5, 0.5, 0.5))
+    ax1.errorbar(
+        x, change_in_x, yerr=change_in_dx, color="b", capsize=5, ecolor=(0.5, 0.5, 0.5)
+    )
     ax1.set_ylabel("Horizontal [um]")
     ax1.grid(which="both", axis="both")
-    ax2.errorbar(x, change_in_y, yerr=change_in_dy, color="r", capsize=5, ecolor=(0.5, 0.5, 0.5))
+    ax2.errorbar(
+        x, change_in_y, yerr=change_in_dy, color="r", capsize=5, ecolor=(0.5, 0.5, 0.5)
+    )
     ax2.axhline(y=0, color="k", linestyle="-", alpha=0.5)
     ax2.set_ylabel("Vertical [um]")
     ax2.grid(which="both", axis="both")
@@ -90,6 +112,15 @@ def bba_offsets_plot(
 
 
 def bowtie_plot(filepath: str, save: bool = False) -> plt.figure:
+    """Plot the bowtie/quadcentre results from a BBA.
+
+    Args:
+        filepath: The path to the results.mat file.
+        save: Whether to save the plot to the same directory as the results.mat file.
+
+    Returns:
+        The figure object.
+    """
     results_object = Results.from_file(filepath)
     bpm_name = results_object.metadata["bpm_name"]
     keys = results_object.results.keys()

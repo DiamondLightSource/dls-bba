@@ -1,5 +1,5 @@
 import logging as log
-from typing import List
+from typing import Any, Dict, List
 
 import numpy as np
 from cothread import Sleep
@@ -12,12 +12,27 @@ from dls_bba.machine import Machine
 
 
 class SlowBBA(Algorithm):
-    def __init__(self, machine: Machine):
+    """Slow BBA Algorithm."""
+
+    def __init__(self, machine: Machine) -> None:
+        """Initialise the Slow BBA Algorithm.
+
+        Args:
+            machine: The machine.
+        """
         super().__init__(machine)
 
-    def run(self, components_pair: list[Components]) -> RawData:
-        rawdata = {}
-        metadata = {}
+    def run(self, components_pair: List[Components]) -> RawData:
+        """The Slow BBA Process.
+
+        Args:
+            components_pair: The components pair to use.
+
+        Returns:
+            The RawData object.
+        """
+        rawdata: Dict[str, Any] = {}
+        metadata: Dict[str, Any] = {}
         config = self._machine.config.get_settings()
         metadata.update(config)
         metadata["method"] = "SlowBBA"
@@ -90,7 +105,15 @@ class SlowBBA(Algorithm):
         return RawData(rawdata, metadata)
 
     def get_slow_bba_corrector_steps(self, components: Components) -> List[float]:
-        """"""
+        """Get the corrector steps for the slow BBA.
+
+        Args:
+            components: The components to use.
+
+        Returns:
+            The corrector steps in a list. Where s is the setpoint and k is the kick:
+            [s + k, s + (k / 2), s, s - (k / 2), s - k]
+        """
         setpoint = self._machine.get_corrector_setpoint(components)
         step = self._machine.corrector_kick(components)
         corrector_steps = [
@@ -103,6 +126,14 @@ class SlowBBA(Algorithm):
         return corrector_steps
 
     def analyse(self, rawdata: RawData) -> Results:
+        """Analyse the rawdata and calculate the offsets to apply.
+
+        Args:
+            rawdata: The rawdata to analyse.
+
+        Returns:
+            The results of the analysis.
+        """
         data = rawdata.rawdata
         metadata = rawdata.metadata
 
@@ -111,8 +142,8 @@ class SlowBBA(Algorithm):
         center_outlier_factor = metadata["CENTER_OUTLIER_FACTOR"]
         bpm_index = metadata["bpm_index"]
 
-        results = {}
-        plotting = {}
+        results: Dict[str, List[float]] = {}
+        plotting: Dict[str, Dict[str, np.ndarray]] = {}
 
         quad_names = []
         for key in data.keys():
@@ -145,7 +176,7 @@ class SlowBBA(Algorithm):
 
                 fit = np.polynomial.polynomial.polyfit(matrix[:, bpm_index], matrix, 1)
                 p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
-                gradients = list(p[:, 1])
+                gradients = List(p[:, 1])
 
                 sorted_gradients = np.sort(gradients)
                 # Note: This misses once element if len(sorted_gradients) is odd.

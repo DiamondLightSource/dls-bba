@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, Dict, List
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.common import ALGORITHMS, setup_beam_based_alignment, setup_folders
@@ -11,9 +11,17 @@ def cli_entrypoint(
     element: List[str],
     folder_path: str,
     extra_config_files: List[str],
-    additional_options: dict[str, Any],
-):
-    """"""
+    additional_options: Dict[str, Any],
+) -> None:
+    """Entry point for the CLI.
+
+    Args:
+        method: The method to use.
+        element: The element to use.
+        folder_path: The folder path to use.
+        extra_config_files: The extra config files to use.
+        additional_options: The additional options to use.
+    """
     save_location = setup_folders(method, folder_path)
 
     machine = Machine(extra_config_files, additional_options)

@@ -5,16 +5,25 @@ from dls_bba.machine import Machine
 
 
 class BeamCurrentCheck:
+    """A class to check the beam current and top-up if necessary."""
+
     def __init__(self, machine: Machine) -> None:
+        """Initialise the class and store the initial beam current.
+
+        Args:
+            machine: The machine object.
+        """
         self._machine = machine
         self._store_initial_current()
 
     def _store_initial_current(self) -> None:
+        """Store the initial beam current."""
         self._initial_current = self._machine.get_beam_current()
         msg = f"Stored Starting Beam Current: {self._initial_current}"
         log.debug(msg)
 
     def check_beam_decay(self) -> None:
+        """Check if the beam current has decayed below the minimum current."""
         min_current = self._machine.config["MIN_CURRENT"]
         current_current = self._machine.get_beam_current()
         log.debug(f"Current: {current_current}; Decay limit: {min_current}")
@@ -23,6 +32,11 @@ class BeamCurrentCheck:
             self.topup_beam()
 
     def check_beam_drop(self) -> bool:
+        """Check if the beam current has dropped below the warning current drop.
+
+        Returns:
+            True if beam has not dropped below warning current drop, False if it has.
+        """
         warning_current_drop = self._machine.config["WARNING_CURRENT_DROP"]
         current_current = self._machine.get_beam_current()
         change_in_current = self._initial_current - current_current
@@ -35,6 +49,7 @@ class BeamCurrentCheck:
         return True
 
     def topup_beam(self) -> None:
+        """Prompt the user to topup the beam current."""
         start_current = self._machine.get_beam_current()
 
         while True:

@@ -53,7 +53,9 @@ class InvalidRingmodeError(Exception):
 
 
 class OscillationLengthError(Exception):
-    """Raised when the oscillations are not equal in length."""
+    """Raised when the X and Y oscillations are not equal in length."""
+
+    pass
 
 
 class LowCurrentError(Exception):

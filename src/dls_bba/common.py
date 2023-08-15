@@ -21,7 +21,15 @@ ALGORITHMS: dict[str, type[Algorithm]] = {
 
 
 def setup_folders(method: str, folder_path: Optional[str] = None) -> str:
-    """"""
+    """Setup the folders and logger for the BBA run.
+
+    Args:
+        method: The method of BBA.
+        folder_path: The parent folder path to save to.
+
+    Returns:
+        The folder path to save/load from/to.
+    """
     foldername = f"{method}-{get_isotime()}"
     file = os.getcwd() if folder_path is None else folder_path
     bba_folderpath = os.path.join(file, foldername)
@@ -33,10 +41,17 @@ def setup_folders(method: str, folder_path: Optional[str] = None) -> str:
 def setup_beam_based_alignment(
     machine: Machine,
     algorithm: Algorithm,
-    components_pairs: list[list[Components]],
+    components_pairs: List[List[Components]],
     save_location: str,
-):
-    """"""
+) -> None:
+    """Setup of BBA run.
+
+    Args:
+        machine: The machine object.
+        algorithm: The BBA Algorithm to use.
+        components_pairs: The components pairs to use.
+        save_location: The save location.
+    """
     results_list: List[Results] = []
     machine.check_feedbacks()
     machine.zero_origins(save_location)
@@ -58,10 +73,20 @@ def setup_beam_based_alignment(
 def paired_beam_based_alignment(
     algorithm: Algorithm,
     machine: Machine,
-    components_pair: list[Components],
+    components_pair: List[Components],
     save_location: str,
-):
-    """"""
+) -> Results:
+    """Perform a BBA on both axes componenets.
+
+    Args:
+        algorithm: The BBA Algorithm to use.
+        machine: The machine object.
+        components_pair: The components pair to use.
+        save_location: The save location.
+
+    Returns:
+        The results object of the BBA.
+    """
     beam_current_drop = BeamCurrentCheck(machine)
 
     while True:

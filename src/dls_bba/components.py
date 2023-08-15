@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging as log
 from dataclasses import asdict, dataclass
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Dict, List, Tuple, Union
 
 from pytac.element import EpicsElement
 
@@ -15,12 +15,12 @@ if TYPE_CHECKING:
 @dataclass
 class Components:
     bpm_name: str
-    quadrupoles_names: list[str]
+    quadrupoles_names: List[str]
     corrector_name: str
     axis: str
     kick: str
     bpm: EpicsElement
-    quadrupoles: list[EpicsElement]
+    quadrupoles: List[EpicsElement]
     corrector: EpicsElement
     bpm_index: int
 
@@ -29,11 +29,24 @@ class Components:
         cls,
         machine: Machine,
         bpm_name: str,
-        quadrupoles_names: list[str],
+        quadrupoles_names: List[str],
         corrector_name: str,
         axis: str,
         kick: str,
-    ):
+    ) -> Components:
+        """The Components class constructor using the string names of the elements.
+
+        Args:
+            machine: The machine object.
+            bpm_name: The name of the BPM.
+            quadrupoles_names: The names of the quadrupoles.
+            corrector_name: The name of the corrector.
+            axis: The axis string of the measurement.
+            kick: The pytac kick string of the measurement.
+
+        Returns:
+            The Components object.
+        """
         bpm, quadrupoles, corrector = Components.name_to_element(
             machine, bpm_name, quadrupoles_names, corrector_name
         )
@@ -52,13 +65,23 @@ class Components:
         )
 
     @classmethod
-    def from_dict(cls, machine: Machine, dct: dict):
-        # recreate the object from the dict, with elements and names
-        bpm_name = dct["bpm_name"]
-        quadrupoles_names = list(dct["quadrupoles_names"])
-        corrector_name = dct["corrector_name"]
-        axis = dct["axis"]
-        kick = dct["kick"]
+    def from_dict(
+        cls, machine: Machine, dct: Dict[str, Union[str, List[str]]]
+    ) -> Components:
+        """The Components class constructor using a dictionary.
+
+        Args:
+            machine: The machine object.
+            dct: The dictionary containing the names of the elements.
+
+        Returns:
+            The Components object.
+        """
+        bpm_name = str(dct["bpm_name"])
+        quadrupoles_names = List(dct["quadrupoles_names"])
+        corrector_name = str(dct["corrector_name"])
+        axis = str(dct["axis"])
+        kick = str(dct["kick"])
 
         return cls.from_name(
             machine,
@@ -75,7 +98,18 @@ class Components:
         bpm_name: str,
         quadrupoles_names: List[str],
         corrector_name: str,
-    ):
+    ) -> Tuple[EpicsElement, List[EpicsElement], EpicsElement]:
+        """Converts the string names of the elements to the pytac elements.
+
+        Args:
+            machine: The machine object.
+            bpm_name: The name of the BPM.
+            quadrupoles_names: The names of the quadrupoles.
+            corrector_name: The name of the corrector.
+
+        Returns:
+            A tuple containing the pytac elements of the BPM, quadrupoles and corrector.
+        """
         bpm = machine.bpms[machine.bpms_names.index(bpm_name)]
         quadrupoles = [
             machine.quads[machine.quads_names.index(quad_name)]
@@ -87,12 +121,17 @@ class Components:
             corrector = machine.vstrs[machine.vstrs_names.index(corrector_name)]
         return bpm, quadrupoles, corrector
 
-    def as_dict(self):
-        a = {}
+    def as_dict(self) -> Dict[str, Union[str, List[str]]]:
+        """Converts the Components object to a dictionary.
+
+        Returns:
+            The dictionary containing the names of the elements.
+        """
+        a: Dict[str, Union[str, List[str]]] = {}
         for k, v in asdict(self).items():
             if isinstance(v, str):
                 a[k] = v
-            if isinstance(v, list) and isinstance(v[0], str):
+            if isinstance(v, List) and isinstance(v[0], str):
                 a[k] = v
         return a
 
@@ -100,7 +139,16 @@ class Components:
 def get_component_pairs(
     machine: Machine, element_names: List[str], verify: bool = True
 ) -> List[List[Components]]:
-    """"""
+    """Constructs a list of component pairs from the given elements.
+
+    Args:
+        machine: The machine object.
+        element_names: The names of the elements.
+        verify: Whether to verify the component pairings.
+
+    Returns:
+        The list of component pairs.
+    """
     component_pairs: List[List[Components]] = []
 
     for element_name in element_names:
@@ -113,6 +161,17 @@ def get_component_pairs(
 
 
 def construct_component_pair(machine: Machine, element: str) -> List[Components]:
+    """Constructs a component pair from the given element.
+
+    A component pair is the x, y pair of component objects for a single BPM.
+
+    Args:
+        machine: The machine object.
+        element: The name of the element.
+
+    Returns:
+        The component pair.
+    """
     if element in machine.bpms_names:
         bpm = element
         quads = machine.bpm2quad(bpm)
@@ -137,6 +196,18 @@ def construct_component_pair(machine: Machine, element: str) -> List[Components]
 def verify_component_pairing(
     machine: Machine, component_pairings: List[List[Components]]
 ) -> List[List[Components]]:
+    """Returns valid component pairings given the current machine state.
+
+    Elements that are disabled will be valid upon component object construction, this
+    function removes those elements and provides warnings where appropriate.
+
+    Args:
+        machine: The machine object.
+        component_pairings: The list of component pairings.
+
+    Returns:
+        The list of component pairings with disabled elements removed.
+    """
     checked_pairings: List[List[Components]] = []
 
     for component_pair in component_pairings:
@@ -152,6 +223,18 @@ def verify_component_pairing(
 
 
 def check_component(machine: Machine, component_pair: List[Components]) -> None:
+    """Checks that individual components are not invalid.
+
+    Disabled BPMs cannot perform BBA, and are removed from the lists.
+    Feedback disabled BPMs can perform BBA, but the results may be invalid.
+
+    Args:
+        machine: The machine object.
+        component_pair: The component pair.
+
+    Raises:
+        ElementDisabledError: If the component pair uses disabled elements.
+    """
     disabled_fofb_bpm_indices = (
         machine.fofb_disabled_indices["x"] + machine.fofb_disabled_indices["y"]
     )
