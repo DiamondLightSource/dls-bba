@@ -20,9 +20,19 @@ from cothread.catools import FORMAT_CTRL, caget  # noqa: E402
 from PyQt6 import QtCore, uic  # noqa: E402
 from PyQt6.QtWidgets import (  # noqa: E402
     QApplication,
+    QCheckBox,
+    QComboBox,
+    QDoubleSpinBox,
     QFileDialog,
+    QListWidget,
     QMainWindow,
     QMessageBox,
+    QPlainTextEdit,
+    QProgressBar,
+    QPushButton,
+    QSpinBox,
+    QTabWidget,
+    QTextEdit,
 )
 
 from dls_bba.common import (  # noqa: E402
@@ -152,34 +162,112 @@ class Ticker:
 
 
 class GuiLogger(log.Handler):
-    def emit(self, record):
-        self.edit.appendPlainText(self.format(record))
+    """The GUI Logging Handler."""
+
+    def __init__(self, main_screen: QPlainTextEdit) -> None:
+        super().__init__()
+        self._main_screen = main_screen
+
+    def emit(self, record: log.LogRecord) -> None:
+        """Emit/update the screen with the logging output.
+
+        Args:
+            record: The logging record.
+        """
+        self._main_screen.appendPlainText(self.format(record))
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, *args, **kwargs):
+    """The GUI MainWindow."""
+
+    tabWidget: QTabWidget
+
+    # Main page widgets:
+    # Method Selection
+    method_dropdown: QComboBox
+    whole_machine: QPushButton
+    cell: QPushButton
+    bpms: QPushButton
+    quadrupoles: QPushButton
+    psps: QPushButton
+    pv_selection: QListWidget
+    lock_unlock_pv: QPushButton
+    # Screen
+    main_screen: QPlainTextEdit
+    # Button Array
+    button_start: QPushButton
+    button_pause: QPushButton
+    button_stop: QPushButton
+    button_reset: QPushButton
+    progressBar: QProgressBar
+    # Config
+    config_use_feedbacks: QCheckBox
+    config_use_fofb: QCheckBox
+    config_max_orbit: QDoubleSpinBox
+    config_current_limit: QDoubleSpinBox
+    # Most Recent Data
+    button_plot_recent: QPushButton
+    button_apply_recent: QPushButton
+    display_most_recent: QTextEdit
+
+    # Configuration option widgets:
+    # Options
+    config_corr_kick: QDoubleSpinBox
+    config_quad_step: QDoubleSpinBox
+    config_warning_current: QDoubleSpinBox
+    config_sofb_run_time: QDoubleSpinBox
+    config_run_time: QDoubleSpinBox
+    config_wait_time: QDoubleSpinBox
+    config_sbba_min_frac: QDoubleSpinBox
+    config_sbba_stdev: QDoubleSpinBox
+    config_use_decimation: QCheckBox
+    config_x_cycles: QSpinBox
+    config_x_freq: QSpinBox
+    config_y_cycles: QSpinBox
+    config_y_freq: QSpinBox
+    save_rawdata: QCheckBox
+    save_results: QCheckBox
+    save_plots: QCheckBox
+    config_reselection: QDoubleSpinBox
+
+    # Advanced Options
+    config_ringmode: QComboBox
+    config_units: QComboBox
+    config_datasource: QComboBox
+    config_ccs_timeout: QDoubleSpinBox
+    config_ccs_wait: QCheckBox
+    config_fofb_executable_path: QTextEdit
+    config_fofb_max_orbit: QDoubleSpinBox
+    config_orm_path: QTextEdit
+    config_corrector_txt_path: QTextEdit
+
+    # Save Location and Config
+    button_save_loc: QPushButton
+    display_save_loc: QTextEdit
+    config_load_apply: QPushButton
+    display_config_load: QTextEdit
+    button_golden: QPushButton
+    display_golden: QTextEdit
+    button_bba_folder: QPushButton
+    display_bba_folder: QTextEdit
+    plot_bba: QPushButton
+    apply_bba: QPushButton
+    button_single_bba: QPushButton
+    display_single_bba: QTextEdit
+    plot_single_bba: QPushButton
+    apply_single_bba: QPushButton
+
+    def __init__(self, *args, **kwargs) -> None:
+        """Setup the GUI."""
         super().__init__(*args, **kwargs)
         ui_file = [
-            Path(files("dls_bba").joinpath(resource)) for resource in UI_FILENAME
+            Path(files("dls_bba").joinpath(resource))  # type: ignore
+            for resource in UI_FILENAME
         ][0]
         uic.loadUi(ui_file, self)
 
         self.machine = Machine()
-        self.setup_machine_args()
-        self.setup_main_window()
-        self.show_config()
-        self.setup_qtextedit_logging()
-
-    def question(self, msg):
-        button = QMessageBox.question(self, "BBA User Prompt", msg)
-        return button == QMessageBox.StandardButton.Yes
-
-    def setup_qtextedit_logging(self):
-        self.logger = GuiLogger()
-        self.logger.edit = self.screen
-
-    def setup_machine_args(self):
-        self.modes = {  # Mode name: [selection_strings, arguments]
+        self.modes: Dict[str, List[Union[List[str], Dict[str, List[str]]]]] = {
             "Whole Machine": [["Whole Machine"], self.machine.bpms_names],
             "Cells": [
                 list(self.machine.cell_dictionary.keys()),
@@ -189,8 +277,39 @@ class MainWindow(QMainWindow):
             "Quadrupoles": [self.machine.quads_names, self.machine.quads_names],
             "PSPs": [["All PSPs"], self.machine.psps],
         }
+        self.recent_folder: Optional[str] = None
+        self.last_list: Optional[List[str]] = None
+        self.selection_strings: Optional[List[str]] = None
+        self.selected: Optional[Union[List[str], str]] = None
+        self.loadfolder: Optional[str] = None
+        self.savepath: Optional[str] = None
+        self.loadfile: Optional[str] = None
+        self.selected_toggle: int = 0
+        self.tmp_single_filepath: Optional[str] = None
+        self.setup_main_window()
+        self.show_config()
+        self.logger = GuiLogger(self.main_screen)
+        self.ticker = Ticker(self.ticker_update, self.progress)
+        self.reset_progressbar()
+        self.tabWidget.setCurrentIndex(0)
 
-    def setup_main_window(self):
+        # Mode Selection
+        self.options: Optional[Union[Dict[str, List[str]], List[str]]] = None
+
+    def question(self, msg: str) -> bool:
+        """Prompt the GUI with a question.
+
+        Args:
+            msg: The question to be asked.
+
+        Returns:
+            A bool as the answer.
+        """
+        button = QMessageBox.question(self, "BBA User Prompt", msg)
+        return button == QMessageBox.StandardButton.Yes
+
+    def setup_main_window(self) -> None:
+        """Setup the mainwindow and the button interactions."""
         # Methods
         self.method_dropdown.addItems(ALGORITHMS.keys())
         self.method_dropdown.setCurrentText(list(ALGORITHMS.keys())[2])
@@ -198,16 +317,11 @@ class MainWindow(QMainWindow):
         self.display_on_screen("Please select a mode.", clear=True)
 
         # Mode Selection
-        self.options = None
-        self.display = None
-        self.selected = None
         self.whole_machine.clicked.connect(lambda: self.select_mode("Whole Machine"))
         self.cell.clicked.connect(lambda: self.select_mode("Cells"))
         self.bpms.clicked.connect(lambda: self.select_mode("BPMs"))
         self.quadrupoles.clicked.connect(lambda: self.select_mode("Quadrupoles"))
         self.psps.clicked.connect(lambda: self.select_mode("PSPs"))
-
-        self.selected_toggle = 0
         self.lock_unlock_pv.clicked.connect(self.lock_unlock_selection)
 
         # File / Folder selection, plotting and applying.
@@ -222,34 +336,26 @@ class MainWindow(QMainWindow):
         self.display_bba_folder.setPlainText("Not Selected")
         self.button_single_bba.clicked.connect(self.select_bba_file)
         self.display_single_bba.setPlainText("Not Selected")
-        self.loadfolder = None
         self.plot_bba.clicked.connect(self.plot_bba_folder)
         self.apply_bba.clicked.connect(self.apply_bba_folder)
-        self.loadfile = None
         self.plot_single_bba.clicked.connect(self.plot_bba_file)
         self.apply_single_bba.clicked.connect(self.apply_bba_file)
 
         # Front page buttons
-        self.ticker = Ticker(self.ticker_update, self.progress)
-        self.reset_progressbar()
-        self.pause_counter = 0
         self.button_start.clicked.connect(self.start_ticker)
         self.button_pause.clicked.connect(self.pause_resume_ticker)
         self.button_stop.clicked.connect(self.stop_ticker)
         self.button_reset.clicked.connect(self.reset_iocs)
-        self.recent_folder = None
         self.button_plot_recent.clicked.connect(self.plot_recent)
         self.button_apply_recent.clicked.connect(self.apply_recent)
 
         # Configuration options
-        self.tmp_single_filepath = None
         self.config_ringmode.addItems(self.get_ringmode_options())
         self.config_load_apply.clicked.connect(self.load_config_file)
         self.button_golden.clicked.connect(self.reapply_golden_orbits)
 
-        self.tabWidget.setCurrentIndex(0)
-
-    def start_ticker(self):
+    def start_ticker(self) -> None:
+        """Start Ticker"""
         log.info("GUI Start Pressed")
         if not self.selected:
             msg = "No elements selected."
@@ -456,7 +562,7 @@ class MainWindow(QMainWindow):
             "FEEDBACK_RUN_TIME": self.config_run_time.value(),
             "SOFB_RUN_TIME": self.config_sofb_run_time.value(),
             "MIN_SLOPE_FRACTION": self.config_sbba_min_frac.value(),
-            "CENTER_OUTLIER_FACTOR": self.confifg_sbba_stdev.value(),
+            "CENTER_OUTLIER_FACTOR": self.config_sbba_stdev.value(),
             "DECIMATED": self.config_use_decimation.isChecked(),
             "X_CYCLES": self.config_x_cycles.value(),
             "X_FREQUENCY": self.config_x_freq.value(),
@@ -499,7 +605,7 @@ class MainWindow(QMainWindow):
         self.config_run_time.setValue(config["FEEDBACK_RUN_TIME"])
         self.config_sofb_run_time.setValue(config["SOFB_RUN_TIME"])
         self.config_sbba_min_frac.setValue(config["MIN_SLOPE_FRACTION"])
-        self.confifg_sbba_stdev.setValue(config["CENTER_OUTLIER_FACTOR"])
+        self.config_sbba_stdev.setValue(config["CENTER_OUTLIER_FACTOR"])
         self.config_use_decimation.setChecked(config["DECIMATED"])
         self.config_x_cycles.setValue(config["X_CYCLES"])
         self.config_x_freq.setValue(config["X_FREQUENCY"])
