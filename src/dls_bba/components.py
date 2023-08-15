@@ -4,6 +4,7 @@ import logging as log
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Dict, List, Tuple, Union
 
+import pytac
 from pytac.element import EpicsElement
 
 from dls_bba.exceptions import ComponentConstructionError, ElementDisabledError
@@ -98,7 +99,11 @@ class Components:
         bpm_name: str,
         quadrupoles_names: List[str],
         corrector_name: str,
-    ) -> Tuple[EpicsElement, List[EpicsElement], EpicsElement]:
+    ) -> Tuple[
+        pytac.element.EpicsElement,
+        List[pytac.element.EpicsElement],
+        pytac.element.EpicsElement,
+    ]:
         """Converts the string names of the elements to the pytac elements.
 
         Args:

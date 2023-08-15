@@ -111,7 +111,7 @@ class SlowBBA(Algorithm):
             components: The components to use.
 
         Returns:
-            The corrector steps in a list. Where s is the setpoint and k is the kick:
+            The corrector steps in a list. Where s is the setpoint and k is the kick.
             [s + k, s + (k / 2), s, s - (k / 2), s - k]
         """
         setpoint = self._machine.get_corrector_setpoint(components)

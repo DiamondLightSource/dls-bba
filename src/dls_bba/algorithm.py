@@ -58,12 +58,7 @@ class Algorithm(ABC):
             quadrupole: The quadrupole to calculate the setpoints for.
 
         Returns:
-            A tuple containing:
-                The quadrupole hysteris start point,
-                the quadrupole high point,
-                the quadrupole low point,
-                the quadrupole starting setpoint and
-                the quadrupole step.
+            A tuple containing the four quadrupole setpoints and step size.
         """
         quad_step_percent = self._machine.config["QUADRUPOLE_STEP_PERCENT"] * 1e-2
 

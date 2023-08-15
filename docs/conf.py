@@ -65,6 +65,7 @@ nitpick_ignore = [
     ("py:class", "typing_extensions.Literal"),
     # Added, but custom for dls-bba
     ("py:class", "PyQt6.QtWidgets.QMainWindow"),
+    ("py:class", "matplotlib.figure.Figure"),
 ]
 
 # Both the class’ and the __init__ method’s docstring are concatenated and
