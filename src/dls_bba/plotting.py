@@ -47,7 +47,7 @@ def bba_offsets_plot(
     offsets_dict: Dict[str, CalculatedOffset],
     save_location: str,
     save: bool = False,
-) -> plt.figure:
+) -> plt.Figure:
     """Plot the change in BBA offsets for all BPMs.
 
     Args:
@@ -111,7 +111,7 @@ def bba_offsets_plot(
     return fig
 
 
-def bowtie_plot(filepath: str, save: bool = False) -> plt.figure:
+def bowtie_plot(filepath: str, save: bool = False) -> plt.Figure:
     """Plot the bowtie/quadcentre results from a BBA.
 
     Args:

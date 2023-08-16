@@ -18,7 +18,7 @@ API
     :show-inheritance:
 
 ``dls_bba.beam_current``
----------------
+------------------------
 
 .. automodule:: dls_bba.beam_current
     :members:
@@ -130,7 +130,7 @@ API
     :show-inheritance:
 
 ``dls_bba.plotting``
--------------------
+--------------------
 
 .. automodule:: dls_bba.plotting
     :members:
