@@ -79,7 +79,7 @@ class Components:
             The Components object.
         """
         bpm_name = str(dct["bpm_name"])
-        quadrupoles_names = List(dct["quadrupoles_names"])
+        quadrupoles_names = list(dct["quadrupoles_names"])
         corrector_name = str(dct["corrector_name"])
         axis = str(dct["axis"])
         kick = str(dct["kick"])
