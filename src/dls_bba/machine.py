@@ -72,6 +72,8 @@ def _retry_command(num_tries, excp_type):
 class Machine:
     """The Machine class is the main interface to the machine."""
 
+    _effective_corrector: Dict[str, List[str]] = defaultdict(list)
+
     def __init__(
         self,
         extra_config_files: Optional[List[Any]] = None,
@@ -414,7 +416,6 @@ class Machine:
             log.critical(msg)
             raise FileNotFoundError(msg)
 
-        self._effective_corrector: Dict[str, List[str]] = defaultdict(list)
         data = loadmat(orm_filepath, appendmat=False, struct_as_record=False)
         self._horizontal_orm, self._vertical_orm = (
             data["Rmat"][0][0].Data,

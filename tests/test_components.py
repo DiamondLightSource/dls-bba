@@ -8,13 +8,6 @@ from dls_bba.components import (
     verify_component_pairing,
 )
 from dls_bba.exceptions import ComponentConstructionError, ElementDisabledError
-from dls_bba.machine import Machine
-
-
-@pytest.fixture(scope="module")
-def machine_setup():
-    machine = Machine()
-    return machine
 
 
 def test_from_name_h(machine_setup):
@@ -131,8 +124,6 @@ def test_construct_component_pair_other(machine_setup):
 
 def test_check_component_valid(machine_setup):
     machine = machine_setup
-    machine.fofb_disabled_indices["x"] = []
-    machine.fofb_disabled_indices["y"] = []
     element = machine.bpms_names[0]
     component_pair = construct_component_pair(machine, element)
     check_component(machine, component_pair)
@@ -140,25 +131,25 @@ def test_check_component_valid(machine_setup):
 
 def test_check_component_warn(machine_setup):
     machine = machine_setup
+    x_dis = machine.fofb_disabled_indices["x"]
     machine.fofb_disabled_indices["x"] = [0]
-    machine.fofb_disabled_indices["y"] = []
     element = machine.bpms_names[0]
     component_pair = construct_component_pair(machine, element)
     check_component(machine, component_pair)
     # Undo settings change.
-    machine.fofb_disabled_indices["x"] = []
-    machine.fofb_disabled_indices["y"] = []
+    machine.fofb_disabled_indices["x"] = x_dis
 
 
 def test_check_component_fail(machine_setup):
     machine = machine_setup
+    dis = machine.disabled_bpm_indices
     machine.disabled_bpm_indices = [0]
     element = machine.bpms_names[0]
     component_pair = construct_component_pair(machine, element)
     with pytest.raises(ElementDisabledError):
         check_component(machine, component_pair)
     # Undo settings change.
-    machine.disabled_bpm_indices = []
+    machine.disabled_bpm_indices = dis
 
 
 def test_verify_pairings_valid(machine_setup):
@@ -174,6 +165,8 @@ def test_verify_pairings_valid(machine_setup):
 def test_verify_pairings_warn(machine_setup):
     machine = machine_setup
     elements = machine.bpms_names[0:2]
+    dis_x = machine.fofb_disabled_indices["x"]
+    dis_y = machine.fofb_disabled_indices["y"]
     machine.fofb_disabled_indices["x"] = [0, 1, 2]
     machine.fofb_disabled_indices["y"] = [0, 1, 2]
     pairs = []
@@ -182,12 +175,13 @@ def test_verify_pairings_warn(machine_setup):
     v_pairs = verify_component_pairing(machine, pairs)
     assert len(v_pairs) == len(pairs)
     # Undo settings change.
-    machine.fofb_disabled_indices["x"] = []
-    machine.fofb_disabled_indices["y"] = []
+    machine.fofb_disabled_indices["x"] = dis_x
+    machine.fofb_disabled_indices["y"] = dis_y
 
 
 def test_verify_pairings_fail(machine_setup):
     machine = machine_setup
+    dis = machine.disabled_bpm_indices
     machine.disabled_bpm_indices = [0, 1, 2]
     elements = machine.bpms_names[0:2]
     pairs = []
@@ -196,7 +190,7 @@ def test_verify_pairings_fail(machine_setup):
     v_pairs = verify_component_pairing(machine, pairs)
     assert len(v_pairs) == 0
     # Undo settings change.
-    machine.disabled_bpm_indices = []
+    machine.disabled_bpm_indices = dis
 
 
 def test_get_component_pairs_verify(machine_setup):
