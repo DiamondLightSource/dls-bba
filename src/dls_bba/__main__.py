@@ -132,8 +132,9 @@ def sort_elements(args) -> List[str]:
         A list of elements.
     """
     # Additional config must be in the correct format Dict[str, Any]
-    assert isinstance(args.additional_config, Dict)
-    assert all(isinstance(key, str) for key in args.additional_config.keys())
+    if args.additional_config is not None:
+        assert isinstance(args.additional_config, Dict)
+        assert all(isinstance(key, str) for key in args.additional_config.keys())
 
     machine = Machine(args.config_files, args.additional_config)
     elements: List[str] = []
