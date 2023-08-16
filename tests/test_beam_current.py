@@ -4,15 +4,6 @@ import pytest
 
 from dls_bba.beam_current import BeamCurrentCheck
 from dls_bba.exceptions import LowCurrentError
-from dls_bba.machine import Machine
-
-OVERRIDES = {"MIN_CURRENT": 10, "WARNING_CURRENT_DROP": 5}
-
-
-@pytest.fixture(scope="module")
-def machine_setup():
-    machine = Machine(overrides=OVERRIDES)
-    return machine
 
 
 @mock.patch("dls_bba.machine.Machine.get_beam_current", side_effect=[0])

@@ -21,10 +21,8 @@ def get_element_values(family, field, *args, **kwargs) -> List[int]:
 
 @mock.patch.object(Machine, "_get_effective_corrector")
 def _get_effective_corrector(self) -> None:
-    for bpm_name, hstr_name, vstr_name in zip(
-        self.bpms_names, self.hstrs_names, self.vstrs_names
-    ):
-        self._effective_corrector[bpm_name] = [hstr_name, vstr_name]
+    # This is to stop attempts at accessing a Response Matrix.
+    pass
 
 
 @pytest.fixture(scope="session")
@@ -46,4 +44,11 @@ def machine_setup(
         overrides = {}
     overrides.update(OVERRIDES)
     machine = Machine(extra_config_files, overrides)
+
+    # This is to construct a fake effective corrector dictionary in place of the Response Matrix.
+    for bpm_name, hstr_name, vstr_name in zip(
+        machine.bpms_names, machine.hstrs_names, machine.vstrs_names
+    ):
+        machine._effective_corrector[bpm_name] = [hstr_name, vstr_name]
+
     return machine
