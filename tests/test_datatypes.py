@@ -1,78 +1,125 @@
-# import os
+import os
+from dataclasses import asdict
 
-# import pytest
+from dls_bba.datatypes import CalculatedOffset, RawData, Results
 
-# from dls_bba.datatypes import CalculatedOffset, RawData, Results
-
-
-# @pytest.fixture(scope="module")
-# def rawdata_setup():
-#     rawdata = {"rawdata_key": "rawdata_value"}
-#     metadata = {
-#         "method": "rawdata_method",
-#         "isotime": "rawdata_isotime",
-#         "bpm_name": "rawdata_bpm_name",
-#     }
-#     return RawData(rawdata, metadata)
-
-
-# @pytest.fixture(scope="module")
-# def results_without_offsets_setup():
-#     results = {"data_x": [10, 1], "data_y": [5, 1]}
-#     metadata = metadata = {
-#         "method": "results_method",
-#         "isotime": "results_isotime",
-#         "bpm_name": "results_bpm_name",
-#     }
-#     plotting = {"plotting": "results_plotting"}
-#     offsets = {
-#         "BPM1": CalculatedOffset(1.0, 1.1, 1.2, 1.3),
-#         "BPM2": CalculatedOffset(2.0, 2.1, 2.2, 2.3),
-#     }
-#     return Results(results, metadata, plotting, offsets)
+TEST_RAWDATA = {"DATA_1": [1, 2, 3], "DATA_2": "TEST_DATA"}
+TEST_METADATA = {
+    "method": "TEST_METHOD",
+    "isotime": "TEST_ISOTIME",
+    "bpm_name": "TEST_BPM_NAME",
+}
+TEST_CALC_OFFSETS = [1, 2, 3, 4]
+TEST_RESULTS = {"DATA_1": [0, 1, 2, 3, 4, 5, 6], "DATA_2": [1, 2, 3, 4, 5, 6, 7]}
+TEST_PLOTTING = {
+    "DATA_1": {"x": [1, 2, 3], "y": [6, 5, 4]},
+    "DATA_2": {"x": [9, 8, 7], "y": [4, 5, 6]},
+}
+TEST_OFFSETS = {
+    "DATA_1": CalculatedOffset(1, 2, 3, 4),
+    "DATA_2": CalculatedOffset(9, 8, 7, 6),
+}
 
 
-# def test_rawdata_saving_is_valid(tmp_path, rawdata_setup):
-#     rawdata = rawdata_setup
-#     rawdata.save(tmp_path)
-#     assert any(file.endswith("-rawdata.mat") for file in os.listdir(tmp_path))
+def test_RawData_construction():
+    rawdata_object = RawData(TEST_RAWDATA, TEST_METADATA)
+    assert isinstance(rawdata_object, RawData)
 
 
-# def test_rawdata_construction_from_file_is_valid(tmp_path, rawdata_setup):
-#     rawdata = rawdata_setup
-#     rawdata.save(tmp_path)
+def test_RawData_saving(tmp_path):
+    rawdata_object = RawData(TEST_RAWDATA, TEST_METADATA)
+    rawdata_object.save(tmp_path)
 
-#     method = rawdata.metadata["method"]
-#     isotime = rawdata.metadata["isotime"]
-#     bpm_name = rawdata.metadata["bpm_name"]
-#     filename = f"{method}-{isotime}-{bpm_name}-rawdata.mat"
-
-#     loaded_rawdata = RawData.from_file(os.path.join(tmp_path, filename))
-
-#     assert loaded_rawdata.rawdata == rawdata.rawdata
-#     assert loaded_rawdata.metadata == rawdata.metadata
+    method = TEST_METADATA["method"]
+    isotime = TEST_METADATA["isotime"]
+    bpm_name = TEST_METADATA["bpm_name"]
+    filename = f"{method}-{isotime}-{bpm_name}-rawdata.mat"
+    assert os.path.isfile(os.path.join(tmp_path, filename))
 
 
-# def test_results_saving_is_valid(tmp_path, results_without_offsets_setup):
-#     results = results_without_offsets_setup
-#     results.save(tmp_path)
-#     assert any(file.endswith("-results.mat") for file in os.listdir(tmp_path))
+def test_RawData_loading(tmp_path):
+    rawdata_object = RawData(TEST_RAWDATA, TEST_METADATA)
+    rawdata_object.save(tmp_path)
+
+    method = TEST_METADATA["method"]
+    isotime = TEST_METADATA["isotime"]
+    bpm_name = TEST_METADATA["bpm_name"]
+    filename = f"{method}-{isotime}-{bpm_name}-rawdata.mat"
+    rawdata_object_2 = RawData.from_file(os.path.join(tmp_path, filename))
+
+    assert all(rawdata_object.rawdata["DATA_1"] == rawdata_object_2.rawdata["DATA_1"])
+    assert rawdata_object.rawdata["DATA_2"] == rawdata_object_2.rawdata["DATA_2"]
+    assert rawdata_object.metadata["method"] == rawdata_object_2.metadata["method"]
+    assert rawdata_object.metadata["isotime"] == rawdata_object_2.metadata["isotime"]
+    assert rawdata_object.metadata["bpm_name"] == rawdata_object_2.metadata["bpm_name"]
 
 
-# def test_results_construction_from_file_is_valid(
-#     tmp_path, results_without_offsets_setup
-# ):
-#     results = results_without_offsets_setup
-#     results.save(tmp_path)
+def test_CalculatedOffsets():
+    a, b, c, d = TEST_CALC_OFFSETS
+    calc_offset = CalculatedOffset(a, b, c, d)
+    assert calc_offset.old_value == a
+    assert calc_offset.new_value == b
+    assert calc_offset.diff_value == c
+    assert calc_offset.diff_error == d
 
-#     method = results.metadata["method"]
-#     isotime = results.metadata["isotime"]
-#     bpm_name = results.metadata["bpm_name"]
-#     filename = f"{method}-{isotime}-{bpm_name}-results.mat"
 
-#     loaded_results = Results.from_file(os.path.join(tmp_path, filename))
+def test_CalculatedOffsets_to_dict():
+    a, b, c, d = TEST_CALC_OFFSETS
+    calc_offset = CalculatedOffset(a, b, c, d)
+    calc_offset_dict = asdict(calc_offset)
+    assert calc_offset_dict["old_value"] == a
+    assert calc_offset_dict["new_value"] == b
+    assert calc_offset_dict["diff_value"] == c
+    assert calc_offset_dict["diff_error"] == d
 
-#     assert loaded_results.results["data_x"] == results.results["data_x"]
-#     assert loaded_results.results["data_y"] == results.results["data_y"]
-#     assert loaded_results.metadata == results.metadata
-#     assert loaded_results.offsets == results.offsets
+
+def test_CalculatedOffsets_from_dict():
+    a, b, c, d = TEST_CALC_OFFSETS
+    calc_offset = CalculatedOffset(a, b, c, d)
+    calc_offset_dict = asdict(calc_offset)
+    calc_offset_2 = CalculatedOffset(**calc_offset_dict)
+    assert calc_offset.old_value == calc_offset_2.old_value
+    assert calc_offset.new_value == calc_offset_2.new_value
+    assert calc_offset.diff_value == calc_offset_2.diff_value
+    assert calc_offset.diff_error == calc_offset_2.diff_error
+
+
+def test_Results_construction():
+    results_object = Results(TEST_RESULTS, TEST_METADATA, TEST_PLOTTING, TEST_OFFSETS)
+    assert isinstance(results_object, Results)
+
+
+def test_Results_saving(tmp_path):
+    results_object = Results(TEST_RESULTS, TEST_METADATA, TEST_PLOTTING, TEST_OFFSETS)
+    results_object.save(tmp_path)
+
+    method = TEST_METADATA["method"]
+    isotime = TEST_METADATA["isotime"]
+    bpm_name = TEST_METADATA["bpm_name"]
+    filename = f"{method}-{isotime}-{bpm_name}-results.mat"
+    assert os.path.isfile(os.path.join(tmp_path, filename))
+
+
+def test_Results_loading(tmp_path):
+    results_object = Results(TEST_RESULTS, TEST_METADATA, TEST_PLOTTING, TEST_OFFSETS)
+    results_object.save(tmp_path)
+
+    method = TEST_METADATA["method"]
+    isotime = TEST_METADATA["isotime"]
+    bpm_name = TEST_METADATA["bpm_name"]
+    filename = f"{method}-{isotime}-{bpm_name}-results.mat"
+    results_object_2 = Results.from_file(os.path.join(tmp_path, filename))
+
+    assert results_object.results["DATA_1"] == results_object_2.results["DATA_1"]
+    assert results_object.results["DATA_2"] == results_object_2.results["DATA_2"]
+    assert results_object.metadata["method"] == results_object_2.metadata["method"]
+    assert results_object.metadata["isotime"] == results_object_2.metadata["isotime"]
+    assert results_object.metadata["bpm_name"] == results_object_2.metadata["bpm_name"]
+    rp = results_object.plotting
+    r2p = results_object_2.plotting
+    assert all(rp["DATA_1"]["x"] == r2p["DATA_1"]["x"])
+    assert all(rp["DATA_1"]["y"] == r2p["DATA_1"]["y"])
+    assert all(rp["DATA_2"]["x"] == r2p["DATA_2"]["x"])
+    assert all(rp["DATA_2"]["y"] == r2p["DATA_2"]["y"])
+    assert results_object.offsets["DATA_1"] == results_object_2.offsets["DATA_1"]
+    assert results_object.offsets["DATA_2"] == results_object_2.offsets["DATA_2"]
