@@ -16,7 +16,9 @@ def test_beamcurrentcheck_init(mock_ask_question, mock_beam_current, machine_set
 
 @mock.patch("dls_bba.machine.Machine.get_beam_current", side_effect=[0, 14])
 @mock.patch("dls_bba.worker.ask_question", side_effect=[None])
-def test_beamcurrentcheck_check_beam_decay_valid(mock_ask_question, mock_beam_current, machine_setup):
+def test_beamcurrentcheck_check_beam_decay_valid(
+    mock_ask_question, mock_beam_current, machine_setup
+):
     machine = machine_setup
     bcc = BeamCurrentCheck(machine, mock_ask_question)
     assert bcc.check_beam_decay()
@@ -35,7 +37,9 @@ def test_beamcurrentcheck_check_beam_decay_fail(
 
 @mock.patch("dls_bba.machine.Machine.get_beam_current", side_effect=[0, 14])
 @mock.patch("dls_bba.worker.ask_question", side_effect=[None])
-def test_beamcurrentcheck_check_beam_drop_valid(mock_ask_question, mock_beam_current, machine_setup):
+def test_beamcurrentcheck_check_beam_drop_valid(
+    mock_ask_question, mock_beam_current, machine_setup
+):
     machine = machine_setup
     bcc = BeamCurrentCheck(machine, mock_ask_question)
     assert bcc.check_beam_drop()
