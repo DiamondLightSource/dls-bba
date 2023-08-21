@@ -1,11 +1,9 @@
+import logging as log
 import os
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from dls_bba.algorithm import Algorithm
-from dls_bba.beam_current import BeamCurrentCheck
-from dls_bba.components import Components
-from dls_bba.datatypes import Results
-from dls_bba.excite import cancel_all_oscillations
+from dls_bba.datatypes import CalculatedOffset, Results
 from dls_bba.fbba import FastBBA
 from dls_bba.isotime import get_isotime
 from dls_bba.logger import get_new_logger
@@ -20,12 +18,15 @@ ALGORITHMS: dict[str, type[Algorithm]] = {
 }
 
 
-def setup_folders(method: str, folder_path: Optional[str] = None) -> str:
+def setup_folders_and_logger(
+    method: str, folder_path: Optional[str] = None, gui: Optional[log.Handler] = None
+) -> str:
     """Setup the folders and logger for the BBA run.
 
     Args:
         method: The method of BBA.
         folder_path: The parent folder path to save to.
+        gui: The GUI logging handler if it exists.
 
     Returns:
         The folder path to save/load from/to.
@@ -34,73 +35,78 @@ def setup_folders(method: str, folder_path: Optional[str] = None) -> str:
     file = os.getcwd() if folder_path is None else folder_path
     bba_folderpath = os.path.join(file, foldername)
     os.makedirs(bba_folderpath)
-    get_new_logger(bba_folderpath)
+    get_new_logger(bba_folderpath, gui)
     return bba_folderpath
 
 
-def setup_beam_based_alignment(
-    machine: Machine,
-    algorithm: Algorithm,
-    components_pairs: List[List[Components]],
-    save_location: str,
+def apply_golden(
+    filepath: str,
+    machine: Optional[Machine] = None,
+    config_files: Optional[List[Any]] = None,
+    additional_config: Optional[Dict[str, Any]] = None,
 ) -> None:
-    """Setup of BBA run.
+    """Apply the golden offsets provided to the machine.
 
     Args:
+        filepath: The full filepath to the golden orbit .json file.
         machine: The machine object.
-        algorithm: The BBA Algorithm to use.
-        components_pairs: The components pairs to use.
-        save_location: The save location.
+        config_files: List of extra configuration files to load.
+        additional_config: Dictionary of configuration overrides.
     """
-    results_list: List[Results] = []
-    machine.check_feedbacks()
-    machine.zero_origins(save_location)
-    beam_current_decay = BeamCurrentCheck(machine)
-
-    for components_pair in components_pairs:
-        results = paired_beam_based_alignment(
-            algorithm, machine, components_pair, save_location
-        )
-        results_list.append(results)
-        beam_current_decay.check_beam_decay()
-
-    algorithm.use_bba_offsets(results_list, save_location)
-
-    cancel_all_oscillations(machine.config)
-    machine.restore_origins(save_location)
+    if machine is None:
+        machine = Machine(config_files, additional_config)
+    selected_file = os.path.dirname(filepath)
+    machine.restore_origins(selected_file)
 
 
-def paired_beam_based_alignment(
-    algorithm: Algorithm,
-    machine: Machine,
-    components_pair: List[Components],
-    save_location: str,
-) -> Results:
-    """Perform a BBA on both axes componenets.
+def apply_single(
+    filepath: str,
+    machine: Optional[Machine] = None,
+    config_files: Optional[List[Any]] = None,
+    additional_config: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Apply a single BBA results file to the machine.
 
     Args:
-        algorithm: The BBA Algorithm to use.
+        filepath: The full filepath to the results.mat file.
         machine: The machine object.
-        components_pair: The components pair to use.
-        save_location: The save location.
-
-    Returns:
-        The results object of the BBA.
+        config_files: List of extra configuration files to load.
+        additional_config: Dictionary of configuration overrides.
     """
-    beam_current_drop = BeamCurrentCheck(machine)
+    if machine is None:
+        machine = Machine(config_files, additional_config)
+    results_file = Results.from_file(filepath)
+    algorithm = FastBBA(machine)
+    algorithm.apply_bba_offsets(results_file.offsets)
 
-    while True:
-        machine.check_feedbacks()
-        rawdata = algorithm.run(components_pair)
 
-        if beam_current_drop.check_beam_drop():
-            break
+def apply_folder(
+    folderpath: str,
+    machine: Optional[Machine] = None,
+    config_files: Optional[List[Any]] = None,
+    additional_config: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Apply multiple BBA results files to the machine.
 
-    if machine.config["SAVE_RAWDATA"]:
-        rawdata.save(save_location)
+    Args:
+        folderpath: The full filepath to the folder which contains results.mat files.
+        machine: The machine object.
+        config_files: List of extra configuration files to load.
+        additional_config: Dictionary of configuration overrides.
+    """
+    if machine is None:
+        machine = Machine(config_files, additional_config)
 
-    results = algorithm.analyse(rawdata)
-    if machine.config["SAVE_RESULTS"]:
-        results.save(save_location)
+    good_files = []
+    for file in os.listdir(folderpath):
+        if file.endswith("-results.mat"):
+            good_files.append(os.path.join(folderpath, file))
 
-    return results
+    load_folder_results = [Results.from_file(file) for file in good_files]
+
+    offsets_dict: Dict[str, CalculatedOffset] = {}
+    for results in load_folder_results:
+        offsets_dict.update(results.offsets.items())
+
+    algorithm = FastBBA(machine)
+    algorithm.apply_bba_offsets(offsets_dict)

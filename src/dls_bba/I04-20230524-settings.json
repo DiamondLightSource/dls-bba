@@ -4,7 +4,7 @@
     "DATASOURCE": "LIVE",
     "COTHREAD_CONTROL_SYSTEM_TIMEOUT": 10.0,
     "COTHREAD_CONTROL_SYSTEM_WAIT_FLAG": true,
-    "FOFB_NOGUI_PATH": "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py",
+    "FOFB_EXECUTABLE_PATH": "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py",
     "FOFB_MAX_ORBIT_MICRONS": 250,
     "FEEDBACK_PVS": {
         "Fast_Orbit_Feedback": "SR01A-CS-FOFB-01:RUN",

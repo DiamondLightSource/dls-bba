@@ -2,11 +2,11 @@ import json
 from argparse import ArgumentParser, Namespace
 from typing import Dict, List
 
-from dls_bba.cli import cli_entrypoint
-from dls_bba.common import ALGORITHMS
+from dls_bba.common import ALGORITHMS, apply_folder, apply_golden, apply_single
 from dls_bba.gui import start_gui
 from dls_bba.machine import Machine
 from dls_bba.plotting import bba_offsets_folder, bowtie_plot
+from dls_bba.worker import Worker, ask_question, run_worker
 
 from . import __version__
 
@@ -73,6 +73,18 @@ def parse_arguments() -> Namespace:
         help="plot the relative differences across an entire BBA run",
     )
 
+    parser_apply = subparsers.add_parser(
+        "apply", parents=[parent_parser], add_help=False, description="Apply results"
+    )
+    parser_apply.set_defaults(command="apply")
+    parser_apply.add_argument(
+        "--load", "-l", type=str, default=None, help="The location to load from."
+    )
+    group = parser_apply.add_mutually_exclusive_group(required=True)
+    group.add_argument("--golden", "-g", action="store_true", help="")
+    group.add_argument("--single", "-s", action="store_true", help="")
+    group.add_argument("--multiple", "-m", action="store_true", help="")
+
     for subparser in [parser_info, parser_run]:
         group = subparser.add_mutually_exclusive_group(required=True)
         group.add_argument(
@@ -100,8 +112,8 @@ def parse_arguments() -> Namespace:
 
     for subparser in [parser_run, parser_plot]:
         subparser.add_argument(
-            "--save_location",
-            "-s",
+            "--filepath",
+            "-f",
             type=str,
             default=None,
             help="the location to save files to",
@@ -159,21 +171,32 @@ def main() -> None:
 
     elif args.command == "run":
         elements = sort_elements(args)
-        cli_entrypoint(
+        worker = Worker(
             args.algorithm,
             elements,
-            args.save_location,
+            ask_question,
+            args.filepath,
+            None,
             args.config_files,
             args.additional_config,
         )
+        run_worker(worker)
 
     elif args.command == "plot":
         if args.quadcenter:
             machine = Machine(args.config_files, args.additional_config)
-            bowtie_plot(args.save_location, machine.config["SAVE_PLOTS"])
+            bowtie_plot(args.filepath, True)
         if args.difference:
             machine = Machine(args.config_files, args.additional_config)
-            bba_offsets_folder(machine, args.difference, machine.config["SAVE_PLOTS"])
+            bba_offsets_folder(machine, args.filepath, True)
+
+    elif args.command == "apply":
+        if args.golden:
+            apply_golden(args.load, None, args.config_files, args.additional_config)
+        if args.single:
+            apply_single(args.load, None, args.config_files, args.additional_config)
+        if args.folder:
+            apply_folder(args.load, None, args.config_files, args.additional_config)
 
 
 def parse_gui_arguments(args=None) -> None:
