@@ -4,8 +4,8 @@ from unittest import mock
 
 import pytest
 from conftest import _get_effective_corrector, get_element_values
-from dls_bba.components import Components
 
+from dls_bba.components import Components
 from dls_bba.configuration import LATTICE_SETTINGS
 from dls_bba.exceptions import InvalidElementError, InvalidRingmodeError
 from dls_bba.machine import Machine
@@ -112,14 +112,14 @@ def test_machine_update_config_with_path(
 
     machine = Machine()
     assert machine.config["UNITS"] == "ENG"
-    machine._update_config(extra_config_files=paths)
+    machine.update_config(extra_config_files=paths)
     assert machine.config["UNITS"] == "PHYS"
 
 
 def test_machine_update_config_with_args():
     machine = Machine()
     assert machine.config["UNITS"] == "ENG"
-    machine._update_config(dct=OVERRIDES_WITH_RELOAD)
+    machine.update_config(dct=OVERRIDES_WITH_RELOAD)
     assert machine.config["UNITS"] == "PHYS"
 
 
@@ -268,6 +268,7 @@ def test_corrector_kick_PHYS(mock_element_values):
         machine, bpm_name, quad_name, corrector_name, "x", "x_kick"
     )
     assert machine.corrector_kick(component) == KICK
+
 
 # TODO: Check feedbacks
 # If use_feedbacks false, no feedbacks

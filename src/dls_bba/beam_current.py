@@ -72,7 +72,6 @@ class BeamCurrentCheck:
             log.error(msg)
             msg = "Input y to continue after top-up, or n to cancel: "
             response = self.question(msg)
-
             if response:
                 current = self._machine.get_beam_current()
                 if current > start_current:

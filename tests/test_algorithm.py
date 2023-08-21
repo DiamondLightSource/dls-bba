@@ -160,11 +160,11 @@ def test_apply_bba_offsets(mock_caput, mock_get_bba_offsets, machine_setup):
 @mock.patch("dls_bba.algorithm.Algorithm._save_bba_offsets", return_value=None)
 @mock.patch("dls_bba.algorithm.Algorithm.apply_bba_offsets", return_value=None)
 @mock.patch("dls_bba.machine.Machine.apply_feedbacks", return_value=None)
-@mock.patch("dls_bba.machine.Machine._ask_user", side_effect=["y"])
+@mock.patch("dls_bba.worker.ask_question", side_effect=[True])
 @mock.patch("dls_bba.algorithm.bba_offsets_plot", return_value=None)
 def test_use_bba_offsets_yes_pass(
     mock_plot,
-    mock_ask_user,
+    mock_ask_question,
     mock_feedbacks,
     mock_apply,
     mock_save,
@@ -173,17 +173,17 @@ def test_use_bba_offsets_yes_pass(
 ):
     machine = machine_setup
     algorithm = TEST_ALG(machine)
-    algorithm.use_bba_offsets(TEST_RESULTS, tmp_path)
+    algorithm.use_bba_offsets(TEST_RESULTS, tmp_path, mock_ask_question)
 
 
 @mock.patch("dls_bba.algorithm.Algorithm._save_bba_offsets", return_value=None)
 @mock.patch("dls_bba.algorithm.Algorithm.apply_bba_offsets", return_value=None)
 @mock.patch("dls_bba.machine.Machine.apply_feedbacks", return_value=None)
-@mock.patch("dls_bba.machine.Machine._ask_user", side_effect=["n"])
+@mock.patch("dls_bba.worker.ask_question", side_effect=[False])
 @mock.patch("dls_bba.algorithm.bba_offsets_plot", return_value=None)
 def test_use_bba_offsets_no_pass(
     mock_plot,
-    mock_ask_user,
+    mock_ask_question,
     mock_feedbacks,
     mock_apply,
     mock_save,
@@ -192,42 +192,4 @@ def test_use_bba_offsets_no_pass(
 ):
     machine = machine_setup
     algorithm = TEST_ALG(machine)
-    algorithm.use_bba_offsets(TEST_RESULTS, tmp_path)
-
-
-@mock.patch("dls_bba.algorithm.Algorithm._save_bba_offsets", return_value=None)
-@mock.patch("dls_bba.algorithm.Algorithm.apply_bba_offsets", return_value=None)
-@mock.patch("dls_bba.machine.Machine.apply_feedbacks", return_value=None)
-@mock.patch("dls_bba.machine.Machine._ask_user", side_effect=["z", "y"])
-@mock.patch("dls_bba.algorithm.bba_offsets_plot", return_value=None)
-def test_use_bba_offsets_invalid_then_yes_pass(
-    mock_plot,
-    mock_ask_user,
-    mock_feedbacks,
-    mock_apply,
-    mock_save,
-    machine_setup,
-    tmp_path,
-):
-    machine = machine_setup
-    algorithm = TEST_ALG(machine)
-    algorithm.use_bba_offsets(TEST_RESULTS, tmp_path)
-
-
-@mock.patch("dls_bba.algorithm.Algorithm._save_bba_offsets", return_value=None)
-@mock.patch("dls_bba.algorithm.Algorithm.apply_bba_offsets", return_value=None)
-@mock.patch("dls_bba.machine.Machine.apply_feedbacks", return_value=None)
-@mock.patch("dls_bba.machine.Machine._ask_user", side_effect=["z", "n"])
-@mock.patch("dls_bba.algorithm.bba_offsets_plot", return_value=None)
-def test_use_bba_offsets_invalid_then_no_pass(
-    mock_plot,
-    mock_ask_user,
-    mock_feedbacks,
-    mock_apply,
-    mock_save,
-    machine_setup,
-    tmp_path,
-):
-    machine = machine_setup
-    algorithm = TEST_ALG(machine)
-    algorithm.use_bba_offsets(TEST_RESULTS, tmp_path)
+    algorithm.use_bba_offsets(TEST_RESULTS, tmp_path, mock_ask_question)

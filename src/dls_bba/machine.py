@@ -488,19 +488,6 @@ class Machine:
         """
         return float(self._lattice.get_value("beam_current"))
 
-    def _ask_user(self, msg: str) -> str:
-        """Ask the user a question and return their response.
-
-        Args:
-            msg: Message to display to the user.
-
-        Returns:
-            User response.
-        """
-        response = input(msg).lower().strip()
-        log.debug(f"User Response: {response}")
-        return response
-
     def get_diagnostics(self) -> None:
         """Get the values of the diagnostic PVs and log them."""
         diagnostics = self.config["DIAGNOSTICS"]
@@ -526,7 +513,7 @@ class Machine:
             else:
                 self.run_sofb()
         else:
-            log.warn("Orbit needs correction but feedbacks are disabled.")
+            log.warning("Orbit needs correction but feedbacks are disabled.")
 
     def confirm_fofb_activation(self) -> None:
         """Confirm that the FOFB has activated correctly.
