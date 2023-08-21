@@ -102,6 +102,9 @@ class Machine:
     _quad2bpm_names: Dict[str, str]
     _bpm2quad_names: Dict[str, List[str]]
 
+    _horizontal_orm: Any
+    _vertical_orm: Any
+
     def __init__(
         self,
         extra_config_files: Optional[List[Any]] = None,
@@ -433,7 +436,7 @@ class Machine:
         """
         orm_filepath = self.config["ORBIT_RESPONSE_MATRIX_PATH"]
 
-        if not os.path.exists(orm_filepath):
+        if not os.path.isfile(orm_filepath):
             msg = f"Response Matrix does not exist at: {orm_filepath}"
             log.critical(msg)
             raise FileNotFoundError(msg)
@@ -469,7 +472,7 @@ class Machine:
         """
         radian_kick = self.config["CORRECTOR_KICK_RADIANS"]
 
-        if str(self.config["UNITS"]) == "pytac.ENG":
+        if str(self.config["UNITS"]) == "ENG":
             value = component.corrector.get_unitconv(component.kick).convert(
                 radian_kick, pytac.PHYS, pytac.ENG
             )

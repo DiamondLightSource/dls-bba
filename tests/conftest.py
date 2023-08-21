@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from unittest import mock
 
 import pytest
@@ -8,14 +8,14 @@ from dls_bba.machine import Machine
 OVERRIDES = {"MIN_CURRENT": 10, "WARNING_CURRENT_DROP": 5}
 
 
-def get_element_values(family, field, *args, **kwargs) -> List[int]:
+def get_element_values(family, field, *args, **kwargs) -> List[Union[int, float]]:
     if family == "BPM":
-        if field == "x_fofb_disabled":
-            return [0 for _ in range(173)]
-        elif field == "y_fofb_disabled":
+        if field in ["x_fofb_disabled", "y_fofb_disabled"]:
             return [0 for _ in range(173)]
         elif field == "enabled":
             return [1 for _ in range(173)]
+        elif field in ["x", "y"]:
+            return [3.0 for _ in range(173)]
     return [1 for _ in range(173)]
 
 
