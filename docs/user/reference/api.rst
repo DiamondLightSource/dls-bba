@@ -25,13 +25,6 @@ API
     :undoc-members:
     :show-inheritance:
 
-``dls_bba.cli``
----------------
-
-.. automodule:: dls_bba.cli
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 ``dls_bba.common``
 ------------------

@@ -66,6 +66,17 @@ nitpick_ignore = [
     # Added, but custom for dls-bba
     ("py:class", "PyQt6.QtWidgets.QMainWindow"),
     ("py:class", "matplotlib.figure.Figure"),
+    ("py:class", "dls_bba.worker.Worker"),
+    ("py:class", "PyQt6.QtWidgets.QPlainTextEdit"),
+    ("py:class", "PyQt6.QtWidgets.QTabWidget"),
+    ("py:class", "PyQt6.QtWidgets.QComboBox"),
+    ("py:class", "PyQt6.QtWidgets.QPushButton"),
+    ("py:class", "PyQt6.QtWidgets.QListWidget"),
+    ("py:class", "PyQt6.QtWidgets.QProgressBar"),
+    ("py:class", "PyQt6.QtWidgets.QCheckBox"),
+    ("py:class", "PyQt6.QtWidgets.QDoubleSpinBox"),
+    ("py:class", "PyQt6.QtWidgets.QTextEdit"),
+    ("py:class", "PyQt6.QtWidgets.QSpinBox"),
 ]
 
 # Both the class’ and the __init__ method’s docstring are concatenated and
