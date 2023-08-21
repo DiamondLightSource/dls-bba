@@ -2,6 +2,7 @@ import os
 from typing import Any, Dict, List
 from unittest import mock
 
+import numpy as np
 import pytest
 from pytac.exceptions import FieldException
 
@@ -10,8 +11,8 @@ from dls_bba.datatypes import CalculatedOffset, Results
 from dls_bba.machine import Machine
 
 TEST_RESULTS_SINGLE: Dict[str, List[float]] = {"x1": [10.0, 2.0], "y1": [5.0, 1.0]}
-TEST_PLOTTING_SINGLE: Dict[str, Dict[str, List[float]]] = {
-    "Q1": {"x": [1, 2, 3], "y": [6, 5, 4]},
+TEST_PLOTTING_SINGLE: Dict[str, Dict[str, np.ndarray[Any, Any]]] = {
+    "Q1": {"x": np.array([1, 2, 3]), "y": np.array([6, 5, 4])},
 }
 TEST_OFFSETS_SINGLE: Dict[str, CalculatedOffset] = {
     "x1": CalculatedOffset(1, 2, 3, 4),
@@ -23,9 +24,9 @@ TEST_RESULTS_DOUBLE: Dict[str, List[float]] = {
     "y1": [12.0, 6.0],
     "y2": [9.0, 3.0],
 }
-TEST_PLOTTING_DOUBLE: Dict[str, Dict[str, List[float]]] = {
-    "Q1": {"x": [1, 2, 3], "y": [6, 5, 4]},
-    "Q2": {"x": [9, 8, 7], "y": [4, 5, 6]},
+TEST_PLOTTING_DOUBLE: Dict[str, Dict[str, np.ndarray[Any, Any]]] = {
+    "Q1": {"x": np.array([1, 2, 3]), "y": np.array([6, 5, 4])},
+    "Q2": {"x": np.array([9, 8, 7]), "y": np.array([4, 5, 6])},
 }
 TEST_OFFSETS_DOUBLE: Dict[str, CalculatedOffset] = {
     "x1": CalculatedOffset(1, 2, 3, 4),
