@@ -7,7 +7,7 @@ from conftest import _get_effective_corrector, get_element_values
 
 from dls_bba.components import Components
 from dls_bba.configuration import LATTICE_SETTINGS
-from dls_bba.exceptions import InvalidElementError, InvalidRingmodeError
+from dls_bba.exceptions import ChannelAccessError, InvalidElementError, InvalidRingmodeError
 from dls_bba.machine import Machine
 
 OVERRIDES_WITH_RELOAD = {
@@ -270,7 +270,19 @@ def test_corrector_kick_PHYS(mock_element_values):
     assert machine.corrector_kick(component) == KICK
 
 
-# TODO: Check feedbacks
+@mock.patch(
+    "pytac.lattice.EpicsLattice.get_element_values",
+    side_effect=get_element_values,
+)
+@mock.patch(
+    "dls_bba.machine.Machine._get_effective_corrector",
+    side_effect=_get_effective_corrector,
+)
+def test_machine_apply_feedbacks_false(mock_element_values, mock_effected_corrector):
+    machine = Machine(overrides={"USE_FEEDBACKS": False})
+    machine.apply_feedbacks
+
+# Check feedbacks
 # If use_feedbacks false, no feedbacks
 # if use_fofb false, use sofb
 # if max orbit too large, uses sofb then fofb
@@ -279,4 +291,18 @@ def test_corrector_kick_PHYS(mock_element_values):
 
 # TODO: Get/set quad/corrector
 
+
 # TODO: zero and restore origins
+
+@mock.patch("dls_bba.machine.caput", return_value=None)
+@mock.patch("dls_bba.machine.caget", return_value=None)
+def test_zero_origins(mock_caget, mock_caput, machine_setup, tmp_path):
+    machine = machine_setup
+    machine.zero_origins(tmp_path)
+
+
+@mock.patch("dls_bba.machine.caput", return_value=None)
+def test_restore_origins(mock_caput, machine_setup, tmp_path):
+    machine = machine_setup
+    machine.zero_origins(tmp_path)
+    machine.restore_origins(tmp_path)
