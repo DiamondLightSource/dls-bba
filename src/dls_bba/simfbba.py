@@ -1,4 +1,5 @@
 import logging as log
+from math import ceil
 from typing import Any, Dict, List
 
 import numpy as np
@@ -218,7 +219,7 @@ class SimFastBBA(Algorithm):
         low_start = int(np.searchsorted(times, exc_low.start_time))
         log.debug("Searched start times: %s, %s", high_start, low_start)
         # Ensure we include the entire oscillation if using decimated data.
-        length = int(np.ceil(exc_high.count / 10)) if decimated else int(exc_high.count)
+        length = ceil(exc_high.count / 10) if decimated else exc_high.count
         high_data = data[high_start : high_start + length, :, plane_index]
         low_data = data[low_start : low_start + length, :, plane_index]
         log.debug("Selected data shape: {} {}".format(high_data.shape, low_data.shape))
