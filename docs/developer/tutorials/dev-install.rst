@@ -34,9 +34,15 @@ requires python 3.8 or later) or to run in a container under `VSCode
 
         .. code::
 
-            $ vscode dls-bba
+            $ code dls-bba
+
             # Click on 'Reopen in Container' when prompted
             # Open a new terminal
+            
+        .. note:: 
+            
+            See the epics-containers_ documentation for more complex 
+            use cases, such as integration with podman.
 
 See what was installed
 ----------------------
@@ -58,3 +64,6 @@ This will run in parallel the following checks:
 - `../how-to/run-tests`
 - `../how-to/static-analysis`
 - `../how-to/lint`
+
+
+.. _epics-containers: https://epics-containers.github.io/main/user/tutorials/devcontainer.html
