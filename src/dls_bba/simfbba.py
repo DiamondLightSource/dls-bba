@@ -1,4 +1,5 @@
 import logging as log
+from math import ceil
 from typing import Any, Dict, List
 
 import numpy as np
@@ -167,7 +168,7 @@ class SimFastBBA(Algorithm):
 
             for index, axis in enumerate(["x", "y"]):
                 exc_data = data_list[index]
-                selected_data = self.select_data(fa_data, index, exc_data)
+                selected_data = self.select_data(fa_data, index, exc_data, decimated)
                 rawdata[f"{quad_name}_{axis}"] = {
                     "High": selected_data[0],
                     "Low": selected_data[1],
@@ -184,6 +185,7 @@ class SimFastBBA(Algorithm):
         data: np.ndarray,
         plane_index: int,
         exc_data: List[Excitation],
+        decimated: bool,
     ) -> List[np.ndarray]:
         """Extract FA data that covers the excitations exc_high and exc_low.
 
@@ -199,7 +201,6 @@ class SimFastBBA(Algorithm):
         """
         # Note: array data must include the timestamps.
         exc_high, exc_low = exc_data
-        decimated = False
         log.debug("Raw data shape: {}".format(data.shape))
         log.debug(
             "Timestamp range in raw data: {} - {}".format(data[0, 0, 0], data[-1, 0, 0])
@@ -218,7 +219,7 @@ class SimFastBBA(Algorithm):
         low_start = int(np.searchsorted(times, exc_low.start_time))
         log.debug("Searched start times: %s, %s", high_start, low_start)
         # Ensure we include the entire oscillation if using decimated data.
-        length = np.ceil(exc_high.count / 10) if decimated else exc_high.count
+        length = ceil(exc_high.count / 10) if decimated else exc_high.count
         high_data = data[high_start : high_start + length, :, plane_index]
         low_data = data[low_start : low_start + length, :, plane_index]
         log.debug("Selected data shape: {} {}".format(high_data.shape, low_data.shape))
