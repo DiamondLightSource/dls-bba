@@ -60,7 +60,7 @@ To use the graphical interface:
 Additional information about BBA
 --------------------------------
 
-- DLS Paper {preproc}: `"Development of Fast BBA for Diamond Light Source" <https://www.ipac23.org/preproc/doi/mopa139/index.html>`_
+- DLS Paper {preproc}: `"Development of Fast BBA for Diamond Light Source" <https://www.ipac23.org/preproc/doi/jacow-ipac2023-mopa139/index.html>`_
 - ALBA Paper: `"Fast beam-based alignment using ac excitations" <https://journals.aps.org/prab/abstract/10.1103/PhysRevAccelBeams.23.012802>`_
 
 ..
