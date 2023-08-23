@@ -7,7 +7,7 @@ from conftest import _get_effective_corrector, get_element_values
 
 from dls_bba.components import Components
 from dls_bba.configuration import LATTICE_SETTINGS
-from dls_bba.exceptions import ChannelAccessError, InvalidElementError, InvalidRingmodeError
+from dls_bba.exceptions import InvalidElementError, InvalidRingmodeError
 from dls_bba.machine import Machine
 
 OVERRIDES_WITH_RELOAD = {
