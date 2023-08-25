@@ -282,6 +282,7 @@ def test_machine_apply_feedbacks_false(mock_element_values, mock_effected_correc
     machine = Machine(overrides={"USE_FEEDBACKS": False})
     machine.apply_feedbacks
 
+
 # Check feedbacks
 # If use_feedbacks false, no feedbacks
 # if use_fofb false, use sofb
@@ -293,6 +294,7 @@ def test_machine_apply_feedbacks_false(mock_element_values, mock_effected_correc
 
 
 # TODO: zero and restore origins
+
 
 @mock.patch("dls_bba.machine.caput", return_value=None)
 @mock.patch("dls_bba.machine.caget", return_value=None)
