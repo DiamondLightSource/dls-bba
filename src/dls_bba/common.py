@@ -11,7 +11,7 @@ from dls_bba.machine import Machine
 from dls_bba.sbba import SlowBBA
 from dls_bba.simfbba import SimFastBBA
 
-ALGORITHMS: dict[str, type[Algorithm]] = {
+ALGORITHMS: Dict[str, type[Algorithm]] = {
     "SlowBBA": SlowBBA,
     "FastBBA": FastBBA,
     "SimFastBBA": SimFastBBA,
