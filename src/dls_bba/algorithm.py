@@ -133,7 +133,7 @@ class Algorithm(ABC):
         results_list: List[Results],
         save_location: str,
     ):
-        offsets_dict: dict[str, CalculatedOffset] = {}
+        offsets_dict: Dict[str, CalculatedOffset] = {}
         for results in results_list:
             offsets_dict.update(results.offsets.items())
 
