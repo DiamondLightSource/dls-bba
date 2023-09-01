@@ -198,23 +198,3 @@ def test_sort_elements_failure(mock_machine):
 @mock.patch("dls_bba.__main__.parse_arguments", return_value=TEST_NAMESPACE_INFO_BPM)
 def test_main_info(mock_machine, mock_parse_args):
     main()
-
-
-# @mock.patch("dls_bba.machine.Machine", return_value=machine_setup)
-# @mock.patch("dls_bba.cli.cli_entrypoint", return_value=None)
-# @mock.patch("dls_bba.__main__.parse_arguments", return_value=TEST_NAMESPACE_RUN_BPM)
-# def test_main_run(mock_machine, mock_cli_entrypoint, mock_parse_args):
-#     # TODO: This isnt mocking cli_entrypoint correctly.
-#     with pytest.raises(KeyError):
-#         main()
-
-
-# @mock.patch(
-#     "dls_bba.__main__.parse_arguments",
-#     side_effect=[TEST_NAMESPACE_PLOT_BOWTIE, TEST_NAMESPACE_PLOT_DIFF],
-# )
-# @mock.patch("dls_bba.plotting.bowtie_plot", return_value=None)
-# @mock.patch("dls_bba.plotting.bba_offsets_folder", return_value=None)
-# def test_main_plot(mock_bba_offsets, mock_bba_bowtie, mock_parse_args):
-#     main()
-#     main()

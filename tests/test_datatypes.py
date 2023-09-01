@@ -21,12 +21,14 @@ TEST_OFFSETS = {
 }
 
 
-def test_RawData_construction():
+def test_RawData_object_contains_expected_attributes():
     rawdata_object = RawData(TEST_RAWDATA, TEST_METADATA)
     assert isinstance(rawdata_object, RawData)
+    assert isinstance(rawdata_object.rawdata, dict)
+    assert isinstance(rawdata_object.metadata, dict)
 
 
-def test_RawData_saving(tmp_path):
+def test_RawData_object_can_be_saved(tmp_path):
     rawdata_object = RawData(TEST_RAWDATA, TEST_METADATA)
     rawdata_object.save(tmp_path)
 
@@ -37,7 +39,7 @@ def test_RawData_saving(tmp_path):
     assert os.path.isfile(os.path.join(tmp_path, filename))
 
 
-def test_RawData_loading(tmp_path):
+def test_RawData_object_can_be_loaded_from_saved_object(tmp_path):
     rawdata_object = RawData(TEST_RAWDATA, TEST_METADATA)
     rawdata_object.save(tmp_path)
 
@@ -54,7 +56,7 @@ def test_RawData_loading(tmp_path):
     assert rawdata_object.metadata["bpm_name"] == rawdata_object_2.metadata["bpm_name"]
 
 
-def test_CalculatedOffsets():
+def test_CalculatedOffsets_has_expected_attributes():
     a, b, c, d = TEST_CALC_OFFSETS
     calc_offset = CalculatedOffset(a, b, c, d)
     assert calc_offset.old_value == a
@@ -63,7 +65,7 @@ def test_CalculatedOffsets():
     assert calc_offset.diff_error == d
 
 
-def test_CalculatedOffsets_to_dict():
+def test_CalculatedOffsets_convert_to_dict_is_valid():
     a, b, c, d = TEST_CALC_OFFSETS
     calc_offset = CalculatedOffset(a, b, c, d)
     calc_offset_dict = asdict(calc_offset)
@@ -73,7 +75,7 @@ def test_CalculatedOffsets_to_dict():
     assert calc_offset_dict["diff_error"] == d
 
 
-def test_CalculatedOffsets_from_dict():
+def test_CalculatedOffsets_convert_from_dict_is_valid():
     a, b, c, d = TEST_CALC_OFFSETS
     calc_offset = CalculatedOffset(a, b, c, d)
     calc_offset_dict = asdict(calc_offset)
@@ -84,12 +86,16 @@ def test_CalculatedOffsets_from_dict():
     assert calc_offset.diff_error == calc_offset_2.diff_error
 
 
-def test_Results_construction():
+def test_Results_object_contains_expected_attributes():
     results_object = Results(TEST_RESULTS, TEST_METADATA, TEST_PLOTTING, TEST_OFFSETS)
     assert isinstance(results_object, Results)
+    assert isinstance(results_object.results, dict)
+    assert isinstance(results_object.metadata, dict)
+    assert isinstance(results_object.plotting, dict)
+    assert isinstance(results_object.offsets, dict)
 
 
-def test_Results_saving(tmp_path):
+def test_Results_object_can_be_saved(tmp_path):
     results_object = Results(TEST_RESULTS, TEST_METADATA, TEST_PLOTTING, TEST_OFFSETS)
     results_object.save(tmp_path)
 
@@ -100,7 +106,7 @@ def test_Results_saving(tmp_path):
     assert os.path.isfile(os.path.join(tmp_path, filename))
 
 
-def test_Results_loading(tmp_path):
+def test_Results_object_can_be_loaded_from_saved_object(tmp_path):
     results_object = Results(TEST_RESULTS, TEST_METADATA, TEST_PLOTTING, TEST_OFFSETS)
     results_object.save(tmp_path)
 

@@ -11,7 +11,7 @@ OVERRIDES_WITH_RELOAD = {
 }
 
 
-def test_init_config():
+def test_config_getitem_uses_private_dictionary_as_expected():
     config = Configuration()
     assert isinstance(config, Configuration)
     assert isinstance(config._config, dict)
@@ -19,21 +19,23 @@ def test_init_config():
     assert config["TEST"] == 1
 
 
-def test_config_update_config_no_reload():
+def test_config_returns_false_when_updated_with_args_that_do_not_require_reload():
     config = Configuration()
     assert not config.update_config(OVERRIDES_NO_RELOAD)
     for key, value in OVERRIDES_NO_RELOAD.items():
         assert config[key] == value
 
 
-def test_config_update_config_with_reload():
+def test_config_returns_true_when_updated_with_args_that_do_require_reload():
     config = Configuration()
     assert config.update_config(OVERRIDES_WITH_RELOAD)
     for key, value in OVERRIDES_WITH_RELOAD.items():
         assert config[key] == value
 
 
-def test_config_apply_config_files_without_reload(tmp_path):
+def test_config_returns_false_when_updated_with_files_that_do_not_require_reload(
+    tmp_path,
+):
     config = Configuration()
     paths = []
     for i in range(3):
@@ -48,7 +50,7 @@ def test_config_apply_config_files_without_reload(tmp_path):
         assert config[key] == value
 
 
-def test_config_apply_config_files_with_reload(tmp_path):
+def test_config_returns_true_when_updated_with_files_that_do_require_reload(tmp_path):
     config = Configuration()
     paths = []
     for i in range(3):
@@ -63,7 +65,7 @@ def test_config_apply_config_files_with_reload(tmp_path):
         assert config[key] == value
 
 
-def test_config_apply_default_config():
+def test_default_config_is_applied_as_expected():
     config = Configuration()
     config.apply_default_config()
     assert len(config._config) >= 1
@@ -72,14 +74,14 @@ def test_config_apply_default_config():
         assert isinstance(config[key], (str, float, int, list, dict))
 
 
-def test_from_configuration_files_default():
+def test_default_config_is_applied_if_no_additional_files_are_given():
     config = Configuration.from_configuration_files(None)
     for key in LATTICE_SETTINGS:
         assert key in config._config
         assert isinstance(config[key], (str, float, int, list, dict))
 
 
-def test_from_configuration_files_with_additional_paths(tmp_path):
+def test_default_config_is_applied_first_if_additional_files_are_given(tmp_path):
     paths = []
     for i in range(3):
         filename = f"json_dump_{i}.json"
@@ -96,7 +98,7 @@ def test_from_configuration_files_with_additional_paths(tmp_path):
         assert config[key] == value
 
 
-def test_get_settings():
+def test_get_copy_of_current_config():
     config = Configuration.from_configuration_files(None)
     config_copy = config.get_settings()
     for key in config_copy.keys():
