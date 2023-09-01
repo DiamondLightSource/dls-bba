@@ -59,7 +59,7 @@ class TEST_ALG(Algorithm):
         pass
 
 
-def test_algorithm_init(machine_setup):
+def test_algorithm_abc_has_expected_methods(machine_setup):
     machine = machine_setup
     algorithm = TEST_ALG(machine)
     assert algorithm._machine is machine_setup
@@ -67,13 +67,15 @@ def test_algorithm_init(machine_setup):
     assert algorithm.analyse
 
 
-def test_algorithm_failed_init():
+def test_algorithm_fails_when_not_given_machine_object():
     with pytest.raises(TypeError):
         TEST_ALG()
 
 
 @mock.patch("dls_bba.machine.Machine.get_quad_setpoint", return_value=10)
-def test_calculate_quad_setpoints(mock_quad_setpoint, machine_setup):
+def test_calculate_quad_setpoints_returns_expected_values(
+    mock_quad_setpoint, machine_setup
+):
     machine = machine_setup
     algorithm = TEST_ALG(machine)
     quad = machine.quads[0]
@@ -83,7 +85,9 @@ def test_calculate_quad_setpoints(mock_quad_setpoint, machine_setup):
     assert ql + step == qs
 
 
-def test_calculate_quad_setpoints_invalid_element(machine_setup):
+def test_calculate_quad_setpoints_raises_FieldException_when_given_an_invalid_element(
+    machine_setup,
+):
     machine = machine_setup
     algorithm = TEST_ALG(machine)
     bpm = machine.bpms[0]
@@ -91,7 +95,7 @@ def test_calculate_quad_setpoints_invalid_element(machine_setup):
         algorithm.calculate_quad_setpoints(bpm)
 
 
-def test_calculate_new_offsets(machine_setup):
+def test_algorithm_methods_correctly_return_offsets_when_given_results(machine_setup):
     machine = machine_setup
     algorithm = TEST_ALG(machine)
     offsets = algorithm.calculate_new_offsets(TEST_RESULTS_SINGLE, "x")
@@ -104,7 +108,9 @@ def test_calculate_new_offsets(machine_setup):
     assert offsets == [10.5, 6.309714732061981]
 
 
-def test_calculate_new_offsets_invalid_axis(machine_setup):
+def test_algorithm_method_raises_RuntimeWarning_when_given_an_axis_that_doesnt_exist_in_results(
+    machine_setup,
+):
     machine = machine_setup
     algorithm = TEST_ALG(machine)
     with pytest.raises(RuntimeWarning):
@@ -115,7 +121,9 @@ def test_calculate_new_offsets_invalid_axis(machine_setup):
     "dls_bba.machine.Machine.get_bba_offsets",
     return_value=(TEST_GET_BBA_OFFSETS, TEST_GET_BBA_OFFSETS),
 )
-def test_create_offsets_dict(mock_get_bba_offsets, machine_setup):
+def test_create_offsets_dict_correctly_creates_objects_for_single_and_double_results(
+    mock_get_bba_offsets, machine_setup
+):
     machine = machine_setup
     algorithm = TEST_ALG(machine)
     single_offsets = algorithm.create_offsets_dict(TEST_RESULTS_SINGLE, TEST_METADATA)
@@ -137,7 +145,9 @@ def test_create_offsets_dict(mock_get_bba_offsets, machine_setup):
     "dls_bba.machine.Machine.get_bba_offsets",
     return_value=(TEST_GET_BBA_OFFSETS, TEST_GET_BBA_OFFSETS),
 )
-def test_save_bba_offsets(mock_get_bba_offsets, machine_setup, tmp_path):
+def test_results_txt_file_exists_after_running_save_bba_offsets(
+    mock_get_bba_offsets, machine_setup, tmp_path
+):
     machine = machine_setup
     algorithm = TEST_ALG(machine)
     single_offsets = algorithm.create_offsets_dict(TEST_RESULTS_SINGLE, TEST_METADATA)
@@ -150,7 +160,9 @@ def test_save_bba_offsets(mock_get_bba_offsets, machine_setup, tmp_path):
     return_value=(TEST_GET_BBA_OFFSETS, TEST_GET_BBA_OFFSETS),
 )
 @mock.patch("dls_bba.algorithm.caput", return_value=None)
-def test_apply_bba_offsets(mock_caput, mock_get_bba_offsets, machine_setup):
+def test_apply_bba_offsets_completed_without_error(
+    mock_caput, mock_get_bba_offsets, machine_setup
+):
     machine = machine_setup
     algorithm = TEST_ALG(machine)
     single_offsets = algorithm.create_offsets_dict(TEST_RESULTS_SINGLE, TEST_METADATA)
@@ -162,7 +174,7 @@ def test_apply_bba_offsets(mock_caput, mock_get_bba_offsets, machine_setup):
 @mock.patch("dls_bba.machine.Machine.apply_feedbacks", return_value=None)
 @mock.patch("dls_bba.worker.ask_question", side_effect=[True])
 @mock.patch("dls_bba.algorithm.bba_offsets_plot", return_value=None)
-def test_use_bba_offsets_yes_pass(
+def test_feedbacks_are_run_after_applying_bba_offsets(
     mock_plot,
     mock_ask_question,
     mock_feedbacks,
@@ -174,6 +186,7 @@ def test_use_bba_offsets_yes_pass(
     machine = machine_setup
     algorithm = TEST_ALG(machine)
     algorithm.use_bba_offsets(TEST_RESULTS, tmp_path, mock_ask_question)
+    assert mock_apply.called
 
 
 @mock.patch("dls_bba.algorithm.Algorithm._save_bba_offsets", return_value=None)
@@ -181,7 +194,7 @@ def test_use_bba_offsets_yes_pass(
 @mock.patch("dls_bba.machine.Machine.apply_feedbacks", return_value=None)
 @mock.patch("dls_bba.worker.ask_question", side_effect=[False])
 @mock.patch("dls_bba.algorithm.bba_offsets_plot", return_value=None)
-def test_use_bba_offsets_no_pass(
+def test_feedbacks_are_not_run_after_not_applying_bba_offsets(
     mock_plot,
     mock_ask_question,
     mock_feedbacks,
@@ -193,3 +206,4 @@ def test_use_bba_offsets_no_pass(
     machine = machine_setup
     algorithm = TEST_ALG(machine)
     algorithm.use_bba_offsets(TEST_RESULTS, tmp_path, mock_ask_question)
+    assert not mock_apply.called
