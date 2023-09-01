@@ -10,7 +10,7 @@ from dls_bba.components import (
 from dls_bba.exceptions import ComponentConstructionError, ElementDisabledError
 
 
-def test_from_name_h(machine_setup):
+def test_components_from_name_for_horizontal_plane_is_valid(machine_setup):
     machine = machine_setup
     bpm_name = machine.bpms_names[0]
     quad_name = [machine.quads_names[0]]
@@ -23,7 +23,7 @@ def test_from_name_h(machine_setup):
     assert component.corrector.get_device("x_kick").name == corrector_name
 
 
-def test_name_to_element_h(machine_setup):
+def test_name_to_element_for_horizontal_plane_is_valid(machine_setup):
     machine = machine_setup
     bpm_name = machine.bpms_names[0]
     quad_name = [machine.quads_names[0]]
@@ -37,7 +37,7 @@ def test_name_to_element_h(machine_setup):
     assert corr.get_device("x_kick").name == corrector_name
 
 
-def test_from_name_v(machine_setup):
+def test_components_from_name_for_vertical_plane_is_valid(machine_setup):
     machine = machine_setup
     bpm_name = machine.bpms_names[0]
     quad_name = [machine.quads_names[0]]
@@ -50,7 +50,7 @@ def test_from_name_v(machine_setup):
     assert component.corrector.get_device("y_kick").name == corrector_name
 
 
-def test_name_to_element_v(machine_setup):
+def test_name_to_element_for_vertical_plane_is_valid(machine_setup):
     machine = machine_setup
     bpm_name = machine.bpms_names[0]
     quad_name = [machine.quads_names[0]]
@@ -64,7 +64,7 @@ def test_name_to_element_v(machine_setup):
     assert corr.get_device("y_kick").name == corrector_name
 
 
-def test_asdict(machine_setup):
+def test_components_convert_to_dict_is_valid(machine_setup):
     machine = machine_setup
     bpm_name = machine.bpms_names[0]
     quad_name = [machine.quads_names[0]]
@@ -81,7 +81,7 @@ def test_asdict(machine_setup):
         )
 
 
-def test_from_dict(machine_setup):
+def test_components_convert_from_dict_is_valid(machine_setup):
     machine = machine_setup
     bpm_name = machine.bpms_names[0]
     quad_name = [machine.quads_names[0]]
@@ -99,37 +99,42 @@ def test_from_dict(machine_setup):
     assert component.kick == component2.kick
 
 
-def test_construct_component_pair_bpm(machine_setup):
+def test_component_pair_is_constructed_from_bpm_as_expected(machine_setup):
     machine = machine_setup
     element = machine.bpms_names[0]
     h_component, v_component = construct_component_pair(machine, element)
-    assert h_component.bpm_name == element
-    assert v_component.bpm_name == element
+    assert isinstance(h_component, Components)
+    assert isinstance(v_component, Components)
+    assert h_component.bpm_name == v_component.bpm_name == element
+    assert h_component.quadrupoles_names == v_component.quadrupoles_names
 
 
-def test_construct_component_pair_quad(machine_setup):
+def test_component_pair_is_constructed_from_quad_as_expected(machine_setup):
     machine = machine_setup
     element = machine.quads_names[0]
     h_component, v_component = construct_component_pair(machine, element)
+    assert isinstance(h_component, Components)
+    assert isinstance(v_component, Components)
     assert element in h_component.quadrupoles_names
     assert element in v_component.quadrupoles_names
+    assert h_component.bpm_name == v_component.bpm_name
 
 
-def test_construct_component_pair_other(machine_setup):
+def test_component_pair_raises_error_if_constructed_from_invalid_element(machine_setup):
     machine = machine_setup
     element = machine.hstrs_names[0]
     with pytest.raises(ComponentConstructionError):
         construct_component_pair(machine, element)
 
 
-def test_check_component_valid(machine_setup):
+def test_check_component_return_none_if_components_are_valid(machine_setup):
     machine = machine_setup
     element = machine.bpms_names[0]
     component_pair = construct_component_pair(machine, element)
     check_component(machine, component_pair)
 
 
-def test_check_component_warn(machine_setup):
+def test_check_component_return_none_if_components_are_fofb_disabled(machine_setup):
     machine = machine_setup
     x_dis = machine.fofb_disabled_indices["x"]
     machine.fofb_disabled_indices["x"] = [0]
@@ -140,7 +145,9 @@ def test_check_component_warn(machine_setup):
     machine.fofb_disabled_indices["x"] = x_dis
 
 
-def test_check_component_fail(machine_setup):
+def test_check_component_raises_ElementDisabledError_if_components_are_disabled(
+    machine_setup,
+):
     machine = machine_setup
     dis = machine.disabled_bpm_indices
     machine.disabled_bpm_indices = [0]
@@ -152,7 +159,7 @@ def test_check_component_fail(machine_setup):
     machine.disabled_bpm_indices = dis
 
 
-def test_verify_pairings_valid(machine_setup):
+def test_verify_pairings_does_not_remove_any_valid_components(machine_setup):
     machine = machine_setup
     elements = machine.bpms_names[0:2]
     pairs = []
@@ -162,7 +169,7 @@ def test_verify_pairings_valid(machine_setup):
     assert len(v_pairs) == len(pairs)
 
 
-def test_verify_pairings_warn(machine_setup):
+def test_verify_pairings_does_not_remove_any_fofb_disabled_components(machine_setup):
     machine = machine_setup
     elements = machine.bpms_names[0:2]
     dis_x = machine.fofb_disabled_indices["x"]
@@ -179,7 +186,7 @@ def test_verify_pairings_warn(machine_setup):
     machine.fofb_disabled_indices["y"] = dis_y
 
 
-def test_verify_pairings_fail(machine_setup):
+def test_verify_pairings_does_remove_any_disabled_components(machine_setup):
     machine = machine_setup
     dis = machine.disabled_bpm_indices
     machine.disabled_bpm_indices = [0, 1, 2]
@@ -193,7 +200,7 @@ def test_verify_pairings_fail(machine_setup):
     machine.disabled_bpm_indices = dis
 
 
-def test_get_component_pairs_verify(machine_setup):
+def test_get_pairs_correctly_creates_and_verifies_valid_components(machine_setup):
     machine = machine_setup
     elements = machine.bpms_names[0:2]
     pairs = get_component_pairs(machine, elements, True)
