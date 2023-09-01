@@ -14,6 +14,7 @@ from cothread.catools import ca_nothing, caget, caput
 from pytac import load_csv
 from pytac.cothread_cs import ControlSystemException, CothreadControlSystem
 from pytac.element import EpicsElement
+from pytac.lattice import EpicsLattice
 from scipy.io import loadmat
 
 from dls_bba.components import Components
@@ -72,6 +73,38 @@ def _retry_command(num_tries, excp_type):
 class Machine:
     """The Machine class is the main interface to the machine."""
 
+    _lattice: EpicsLattice
+
+    bpms: List[EpicsElement]
+    bpms_names: List[str]
+    hstrs: List[EpicsElement]
+    hstrs_names: List[str]
+    vstrs: List[EpicsElement]
+    vstrs_names: List[str]
+    quads: List[EpicsElement]
+    quads_names: List[str]
+    fofb_disabled: Dict[str, List[int]]
+    fofb_disabled_indices: Dict[str, List[int]]
+    disabled_bpm_indices: List[int]
+    faa_bpm_list: List[int]
+    bba_x_pvs: List[str]
+    bba_y_pvs: List[str]
+
+    _effective_corrector: Dict[str, List[str]]
+    cell_dictionary: Dict[str, List[str]]
+    psps: List[str]
+
+    _bpms_s: List[float]
+    _quads_s: List[float]
+    _quads_l: List[float]
+    _quads_mid: List[float]
+
+    _quad2bpm_names: Dict[str, str]
+    _bpm2quad_names: Dict[str, List[str]]
+
+    _horizontal_orm: Any
+    _vertical_orm: Any
+
     def __init__(
         self,
         extra_config_files: Optional[List[Any]] = None,
@@ -83,6 +116,10 @@ class Machine:
             extra_config_files: List of extra configuration files to load.
             overrides: Dictionary of configuration overrides.
         """
+        self._effective_corrector = defaultdict(list)
+        self.cell_dictionary = defaultdict(list)
+        self.psps = []
+
         self._load_config(extra_config_files, overrides)
         self._load_lattice_and_ringmode_elements()
 
@@ -102,7 +139,9 @@ class Machine:
             self.config.update_config(overrides)
 
     def update_config(
-        self, extra_config_files: Optional[list[Any]] = None, dct: Optional[dict] = None
+        self,
+        extra_config_files: Optional[List[Any]] = None,
+        dct: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Update the configuration files and check if a reload is required.
 
@@ -162,25 +201,19 @@ class Machine:
     def _load_element_and_name_lists(self) -> None:
         """Load the elements and names lists."""
 
-        self.bpms: List[EpicsElement] = self._lattice.get_elements("BPM")
-        self.bpms_names: List[str] = [bpm.get_device("x").name for bpm in self.bpms]
+        self.bpms = self._lattice.get_elements("BPM")
+        self.bpms_names = [bpm.get_device("x").name for bpm in self.bpms]
 
-        self.hstrs: List[EpicsElement] = self._lattice.get_elements("HSTR")
-        self.hstrs_names: List[str] = [
-            hstr.get_device("x_kick").name for hstr in self.hstrs
-        ]
+        self.hstrs = self._lattice.get_elements("HSTR")
+        self.hstrs_names = [hstr.get_device("x_kick").name for hstr in self.hstrs]
 
-        self.vstrs: List[EpicsElement] = self._lattice.get_elements("VSTR")
-        self.vstrs_names: List[str] = [
-            vstr.get_device("y_kick").name for vstr in self.vstrs
-        ]
+        self.vstrs = self._lattice.get_elements("VSTR")
+        self.vstrs_names = [vstr.get_device("y_kick").name for vstr in self.vstrs]
 
-        self.quads: List[EpicsElement] = self._lattice.get_elements("quadrupole")
-        self.quads_names: List[str] = [
-            quad.get_device("b1").name for quad in self.quads
-        ]
+        self.quads = self._lattice.get_elements("quadrupole")
+        self.quads_names = [quad.get_device("b1").name for quad in self.quads]
 
-        self.fofb_disabled: Dict[str, List[int]] = {}
+        self.fofb_disabled = {}
         self.fofb_disabled["x"] = [
             int(v)
             for v in self._lattice.get_element_values(
@@ -193,11 +226,11 @@ class Machine:
                 "BPM", "y_fofb_disabled", pytac.RB
             )
         ]
-        self.fofb_disabled_indices: Dict[str, List[int]] = {
+        self.fofb_disabled_indices = {
             "x": np.nonzero(self.fofb_disabled["x"])[0].tolist(),
             "y": np.nonzero(self.fofb_disabled["y"])[0].tolist(),
         }
-        self.disabled_bpm_indices: List[int] = np.flatnonzero(
+        self.disabled_bpm_indices = np.flatnonzero(
             np.logical_not(self.get_enabled_bpms())
         ).tolist()
 
@@ -217,17 +250,13 @@ class Machine:
         PSPdict = self.config._config["PSPS"]
 
         # Cell Dictionary defined by PV names.
-        cell_dictionary = defaultdict(list)
         for _, bpm_name in zip(self.bpms, self.bpms_names):
             key = str(bpm_name[2:4])
-            cell_dictionary[key].append(bpm_name)
-        self.cell_dictionary: Dict[str, List[str]] = cell_dictionary
+            self.cell_dictionary[key].append(bpm_name)
         # Primaries and Source Points.
-        psps = []
         for cell, indices in PSPdict.items():
             for index in indices:
-                psps.append(self.cell_dictionary[cell][int(index)])
-        self.psps = psps
+                self.psps.append(self.cell_dictionary[cell][int(index)])
 
     def _load_b2q_q2b(self) -> None:
         """Load the BPM to Quadrupole and Quadrupole to BPM dictionaries."""
@@ -409,12 +438,11 @@ class Machine:
         """
         orm_filepath = self.config["ORBIT_RESPONSE_MATRIX_PATH"]
 
-        if not os.path.exists(orm_filepath):
+        if not os.path.isfile(orm_filepath):
             msg = f"Response Matrix does not exist at: {orm_filepath}"
             log.critical(msg)
             raise FileNotFoundError(msg)
 
-        self._effective_corrector: Dict[str, List[str]] = defaultdict(list)
         data = loadmat(orm_filepath, appendmat=False, struct_as_record=False)
         self._horizontal_orm, self._vertical_orm = (
             data["Rmat"][0][0].Data,
@@ -446,7 +474,7 @@ class Machine:
         """
         radian_kick = self.config["CORRECTOR_KICK_RADIANS"]
 
-        if str(self.config["UNITS"]) == "pytac.ENG":
+        if str(self.config["UNITS"]) == "ENG":
             value = component.corrector.get_unitconv(component.kick).convert(
                 radian_kick, pytac.PHYS, pytac.ENG
             )
@@ -461,19 +489,6 @@ class Machine:
             Beam current in mA.
         """
         return float(self._lattice.get_value("beam_current"))
-
-    def _ask_user(self, msg: str) -> str:
-        """Ask the user a question and return their response.
-
-        Args:
-            msg: Message to display to the user.
-
-        Returns:
-            User response.
-        """
-        response = input(msg).lower().strip()
-        log.debug(f"User Response: {response}")
-        return response
 
     def get_diagnostics(self) -> None:
         """Get the values of the diagnostic PVs and log them."""
@@ -500,7 +515,7 @@ class Machine:
             else:
                 self.run_sofb()
         else:
-            log.warn("Orbit needs correction but feedbacks are disabled.")
+            log.warning("Orbit needs correction but feedbacks are disabled.")
 
     def confirm_fofb_activation(self) -> None:
         """Confirm that the FOFB has activated correctly.

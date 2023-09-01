@@ -1,121 +1,157 @@
 import os
-import sys
-from pathlib import Path
+from json import dump
 from unittest import mock
 
 import pytest
+from conftest import _get_effective_corrector, get_element_values
 
-from dls_bba.beam_current import BeamCurrentCheck
-from dls_bba.components import get_component_pairs
-from dls_bba.configuration import DEFAULT_CONFIGS
-from dls_bba.exceptions import (
-    InvalidElementError,
-    InvalidRingmodeError,
-    LowCurrentError,
-)
+from dls_bba.components import Components
+from dls_bba.configuration import LATTICE_SETTINGS
+from dls_bba.exceptions import InvalidElementError, InvalidRingmodeError
 from dls_bba.machine import Machine
 
-if sys.version_info > (3, 9):
-    from importlib.resources import files
-else:
-    from importlib_resources import files
-
-
-extra_dict_no_reload = {"MAX_ORBIT_CORRECTION_MICRONS": 16}
-extra_dict_new_key = {"TEST_FIELD": 100}
-extra_dict_with_reload = {"UNITS": "pytac.PHYS"}
-extra_dict_invalid_ringmode = {"RINGMODE": "TEST"}
-extra_dict_invalid_orm_path = {
-    "ORBIT_RESPONSE_MATRIX_PATH": os.path.join(os.getcwd(), "file.mat")
+OVERRIDES_WITH_RELOAD = {
+    LATTICE_SETTINGS[0]: "I04",  # RINGMODE
+    LATTICE_SETTINGS[1]: "PHYS",  # UNITS
+    LATTICE_SETTINGS[2]: "LIVE",  # DATASOURCE
 }
-extra_dict_critical_drop = {"CRITICAL_CURRENT_DROP": 1, "WARNING_CURRENT_DROP": 1000}
-extra_dict_warning_drop = {"CRITICAL_CURRENT_DROP": 1000, "WARNING_CURRENT_DROP": 1}
-default_config_resources = [
-    Path(str(files("dls_bba").joinpath(resource))) for resource in DEFAULT_CONFIGS
-]
 
 
-@pytest.fixture(scope="module")
-def machine_setup():
-    machine = Machine()
-    return machine
-
-
-def test_machine_construction_is_valid():
+@mock.patch(
+    "pytac.lattice.EpicsLattice.get_element_values",
+    side_effect=get_element_values,
+)
+@mock.patch(
+    "dls_bba.machine.Machine._get_effective_corrector",
+    side_effect=_get_effective_corrector,
+)
+def test_machine_init_normal(mock_element_values, mock_effected_corrector):
     machine = Machine()
     assert isinstance(machine, Machine)
+    assert machine.config["UNITS"] == "ENG"
 
 
-def test_machine_construction_is_valid_with_additional_files():
-    machine = Machine(extra_config_files=default_config_resources)
+@mock.patch(
+    "pytac.lattice.EpicsLattice.get_element_values",
+    side_effect=get_element_values,
+)
+@mock.patch(
+    "dls_bba.machine.Machine._get_effective_corrector",
+    side_effect=_get_effective_corrector,
+)
+def test_machine_init_additional_files(
+    mock_element_values, mock_effected_corrector, tmp_path
+):
+    paths = []
+    for i in range(3):
+        filename = f"json_dump_{i}.json"
+        filepath = os.path.join(tmp_path, filename)
+        with open(filepath, "w") as fp:
+            dump(OVERRIDES_WITH_RELOAD, fp)
+        paths.append(filepath)
+    machine = Machine(extra_config_files=paths)
     assert isinstance(machine, Machine)
+    assert machine.config["UNITS"] == "PHYS"
 
 
-def test_machine_can_be_updated_with_additional_files():
-    machine = Machine()
-    machine.update_config(extra_config_files=default_config_resources)
+@mock.patch(
+    "pytac.lattice.EpicsLattice.get_element_values",
+    side_effect=get_element_values,
+)
+@mock.patch(
+    "dls_bba.machine.Machine._get_effective_corrector",
+    side_effect=_get_effective_corrector,
+)
+def test_machine_init_additional_args(mock_element_values, mock_effected_corrector):
+    machine = Machine(overrides=OVERRIDES_WITH_RELOAD)
     assert isinstance(machine, Machine)
+    assert machine.config["UNITS"] == "PHYS"
 
 
-def test_machine_construction_is_valid_with_new_additional_args():
-    machine = Machine(overrides=extra_dict_new_key)
-    key = list(extra_dict_new_key.keys())[0]
-    value = extra_dict_new_key[key]
-    assert machine.config[key] == value
+@mock.patch(
+    "pytac.lattice.EpicsLattice.get_element_values",
+    side_effect=get_element_values,
+)
+@mock.patch(
+    "dls_bba.machine.Machine._get_effective_corrector",
+    side_effect=_get_effective_corrector,
+)
+def test_machine_init_additional_files_and_args(
+    mock_element_values, mock_effected_corrector, tmp_path
+):
+    paths = []
+    for i in range(3):
+        filename = f"json_dump_{i}.json"
+        filepath = os.path.join(tmp_path, filename)
+        with open(filepath, "w") as fp:
+            dump(OVERRIDES_WITH_RELOAD, fp)
+        paths.append(filepath)
+    machine = Machine(extra_config_files=paths, overrides=OVERRIDES_WITH_RELOAD)
+    assert isinstance(machine, Machine)
+    assert machine.config["UNITS"] == "PHYS"
 
 
-def test_machine_construction_is_valid_with_additional_args():
-    machine = Machine(overrides=extra_dict_no_reload)
-    key = list(extra_dict_no_reload.keys())[0]
-    value = extra_dict_no_reload[key]
-    assert machine.config[key] == value
+@mock.patch(
+    "pytac.lattice.EpicsLattice.get_element_values",
+    side_effect=get_element_values,
+)
+@mock.patch(
+    "dls_bba.machine.Machine._get_effective_corrector",
+    side_effect=_get_effective_corrector,
+)
+def test_machine_update_config_with_path(
+    mock_element_values, mock_effected_corrector, tmp_path
+):
+    paths = []
+    for i in range(3):
+        filename = f"json_dump_{i}.json"
+        filepath = os.path.join(tmp_path, filename)
+        with open(filepath, "w") as fp:
+            dump(OVERRIDES_WITH_RELOAD, fp)
+        paths.append(filepath)
 
-
-def test_machine_construction_is_valid_with_additional_args_that_require_reload():
-    machine = Machine(overrides=extra_dict_with_reload)
-    key = list(extra_dict_with_reload.keys())[0]
-    value = extra_dict_with_reload[key]
-    assert machine.config[key] == value
-    assert machine._lattice.get_default_units()[:4] in value.lower()
-
-
-def test_machine_can_be_updated_with_additional_args():
     machine = Machine()
-    machine.update_config(dct=extra_dict_no_reload)
-    key = list(extra_dict_no_reload.keys())[0]
-    value = extra_dict_no_reload[key]
-    assert machine.config[key] == value
+    assert machine.config["UNITS"] == "ENG"
+    machine.update_config(extra_config_files=paths)
+    assert machine.config["UNITS"] == "PHYS"
 
 
-def test_machine_can_be_updated_with_additional_args_that_require_reload():
+def test_machine_update_config_with_args():
     machine = Machine()
-    machine.update_config(dct=extra_dict_with_reload)
-    key = list(extra_dict_with_reload.keys())[0]
-    value = extra_dict_with_reload[key]
-    assert machine.config[key] == value
-    assert machine._lattice.get_default_units()[:4] in value.lower()
+    assert machine.config["UNITS"] == "ENG"
+    machine.update_config(dct=OVERRIDES_WITH_RELOAD)
+    assert machine.config["UNITS"] == "PHYS"
 
 
-def test_pytac_lattice_loaded_config_items_correctly(machine_setup):
-    machine = machine_setup
-    config = machine.config
-    pytac_lattice = machine._lattice
-    assert pytac_lattice.name == config["RINGMODE"]
-    assert pytac_lattice.get_default_data_source() == config["DATASOURCE"]
-    assert pytac_lattice.get_default_units()[:3] in config["UNITS"].lower()
-
-
-def test_pytac_lattice_loading_fails_with_invalid_ringmode():
+def test_machine_init_invalid_ringmode():
     with pytest.raises(InvalidRingmodeError):
-        Machine(overrides=extra_dict_invalid_ringmode)
+        Machine(overrides={"RINGMODE": "DOESNT_EXIST"})
 
 
-def test_element_and_name_lists_equal_length(machine_setup):
+def test_machine_lists_generate_correctly(machine_setup):
     machine = machine_setup
     assert len(machine.bpms) == len(machine.bpms_names)
     assert len(machine.quads) == len(machine.quads_names)
     assert len(machine.hstrs) == len(machine.hstrs_names)
     assert len(machine.vstrs) == len(machine.vstrs_names)
+    for value in machine.fofb_disabled.values():
+        assert len(value) == len(machine.bpms_names)
+    assert len(machine.disabled_bpm_indices) == 0
+    assert len(machine.faa_bpm_list) == len(machine.bpms_names) + 1
+    assert len(machine.bba_x_pvs) == len(machine.bpms_names)
+    assert len(machine.bba_y_pvs) == len(machine.bpms_names)
+
+
+def test_machine_generates_cell_dictionary(machine_setup):
+    machine = machine_setup
+    for key, value in machine.cell_dictionary.items():
+        for v in value:
+            assert key in v
+
+
+def test_machine_generates_psps(machine_setup):
+    machine = machine_setup
+    assert isinstance(machine.psps, list)
 
 
 def test_bpm2quad_is_valid(machine_setup):
@@ -168,6 +204,9 @@ def test_quad2bpm_fails_with_invalid_quad(machine_setup):
         machine.quad2bpm("INVALID_QUADRUPOLE")
 
 
+# TODO: Test get_enabled_bpms / measure_bpms / get_bba_offsets / retry_command.
+
+
 def test_element_to_name_for_all_elements(machine_setup):
     machine = machine_setup
     for bpm_name in machine.bpms_names:
@@ -184,87 +223,88 @@ def test_element_to_name_for_all_elements(machine_setup):
         assert "vstr" in element.families
 
 
-@mock.patch("dls_bba.machine.Machine.get_enabled_bpms", return_value=1)
-@mock.patch("dls_bba.machine.Machine.measure_bpms", return_value=1)
-def test_bpm_interactions_are_valid(mock_get_enabled_bpms, mock_measure_bpms):
-    machine = Machine()
-    assert machine.get_enabled_bpms() == 1
-    assert machine.measure_bpms("axis") == 1
-
-
 def test_get_element_from_name_fails_with_invalid_name(machine_setup):
     machine = machine_setup
     with pytest.raises(NotImplementedError):
         machine.get_element_from_name("INVALID_NAME")
 
 
-def test_update_config_fails_with_invalid_orm_file_path():
-    machine = Machine()
+@mock.patch(
+    "pytac.lattice.EpicsLattice.get_element_values",
+    side_effect=get_element_values,
+)
+def test_orm_does_not_exist(mock_element_values, tmp_path):
     with pytest.raises(FileNotFoundError):
-        machine.update_config(dct=extra_dict_invalid_orm_path)
+        Machine(overrides={"ORBIT_RESPONSE_MATRIX_PATH": tmp_path})
 
 
-def test_corrector_kick_valid_with_eng_units(machine_setup):
+@mock.patch(
+    "pytac.lattice.EpicsLattice.get_element_values",
+    side_effect=get_element_values,
+)
+def test_corrector_kick_ENG(mock_element_values):
+    KICK = 2e-5
+    machine = Machine(overrides={"CORRECTOR_KICK_RADIANS": KICK, "UNITS": "ENG"})
+    bpm_name = machine.bpms_names[0]
+    quad_name = [machine.quads_names[0]]
+    corrector_name = machine.hstrs_names[0]
+    component = Components.from_name(
+        machine, bpm_name, quad_name, corrector_name, "x", "x_kick"
+    )
+    assert machine.corrector_kick(component) == 0.09810708539977947
+
+
+@mock.patch(
+    "pytac.lattice.EpicsLattice.get_element_values",
+    side_effect=get_element_values,
+)
+def test_corrector_kick_PHYS(mock_element_values):
+    KICK = 2e-5
+    machine = Machine(overrides={"CORRECTOR_KICK_RADIANS": KICK, "UNITS": "PHYS"})
+    bpm_name = machine.bpms_names[0]
+    quad_name = [machine.quads_names[0]]
+    corrector_name = machine.hstrs_names[0]
+    component = Components.from_name(
+        machine, bpm_name, quad_name, corrector_name, "x", "x_kick"
+    )
+    assert machine.corrector_kick(component) == KICK
+
+
+@mock.patch(
+    "pytac.lattice.EpicsLattice.get_element_values",
+    side_effect=get_element_values,
+)
+@mock.patch(
+    "dls_bba.machine.Machine._get_effective_corrector",
+    side_effect=_get_effective_corrector,
+)
+def test_machine_apply_feedbacks_false(mock_element_values, mock_effected_corrector):
+    machine = Machine(overrides={"USE_FEEDBACKS": False})
+    machine.apply_feedbacks
+
+
+# Check feedbacks
+# If use_feedbacks false, no feedbacks
+# if use_fofb false, use sofb
+# if max orbit too large, uses sofb then fofb
+# normal, use fofb
+# use fofb but fofb hasnt turned on (fofb_activation failure)
+
+# TODO: Get/set quad/corrector
+
+
+# TODO: zero and restore origins
+
+
+@mock.patch("dls_bba.machine.caput", return_value=None)
+@mock.patch("dls_bba.machine.caget", return_value=None)
+def test_zero_origins(mock_caget, mock_caput, machine_setup, tmp_path):
     machine = machine_setup
-    bpm_name = machine.bpms_names[0]
-    components_pair = get_component_pairs(machine, bpm_name)[0]
-    assert isinstance(machine.corrector_kick(components_pair[0]), float)
-    assert machine._lattice.get_default_units()[:3] == "eng"
+    machine.zero_origins(tmp_path)
 
 
-def test_corrector_kick_valid_with_phys_units():
-    machine = Machine(overrides=extra_dict_with_reload)
-    bpm_name = machine.bpms_names[0]
-    components_pair = get_component_pairs(machine, bpm_name)[0]
-    assert isinstance(machine.corrector_kick(components_pair[0]), float)
-    assert machine._lattice.get_default_units()[:3] == "phy"
-
-
-@mock.patch("pytac.lattice.Lattice.get_value", return_value=1.0)
-def test_get_beam_current_valid(mock_get_value):
-    machine = Machine()
-    assert machine.get_beam_current() == 1.0
-
-
-@mock.patch("dls_bba.machine.Machine.get_beam_current", return_value=1.0)
-def test_starting_beam_current_is_stored_correctly(mock_get_value):
-    machine = Machine()
-    beam_check = BeamCurrentCheck(machine)
-    assert beam_check._initial_current == 1.0
-
-
-@mock.patch("dls_bba.machine.Machine.get_beam_current", side_effect=[9.1, 8.0])
-def test_check_beam_current_raises_error_when_beam_dumped(mock_get_value):
-    machine = Machine(overrides=extra_dict_critical_drop)
-    beam_check = BeamCurrentCheck(machine)
-    with pytest.raises(LowCurrentError):
-        beam_check.check_beam_drop()
-
-
-@mock.patch("dls_bba.machine.Machine.get_beam_current", side_effect=[9.1, 8.0])
-@mock.patch("dls_bba.machine.Machine._ask_user", return_value="n")
-def test_check_beam_current_raises_error_when_topup_prompt_response_is_no(
-    mock_get_value, mock_ask_user
-):
-    machine = Machine(overrides=extra_dict_warning_drop)
-    beam_check = BeamCurrentCheck(machine)
-    with pytest.raises(LowCurrentError):
-        beam_check.check_beam_drop()
-
-
-@mock.patch("dls_bba.machine.Machine.get_beam_current", side_effect=[9.1, 8.0, 9.2])
-@mock.patch("dls_bba.machine.Machine._ask_user", return_value="y")
-@mock.patch("dls_bba.machine.Machine.check_feedbacks", return_value=None)
-def test_check_beam_current_returns_false_when_topup_prompt_response_is_yes(
-    mock_get_beam_current, mock_ask_user, mock_check_feedbacks
-):
-    machine = Machine(overrides=extra_dict_warning_drop)
-    beam_check = BeamCurrentCheck(machine)
-    assert not beam_check.check_beam_drop()
-
-
-@mock.patch("dls_bba.machine.Machine.get_beam_current", return_value=1.0)
-def test_check_beam_current_returns_true_when_valid(mock_get_value):
-    machine = Machine()
-    beam_check = BeamCurrentCheck(machine)
-    assert beam_check.check_beam_drop()
+@mock.patch("dls_bba.machine.caput", return_value=None)
+def test_restore_origins(mock_caput, machine_setup, tmp_path):
+    machine = machine_setup
+    machine.zero_origins(tmp_path)
+    machine.restore_origins(tmp_path)
