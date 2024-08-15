@@ -40,6 +40,7 @@ class Worker:
             else self.machine.config["SAVE_LOCATION"]
         )
         self.save_location = setup_folders_and_logger(method, folder_path, logger)
+        log.debug(f"Running {method} against {elements} results saved to {folder_path}")
         self.components_pairs = get_component_pairs(self.machine, elements)
         self.starting_length = len(self.components_pairs)
         self.algorithm: Algorithm = ALGORITHMS[method](self.machine)
