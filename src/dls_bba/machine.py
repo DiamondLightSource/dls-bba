@@ -448,7 +448,7 @@ class Machine:
         """
         radian_kick = self.config["CORRECTOR_KICK_RADIANS"]
 
-        if str(self.config["UNITS"]) == "pytac.ENG":
+        if str(self.config["UNITS"]) == "ENG":
             value = component.corrector.get_unitconv(component.kick).convert(
                 radian_kick, pytac.PHYS, pytac.ENG
             )
@@ -502,7 +502,7 @@ class Machine:
             else:
                 self.run_sofb()
         else:
-            log.warn("Orbit needs correction but feedbacks are disabled.")
+            log.warning("Orbit needs correction but feedbacks are disabled.")
 
     def confirm_fofb_activation(self) -> None:
         """Confirm that the FOFB has activated correctly.
