@@ -43,7 +43,11 @@ def parse_arguments() -> Namespace:
     parser_info.set_defaults(command="info")
 
     parser_run = subparsers.add_parser(
-        "run", parents=[parent_parser], add_help=False, description="Run BBA"
+        "run",
+        parents=[parent_parser],
+        add_help=False,
+        description="Run BBA",
+        help="Run BBA",
     )
     parser_run.set_defaults(command="run")
     parser_run.add_argument(
@@ -56,7 +60,11 @@ def parse_arguments() -> Namespace:
     )
 
     parser_plot = subparsers.add_parser(
-        "plot", parents=[parent_parser], add_help=False, description="Plot BBA results"
+        "plot",
+        parents=[parent_parser],
+        add_help=False,
+        description="Plot BBA results",
+        help="Plot BBA results",
     )
     parser_plot.set_defaults(command="plot")
     group = parser_plot.add_mutually_exclusive_group(required=True)
@@ -74,7 +82,11 @@ def parse_arguments() -> Namespace:
     )
 
     parser_apply = subparsers.add_parser(
-        "apply", parents=[parent_parser], add_help=False, description="Apply results"
+        "apply",
+        parents=[parent_parser],
+        add_help=False,
+        description="Apply BBA results",
+        help="Apply BBA results",
     )
     parser_apply.set_defaults(command="apply")
     parser_apply.add_argument(
@@ -139,13 +151,20 @@ def sort_elements(args) -> List[str]:
     machine = Machine(args.config_files, args.additional_config)
     elements: List[str] = []
 
+    targets = [args.wholemachine, args.psps, args.cell, args.bpm, args.quad]
+    if sum(bool(arg) for arg in targets) != 1:
+        raise ValueError("Please specify only one target to run BBA against.")
+
     if args.wholemachine:
         elements = machine.bpms_names
     if args.psps:
         elements = machine.psps
     if args.cell is not None:
         if args.cell not in machine.cell_dictionary.keys():
-            print("Invalid cell selected. Try cells '01' to '24'")
+            if "0" + args.cell not in machine.cell_dictionary.keys():
+                print("Invalid cell selected. Try cells '01' to '24'")
+            else:
+                elements = machine.cell_dictionary["0" + args.cell]
         else:
             elements = machine.cell_dictionary[args.cell]
     if args.bpm is not None:
