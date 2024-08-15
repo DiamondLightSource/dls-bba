@@ -572,10 +572,13 @@ class Machine:
         feedback_pvs = self.config["FEEDBACK_PVS"]
 
         for name, pv in feedback_pvs.items():
-            if caget(pv) != 0:
-                msg = f"{name} unexpectly running."
-                log.critical(msg)
-                raise ActiveFeedbacksError(msg)
+            try:
+                if caget(pv) != 0:
+                    msg = f"{name} unexpectly running."
+                    log.critical(msg)
+                    raise ActiveFeedbacksError(msg)
+            except ca_nothing as e:
+                log.warning(e)
 
         max_value = self.get_largest_orbit()
 
