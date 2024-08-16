@@ -38,6 +38,10 @@ class SlowBBA(Algorithm):
         metadata["method"] = "SlowBBA"
         metadata["isotime"] = get_isotime()
         metadata["enabled_bpms"] = self._machine.get_enabled_bpms()
+        # NOTE: This should probably be calculated properly, but even in getsigma.m it
+        # just sets them all to 1e-4 when it fails to find the file that it's supposed
+        # to read them from.
+        metadata["sigma_bpm"] = np.ones(len(metadata["enabled_bpms"])) * 1e-4
         metadata["bpm_name"] = components_pair[0].bpm_name
         metadata["bpm_index"] = components_pair[0].bpm_index
 
@@ -138,10 +142,12 @@ class SlowBBA(Algorithm):
         data = rawdata.rawdata
         metadata = rawdata.metadata
 
+        # Define variables that aren't changed between planes.
         enabled_bpms = np.equal(metadata["enabled_bpms"], 1)
+        outlier_factor = metadata["OUTLIER_FACTOR"]
         min_slope_fraction = metadata["MIN_SLOPE_FRACTION"]
         center_outlier_factor = metadata["CENTER_OUTLIER_FACTOR"]
-        bpm_index = metadata["bpm_index"]
+        optimal_bpm = metadata["bpm_index"]
 
         results: Dict[str, List[float]] = {}
         plotting: Dict[str, Dict[str, np.ndarray]] = {}
@@ -154,73 +160,122 @@ class SlowBBA(Algorithm):
 
         for quad_name in quad_names:
             for axis in ["x", "y"]:
-                matrix = np.zeros(shape=(5, len(enabled_bpms)))
-                for index in range(5):
-                    key = f"{quad_name}_{axis}_High_{index + 1}"
-                    high = data[key]
-                    key = f"{quad_name}_{axis}_Low_{index + 1}"
-                    low = data[key]
-                    matrix[index, :] = np.subtract(high, low)
+                # Define variables that get changed for each plane.
+                sigma_bpm = metadata["sigma_bpm"]
+                bpm_indices = np.array(range(len(enabled_bpms)))
+                high = np.zeros(shape=(len(enabled_bpms), 5))
+                low = np.zeros(shape=(len(enabled_bpms), 5))
+                oscillation_size = np.zeros(shape=(len(enabled_bpms), 5))
+                # Extract data into our variables.
+                for i in range(5):
+                    high[:, i] = data[f"{quad_name}_{axis}_High_{i + 1}"]
+                    low[:, i] = data[f"{quad_name}_{axis}_Low_{i + 1}"]
+                    oscillation_size[:, i] = np.subtract(low[:, i], high[:, i])
 
                 # Get rid of disabled bpms.
                 disabled_bpms = np.logical_not(enabled_bpms)
-                log.debug(f"Disabled BPMs: {np.flatnonzero(disabled_bpms)}")
+                log.debug(f"Indices of disabled BPMs: {np.flatnonzero(disabled_bpms)}")
+                # NOTE: This is currently disabled in order to give identical results to
+                # quadplot.m, though removing them is probably the right thing to do.
+                # NOTE: If we do choose to re-enable this then it should probably be
+                # done during data collection like enabled_bpms rather than here.
+                #fofb_disabled_bpms = np.array(self._machine.fofb_disabled[axis], dtype=bool)
+                #log.debug(f"Indices of fofb disabled BPMs: {np.flatnonzero(fofb_disabled_bpms)}")
+                disabled = disabled_bpms #| fofb_disabled_bpms
+                high = np.delete(high, disabled, axis=0)
+                low = np.delete(low, disabled, axis=0)
+                oscillation_size = np.delete(oscillation_size, disabled, axis=0)
+                sigma_bpm = np.delete(sigma_bpm, disabled)
+                bpm_indices = np.delete(bpm_indices, disabled)
+                if optimal_bpm not in bpm_indices:
+                    raise IndexError(
+                        "Please specify a different optimal BPM, currently specified "
+                        f"BPM ({optimal_bpm}) is disabled."
+                    )
+                log.debug(f"Data points remaining after cleaning: {len(sigma_bpm)}")
 
-                # Get rid of bad bpms.
-                fofb_disabled_bpms = np.array(self._machine.fofb_disabled[axis] == 1)
-                log.debug(f"Bad BPMs: {np.flatnonzero(fofb_disabled_bpms)}")
+                # 5 point linear least squares fit.
+                bpm_number = list(bpm_indices).index(metadata["bpm_index"])
+                oscillation_midpoint = (high[bpm_number, :] + low[bpm_number, :]) / 2
+                # NOTE: The code immediately below is taken from quadplot.m with minimal
+                # modification, other than porting it to Python.
+                X = np.stack((np.ones(5), oscillation_midpoint)).T
+                invXX = np.linalg.inv(X.T.dot(X))
+                invXX_X = X.dot(invXX).T
+                b = invXX_X.dot(oscillation_size.T).T
 
-                disabled = disabled_bpms | fofb_disabled_bpms
-                matrix = np.delete(matrix, disabled, axis=1)
-                # To keep the index inline with the original BPM.
-                bpm_index -= np.sum(disabled[:bpm_index])
+                # Get absolute gradients and x intercepts of the lines.
+                gradients = abs(b[:, 1])
+                offsets = -b[:, 0] / b[:, 1]
 
-                fit = np.polynomial.polynomial.polyfit(matrix[:, bpm_index], matrix, 1)
-                p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
-                gradients = List(p[:, 1])
+                # Remove all values with large difference between the fit value and that
+                # BPM's standard deviation (currently hardcoded to 1e-4).
+                y = np.zeros(shape=(b.shape[0], 5))
+                large_fit_diff = np.zeros(b.shape[0], dtype=bool)
+                # NOTE: The code immediately below is taken from quadplot.m with minimal
+                # modification, other than porting it to Python.
+                for i in range(b.shape[0]):
+                    y[i, :] = (b[i, 1] * oscillation_midpoint) + b[i, 0]  # y = mx + c
+                    if (
+                        max(abs(y[i, :] - oscillation_size[i, :]))
+                        > outlier_factor * sigma_bpm[i]
+                    ):
+                        large_fit_diff[i] = True
+                log.debug(
+                    "Indices with large error between fit and data: "
+                    f"{np.flatnonzero(large_fit_diff)}"
+                )
+                gradients = np.delete(gradients, large_fit_diff)
+                offsets = np.delete(offsets, large_fit_diff)
+                oscillation_size = np.delete(oscillation_size, large_fit_diff, axis=0)
+                bpm_indices = np.delete(bpm_indices, large_fit_diff)
+                log.debug(f"Data points remaining after cleaning: {len(offsets)}")
 
-                sorted_gradients = np.sort(gradients)
-                # Note: This misses once element if len(sorted_gradients) is odd.
-                second_half = np.array_split(sorted_gradients, 2)[1]
-
+                # Remove all values with overly shallow gradients.
+                # NOTE: This misses once element if len(np.sort(gradients)) is odd.
+                second_half = np.array_split(np.sort(gradients), 2)[1]
                 if len(second_half) > 5:
                     min_gradient = second_half[-5]
                 else:
                     min_gradient = second_half[-1]
-                min_gradient = min_gradient * min_slope_fraction
-
-                bad_gradients = np.abs(gradients) < min_gradient
+                bad_gradients = np.abs(gradients) < min_gradient * min_slope_fraction
                 log.debug(
-                    f"Indices with too shallow gradients: {np.flatnonzero(bad_gradients)}"
+                    "Indices with too shallow gradients: "
+                    f"{np.flatnonzero(bad_gradients)}"
                 )
-                p = np.delete(p, bad_gradients, axis=0)
-                log.debug(f"Size of p: {np.shape(p)}")
+                gradients = np.delete(gradients, bad_gradients)
+                offsets = np.delete(offsets, bad_gradients)
+                oscillation_size = np.delete(oscillation_size, bad_gradients, axis=0)
+                bpm_indices = np.delete(bpm_indices, bad_gradients)
+                log.debug(f"Data points remaining after cleaning: {len(offsets)}")
 
-                # Remove all values that are more than 1 stdev from the mean.
-                offset_mean = np.mean(p[:, 1])
-                offset_stdev = np.std(p[:, 1])
-
-                max_value = offset_mean + (offset_stdev * center_outlier_factor)
-                min_value = offset_mean - (offset_stdev * center_outlier_factor)
-
-                stdev_out_of_range = (p[:, 1] <= min_value) | (p[:, 1] >= max_value)
-                p = np.delete(p, stdev_out_of_range, axis=0)
-
-                offset_mean = np.mean(p[:, 1])
-                offset_stdev = np.std(p[:, 1])
-                log.info(f"Final size of p: {np.shape(p)}")
+                # Remove all values that are more than center_outlier_factor standard
+                # deviation(s) away from the mean.
+                stdev_outside_range = np.array(
+                    abs(offsets - np.mean(offsets))
+                    > center_outlier_factor * np.std(offsets, ddof=1)
+                )
+                log.debug(
+                    f"Indices more than {center_outlier_factor} standard deviation(s) "
+                    f"away from the mean: {np.flatnonzero(stdev_outside_range)}"
+                )
+                gradients = np.delete(gradients, stdev_outside_range)
+                offsets = np.delete(offsets, stdev_outside_range)
+                oscillation_size = np.delete(
+                    oscillation_size, stdev_outside_range, axis=0
+                )
+                bpm_indices = np.delete(bpm_indices, stdev_outside_range)
+                log.debug(f"Data points remaining after cleaning: {len(offsets)}")
 
                 key = f"{quad_name}_{axis}"
-                results[key] = [offset_mean, offset_stdev]
+                results[key] = [np.mean(offsets), np.std(offsets, ddof=1)]
+                log.debug(
+                    f"Results for {key}: "
+                    f"mean: {results[key][0]}, standard deviation: {results[key][1]}"
+                )
 
-                # First value is x, second is y
-                matrix = np.delete(matrix, bad_gradients, axis=1)
-                bpm_index -= np.sum(bad_gradients[:bpm_index])
-
-                matrix = np.delete(matrix, stdev_out_of_range, axis=1)
-                bpm_index -= np.sum(stdev_out_of_range[:bpm_index])
-
-                plotting[key] = {"x": (matrix[:, bpm_index]).tolist(), "y": matrix}
+                # Plot good data only.
+                plotting[key] = {"x": oscillation_midpoint, "y": oscillation_size.T}
 
         offsets = self.create_offsets_dict(results, metadata)
 
