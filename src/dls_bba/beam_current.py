@@ -26,6 +26,7 @@ class BeamCurrentCheck:
 
     def check_beam_decay(self) -> bool:
         """Check if the beam current has decayed below the minimum current.
+
         Returns:
             True if beam has not dropped below the minimum current, False if it has.
         """
@@ -58,6 +59,7 @@ class BeamCurrentCheck:
 
     def topup_beam(self, minimum_topup: float) -> None:
         """Prompt the user to topup the beam current.
+
         Args:
             minimum_topup: The minimum current (mA) to top-up to.
         """
