@@ -151,10 +151,6 @@ def sort_elements(args) -> List[str]:
     machine = Machine(args.config_files, args.additional_config)
     elements: List[str] = []
 
-    targets = [args.wholemachine, args.psps, args.cell, args.bpm, args.quad]
-    if sum(bool(arg) for arg in targets) != 1:
-        raise ValueError("Please specify only one target to run BBA against.")
-
     if args.wholemachine:
         elements = machine.bpms_names
     if args.psps:
