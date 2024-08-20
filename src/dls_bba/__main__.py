@@ -156,13 +156,11 @@ def sort_elements(args) -> List[str]:
     if args.psps:
         elements = machine.psps
     if args.cell is not None:
-        if args.cell not in machine.cell_dictionary.keys():
-            if "0" + args.cell not in machine.cell_dictionary.keys():
-                print("Invalid cell selected. Try cells '01' to '24'")
-            else:
-                elements = machine.cell_dictionary["0" + args.cell]
+        cell = args.cell.zfill(2)
+        if cell not in machine.cell_dictionary.keys():
+            print("Invalid cell selected. Try cells '01' to '24'")
         else:
-            elements = machine.cell_dictionary[args.cell]
+            elements = machine.cell_dictionary[cell]
     if args.bpm is not None:
         if (args.bpm > len(machine.bpms_names)) or (args.bpm <= 0):
             print(f"Invalid BPM selected. Try:  1 <= BPMs <= {len(machine.bpms_names)}")
