@@ -1,4 +1,5 @@
 import json
+import sys
 from argparse import ArgumentParser, Namespace
 from typing import Dict, List
 
@@ -157,22 +158,27 @@ def sort_elements(args) -> List[str]:
     if args.cell is not None:
         cell = args.cell.zfill(2)
         if cell not in machine.cell_dictionary.keys():
-            print("Invalid cell selected. Try cells '01' to '24'")
+            sys.exit("Invalid cell selected. Try cells '01' to '24'")
         else:
             elements = machine.cell_dictionary[cell]
     if args.bpm is not None:
         if (args.bpm > len(machine.bpms_names)) or (args.bpm <= 0):
-            print(f"Invalid BPM selected. Try:  1 <= BPMs <= {len(machine.bpms_names)}")
+            sys.exit(
+                f"Invalid BPM selected. Try:  1 <= BPMs <= {len(machine.bpms_names)}"
+            )
         else:
             elements = [machine.bpms_names[args.bpm - 1]]
     if args.quad is not None:
         if args.quad > len(machine.quads_names) or (args.quad <= 0):
-            print(
+            sys.exit(
                 f"Invalid Quad selected. Try:  1 <= Quads <= {len(machine.quads_names)}"
             )
         else:
             elements = [machine.quads_names[args.quad - 1]]
-    return elements
+    if len(elements) > 0:
+        return elements
+    else:
+        sys.exit("Provided arguments resulted in 0 elements selected, exiting.")
 
 
 def main() -> None:
