@@ -175,10 +175,11 @@ def sort_elements(args) -> List[str]:
             )
         else:
             elements = [machine.quads_names[args.quad - 1]]
-    if len(elements) > 0:
-        return elements
-    else:
+
+    if not elements:
         sys.exit("Provided arguments resulted in 0 elements selected, exiting.")
+
+    return elements
 
 
 def main() -> None:
