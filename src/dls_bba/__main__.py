@@ -1,4 +1,5 @@
 import json
+import sys
 from argparse import ArgumentParser, Namespace
 from typing import Dict, List
 
@@ -43,7 +44,11 @@ def parse_arguments() -> Namespace:
     parser_info.set_defaults(command="info")
 
     parser_run = subparsers.add_parser(
-        "run", parents=[parent_parser], add_help=False, description="Run BBA"
+        "run",
+        parents=[parent_parser],
+        add_help=False,
+        description="Run BBA",
+        help="Run BBA",
     )
     parser_run.set_defaults(command="run")
     parser_run.add_argument(
@@ -56,7 +61,11 @@ def parse_arguments() -> Namespace:
     )
 
     parser_plot = subparsers.add_parser(
-        "plot", parents=[parent_parser], add_help=False, description="Plot BBA results"
+        "plot",
+        parents=[parent_parser],
+        add_help=False,
+        description="Plot BBA results",
+        help="Plot BBA results",
     )
     parser_plot.set_defaults(command="plot")
     group = parser_plot.add_mutually_exclusive_group(required=True)
@@ -74,7 +83,11 @@ def parse_arguments() -> Namespace:
     )
 
     parser_apply = subparsers.add_parser(
-        "apply", parents=[parent_parser], add_help=False, description="Apply results"
+        "apply",
+        parents=[parent_parser],
+        add_help=False,
+        description="Apply BBA results",
+        help="Apply BBA results",
     )
     parser_apply.set_defaults(command="apply")
     parser_apply.add_argument(
@@ -132,8 +145,8 @@ def sort_elements(args) -> List[str]:
         A list of elements.
     """
     # Additional config must be in the correct format Dict[str, Any]
-    assert isinstance(args.additional_config, Dict)
-    assert all(isinstance(key, str) for key in args.additional_config.keys())
+    if args.additional_config is not None:
+        assert all(isinstance(key, str) for key in args.additional_config.keys())
 
     machine = Machine(args.config_files, args.additional_config)
     elements: List[str] = []
@@ -143,22 +156,29 @@ def sort_elements(args) -> List[str]:
     if args.psps:
         elements = machine.psps
     if args.cell is not None:
-        if args.cell not in machine.cell_dictionary.keys():
-            print("Invalid cell selected. Try cells '01' to '24'")
+        cell = args.cell.zfill(2)
+        if cell not in machine.cell_dictionary.keys():
+            sys.exit("Invalid cell selected. Try cells '01' to '24'")
         else:
-            elements = machine.cell_dictionary[args.cell]
+            elements = machine.cell_dictionary[cell]
     if args.bpm is not None:
         if (args.bpm > len(machine.bpms_names)) or (args.bpm <= 0):
-            print(f"Invalid BPM selected. Try:  1 <= BPMs <= {len(machine.bpms_names)}")
+            sys.exit(
+                f"Invalid BPM selected. Try:  1 <= BPMs <= {len(machine.bpms_names)}"
+            )
         else:
             elements = [machine.bpms_names[args.bpm - 1]]
     if args.quad is not None:
         if args.quad > len(machine.quads_names) or (args.quad <= 0):
-            print(
+            sys.exit(
                 f"Invalid Quad selected. Try:  1 <= Quads <= {len(machine.quads_names)}"
             )
         else:
             elements = [machine.quads_names[args.quad - 1]]
+
+    if not elements:
+        sys.exit("Provided arguments resulted in 0 elements selected, exiting.")
+
     return elements
 
 

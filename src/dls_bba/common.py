@@ -11,7 +11,7 @@ from dls_bba.machine import Machine
 from dls_bba.sbba import SlowBBA
 from dls_bba.simfbba import SimFastBBA
 
-ALGORITHMS: dict[str, type[Algorithm]] = {
+ALGORITHMS: Dict[str, type[Algorithm]] = {
     "SlowBBA": SlowBBA,
     "FastBBA": FastBBA,
     "SimFastBBA": SimFastBBA,
@@ -36,6 +36,8 @@ def setup_folders_and_logger(
     bba_folderpath = os.path.join(file, foldername)
     os.makedirs(bba_folderpath)
     get_new_logger(bba_folderpath, gui)
+    # Avoid filling log files with matplotlib logging junk.
+    log.getLogger('matplotlib.font_manager').disabled = True
     return bba_folderpath
 
 

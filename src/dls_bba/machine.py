@@ -102,13 +102,15 @@ class Machine:
             self.config.update_config(overrides)
 
     def update_config(
-        self, extra_config_files: Optional[list[Any]] = None, dct: Optional[dict] = None
+        self,
+        extra_config_files: Optional[List[Any]] = None,
+        config_override_dict: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Update the configuration files and check if a reload is required.
 
         Args:
             extra_config_files: List of extra configuration files to load.
-            dct: Dictionary of configuration overrides.
+            config_override_dict: Dictionary of configuration overrides.
         """
         flag_files = False
         flag_dict = False
@@ -116,8 +118,8 @@ class Machine:
         if extra_config_files is not None:
             flag_files = self.config.apply_config_files(extra_config_files)
 
-        if dct is not None:
-            flag_dict = self.config.update_config(dct)
+        if config_override_dict is not None:
+            flag_dict = self.config.update_config(config_override_dict)
 
         if flag_files or flag_dict:
             log.debug("Major Config Change: Reloading Lattice")
@@ -446,7 +448,7 @@ class Machine:
         """
         radian_kick = self.config["CORRECTOR_KICK_RADIANS"]
 
-        if str(self.config["UNITS"]) == "pytac.ENG":
+        if str(self.config["UNITS"]) == "ENG":
             value = component.corrector.get_unitconv(component.kick).convert(
                 radian_kick, pytac.PHYS, pytac.ENG
             )
@@ -500,7 +502,7 @@ class Machine:
             else:
                 self.run_sofb()
         else:
-            log.warn("Orbit needs correction but feedbacks are disabled.")
+            log.warning("Orbit needs correction but feedbacks are disabled.")
 
     def confirm_fofb_activation(self) -> None:
         """Confirm that the FOFB has activated correctly.

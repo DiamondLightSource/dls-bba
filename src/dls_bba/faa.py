@@ -110,7 +110,7 @@ class Buffer(object):
             self.complete = True
             sub.close()
         except Exception as e:  # The EOF exception is hidden from me.
-            log.warn("Fetching FA data failed: {}".format(e))
+            log.warning(f"Fetching FA data failed: {e}")
             self.complete = True
 
     def get_data(self) -> np.ndarray:

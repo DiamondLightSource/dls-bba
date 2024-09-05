@@ -24,14 +24,21 @@ class BeamCurrentCheck:
         msg = f"Stored Starting Beam Current: {self._initial_current}"
         log.debug(msg)
 
-    def check_beam_decay(self) -> None:
-        """Check if the beam current has decayed below the minimum current."""
+    def check_beam_decay(self) -> bool:
+        """Check if the beam current has decayed below the minimum current.
+
+        Returns:
+            True if beam has not dropped below the minimum current, False if it has.
+        """
         min_current = self._machine.config["MIN_CURRENT"]
         current_current = self._machine.get_beam_current()
         log.debug(f"Current: {current_current}; Decay limit: {min_current}")
 
         if current_current < min_current:
-            self.topup_beam()
+            self.topup_beam(min_current)
+            return False
+
+        return True
 
     def check_beam_drop(self) -> bool:
         """Check if the beam current has dropped below the warning current drop.
@@ -45,17 +52,21 @@ class BeamCurrentCheck:
         log.debug(f"Change in current: {change_in_current}")
 
         if change_in_current > warning_current_drop:
-            self.topup_beam()
+            self.topup_beam(self._initial_current)
             return False
 
         return True
 
-    def topup_beam(self) -> None:
-        """Prompt the user to topup the beam current."""
+    def topup_beam(self, minimum_topup: float) -> None:
+        """Prompt the user to topup the beam current.
+
+        Args:
+            minimum_topup: The minimum current (mA) to top-up to.
+        """
         start_current = self._machine.get_beam_current()
 
         while True:
-            msg = f"Please topup current to > {start_current}mA."
+            msg = f"Please topup current to > {minimum_topup}mA."
             log.error(msg)
             msg = "Input y to continue after top-up, or n to cancel: "
             response = self.question(msg)
