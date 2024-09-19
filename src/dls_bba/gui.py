@@ -410,9 +410,13 @@ class MainWindow(QMainWindow):
         load_folder_results = [Results.from_file(file) for file in good_files]
         reselect = []
         for result in load_folder_results:
-            bpm_name = result.metadata["bpm_name"]
-            x_key = str(bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="x"))
-            y_key = str(bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="y"))
+            bpm_name = result.metadata["bpm_name"].replace("-", "_")
+            x_key = str(
+                bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="X").replace(":", "__")
+            )
+            y_key = str(
+                bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="Y").replace(":", "__")
+            )
             if (
                 abs(result.offsets[x_key].diff_value) >= reselect_limit
                 or abs(result.offsets[y_key].diff_value) >= reselect_limit

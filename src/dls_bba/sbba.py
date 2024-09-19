@@ -81,7 +81,7 @@ class SlowBBA(Algorithm):
                         Sleep(0.5)  # Fixed time for orbit to stabilise.
                         measured_bpms = self._machine.measure_bpms(components.axis)
 
-                        key = f"{quad_name}_{components.axis}_{movement}_{index}"
+                        key = f"{quad_name.replace('-', '_')}__{components.axis}_{movement}_{index}"
                         rawdata[key] = measured_bpms
                         metadata[key] = {
                             "components": components.as_dict(),
@@ -153,7 +153,7 @@ class SlowBBA(Algorithm):
 
         quad_names = []
         for key in data.keys():
-            quad_name = key.split("_")[0]
+            quad_name = key.split("__")[0]
             if quad_name not in quad_names:
                 quad_names.append(quad_name)
 
@@ -167,8 +167,8 @@ class SlowBBA(Algorithm):
                 oscillation_size = np.zeros(shape=(len(enabled_bpms), 5))
                 # Extract data into our variables.
                 for i in range(5):
-                    high[:, i] = data[f"{quad_name}_{axis}_High_{i + 1}"]
-                    low[:, i] = data[f"{quad_name}_{axis}_Low_{i + 1}"]
+                    high[:, i] = data[f"{quad_name}__{axis}_High_{i + 1}"]
+                    low[:, i] = data[f"{quad_name}__{axis}_Low_{i + 1}"]
                     oscillation_size[:, i] = np.subtract(low[:, i], high[:, i])
 
                 # Get rid of disabled bpms.
@@ -266,7 +266,7 @@ class SlowBBA(Algorithm):
                 bpm_indices = np.delete(bpm_indices, stdev_outside_range)
                 log.debug(f"Data points remaining after cleaning: {len(offsets)}")
 
-                key = f"{quad_name}_{axis}"
+                key = f"{quad_name}__{axis}"
                 results[key] = [np.mean(offsets), np.std(offsets, ddof=1)]
                 log.debug(
                     f"Results for {key}: "
