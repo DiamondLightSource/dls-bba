@@ -63,8 +63,8 @@ def bba_offsets_plot(
     change_in_x = []
     change_in_dx = []
     for bpm_name in machine.bba_x_pvs:
-        if bpm_name in offsets_dict.keys():
-            calc_offsets = offsets_dict[bpm_name]
+        if bpm_name.replace("-", "_") in offsets_dict.keys():
+            calc_offsets = offsets_dict[bpm_name.replace("-", "_")]
             change_in_x.append(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV)
             change_in_dx.append(abs(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV))
         else:
@@ -74,8 +74,8 @@ def bba_offsets_plot(
     change_in_y = []
     change_in_dy = []
     for bpm_name in machine.bba_y_pvs:
-        if bpm_name in offsets_dict.keys():
-            calc_offsets = offsets_dict[bpm_name]
+        if bpm_name.replace("-", "_") in offsets_dict.keys():
+            calc_offsets = offsets_dict[bpm_name.replace("-", "_")]
             change_in_y.append(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV)
             change_in_dy.append(abs(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV))
         else:
@@ -127,7 +127,7 @@ def bowtie_plot(filepath: str, save: bool = False) -> plt.Figure:
     keys = keys
     quad_names = []
     for key in keys:
-        quad_name = key.split("_")[0]
+        quad_name = key.split("__")[0]
         if quad_name not in quad_names:
             quad_names.append(quad_name)
 
@@ -135,10 +135,10 @@ def bowtie_plot(filepath: str, save: bool = False) -> plt.Figure:
 
     for q_index, quad_name in enumerate(quad_names):
         for a_index, axis in enumerate(["x", "y"]):
-            key = f"{quad_name}_{axis}"
+            key = f"{quad_name}__{axis}"
 
             if a_index == 0:
-                axs[a_index, q_index].set_title(f"{quad_name}")
+                axs[a_index, q_index].set_title(f"{quad_name.replace('_', '-')}")
             if q_index == 0:
                 axs[a_index, q_index].set_ylabel(f"Axis: {axis} [um]")
 

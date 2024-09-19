@@ -82,11 +82,13 @@ class Algorithm(ABC):
             A dictionary containing the old, new and difference in offsets for each BPM.
         """
         offsets: Dict[str, CalculatedOffset] = {}
-        bpm_name = metadata["bpm_name"]
+        bpm_name = metadata["bpm_name"].replace("-", "_")
         bpm_index = metadata["bpm_index"]
 
-        for index, axis in enumerate(["x", "y"]):
-            bpm_key = str(bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis=axis.upper()))
+        for index, axis in enumerate(["X", "Y"]):
+            bpm_key = str(
+                bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis=axis).replace(":", "__")
+            )
             # Get current BBA offset.
             old_bba = float(self._machine.get_bba_offsets()[index][bpm_index])
             # Calculate the change needed.
@@ -114,7 +116,7 @@ class Algorithm(ABC):
         Returns:
             A list containing the new offset and the error.
         """
-        keys = [key for key in results.keys() if axis in key]
+        keys = [key for key in results.keys() if axis.lower() in key]
         values = []
         errors = []
         for key in keys:
@@ -193,7 +195,9 @@ class Algorithm(ABC):
         pv_names = []
         pv_values = []
         for key, value in offsets_dict.items():
-            pv_names.append(key)
+            pv_parts = key.split("__")
+            pv_parts[0] = pv_parts[0].replace("_", "-")
+            pv_names.append(":".join(pv_parts))
             pv_values.append(value.new_value)
         caput(pv_names, pv_values, wait=True)
         log.info(f"{len(pv_names)} BBA Offsets Applied.")
