@@ -61,28 +61,25 @@ class SlowBBA(Algorithm):
                 ) = self.calculate_quad_setpoints(quadrupole)
                 corrector_step_list = self.get_slow_bba_corrector_steps(components)
 
-                # Always overshoot the high quad step and work down and keep direction
-                # consistent to mitigate unwanted hysteresis effects.
-                # FYI correctors are significantly less prone to hysteresis effects.
-                self._machine.set_quad_setpoint(quadrupole, quad_start, True)
-                # Give Cell 2 DDBA magnets more time to ramp.
-                if "SR02" in quad_name:
-                    Sleep(1)
+                for index, corrector_step in enumerate(corrector_step_list, start=1):
+                    self._machine.set_corrector_setpoint(components, corrector_step)
+                    # Always overshoot the high quad step and work down and keep direction
+                    # consistent to mitigate unwanted hysteresis effects.
+                    # FYI correctors are significantly less prone to hysteresis effects.
+                    self._machine.set_quad_setpoint(quadrupole, quad_start, True)
+                    # Give Cell 2 DDBA magnets more time to ramp.
+                    if "SR02" in quad_name:
+                        Sleep(1)
 
-                for movement, quad_movement in [
-                    ("High", quad_high),
-                    ("Low", quad_low),
-                ]:
-                    log.info(f"Quadrupole to {movement} Setpoint")
-                    self._machine.set_quad_setpoint(quadrupole, quad_movement, True)
-
-                    for index, step in enumerate(corrector_step_list, start=1):
-                        self._machine.set_corrector_setpoint(components, step)
-                        Sleep(0.5)  # Fixed time for orbit to stabilise.
-                        measured_bpms = self._machine.measure_bpms(components.axis)
-
-                        key = f"{quad_name.replace('-', '_')}__{components.axis}_{movement}_{index}"
-                        rawdata[key] = measured_bpms
+                    for quad_movement, quad_value in [
+                        ("High", quad_high),
+                        ("Low", quad_low),
+                    ]:
+                        log.info(f"Quadrupole to {quad_movement} Setpoint")
+                        self._machine.set_quad_setpoint(quadrupole, quad_value, True)
+                        Sleep(1)  # Fixed time for orbit to stabilise.
+                        key = f"{quad_name.replace('-', '_')}__{components.axis}_{quad_movement}_{index}"
+                        rawdata[key] = self._machine.measure_bpms(components.axis)
                         metadata[key] = {
                             "components": components.as_dict(),
                             "quad_start_high_low_sp": [
@@ -94,14 +91,10 @@ class SlowBBA(Algorithm):
                             ],
                             "corrector_steps": corrector_step_list,
                         }
-
-                    # Reset the corrector after the steps before moving the quadrupole.
-                    self._machine.set_corrector_setpoint(
-                        components, corrector_step_list[2]
-                    )
-                # Reset Quad once finished.
+                # Reset quad and corrector once finished.
                 log.info("Reset Quadrupole Setpoint")
                 self._machine.set_quad_setpoint(quadrupole, quad_sp, True)
+                self._machine.set_corrector_setpoint(components, corrector_step_list[2])
             # run feedbacks after each axis.
             self._machine.check_feedbacks()
 
