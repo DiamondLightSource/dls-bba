@@ -190,6 +190,12 @@ def main() -> None:
         print(elements)
 
     elif args.command == "run":
+        if args.algorithm is None:
+            sys.exit("No algorithm selected please specify one using -a or --algorithm")
+        elif args.algorithm not in ALGORITHMS.keys():
+            sys.exit(
+                f"Invalid algorithm '{args.algorithm}' please try one of {ALGORITHMS.keys()}"
+            )
         elements = sort_elements(args)
         worker = Worker(
             args.algorithm,
