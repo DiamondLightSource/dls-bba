@@ -152,8 +152,7 @@ class Ticker:
         elif self.__state == "Paused":
             self.resume_ticker()
         else:
-            msg = f"Don't know what to do with state: {self.__state}"
-            log.error(msg)
+            log.error(f"Don't know what to do with state: {self.__state}")
 
     @property
     def state(self) -> str:
@@ -358,8 +357,7 @@ class MainWindow(QMainWindow):
         """Start Ticker"""
         log.info("GUI Start Pressed")
         if not self.selected:
-            msg = "No elements selected."
-            self.display_on_screen(msg)
+            self.display_on_screen("No elements selected.")
             return
 
         self.update_config()
@@ -423,8 +421,9 @@ class MainWindow(QMainWindow):
             ):
                 reselect.append(bpm_name)
 
-        msg = f"Reselected {len(reselect)} elements with > {reselect_limit}um change."
-        self.display_on_screen(msg)
+        self.display_on_screen(
+            f"Reselected {len(reselect)} elements with > {reselect_limit}um change."
+        )
         self.pv_selection.clear()
         self.pv_selection.addItems(reselect)
         self.last_list = reselect
@@ -438,8 +437,7 @@ class MainWindow(QMainWindow):
             old_state: The old state string.
             new_state:  The new state string.
         """
-        msg = f"Ticker state: {old_state} => {new_state}"
-        log.debug(msg)
+        log.debug(f"Ticker state: {old_state} => {new_state}")
 
         if old_state == "Complete" and new_state == "Idle":
             self.stop_ticker()
@@ -788,16 +786,14 @@ class MainWindow(QMainWindow):
         selected = self.pv_selection.selectedItems()  # type: ignore
         assert isinstance(self.selection_strings, list)
         if len(selected) == 0:
-            msg = "Please select a mode."
-            self.display_on_screen(msg, clear=True)
+            self.display_on_screen("Please select a mode.", clear=True)
             self.selected = None
             return False
 
         elif len(selected) == 1 and any(
             True for x in ["Whole Machine", "All PSPs"] if x in self.selection_strings
         ):
-            msg = f"{self.selection_strings[0]} selected."
-            self.display_on_screen(msg, clear=True)
+            self.display_on_screen(f"{self.selection_strings[0]} selected.", clear=True)
             assert isinstance(self.options, list) and isinstance(self.options[0], str)
             self.selected = self.options
             return True
@@ -808,15 +804,13 @@ class MainWindow(QMainWindow):
             if len(selected[0].text()) == 2:
                 cell_number = selected[0].text()
                 elements = self.machine.cell_dictionary[cell_number]
-                msg = f"Cell {cell_number} selected."
-                self.display_on_screen(msg, clear=True)
+                self.display_on_screen(f"Cell {cell_number} selected.", clear=True)
                 self.selected = elements
                 return True
 
             else:
                 element = selected[0].text()
-                msg = f"{element} selected."
-                self.display_on_screen(msg, clear=True)
+                self.display_on_screen(f"{element} selected.", clear=True)
                 self.selected = element
                 return True
 
@@ -826,15 +820,15 @@ class MainWindow(QMainWindow):
                 elements = []
                 for cell in cells:
                     elements.extend(self.machine.cell_dictionary[cell])
-                msg = f"Cells {cells} selected."
-                self.display_on_screen(msg, clear=True)
+                self.display_on_screen(f"Cells {cells} selected.", clear=True)
                 self.selected = elements
                 return True
 
             else:
                 elements = [element.text() for element in selected]
-                msg = f"{len(elements)} elements selected."
-                self.display_on_screen(msg, clear=True)
+                self.display_on_screen(
+                    f"{len(elements)} elements selected.", clear=True
+                )
                 self.selected = elements
                 return True
 
