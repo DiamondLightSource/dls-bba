@@ -86,6 +86,7 @@ class Worker:
         results = self.algorithm.analyse(rawdata)
         if self.save_results:
             results.save(self.save_location)
+        self.results_list.append(results)
 
         assert self.beam_current_decay is not None
         self.beam_current_decay.check_beam_decay()

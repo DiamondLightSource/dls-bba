@@ -12,7 +12,7 @@ else:
     from importlib_resources import files
 
 DEFAULT_CONFIGS: Tuple[str, str] = (
-    "I04-20230524-settings.json",
+    "I04-sim-settings.json",
     "defaults.json",
 )
 """The default configuration files."""
