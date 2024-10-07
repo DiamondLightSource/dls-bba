@@ -34,6 +34,7 @@ from PyQt6.QtWidgets import (  # noqa: E402
     QTabWidget,
     QTextEdit,
 )
+from pytac.load_csv import available_ringmodes
 
 from dls_bba.common import (  # noqa: E402
     ALGORITHMS,
@@ -538,8 +539,9 @@ class MainWindow(QMainWindow):
         Returns:
             A list of the current ringmodes.
         """
-        ringmodes = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums
-        return ringmodes
+        file_ringmodes = available_ringmodes()
+        pv_ringmodes = set(caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums)
+        return file_ringmodes & pv_ringmodes
 
     def update_config(self) -> Dict[str, Any]:
         """Update the machine config with the current config in the GUI.
