@@ -1,6 +1,6 @@
 {
     "RINGMODE": "I04",
-    "UNITS": "ENG",
+    "UNITS": "engineering",
     "DATASOURCE": "LIVE",
     "COTHREAD_CONTROL_SYSTEM_TIMEOUT": 10.0,
     "COTHREAD_CONTROL_SYSTEM_WAIT_FLAG": true,

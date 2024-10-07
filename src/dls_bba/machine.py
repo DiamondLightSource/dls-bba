@@ -26,26 +26,30 @@ from dls_bba.exceptions import (
     InvalidRingmodeError,
 )
 
-# Cannot exist inside config files.
+# The following configuration variables cannot exist inside config files.
+# Number of times to retry a BPM connection.
 BPM_RETRIES = os.getenv("BBA_BPM_RETRIES", 5)
-"""Number of times to retry a BPM connection."""
+# Number of times to retry triggering FOFB.
 FOFB_RETRIES = 10
-"""Number of times to retry triggering FOFB."""
-
+# Suffixes for the origin PVs.
 ORIGIN_SUFFIXES = {
     "BBA": ":CF:BBA_{axis}_S",
     "BCD": ":CF:BCD_{axis}_S",
     "GOLDEN": ":CF:GOLDEN_{axis}_S",
 }
-"""Suffixes for the origin PVs."""
-UNITS = {"ENG": pytac.ENG, "PHYS": pytac.PHYS}
-"""Units for the machine."""
+# Units for the machine.
+UNITS = {
+    "engineering": pytac.ENG,
+    "physics": pytac.PHYS,
+    "eng": pytac.ENG,
+    "phys": pytac.PHYS,
+}
+# Data sources for the machine.
 DATASOURCE = {"LIVE": pytac.LIVE}
-"""Data sources for the machine."""
+# Slew rate for quadrupoles in amps per second.
 QUAD_SLEW_RATE = 0.5
-"""Slew rate for quadrupoles in amps per second."""
+# Conversion factor from mm to microns.
 MM_MICRON_CONVERSION = 1000
-"""Conversion factor from mm to microns."""
 
 
 def _retry_command(num_tries, excp_type):
@@ -142,7 +146,7 @@ class Machine:
             InvalidRingmodeError: If the ringmode does not exist in pytac.
         """
         ringmode = self.config["RINGMODE"]
-        units = self.config["UNITS"]
+        units = self.config["UNITS"].lower()
         datasource = self.config["DATASOURCE"]
         ccs_timeout = self.config["COTHREAD_CONTROL_SYSTEM_TIMEOUT"]
         ccs_wait = self.config["COTHREAD_CONTROL_SYSTEM_WAIT_FLAG"]
@@ -448,7 +452,7 @@ class Machine:
         """
         radian_kick = self.config["CORRECTOR_KICK_RADIANS"]
 
-        if str(self.config["UNITS"]) == "ENG":
+        if UNITS[self.config["UNITS"].lower()] == pytac.ENG:
             value = component.corrector.get_unitconv(component.kick).convert(
                 radian_kick, pytac.PHYS, pytac.ENG
             )
