@@ -324,8 +324,8 @@ class MainWindow(QMainWindow):
         self.lock_unlock_pv.clicked.connect(self.lock_unlock_selection)
 
         # File / Folder selection, plotting and applying.
-        self.config_units.addItems(UNITS.keys())
-        self.config_units.setCurrentText(list(UNITS.keys())[0])
+        self.config_units.addItems(["Engineering", "Physics"])
+        self.config_units.setCurrentText("Engineering")
         self.config_datasource.addItems(DATASOURCE.keys())
         self.config_datasource.setCurrentText(list(DATASOURCE.keys())[0])
 
@@ -575,7 +575,7 @@ class MainWindow(QMainWindow):
             "SAVE_PLOTS": self.save_plots.isChecked(),
             "RESELECTION_LIMIT": self.config_reselection.value(),
             "RINGMODE": self.config_ringmode.currentText(),
-            "UNITS": self.config_units.currentText(),
+            "UNITS": self.config_units.currentText().lower(),
             "DATASOURCE": self.config_datasource.currentText(),
             "COTHREAD_CONTROL_SYSTEM_TIMEOUT": self.config_ccs_timeout.value(),
             "COTHREAD_CONTROL_SYSTEM_WAIT_FLAG": self.config_ccs_wait.isChecked(),
@@ -619,7 +619,7 @@ class MainWindow(QMainWindow):
         self.config_reselection.setValue(config["RESELECTION_LIMIT"])
 
         self.config_ringmode.setCurrentText(config["RINGMODE"])
-        self.config_units.setCurrentText(config["UNITS"])
+        self.config_units.setCurrentText(UNITS[config["UNITS"].lower()].capitalize())
         self.config_datasource.setCurrentText(config["DATASOURCE"])
         self.config_ccs_timeout.setValue(config["COTHREAD_CONTROL_SYSTEM_TIMEOUT"])
         self.config_ccs_wait.setChecked(config["COTHREAD_CONTROL_SYSTEM_WAIT_FLAG"])
