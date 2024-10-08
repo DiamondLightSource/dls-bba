@@ -1357,10 +1357,10 @@
          <widget class="QTextEdit" name="config_fofb_executable_path">
           <property name="geometry">
            <rect>
-            <x>10</x>
-            <y>230</y>
-            <width>101</width>
-            <height>61</height>
+            <x>20</x>
+            <y>250</y>
+            <width>220</width>
+            <height>41</height>
            </rect>
           </property>
           <property name="horizontalScrollBarPolicy">
@@ -1373,14 +1373,14 @@
          <widget class="QLabel" name="label_20">
           <property name="geometry">
            <rect>
-            <x>120</x>
-            <y>240</y>
-            <width>121</width>
-            <height>41</height>
+            <x>20</x>
+            <y>230</y>
+            <width>231</width>
+            <height>21</height>
            </rect>
           </property>
           <property name="text">
-           <string>FOFB Executable Path</string>
+           <string>FOFB Executable Path:</string>
           </property>
           <property name="wordWrap">
            <bool>true</bool>
@@ -1408,10 +1408,10 @@
          <widget class="QTextEdit" name="config_orm_path">
           <property name="geometry">
            <rect>
-            <x>10</x>
-            <y>350</y>
-            <width>111</width>
-            <height>61</height>
+            <x>20</x>
+            <y>360</y>
+            <width>220</width>
+            <height>41</height>
            </rect>
           </property>
           <property name="horizontalScrollBarPolicy">
@@ -1424,14 +1424,14 @@
          <widget class="QLabel" name="label_22">
           <property name="geometry">
            <rect>
-            <x>130</x>
-            <y>360</y>
-            <width>101</width>
-            <height>31</height>
+            <x>20</x>
+            <y>340</y>
+            <width>231</width>
+            <height>21</height>
            </rect>
           </property>
           <property name="text">
-           <string>Orbit Response Matrix Path</string>
+           <string>Orbit Response Matrix Path:</string>
           </property>
           <property name="wordWrap">
            <bool>true</bool>
@@ -1475,10 +1475,10 @@
          <widget class="QTextEdit" name="config_corrector_txt_path">
           <property name="geometry">
            <rect>
-            <x>10</x>
+            <x>20</x>
             <y>420</y>
-            <width>111</width>
-            <height>61</height>
+            <width>220</width>
+            <height>41</height>
            </rect>
           </property>
           <property name="horizontalScrollBarPolicy">
@@ -1491,14 +1491,14 @@
          <widget class="QLabel" name="label_24">
           <property name="geometry">
            <rect>
-            <x>140</x>
-            <y>430</y>
-            <width>101</width>
-            <height>41</height>
+            <x>20</x>
+            <y>400</y>
+            <width>231</width>
+            <height>21</height>
            </rect>
           </property>
           <property name="text">
-           <string>Correctors .txt Path</string>
+           <string>Correctors.txt Path:</string>
           </property>
           <property name="wordWrap">
            <bool>true</bool>
