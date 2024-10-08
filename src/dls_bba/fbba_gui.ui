@@ -1280,7 +1280,7 @@
            </rect>
           </property>
           <property name="text">
-           <string>Pytac Units</string>
+           <string>Units Type</string>
           </property>
          </widget>
          <widget class="QComboBox" name="config_datasource">
@@ -1316,20 +1316,20 @@
            </rect>
           </property>
           <property name="text">
-           <string>Cothread Timeout</string>
+           <string>EPICS Timeout [s]</string>
           </property>
          </widget>
          <widget class="QCheckBox" name="config_ccs_wait">
           <property name="geometry">
            <rect>
-            <x>70</x>
+            <x>20</x>
             <y>200</y>
-            <width>121</width>
+            <width>231</width>
             <height>25</height>
            </rect>
           </property>
           <property name="text">
-           <string>Cothread Wait</string>
+           <string>Wait for setpoint confirmation</string>
           </property>
          </widget>
          <widget class="QDoubleSpinBox" name="config_ccs_timeout">
