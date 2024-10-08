@@ -578,6 +578,7 @@ class MainWindow(QMainWindow):
             "SOFB_RUN_TIME": self.config_sofb_run_time.value(),
             "MIN_SLOPE_FRACTION": self.config_sbba_min_frac.value(),
             "CENTER_OUTLIER_FACTOR": self.config_sbba_stdev.value(),
+            "OUTLIER_FACTOR": self.config_sbba_stdev.value(),
             "DECIMATED": self.config_use_decimation.isChecked(),
             "X_CYCLES": self.config_x_cycles.value(),
             "X_FREQUENCY": self.config_x_freq.value(),
@@ -621,6 +622,7 @@ class MainWindow(QMainWindow):
         self.config_sofb_run_time.setValue(config["SOFB_RUN_TIME"])
         self.config_sbba_min_frac.setValue(config["MIN_SLOPE_FRACTION"])
         self.config_sbba_stdev.setValue(config["CENTER_OUTLIER_FACTOR"])
+        self.config_sbba_stdev.setValue(config["OUTLIER_FACTOR"])
         self.config_use_decimation.setChecked(config["DECIMATED"])
         self.config_x_cycles.setValue(config["X_CYCLES"])
         self.config_x_freq.setValue(config["X_FREQUENCY"])
