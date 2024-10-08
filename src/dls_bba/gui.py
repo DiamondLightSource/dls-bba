@@ -350,6 +350,8 @@ class MainWindow(QMainWindow):
         self.button_apply_recent.clicked.connect(self.apply_recent)
 
         # Configuration options
+        self.config_use_feedbacks.clicked.connect(self.use_slow_feedbacks)
+        self.config_use_fofb.clicked.connect(self.use_fofb)
         self.config_ringmode.addItems(self.get_ringmode_options())
         self.config_load_apply.clicked.connect(self.load_config_file)
         self.button_golden.clicked.connect(self.reapply_golden_orbits)
@@ -480,6 +482,15 @@ class MainWindow(QMainWindow):
     def reset_iocs(self) -> None:
         """Reset all Corrector IOCS."""
         cancel_all_oscillations(self.machine.config)
+
+    def use_slow_feedbacks(self) -> None:
+        """Maintain valid configuration between both feedback buttons."""
+        if self.config_use_feedbacks.isChecked:
+            self.config_use_fofb.setChecked(False)
+
+    def use_fofb(self) -> None:
+        """Maintain valid configuration between both feedback buttons."""
+        self.config_use_feedbacks.setChecked(True)
 
     def plot_recent(self) -> None:
         """Plot the recent data."""
