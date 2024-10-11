@@ -766,6 +766,7 @@ class MainWindow(QMainWindow):
         self.psps.setEnabled(True)
         self.lock_unlock_pv.setText("Select")
         self.display_on_screen("Please select a mode", True)
+        self.reset_progressbar()
         # Set the list to full previously selected list.
         self.pv_selection.clear()
         self.pv_selection.addItems(self.last_list)
