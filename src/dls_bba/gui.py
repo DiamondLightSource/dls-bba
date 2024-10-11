@@ -564,7 +564,7 @@ class MainWindow(QMainWindow):
         Returns:
             A dictionary of the new config.
         """
-        dct = {
+        config_override_dict = {
             "SAVE_LOCATION": self.display_save_loc.toPlainText(),
             "USE_FEEDBACKS": self.config_use_feedbacks.isChecked(),
             "FOFB_FEEDBACKS": self.config_use_fofb.isChecked(),
@@ -598,10 +598,10 @@ class MainWindow(QMainWindow):
             "ORBIT_RESPONSE_MATRIX_PATH": self.config_orm_path.toPlainText(),
             "CORRECTORS_TXT_PATH": self.config_corrector_txt_path.toPlainText(),
         }
-        self.machine.update_config(dct=dct)
+        self.machine.update_config(config_override_dict=config_override_dict)
         self.show_config()
         cothread.Yield()
-        return dct
+        return config_override_dict
 
     def show_config(self) -> None:
         """Load the config from the config object to the GUI."""
