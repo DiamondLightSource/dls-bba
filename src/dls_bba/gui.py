@@ -97,7 +97,10 @@ class Ticker:
             if action == "run":
                 fraction = worker.work()
                 self.__progress(fraction)
-
+            elif action == "stop":
+                self.__set_state("Complete")
+                worker.forced_finish()
+                self.__set_state("Idle")
             elif action == "pause":
                 worker.pause()
                 self.__set_state("Paused")
@@ -366,6 +369,7 @@ class MainWindow(QMainWindow):
         self.update_config()
         self.button_start.setEnabled(False)
         self.button_pause.setEnabled(True)
+        self.button_pause.setText("Pause")
         self.button_stop.setEnabled(True)
         self.lock_unlock_pv.setEnabled(False)
         self.ticker.start_ticker(self.create_worker())
@@ -380,12 +384,14 @@ class MainWindow(QMainWindow):
         elif self.ticker.state == "Paused":
             self.button_pause.setText("Pause")
 
-    def stop_ticker(self) -> None:
+    def stop_ticker(self, manual_stop=None) -> None:
         """Stop Ticker."""
-        log.info("GUI Stop Pressed")
+        log.info(f"ms {manual_stop}")
+        if manual_stop:
+            log.info("GUI Stop Pressed")
         self.ticker.stop_ticker()
-        self.button_start.setEnabled(True)
         self.button_pause.setEnabled(False)
+        self.button_pause.setText("Pause")
         self.button_stop.setEnabled(False)
         self.lock_unlock_pv.setEnabled(True)
 
@@ -439,7 +445,7 @@ class MainWindow(QMainWindow):
         log.debug(f"Ticker state: {old_state} => {new_state}")
 
         if old_state == "Complete" and new_state == "Idle":
-            self.stop_ticker()
+            self.stop_ticker(False)
 
     def progress(self, fraction_left: float) -> None:
         """Update the progress bar.
