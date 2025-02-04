@@ -368,7 +368,7 @@ class MainWindow(QMainWindow):
         self.button_pause.setEnabled(True)
         self.button_stop.setEnabled(True)
         self.lock_unlock_pv.setEnabled(False)
-        self.ticker.start_ticker(self.get_worker())
+        self.ticker.start_ticker(self.create_worker())
 
     def pause_resume_ticker(self) -> None:
         """Pause / Resume Ticker."""
@@ -455,14 +455,13 @@ class MainWindow(QMainWindow):
         """Reset the progressbar to 0."""
         self.progressBar.setValue(0)
 
-    def get_worker(self) -> Worker:
-        """Get the worker to perform BBA.
+    def create_worker(self) -> Worker:
+        """Create the worker to perform BBA.
 
         Returns:
             An initialised Worker.
         """
         method = self.method_dropdown.currentText()
-        folder_path = self.machine.config["SAVE_LOCATION"]
         if isinstance(self.selected, str):
             self.selected = [self.selected]
         assert isinstance(self.selected, list) and isinstance(self.selected[0], str)
@@ -470,7 +469,8 @@ class MainWindow(QMainWindow):
             method,
             self.selected,
             self.question,
-            folder_path,
+            machine=self.machine,
+            folder_path=self.machine.config["SAVE_LOCATION"],
             logger=self.logger,
             additional_options=self.update_config(),
         )

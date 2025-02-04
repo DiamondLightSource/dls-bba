@@ -201,10 +201,9 @@ def main() -> None:
             args.algorithm,
             elements,
             ask_question,
-            args.filepath,
-            None,
-            args.config_files,
-            args.additional_config,
+            folder_path=args.filepath,
+            extra_config_files=args.config_files,
+            additional_options=args.additional_config,
         )
         run_worker(worker)
 
