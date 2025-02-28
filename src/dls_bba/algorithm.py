@@ -173,10 +173,10 @@ class Algorithm(ABC):
         filename = os.path.join(save_location, "results.txt")
         with open(filename, "w") as writer:
             for key, value in offsets_dict.items():
-                line = f"{key}  : Absolute change: {value.diff_value} +/- {value.diff_error} [mm]"
+                line = f"{key} Absolute change: {value.diff_value} +/- {value.diff_error} [mm]"
                 log.info(line)
                 writer.write(line)
-                line = f"{key}  : Old: {value.old_value} [mm], New: {value.new_value} [mm]\n"
+                line = f"{key} Old: {value.old_value} [mm], New: {value.new_value} [mm]\n"
                 log.info(line)
                 writer.write(line)
             writer.close()
