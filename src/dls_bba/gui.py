@@ -315,7 +315,7 @@ class MainWindow(QMainWindow):
         """Setup the mainwindow and the button interactions."""
         # Methods
         self.method_dropdown.addItems(ALGORITHMS.keys())
-        self.method_dropdown.setCurrentText(list(ALGORITHMS.keys())[2])
+        self.method_dropdown.setCurrentText(list(ALGORITHMS.keys())[0])
         # Mode
         self.display_on_screen("Please select a mode.", clear=True)
 

@@ -1,5 +1,5 @@
 {
-    "SAVE_LOCATION": "/dls/physics/owr68555/25July2023",
+    "SAVE_LOCATION": "/scratch/BBA_logs",
     "USE_FEEDBACKS": false,
     "FOFB_FEEDBACKS": false,
     "CORRECTOR_KICK_RADIANS": 1e-5,
