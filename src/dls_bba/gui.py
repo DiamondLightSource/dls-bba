@@ -365,8 +365,6 @@ class MainWindow(QMainWindow):
         if not self.selected:
             self.display_on_screen("No elements selected.")
             return
-
-        self.update_config()
         self.button_start.setEnabled(False)
         self.button_pause.setEnabled(True)
         self.button_pause.setText("Pause")
@@ -478,7 +476,7 @@ class MainWindow(QMainWindow):
             machine=self.machine,
             folder_path=self.machine.config["SAVE_LOCATION"],
             logger=self.logger,
-            additional_options=self.update_config(),
+            additional_options=self.get_config_from_gui(),
         )
 
     def reset_iocs(self) -> None:
@@ -560,8 +558,8 @@ class MainWindow(QMainWindow):
         pv_ringmodes = set(caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums)
         return file_ringmodes & pv_ringmodes
 
-    def update_config(self) -> Dict[str, Any]:
-        """Update the machine config with the current config in the GUI.
+    def get_config_from_gui(self) -> Dict[str, Any]:
+        """Get the current config in the GUI.
 
         Returns:
             A dictionary of the new config.
@@ -600,10 +598,15 @@ class MainWindow(QMainWindow):
             "ORBIT_RESPONSE_MATRIX_PATH": self.config_orm_path.toPlainText(),
             "CORRECTORS_TXT_PATH": self.config_corrector_txt_path.toPlainText(),
         }
+        return config_override_dict
+
+    def update_config(self) -> None:
+        """Update the machine config with the current config in the GUI.
+        """
+        config_override_dict = self.get_config_from_gui()
         self.machine.update_config(config_override_dict=config_override_dict)
         self.show_config()
         cothread.Yield()
-        return config_override_dict
 
     def show_config(self) -> None:
         """Load the config from the config object to the GUI."""
