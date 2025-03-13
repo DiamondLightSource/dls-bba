@@ -366,9 +366,9 @@ class MainWindow(QMainWindow):
             self.display_on_screen("No elements selected.")
             return
         self.button_start.setEnabled(False)
-        self.button_pause.setEnabled(True)
+        #self.button_pause.setEnabled(True)
         self.button_pause.setText("Pause")
-        self.button_stop.setEnabled(True)
+        #self.button_stop.setEnabled(True)
         self.lock_unlock_pv.setEnabled(False)
         self.ticker.start_ticker(self.create_worker())
 
