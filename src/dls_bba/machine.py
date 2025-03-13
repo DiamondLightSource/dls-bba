@@ -629,7 +629,8 @@ class Machine:
         quadrupole.set_value("b1", value)
         if sleep:
             # The 2 is a magic number from the old BBA setup.
-            duration = abs(start_current - value) / QUAD_SLEW_RATE / 2
+            #duration = abs(start_current - value) / QUAD_SLEW_RATE / 2
+            duration = 0.88
             log.debug(f"Sleeping for {duration:.2f}s")
             Sleep(duration)
         log.debug(f"Quadrupole set value: {value}")
