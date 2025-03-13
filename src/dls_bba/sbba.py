@@ -66,8 +66,8 @@ class SlowBBA(Algorithm):
                 # FYI correctors are significantly less prone to hysteresis effects.
                 self._machine.set_quad_setpoint(quadrupole, quad_start, True)
                 # Give Cell 2 DDBA magnets more time to ramp.
-                if "SR02" in quad_name:
-                    Sleep(1)
+                #if "SR02" in quad_name:
+                #    Sleep(1)
                 for movement, quad_movement in [
                     ("High", quad_high),
                     ("Low", quad_low),
