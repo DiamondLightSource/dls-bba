@@ -29,7 +29,7 @@ class Worker:
             method: The BBA method.
             elements: The elements to perform a BBA on.
             question: The question function dependant on if using the GUI or CLI.
-            machine: A pre-existing machine instance.
+            machine: A machine instance.
             folder_path: The save location folder path.
             logger: The GUI logger handler.
             extra_config_files: List of extra configuration files to load.

@@ -361,6 +361,7 @@ class MainWindow(QMainWindow):
 
     def start_ticker(self) -> None:
         """Start Ticker"""
+        # TODO: make pause & stop buttons work so we can uncomment them
         log.info("GUI Start Pressed")
         if not self.selected:
             self.display_on_screen("No elements selected.")
@@ -384,7 +385,6 @@ class MainWindow(QMainWindow):
 
     def stop_ticker(self, manual_stop=None) -> None:
         """Stop Ticker."""
-        log.info(f"ms {manual_stop}")
         if manual_stop:
             log.info("GUI Stop Pressed")
         self.ticker.stop_ticker()
@@ -550,21 +550,23 @@ class MainWindow(QMainWindow):
 
     def get_ringmode_options(self) -> List[str]:
         """Get the current ringmode options from the machine.
+        Note: Because we interface with the machine both directly and through
+        pytac, we can only use ringmodes that are supported by both.
 
         Returns:
             A list of the current ringmodes.
         """
-        file_ringmodes = available_ringmodes()
+        pytac_ringmodes = available_ringmodes()
         pv_ringmodes = set(caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums)
-        return file_ringmodes & pv_ringmodes
+        return pytac_ringmodes & pv_ringmodes
 
     def get_config_from_gui(self) -> Dict[str, Any]:
-        """Get the current config in the GUI.
+        """Get the current config selected in the GUI.
 
         Returns:
             A dictionary of the new config.
         """
-        config_override_dict = {
+        config_dict = {
             "SAVE_LOCATION": self.display_save_loc.toPlainText(),
             "USE_FEEDBACKS": self.config_use_feedbacks.isChecked(),
             "FOFB_FEEDBACKS": self.config_use_fofb.isChecked(),
@@ -598,13 +600,13 @@ class MainWindow(QMainWindow):
             "ORBIT_RESPONSE_MATRIX_PATH": self.config_orm_path.toPlainText(),
             "CORRECTORS_TXT_PATH": self.config_corrector_txt_path.toPlainText(),
         }
-        return config_override_dict
+        return config_dict
 
     def update_config(self) -> None:
         """Update the machine config with the current config in the GUI.
         """
-        config_override_dict = self.get_config_from_gui()
-        self.machine.update_config(config_override_dict=config_override_dict)
+        config_dict = self.get_config_from_gui()
+        self.machine.update_config(config_dict=config_dict)
         self.show_config()
         cothread.Yield()
 
