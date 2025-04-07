@@ -628,8 +628,7 @@ class Machine:
         start_current = Machine.get_quad_setpoint(quadrupole)
         quadrupole.set_value("b1", value)
         if sleep:
-            # The 2 is a magic number from the old BBA setup.
-            #duration = abs(start_current - value) / QUAD_SLEW_RATE / 2
+            # TODO: revisit using a dynamic formula with Rick
             duration = 0.88
             log.debug(f"Sleeping for {duration:.2f}s")
             Sleep(duration)
