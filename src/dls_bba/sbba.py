@@ -179,7 +179,7 @@ class SlowBBA(Algorithm):
                 bpm_indices = np.delete(bpm_indices, disabled)
                 if optimal_bpm not in bpm_indices:
                     raise IndexError(
-                        "Please specify a different optimal BPM, currently specified "
+                        f"Please specify a different optimal BPM, currently specified "
                         f"BPM ({optimal_bpm}) is disabled."
                     )
                 log.debug(f"Data points remaining after cleaning: {len(sigma_bpm)}")
@@ -187,7 +187,7 @@ class SlowBBA(Algorithm):
                 # 5 point linear least squares fit.
                 bpm_number = list(bpm_indices).index(metadata["bpm_index"])
                 oscillation_midpoint = (high[bpm_number, :] + low[bpm_number, :]) / 2
-                # NOTE: The code immediately below is taken from quadplot.m with minimal
+                # NOTE: The next four lines were taken from quadplot.m with minimal
                 # modification, other than porting it to Python.
                 X = np.stack((np.ones(5), oscillation_midpoint)).T
                 invXX = np.linalg.inv(X.T.dot(X))
@@ -202,7 +202,7 @@ class SlowBBA(Algorithm):
                 # BPM's standard deviation (currently hardcoded to 1e-4).
                 y = np.zeros(shape=(b.shape[0], 5))
                 large_fit_diff = np.zeros(b.shape[0], dtype=bool)
-                # NOTE: The code immediately below is taken from quadplot.m with minimal
+                # NOTE: The next seven lines were taken from quadplot.m with minimal
                 # modification, other than porting it to Python.
                 for i in range(b.shape[0]):
                     y[i, :] = (b[i, 1] * oscillation_midpoint) + b[i, 0]  # y = mx + c
@@ -264,7 +264,7 @@ class SlowBBA(Algorithm):
                     f"mean: {results[key][0]}, standard deviation: {results[key][1]}"
                 )
 
-                # Plot good data only.
+                # Plot data after cleaning.
                 plotting[key] = {"x": oscillation_midpoint, "y": oscillation_size.T}
 
         offsets = self.create_offsets_dict(results, metadata)
