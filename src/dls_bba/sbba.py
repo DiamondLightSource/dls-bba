@@ -1,4 +1,5 @@
 import logging as log
+from math import floor
 from typing import Any, Dict, List
 
 import numpy as np
@@ -222,8 +223,7 @@ class SlowBBA(Algorithm):
                 log.debug(f"Data points remaining after cleaning: {len(offsets)}")
 
                 # Remove all values with overly shallow gradients.
-                # NOTE: This misses once element if len(np.sort(gradients)) is odd.
-                second_half = np.array_split(np.sort(gradients), 2)[1]
+                second_half = np.sort(gradients)[floor(len(gradients) / 2):]
                 if len(second_half) > 5:
                     min_gradient = second_half[-5]
                 else:
