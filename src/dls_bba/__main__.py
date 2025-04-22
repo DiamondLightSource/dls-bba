@@ -57,6 +57,7 @@ def parse_arguments() -> Namespace:
         default=None,
         type=str,
         choices=ALGORITHMS.keys(),
+        required=True,
         help="the algorithm to use",
     )
 
