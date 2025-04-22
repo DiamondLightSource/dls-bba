@@ -188,12 +188,10 @@ class SlowBBA(Algorithm):
                 # 5 point linear least squares fit.
                 bpm_number = list(bpm_indices).index(metadata["bpm_index"])
                 oscillation_midpoint = (high[bpm_number, :] + low[bpm_number, :]) / 2
-                # NOTE: The next four lines were taken from quadplot.m with minimal
-                # modification, other than porting it to Python.
-                X = np.stack((np.ones(5), oscillation_midpoint)).T
-                invXX = np.linalg.inv(X.T.dot(X))
-                invXX_X = X.dot(invXX).T
-                b = invXX_X.dot(oscillation_size.T).T
+                X = np.stack((np.ones(5), oscillation_midpoint), axis=1)
+                # Matrix least squares b = OS.X.(Xᵀ.X)⁻¹
+                invXtX = np.linalg.inv(X.T.dot(X))
+                b = oscillation_size.dot(X.dot(invXtX))
 
                 # Get absolute gradients and x intercepts of the lines.
                 gradients = abs(b[:, 1])
@@ -203,8 +201,6 @@ class SlowBBA(Algorithm):
                 # BPM's standard deviation (currently hardcoded to 1e-4).
                 y = np.zeros(shape=(b.shape[0], 5))
                 large_fit_diff = np.zeros(b.shape[0], dtype=bool)
-                # NOTE: The next seven lines were taken from quadplot.m with minimal
-                # modification, other than porting it to Python.
                 for i in range(b.shape[0]):
                     y[i, :] = (b[i, 1] * oscillation_midpoint) + b[i, 0]  # y = mx + c
                     if (
