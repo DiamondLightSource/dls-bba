@@ -44,7 +44,7 @@ from dls_bba.common import (  # noqa: E402
 )
 from dls_bba.excite import cancel_all_oscillations  # noqa E402
 from dls_bba.isotime import get_isotime  # noqa: E402
-from dls_bba.machine import DATASOURCE, ORIGIN_SUFFIXES, UNITS, Machine  # noqa: E402
+from dls_bba.machine import ORIGIN_SUFFIXES, Machine  # noqa: E402
 from dls_bba.plotting import bba_offsets_folder, bowtie_plot  # noqa: E402
 from dls_bba.worker import Worker  # noqa: E402
 
@@ -236,8 +236,6 @@ class MainWindow(QMainWindow):
 
     # Advanced Options
     config_ringmode: QComboBox
-    config_units: QComboBox
-    config_datasource: QComboBox
     config_ccs_timeout: QDoubleSpinBox
     config_ccs_wait: QCheckBox
     config_fofb_executable_path: QTextEdit
@@ -329,11 +327,6 @@ class MainWindow(QMainWindow):
         self.lock_unlock_pv.clicked.connect(self.lock_unlock_selection)
 
         # File / Folder selection, plotting and applying.
-        self.config_units.addItems(["Engineering", "Physics"])
-        self.config_units.setCurrentText("Engineering")
-        self.config_datasource.addItems(DATASOURCE.keys())
-        self.config_datasource.setCurrentText(list(DATASOURCE.keys())[0])
-
         self.button_save_loc.clicked.connect(self.select_save_location_folder)
         self.display_save_loc.setPlainText(self.machine.config["SAVE_LOCATION"])
         self.button_bba_folder.clicked.connect(self.select_bba_folder)
@@ -592,8 +585,6 @@ class MainWindow(QMainWindow):
             "SAVE_PLOTS": self.save_plots.isChecked(),
             "RESELECTION_LIMIT": self.config_reselection.value(),
             "RINGMODE": self.config_ringmode.currentText(),
-            "UNITS": self.config_units.currentText().lower(),
-            "DATASOURCE": self.config_datasource.currentText(),
             "COTHREAD_CONTROL_SYSTEM_TIMEOUT": self.config_ccs_timeout.value(),
             "COTHREAD_CONTROL_SYSTEM_WAIT_FLAG": self.config_ccs_wait.isChecked(),
             "FOFB_EXECUTABLE_PATH": self.config_fofb_executable_path.toPlainText(),
@@ -642,8 +633,6 @@ class MainWindow(QMainWindow):
         self.config_reselection.setValue(config["RESELECTION_LIMIT"])
 
         self.config_ringmode.setCurrentText(config["RINGMODE"])
-        self.config_units.setCurrentText(UNITS[config["UNITS"].lower()].capitalize())
-        self.config_datasource.setCurrentText(config["DATASOURCE"])
         self.config_ccs_timeout.setValue(config["COTHREAD_CONTROL_SYSTEM_TIMEOUT"])
         self.config_ccs_wait.setChecked(config["COTHREAD_CONTROL_SYSTEM_WAIT_FLAG"])
         self.config_fofb_executable_path.setText(config["FOFB_EXECUTABLE_PATH"])

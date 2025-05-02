@@ -37,15 +37,6 @@ ORIGIN_SUFFIXES = {
     "BCD": ":CF:BCD_{axis}_S",
     "GOLDEN": ":CF:GOLDEN_{axis}_S",
 }
-# Units for the machine.
-UNITS = {
-    "engineering": pytac.ENG,
-    "physics": pytac.PHYS,
-    "eng": pytac.ENG,
-    "phys": pytac.PHYS,
-}
-# Data sources for the machine.
-DATASOURCE = {"LIVE": pytac.LIVE}
 # Slew rate for quadrupoles in amps per second.
 QUAD_SLEW_RATE = 0.5
 # Conversion factor from mm to microns.
@@ -142,12 +133,13 @@ class Machine:
     def _setup_pytac_lattice(self) -> None:
         """Load the pytac lattice with a specially constructed control system.
 
+        Note: We keep the pytac default units of 'engineering' and default
+        data source of 'live'.
+
         Raises:
             InvalidRingmodeError: If the ringmode does not exist in pytac.
         """
         ringmode = self.config["RINGMODE"]
-        units = self.config["UNITS"].lower()
-        datasource = self.config["DATASOURCE"]
         ccs_timeout = self.config["COTHREAD_CONTROL_SYSTEM_TIMEOUT"]
         ccs_wait = self.config["COTHREAD_CONTROL_SYSTEM_WAIT_FLAG"]
 
@@ -158,12 +150,6 @@ class Machine:
             msg = f"Ringmode: {ringmode} does not exist in pytac."
             log.critical(msg)
             raise InvalidRingmodeError(msg, e)
-
-        self._lattice.set_default_units(UNITS[units])
-        log.info(f"pytac units: {self._lattice.get_default_units()}")
-
-        self._lattice.set_default_data_source(DATASOURCE[datasource])
-        log.info(f"pytac datasource: {self._lattice.get_default_data_source()}")
 
     def _load_element_and_name_lists(self) -> None:
         """Load the elements and names lists."""
@@ -451,14 +437,8 @@ class Machine:
             Corrector kick value.
         """
         radian_kick = self.config["CORRECTOR_KICK_RADIANS"]
-
-        if UNITS[self.config["UNITS"].lower()] == pytac.ENG:
-            value = component.corrector.get_unitconv(component.kick).convert(
-                radian_kick, pytac.PHYS, pytac.ENG
-            )
-        else:
-            value = radian_kick
-        return float(value)
+        unit_conv = component.corrector.get_unitconv(component.kick)
+        return unit_conv.convert(radian_kick, pytac.PHYS, pytac.ENG)
 
     def get_beam_current(self) -> float:
         """Return the beam current.
