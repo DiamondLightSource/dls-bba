@@ -156,7 +156,7 @@ class Ticker:
         elif self.__state == "Paused":
             self.resume_ticker()
         else:
-            log.error(f"Don't know what to do with state: {self.__state}")
+            log.error(f"Unable to toggle ticker in state: {self.__state}")
 
     @property
     def state(self) -> str:
