@@ -625,10 +625,10 @@ class Machine:
             value: Value to set the quadrupole to.
             sleep: Whether to sleep after setting the quadrupole.
         """
-        start_current = Machine.get_quad_setpoint(quadrupole)
         quadrupole.set_value("b1", value)
         if sleep:
             # TODO: revisit using a dynamic formula with Rick
+            # Old formula: duration = (starting current - value) / QUAD_SLEW_RATE / 2
             duration = 0.88
             log.debug(f"Sleeping for {duration:.2f}s")
             Sleep(duration)

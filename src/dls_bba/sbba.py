@@ -170,9 +170,9 @@ class SlowBBA(Algorithm):
                 # quadplot.m, though removing them is probably the right thing to do.
                 # NOTE: If we do choose to re-enable this then it should probably be
                 # done during data collection like enabled_bpms rather than here.
-                #fofb_disabled_bpms = np.array(self._machine.fofb_disabled[axis], dtype=bool)
-                #log.debug(f"Indices of fofb disabled BPMs: {np.flatnonzero(fofb_disabled_bpms)}")
-                disabled = disabled_bpms #| fofb_disabled_bpms
+                # fofb_disabled_bpms = np.array(self._machine.fofb_disabled[axis], dtype=bool)
+                # log.debug(f"Indices of fofb disabled BPMs: {np.flatnonzero(fofb_disabled_bpms)}")
+                disabled = disabled_bpms  # | fofb_disabled_bpms
                 high = np.delete(high, disabled, axis=0)
                 low = np.delete(low, disabled, axis=0)
                 oscillation_size = np.delete(oscillation_size, disabled, axis=0)
@@ -219,7 +219,7 @@ class SlowBBA(Algorithm):
                 log.debug(f"Data points remaining after cleaning: {len(offsets)}")
 
                 # Remove all values with overly shallow gradients.
-                second_half = np.sort(gradients)[floor(len(gradients) / 2):]
+                second_half = np.sort(gradients)[floor(len(gradients) / 2) :]
                 if len(second_half) > 5:
                     min_gradient = second_half[-5]
                 else:
