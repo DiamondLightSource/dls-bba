@@ -254,9 +254,7 @@ class Machine:
         """
         q2b_names: Dict[str, str] = {}
 
-        for quad, quad_name, quad_mid in zip(
-            self.quads, self.quads_names, self._quads_mid
-        ):
+        for quad_name, quad_mid in zip(self.quads_names, self._quads_mid):
             if quad_name not in Q2B_special_cases:
                 closest_bpm_index, _ = min(
                     enumerate(self._bpms_s), key=lambda x: abs(x[1] - quad_mid)

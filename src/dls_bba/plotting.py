@@ -124,7 +124,6 @@ def bowtie_plot(filepath: str, save: bool = False) -> plt.Figure:
     results_object = Results.from_file(filepath)
     bpm_name = results_object.metadata["bpm_name"]
     keys = results_object.results.keys()
-    keys = keys
     quad_names = []
     for key in keys:
         quad_name = key.split("__")[0]

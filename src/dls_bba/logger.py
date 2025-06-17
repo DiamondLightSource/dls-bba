@@ -51,7 +51,7 @@ def get_new_logger(folder_path: str, gui_handler: Optional[log.Handler] = None) 
         logger.addHandler(console_handler)
 
         if gui_handler is not None:
-            sys.stderr = StreamToLogger(logger, log.CRITICAL)  # type: ignore
+            sys.stderr = StreamToLogger(logger, log.CRITICAL)
             gui_handler.setLevel(log.INFO)
             gui_handler.setFormatter(log.Formatter(GUI_LOG_FORMAT))
             logger.addHandler(gui_handler)

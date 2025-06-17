@@ -261,8 +261,7 @@ class MainWindow(QMainWindow):
         """Setup the GUI."""
         super().__init__(*args, **kwargs)
         ui_file = [
-            Path(files("dls_bba").joinpath(resource))  # type: ignore
-            for resource in UI_FILENAME
+            Path(files("dls_bba").joinpath(resource)) for resource in UI_FILENAME
         ][0]
         uic.loadUi(ui_file, self)
 
@@ -452,7 +451,7 @@ class MainWindow(QMainWindow):
         """
         percent_completed = (1 - fraction_left) * 100
         log.info(f"Percent Completed: {percent_completed}%")
-        self.progressBar.setValue(round(percent_completed))  # type: ignore
+        self.progressBar.setValue(round(percent_completed))
 
     def reset_progressbar(self) -> None:
         """Reset the progressbar to 0."""
@@ -785,7 +784,7 @@ class MainWindow(QMainWindow):
         Returns:
             True if elements are selected, False if nothing selected.
         """
-        selected = self.pv_selection.selectedItems()  # type: ignore
+        selected = self.pv_selection.selectedItems()
         assert isinstance(self.selection_strings, list)
         if len(selected) == 0:
             msg = "Please select a mode."
