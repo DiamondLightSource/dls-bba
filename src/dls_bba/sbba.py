@@ -189,9 +189,9 @@ class SlowBBA(Algorithm):
                 bpm_number = list(bpm_indices).index(metadata["bpm_index"])
                 oscillation_midpoint = (high[bpm_number, :] + low[bpm_number, :]) / 2
                 X = np.stack((np.ones(5), oscillation_midpoint), axis=1)
-                # Matrix least squares b = OS.X.(Xᵀ.X)⁻¹
-                invXtX = np.linalg.inv(X.T.dot(X))
-                b = oscillation_size.dot(X.dot(invXtX))
+                # Matrix least squares b = (Xᵀ.X)⁻¹.Xᵀ.OS
+                inverse_Xtranspose_X = np.linalg.inv(X.T.dot(X))
+                b = inverse_Xtranspose_X.dot(X.T).dot(oscillation_size.T).T
 
                 # Get absolute gradients and x intercepts of the lines.
                 gradients = abs(b[:, 1])
