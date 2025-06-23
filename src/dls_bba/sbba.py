@@ -261,7 +261,7 @@ class SlowBBA(Algorithm):
                 )
 
                 # Plot data after cleaning.
-                plotting[key] = {"x": oscillation_midpoint, "y": oscillation_size.T}
+                plotting[key] = {"x": oscillation_midpoint, "y": oscillation_size}
 
         offsets = self.create_offsets_dict(results, metadata)
 
