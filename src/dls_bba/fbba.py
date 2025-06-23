@@ -66,7 +66,7 @@ class FastBBA(Algorithm):
                 corr_kick = self._machine.corrector_kick(components)
                 corr_sp = self._machine.get_corrector_setpoint(components)
 
-                key = f"{quad_name}_{components.axis}"
+                key = f"{quad_name.replace('-', '_')}__{components.axis}"
                 metadata[key] = {
                     "components": components.as_dict(),
                     "quad_start_high_low_sp": [
@@ -128,9 +128,9 @@ class FastBBA(Algorithm):
                     fa_data, components.axis, exc_data, decimated
                 )
 
-                key = f"{quad_name}_{components.axis}_High"
+                key = f"{quad_name.replace('-', '_')}__{components.axis}_High"
                 rawdata[key] = selected_data[0]
-                key = f"{quad_name}_{components.axis}_Low"
+                key = f"{quad_name.replace('-', '_')}__{components.axis}_Low"
                 rawdata[key] = selected_data[1]
 
                 log.info("Reset Quadrupole Setpoint")
@@ -265,7 +265,7 @@ class FastBBA(Algorithm):
 
         quad_names = []
         for key in data.keys():
-            quad_name = key.split("_")[0]
+            quad_name = key.split("__")[0]
             if quad_name not in quad_names:
                 quad_names.append(quad_name)
 
@@ -273,8 +273,8 @@ class FastBBA(Algorithm):
             for axis in ["x", "y"]:
                 frequency_key = f"{axis.upper()}_FREQUENCY"
                 frequency = metadata[frequency_key]
-                high_key = f"{quad_name}_{axis}_High"
-                low_key = f"{quad_name}_{axis}_Low"
+                high_key = f"{quad_name}__{axis}_High"
+                low_key = f"{quad_name}__{axis}_Low"
 
                 # Remove bad BPMs
                 q_low = data[low_key][:, enabled_bpms]
@@ -295,7 +295,7 @@ class FastBBA(Algorithm):
                 )
                 p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
 
-                key = f"{quad_name}_{axis}"
+                key = f"{quad_name}__{axis}"
                 offset = np.mean(p[:, 1]) / NM_TO_MM_UNIT_CONV
                 error = np.std(p[:, 1]) / NM_TO_MM_UNIT_CONV
                 results[key] = [offset, error]
