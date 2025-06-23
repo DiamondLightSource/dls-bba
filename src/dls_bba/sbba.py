@@ -154,14 +154,14 @@ class SlowBBA(Algorithm):
                 # Define variables that get changed for each plane.
                 sigma_bpm = metadata["sigma_bpm"]
                 bpm_indices = np.array(range(len(enabled_bpms)))
-                high = np.zeros(shape=(len(enabled_bpms), 5))
-                low = np.zeros(shape=(len(enabled_bpms), 5))
-                oscillation_size = np.zeros(shape=(len(enabled_bpms), 5))
+                high = np.zeros(shape=(5, len(enabled_bpms)))
+                low = np.zeros(shape=(5, len(enabled_bpms)))
+                oscillation_size = np.zeros(shape=(5, len(enabled_bpms)))
                 # Extract data into our variables.
                 for i in range(5):
-                    high[:, i] = data[f"{quad_name}__{axis}_High_{i + 1}"]
-                    low[:, i] = data[f"{quad_name}__{axis}_Low_{i + 1}"]
-                    oscillation_size[:, i] = np.subtract(low[:, i], high[:, i])
+                    high[i, :] = data[f"{quad_name}__{axis}_High_{i + 1}"]
+                    low[i, :] = data[f"{quad_name}__{axis}_Low_{i + 1}"]
+                    oscillation_size[i, :] = np.subtract(low[i, :], high[i, :])
 
                 # Get rid of disabled bpms.
                 disabled_bpms = np.logical_not(enabled_bpms)
@@ -173,9 +173,9 @@ class SlowBBA(Algorithm):
                 # fofb_disabled_bpms = np.array(self._machine.fofb_disabled[axis], dtype=bool)
                 # log.debug(f"Indices of fofb disabled BPMs: {np.flatnonzero(fofb_disabled_bpms)}")
                 disabled = disabled_bpms  # | fofb_disabled_bpms
-                high = np.delete(high, disabled, axis=0)
-                low = np.delete(low, disabled, axis=0)
-                oscillation_size = np.delete(oscillation_size, disabled, axis=0)
+                high = np.delete(high, disabled, axis=1)
+                low = np.delete(low, disabled, axis=1)
+                oscillation_size = np.delete(oscillation_size, disabled, axis=1)
                 sigma_bpm = np.delete(sigma_bpm, disabled)
                 bpm_indices = np.delete(bpm_indices, disabled)
                 if optimal_bpm not in bpm_indices:
@@ -187,24 +187,24 @@ class SlowBBA(Algorithm):
 
                 # 5 point linear least squares fit.
                 bpm_number = list(bpm_indices).index(metadata["bpm_index"])
-                oscillation_midpoint = (high[bpm_number, :] + low[bpm_number, :]) / 2
+                oscillation_midpoint = (high[:, bpm_number] + low[:, bpm_number]) / 2
                 X = np.stack((np.ones(5), oscillation_midpoint), axis=1)
                 # Matrix least squares b = (Xᵀ.X)⁻¹.Xᵀ.OS
                 inverse_Xtranspose_X = np.linalg.inv(X.T.dot(X))
-                b = inverse_Xtranspose_X.dot(X.T).dot(oscillation_size.T).T
+                b = inverse_Xtranspose_X.dot(X.T).dot(oscillation_size)
 
                 # Get absolute gradients and x intercepts of the lines.
-                gradients = abs(b[:, 1])
-                offsets = -b[:, 0] / b[:, 1]
+                gradients = abs(b[1, :])
+                offsets = -b[0, :] / b[1, :]
 
                 # Remove all values with large difference between the fit value and that
                 # BPM's standard deviation (currently hardcoded to 1e-4).
-                y = np.zeros(shape=(b.shape[0], 5))
-                large_fit_diff = np.zeros(b.shape[0], dtype=bool)
-                for i in range(b.shape[0]):
-                    y[i, :] = (b[i, 1] * oscillation_midpoint) + b[i, 0]  # y = mx + c
+                y = np.zeros(shape=(5, b.shape[1]))
+                large_fit_diff = np.zeros(b.shape[1], dtype=bool)
+                for i in range(b.shape[1]):
+                    y[:, i] = (b[1, i] * oscillation_midpoint) + b[0, i]  # y = mx + c
                     if (
-                        max(abs(y[i, :] - oscillation_size[i, :]))
+                        max(abs(y[:, i] - oscillation_size[:, i]))
                         > outlier_factor * sigma_bpm[i]
                     ):
                         large_fit_diff[i] = True
@@ -214,7 +214,7 @@ class SlowBBA(Algorithm):
                 )
                 gradients = np.delete(gradients, large_fit_diff)
                 offsets = np.delete(offsets, large_fit_diff)
-                oscillation_size = np.delete(oscillation_size, large_fit_diff, axis=0)
+                oscillation_size = np.delete(oscillation_size, large_fit_diff, axis=1)
                 bpm_indices = np.delete(bpm_indices, large_fit_diff)
                 log.debug(f"Data points remaining after cleaning: {len(offsets)}")
 
@@ -231,7 +231,7 @@ class SlowBBA(Algorithm):
                 )
                 gradients = np.delete(gradients, bad_gradients)
                 offsets = np.delete(offsets, bad_gradients)
-                oscillation_size = np.delete(oscillation_size, bad_gradients, axis=0)
+                oscillation_size = np.delete(oscillation_size, bad_gradients, axis=1)
                 bpm_indices = np.delete(bpm_indices, bad_gradients)
                 log.debug(f"Data points remaining after cleaning: {len(offsets)}")
 
@@ -248,7 +248,7 @@ class SlowBBA(Algorithm):
                 gradients = np.delete(gradients, stdev_outside_range)
                 offsets = np.delete(offsets, stdev_outside_range)
                 oscillation_size = np.delete(
-                    oscillation_size, stdev_outside_range, axis=0
+                    oscillation_size, stdev_outside_range, axis=1
                 )
                 bpm_indices = np.delete(bpm_indices, stdev_outside_range)
                 log.debug(f"Data points remaining after cleaning: {len(offsets)}")
