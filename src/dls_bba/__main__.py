@@ -19,17 +19,17 @@ def parse_arguments() -> Namespace:
     parent_parser = ArgumentParser(description="The options for using dls-bba module")
     subparsers = parent_parser.add_subparsers(title="actions")
 
-    parent_parser.add_argument("--version", "-v", action="version", version=__version__)
+    parent_parser.add_argument("-v", "--version", action="version", version=__version__)
     parent_parser.add_argument(
-        "--config_files",
         "-c",
+        "--config_files",
         default=None,
         type=str,
         help="additional configuration .json filepaths",
     )
     parent_parser.add_argument(
-        "--additional_config",
         "-o",
+        "--additional_config",
         default=None,
         type=json.loads,
         help="additional individual configuration options (stringified dict)",
@@ -52,8 +52,8 @@ def parse_arguments() -> Namespace:
     )
     parser_run.set_defaults(command="run")
     parser_run.add_argument(
-        "--algorithm",
         "-a",
+        "--algorithm",
         default=None,
         type=str,
         choices=ALGORITHMS.keys(),
@@ -71,14 +71,14 @@ def parse_arguments() -> Namespace:
     parser_plot.set_defaults(command="plot")
     group = parser_plot.add_mutually_exclusive_group(required=True)
     group.add_argument(
-        "--quadcenter",
         "-Q",
+        "--quadcenter",
         action="store_true",
         help="plot the quadcentre for an individual BPM",
     )
     group.add_argument(
-        "--difference",
         "-d",
+        "--difference",
         action="store_true",
         help="plot the relative differences across an entire BBA run",
     )
@@ -92,33 +92,33 @@ def parse_arguments() -> Namespace:
     )
     parser_apply.set_defaults(command="apply")
     parser_apply.add_argument(
-        "--load", "-l", type=str, default=None, help="The location to load from."
+        "-l", "--load", type=str, default=None, help="The location to load from."
     )
     group = parser_apply.add_mutually_exclusive_group(required=True)
-    group.add_argument("--golden", "-g", action="store_true", help="")
-    group.add_argument("--single", "-s", action="store_true", help="")
-    group.add_argument("--multiple", "-m", action="store_true", help="")
+    group.add_argument("-g", "--golden", action="store_true", help="")
+    group.add_argument("-s", "--single", action="store_true", help="")
+    group.add_argument("-m", "--multiple", action="store_true", help="")
 
     for subparser in [parser_info, parser_run]:
         group = subparser.add_mutually_exclusive_group(required=True)
         group.add_argument(
-            "--wholemachine", "-w", action="store_true", help="run BBA on all BPMs"
+            "-w", "--wholemachine", action="store_true", help="run BBA on all BPMs"
         )
         group.add_argument(
-            "--psps",
             "-p",
+            "--psps",
             action="store_true",
             help="run BBA on all Primaries and Source Points",
         )
         group.add_argument(
-            "--cell", "-k", type=str, default=None, help="run BBA on a specified cell"
+            "-k", "--cell", type=str, default=None, help="run BBA on a specified cell"
         )
         group.add_argument(
-            "--bpm", "-b", type=int, default=None, help="run BBA on a specified BPM"
+            "-b", "--bpm", type=int, default=None, help="run BBA on a specified BPM"
         )
         group.add_argument(
-            "--quad",
             "-q",
+            "--quad",
             type=int,
             default=None,
             help="run BBA on a specified quadrupole",
@@ -126,8 +126,8 @@ def parse_arguments() -> Namespace:
 
     for subparser in [parser_run, parser_plot]:
         subparser.add_argument(
-            "--filepath",
             "-f",
+            "--filepath",
             type=str,
             default=None,
             help="the location to save files to",
@@ -191,15 +191,20 @@ def main() -> None:
         print(elements)
 
     elif args.command == "run":
+        if args.algorithm is None:
+            sys.exit("No algorithm selected please specify one using -a or --algorithm")
+        elif args.algorithm not in ALGORITHMS.keys():
+            sys.exit(
+                f"Invalid algorithm '{args.algorithm}' please try one of {ALGORITHMS.keys()}"
+            )
         elements = sort_elements(args)
         worker = Worker(
             args.algorithm,
             elements,
             ask_question,
-            args.filepath,
-            None,
-            args.config_files,
-            args.additional_config,
+            folder_path=args.filepath,
+            extra_config_files=args.config_files,
+            additional_options=args.additional_config,
         )
         run_worker(worker)
 

@@ -26,26 +26,21 @@ from dls_bba.exceptions import (
     InvalidRingmodeError,
 )
 
-# Cannot exist inside config files.
+# The following configuration variables cannot exist inside config files.
+# Number of times to retry a BPM connection.
 BPM_RETRIES = os.getenv("BBA_BPM_RETRIES", 5)
-"""Number of times to retry a BPM connection."""
+# Number of times to retry triggering FOFB.
 FOFB_RETRIES = 10
-"""Number of times to retry triggering FOFB."""
-
+# Suffixes for the origin PVs.
 ORIGIN_SUFFIXES = {
     "BBA": ":CF:BBA_{axis}_S",
     "BCD": ":CF:BCD_{axis}_S",
     "GOLDEN": ":CF:GOLDEN_{axis}_S",
 }
-"""Suffixes for the origin PVs."""
-UNITS = {"ENG": pytac.ENG, "PHYS": pytac.PHYS}
-"""Units for the machine."""
-DATASOURCE = {"LIVE": pytac.LIVE}
-"""Data sources for the machine."""
+# Slew rate for quadrupoles in amps per second.
 QUAD_SLEW_RATE = 0.5
-"""Slew rate for quadrupoles in amps per second."""
+# Conversion factor from mm to microns.
 MM_MICRON_CONVERSION = 1000
-"""Conversion factor from mm to microns."""
 
 
 def _retry_command(num_tries, excp_type):
@@ -138,12 +133,13 @@ class Machine:
     def _setup_pytac_lattice(self) -> None:
         """Load the pytac lattice with a specially constructed control system.
 
+        Note: We keep the pytac default units of 'engineering' and default
+        data source of 'live'.
+
         Raises:
             InvalidRingmodeError: If the ringmode does not exist in pytac.
         """
         ringmode = self.config["RINGMODE"]
-        units = self.config["UNITS"]
-        datasource = self.config["DATASOURCE"]
         ccs_timeout = self.config["COTHREAD_CONTROL_SYSTEM_TIMEOUT"]
         ccs_wait = self.config["COTHREAD_CONTROL_SYSTEM_WAIT_FLAG"]
 
@@ -154,12 +150,6 @@ class Machine:
             msg = f"Ringmode: {ringmode} does not exist in pytac."
             log.critical(msg)
             raise InvalidRingmodeError(msg, e)
-
-        self._lattice.set_default_units(UNITS[units])
-        log.info(f"pytac units: {self._lattice.get_default_units()}")
-
-        self._lattice.set_default_data_source(DATASOURCE[datasource])
-        log.info(f"pytac datasource: {self._lattice.get_default_data_source()}")
 
     def _load_element_and_name_lists(self) -> None:
         """Load the elements and names lists."""
@@ -445,14 +435,8 @@ class Machine:
             Corrector kick value.
         """
         radian_kick = self.config["CORRECTOR_KICK_RADIANS"]
-
-        if str(self.config["UNITS"]) == "ENG":
-            value = component.corrector.get_unitconv(component.kick).convert(
-                radian_kick, pytac.PHYS, pytac.ENG
-            )
-        else:
-            value = radian_kick
-        return float(value)
+        unit_conv = component.corrector.get_unitconv(component.kick)
+        return unit_conv.convert(radian_kick, pytac.PHYS, pytac.ENG)
 
     def get_beam_current(self) -> float:
         """Return the beam current.

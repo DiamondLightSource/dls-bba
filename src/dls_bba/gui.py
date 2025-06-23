@@ -34,6 +34,7 @@ from PyQt6.QtWidgets import (  # noqa: E402
     QTabWidget,
     QTextEdit,
 )
+from pytac.load_csv import available_ringmodes
 
 from dls_bba.common import (  # noqa: E402
     ALGORITHMS,
@@ -43,7 +44,7 @@ from dls_bba.common import (  # noqa: E402
 )
 from dls_bba.excite import cancel_all_oscillations  # noqa E402
 from dls_bba.isotime import get_isotime  # noqa: E402
-from dls_bba.machine import DATASOURCE, ORIGIN_SUFFIXES, UNITS, Machine  # noqa: E402
+from dls_bba.machine import ORIGIN_SUFFIXES, Machine  # noqa: E402
 from dls_bba.plotting import bba_offsets_folder, bowtie_plot  # noqa: E402
 from dls_bba.worker import Worker  # noqa: E402
 
@@ -96,7 +97,10 @@ class Ticker:
             if action == "run":
                 fraction = worker.work()
                 self.__progress(fraction)
-
+            elif action == "stop":
+                self.__set_state("Complete")
+                worker.forced_finish()
+                self.__set_state("Idle")
             elif action == "pause":
                 worker.pause()
                 self.__set_state("Paused")
@@ -152,8 +156,7 @@ class Ticker:
         elif self.__state == "Paused":
             self.resume_ticker()
         else:
-            msg = f"Don't know what to do with state: {self.__state}"
-            log.error(msg)
+            log.error(f"Unable to toggle ticker in state: {self.__state}")
 
     @property
     def state(self) -> str:
@@ -220,6 +223,7 @@ class MainWindow(QMainWindow):
     config_wait_time: QDoubleSpinBox
     config_sbba_min_frac: QDoubleSpinBox
     config_sbba_stdev: QDoubleSpinBox
+    config_sbba_fit_diff: QDoubleSpinBox
     config_use_decimation: QCheckBox
     config_x_cycles: QSpinBox
     config_x_freq: QSpinBox
@@ -232,8 +236,6 @@ class MainWindow(QMainWindow):
 
     # Advanced Options
     config_ringmode: QComboBox
-    config_units: QComboBox
-    config_datasource: QComboBox
     config_ccs_timeout: QDoubleSpinBox
     config_ccs_wait: QCheckBox
     config_fofb_executable_path: QTextEdit
@@ -311,7 +313,7 @@ class MainWindow(QMainWindow):
         """Setup the mainwindow and the button interactions."""
         # Methods
         self.method_dropdown.addItems(ALGORITHMS.keys())
-        self.method_dropdown.setCurrentText(list(ALGORITHMS.keys())[2])
+        self.method_dropdown.setCurrentText(list(ALGORITHMS.keys())[0])
         # Mode
         self.display_on_screen("Please select a mode.", clear=True)
 
@@ -324,11 +326,6 @@ class MainWindow(QMainWindow):
         self.lock_unlock_pv.clicked.connect(self.lock_unlock_selection)
 
         # File / Folder selection, plotting and applying.
-        self.config_units.addItems(UNITS.keys())
-        self.config_units.setCurrentText(list(UNITS.keys())[0])
-        self.config_datasource.addItems(DATASOURCE.keys())
-        self.config_datasource.setCurrentText(list(DATASOURCE.keys())[0])
-
         self.button_save_loc.clicked.connect(self.select_save_location_folder)
         self.display_save_loc.setPlainText(self.machine.config["SAVE_LOCATION"])
         self.button_bba_folder.clicked.connect(self.select_bba_folder)
@@ -349,24 +346,25 @@ class MainWindow(QMainWindow):
         self.button_apply_recent.clicked.connect(self.apply_recent)
 
         # Configuration options
+        self.config_use_feedbacks.clicked.connect(self.use_slow_feedbacks)
+        self.config_use_fofb.clicked.connect(self.use_fofb)
         self.config_ringmode.addItems(self.get_ringmode_options())
         self.config_load_apply.clicked.connect(self.load_config_file)
         self.button_golden.clicked.connect(self.reapply_golden_orbits)
 
     def start_ticker(self) -> None:
         """Start Ticker"""
+        # TODO: make pause & stop buttons work so we can uncomment them
         log.info("GUI Start Pressed")
         if not self.selected:
-            msg = "No elements selected."
-            self.display_on_screen(msg)
+            self.display_on_screen("No elements selected.")
             return
-
-        self.update_config()
         self.button_start.setEnabled(False)
-        self.button_pause.setEnabled(True)
-        self.button_stop.setEnabled(True)
+        #self.button_pause.setEnabled(True)
+        self.button_pause.setText("Pause")
+        #self.button_stop.setEnabled(True)
         self.lock_unlock_pv.setEnabled(False)
-        self.ticker.start_ticker(self.get_worker())
+        self.ticker.start_ticker(self.create_worker())
 
     def pause_resume_ticker(self) -> None:
         """Pause / Resume Ticker."""
@@ -378,12 +376,13 @@ class MainWindow(QMainWindow):
         elif self.ticker.state == "Paused":
             self.button_pause.setText("Pause")
 
-    def stop_ticker(self) -> None:
+    def stop_ticker(self, manual_stop=None) -> None:
         """Stop Ticker."""
-        log.info("GUI Stop Pressed")
+        if manual_stop:
+            log.info("GUI Stop Pressed")
         self.ticker.stop_ticker()
-        self.button_start.setEnabled(True)
         self.button_pause.setEnabled(False)
+        self.button_pause.setText("Pause")
         self.button_stop.setEnabled(False)
         self.lock_unlock_pv.setEnabled(True)
 
@@ -422,8 +421,9 @@ class MainWindow(QMainWindow):
             ):
                 reselect.append(bpm_name)
 
-        msg = f"Reselected {len(reselect)} elements with > {reselect_limit}um change."
-        self.display_on_screen(msg)
+        self.display_on_screen(
+            f"Reselected {len(reselect)} elements with > {reselect_limit}um change."
+        )
         self.pv_selection.clear()
         self.pv_selection.addItems(reselect)
         self.last_list = reselect
@@ -437,11 +437,10 @@ class MainWindow(QMainWindow):
             old_state: The old state string.
             new_state:  The new state string.
         """
-        msg = f"Ticker state: {old_state} => {new_state}"
-        log.debug(msg)
+        log.debug(f"Ticker state: {old_state} => {new_state}")
 
         if old_state == "Complete" and new_state == "Idle":
-            self.stop_ticker()
+            self.stop_ticker(False)
 
     def progress(self, fraction_left: float) -> None:
         """Update the progress bar.
@@ -457,14 +456,13 @@ class MainWindow(QMainWindow):
         """Reset the progressbar to 0."""
         self.progressBar.setValue(0)
 
-    def get_worker(self) -> Worker:
-        """Get the worker to perform BBA.
+    def create_worker(self) -> Worker:
+        """Create the worker to perform BBA.
 
         Returns:
             An initialised Worker.
         """
         method = self.method_dropdown.currentText()
-        folder_path = self.machine.config["SAVE_LOCATION"]
         if isinstance(self.selected, str):
             self.selected = [self.selected]
         assert isinstance(self.selected, list) and isinstance(self.selected[0], str)
@@ -472,14 +470,24 @@ class MainWindow(QMainWindow):
             method,
             self.selected,
             self.question,
-            folder_path,
+            machine=self.machine,
+            folder_path=self.machine.config["SAVE_LOCATION"],
             logger=self.logger,
-            additional_options=self.update_config(),
+            additional_options=self.get_config_from_gui(),
         )
 
     def reset_iocs(self) -> None:
         """Reset all Corrector IOCS."""
         cancel_all_oscillations(self.machine.config)
+
+    def use_slow_feedbacks(self) -> None:
+        """Maintain valid configuration between both feedback buttons."""
+        if self.config_use_feedbacks.isChecked:
+            self.config_use_fofb.setChecked(False)
+
+    def use_fofb(self) -> None:
+        """Maintain valid configuration between both feedback buttons."""
+        self.config_use_feedbacks.setChecked(True)
 
     def plot_recent(self) -> None:
         """Plot the recent data."""
@@ -539,20 +547,23 @@ class MainWindow(QMainWindow):
 
     def get_ringmode_options(self) -> List[str]:
         """Get the current ringmode options from the machine.
+        Note: Because we interface with the machine both directly and through
+        pytac, we can only use ringmodes that are supported by both.
 
         Returns:
             A list of the current ringmodes.
         """
-        ringmodes = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums
-        return ringmodes
+        pytac_ringmodes = available_ringmodes()
+        pv_ringmodes = set(caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums)
+        return pytac_ringmodes & pv_ringmodes
 
-    def update_config(self) -> Dict[str, Any]:
-        """Update the machine config with the current config in the GUI.
+    def get_config_from_gui(self) -> Dict[str, Any]:
+        """Get the current config selected in the GUI.
 
         Returns:
             A dictionary of the new config.
         """
-        dct = {
+        config_dict = {
             "SAVE_LOCATION": self.display_save_loc.toPlainText(),
             "USE_FEEDBACKS": self.config_use_feedbacks.isChecked(),
             "FOFB_FEEDBACKS": self.config_use_fofb.isChecked(),
@@ -566,6 +577,7 @@ class MainWindow(QMainWindow):
             "SOFB_RUN_TIME": self.config_sofb_run_time.value(),
             "MIN_SLOPE_FRACTION": self.config_sbba_min_frac.value(),
             "CENTER_OUTLIER_FACTOR": self.config_sbba_stdev.value(),
+            "OUTLIER_FACTOR": self.config_sbba_fit_diff.value(),
             "DECIMATED": self.config_use_decimation.isChecked(),
             "X_CYCLES": self.config_x_cycles.value(),
             "X_FREQUENCY": self.config_x_freq.value(),
@@ -576,8 +588,6 @@ class MainWindow(QMainWindow):
             "SAVE_PLOTS": self.save_plots.isChecked(),
             "RESELECTION_LIMIT": self.config_reselection.value(),
             "RINGMODE": self.config_ringmode.currentText(),
-            "UNITS": self.config_units.currentText(),
-            "DATASOURCE": self.config_datasource.currentText(),
             "COTHREAD_CONTROL_SYSTEM_TIMEOUT": self.config_ccs_timeout.value(),
             "COTHREAD_CONTROL_SYSTEM_WAIT_FLAG": self.config_ccs_wait.isChecked(),
             "FOFB_EXECUTABLE_PATH": self.config_fofb_executable_path.toPlainText(),
@@ -585,10 +595,15 @@ class MainWindow(QMainWindow):
             "ORBIT_RESPONSE_MATRIX_PATH": self.config_orm_path.toPlainText(),
             "CORRECTORS_TXT_PATH": self.config_corrector_txt_path.toPlainText(),
         }
-        self.machine.update_config(dct=dct)
+        return config_dict
+
+    def update_config(self) -> None:
+        """Update the machine config with the current config in the GUI.
+        """
+        config_dict = self.get_config_from_gui()
+        self.machine.update_config(config_dict=config_dict)
         self.show_config()
         cothread.Yield()
-        return dct
 
     def show_config(self) -> None:
         """Load the config from the config object to the GUI."""
@@ -609,6 +624,7 @@ class MainWindow(QMainWindow):
         self.config_sofb_run_time.setValue(config["SOFB_RUN_TIME"])
         self.config_sbba_min_frac.setValue(config["MIN_SLOPE_FRACTION"])
         self.config_sbba_stdev.setValue(config["CENTER_OUTLIER_FACTOR"])
+        self.config_sbba_fit_diff.setValue(config["OUTLIER_FACTOR"])
         self.config_use_decimation.setChecked(config["DECIMATED"])
         self.config_x_cycles.setValue(config["X_CYCLES"])
         self.config_x_freq.setValue(config["X_FREQUENCY"])
@@ -620,8 +636,6 @@ class MainWindow(QMainWindow):
         self.config_reselection.setValue(config["RESELECTION_LIMIT"])
 
         self.config_ringmode.setCurrentText(config["RINGMODE"])
-        self.config_units.setCurrentText(config["UNITS"])
-        self.config_datasource.setCurrentText(config["DATASOURCE"])
         self.config_ccs_timeout.setValue(config["COTHREAD_CONTROL_SYSTEM_TIMEOUT"])
         self.config_ccs_wait.setChecked(config["COTHREAD_CONTROL_SYSTEM_WAIT_FLAG"])
         self.config_fofb_executable_path.setText(config["FOFB_EXECUTABLE_PATH"])
@@ -752,6 +766,7 @@ class MainWindow(QMainWindow):
         self.psps.setEnabled(True)
         self.lock_unlock_pv.setText("Select")
         self.display_on_screen("Please select a mode", True)
+        self.reset_progressbar()
         # Set the list to full previously selected list.
         self.pv_selection.clear()
         self.pv_selection.addItems(self.last_list)
@@ -787,16 +802,14 @@ class MainWindow(QMainWindow):
         selected = self.pv_selection.selectedItems()
         assert isinstance(self.selection_strings, list)
         if len(selected) == 0:
-            msg = "Please select a mode."
-            self.display_on_screen(msg, clear=True)
+            self.display_on_screen("Please select a mode.", clear=True)
             self.selected = None
             return False
 
         elif len(selected) == 1 and any(
             True for x in ["Whole Machine", "All PSPs"] if x in self.selection_strings
         ):
-            msg = f"{self.selection_strings[0]} selected."
-            self.display_on_screen(msg, clear=True)
+            self.display_on_screen(f"{self.selection_strings[0]} selected.", clear=True)
             assert isinstance(self.options, list) and isinstance(self.options[0], str)
             self.selected = self.options
             return True
@@ -807,15 +820,13 @@ class MainWindow(QMainWindow):
             if len(selected[0].text()) == 2:
                 cell_number = selected[0].text()
                 elements = self.machine.cell_dictionary[cell_number]
-                msg = f"Cell {cell_number} selected."
-                self.display_on_screen(msg, clear=True)
+                self.display_on_screen(f"Cell {cell_number} selected.", clear=True)
                 self.selected = elements
                 return True
 
             else:
                 element = selected[0].text()
-                msg = f"{element} selected."
-                self.display_on_screen(msg, clear=True)
+                self.display_on_screen(f"{element} selected.", clear=True)
                 self.selected = element
                 return True
 
@@ -825,15 +836,15 @@ class MainWindow(QMainWindow):
                 elements = []
                 for cell in cells:
                     elements.extend(self.machine.cell_dictionary[cell])
-                msg = f"Cells {cells} selected."
-                self.display_on_screen(msg, clear=True)
+                self.display_on_screen(f"Cells {cells} selected.", clear=True)
                 self.selected = elements
                 return True
 
             else:
                 elements = [element.text() for element in selected]
-                msg = f"{len(elements)} elements selected."
-                self.display_on_screen(msg, clear=True)
+                self.display_on_screen(
+                    f"{len(elements)} elements selected.", clear=True
+                )
                 self.selected = elements
                 return True
 

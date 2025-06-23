@@ -17,8 +17,9 @@ class Worker:
         method: str,
         elements: List[str],
         question: Callable[[str], bool],
-        folder_path: Optional[str],
-        logger: Optional[log.Handler],
+        machine: Optional[Machine] = None,
+        folder_path: Optional[str] = None,
+        logger: Optional[log.Handler] = None,
         extra_config_files: Optional[List[str]] = None,
         additional_options: Optional[Dict[str, Any]] = None,
     ) -> None:
@@ -28,12 +29,17 @@ class Worker:
             method: The BBA method.
             elements: The elements to perform a BBA on.
             question: The question function dependant on if using the GUI or CLI.
+            machine: A machine instance.
             folder_path: The save location folder path.
             logger: The GUI logger handler.
             extra_config_files: List of extra configuration files to load.
             additional_options: Dictionary of configuration overrides.
         """
-        self.machine = Machine(extra_config_files, additional_options)
+        if machine is not None:
+            machine.update_config(extra_config_files, additional_options)
+            self.machine = machine
+        else:
+            self.machine = Machine(extra_config_files, additional_options)
         folder_path = (
             folder_path
             if folder_path is not None
@@ -92,6 +98,7 @@ class Worker:
         results = self.algorithm.analyse(rawdata)
         if self.save_results:
             results.save(self.save_location)
+        self.results_list.append(results)
 
         assert self.beam_current_decay is not None
         self.beam_current_decay.check_beam_decay()

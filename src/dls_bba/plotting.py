@@ -130,33 +130,39 @@ def bowtie_plot(filepath: str, save: bool = False) -> plt.Figure:
         if quad_name not in quad_names:
             quad_names.append(quad_name)
 
-    fig, axs = plt.subplots(nrows=2, ncols=len(quad_names), squeeze=False)
+    fig, axes = plt.subplots(nrows=2, ncols=len(quad_names), squeeze=False)
 
     for q_index, quad_name in enumerate(quad_names):
         for a_index, axis in enumerate(["x", "y"]):
             key = f"{quad_name}__{axis}"
 
             if a_index == 0:
-                axs[a_index, q_index].set_title(f"{quad_name.replace('_', '-')}")
+                axes[a_index, q_index].set_title(f"{quad_name.replace('_', '-')}")
             if q_index == 0:
-                axs[a_index, q_index].set_ylabel(f"Axis: {axis} [um]")
+                axes[a_index, q_index].set_ylabel(f"Axis: {axis} [um]")
 
             color = "b" if axis == "x" else "r"
 
             x = [v * MM_TO_UM_UNIT_CONV for v in results_object.plotting[key]["x"]]
             y = [v * MM_TO_UM_UNIT_CONV for v in results_object.plotting[key]["y"]]
 
-            axs[a_index, q_index].plot(x, y, color=color, lw=0.5)
+            axes[a_index, q_index].plot(x, y, color=color, lw=0.5)
 
             value, error = results_object.results[key]
             value = value * MM_TO_UM_UNIT_CONV
             error = error * MM_TO_UM_UNIT_CONV
 
-            axs[a_index, q_index].axvline(x=value, color="k")
-            axs[a_index, q_index].axvspan(
+            axes[a_index, q_index].axvline(x=value, color="k")
+            axes[a_index, q_index].axvspan(
                 xmin=value - abs(error), xmax=value + abs(error), color="gray"
             )
-            axs[a_index, q_index].grid(which="both", axis="both")
+            axes[a_index, q_index].grid(which="both", axis="both")
+
+            # Add markers to x axis to indicate location of our 5 sets of x values.
+            ylim = axes[a_index, q_index].get_ylim()
+            ap = {"edgecolor": color, "fill": False, "headwidth": 5, "headlength": 5}
+            for i in range(len(x)):
+                axes[a_index, q_index].annotate(" ", (x[i], ylim[0]), arrowprops=ap)
 
     fig.supylabel("Oscillation Difference [um]")
     fig.supxlabel(f"Oscillation at BPM: {bpm_name} [um]")

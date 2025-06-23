@@ -1,0 +1,227 @@
+{
+    "RINGMODE": "I04",
+    "COTHREAD_CONTROL_SYSTEM_TIMEOUT": 10.0,
+    "COTHREAD_CONTROL_SYSTEM_WAIT_FLAG": true,
+    "FOFB_EXECUTABLE_PATH": "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/fofbnogui.py",
+    "FOFB_MAX_ORBIT_MICRONS": 250,
+    "FEEDBACK_PVS": {
+        "Fast_Orbit_Feedback": "SR01A-CS-FOFB-01:RUN",
+        "Slow_Orbit_Feedback": "SR-CS-SOFB-01:ONOFF",
+        "Tune_Feedback": "SR-CS-TFB-01:ONOFF",
+        "Vertical_Emittance_Feedback": "SR-CS-VEFB-01:LOOP"
+    },
+    "DIAGNOSTICS": {
+        "TOTAL_EMITTANCE": "SR-DI-EMIT-01:EMITTANCE",
+        "HORIZONTAL_EMITTANCE_VALUE": "SR-DI-EMIT-01:HEMIT",
+        "HORIZONTAL_EMITTANCE_ERROR": "SR-DI-EMIT-01:HERROR",
+        "VERTICAL_EMITTANCE_VALUE": "SR-DI-EMIT-01:VEMIT",
+        "VERTICAL_EMITTANCE_ERROR": "SR-DI-EMIT-01:VERROR",
+        "TUNE_X": "SR23C-DI-TMBF-01:X:TUNE:TUNE",
+        "TUNE_Y": "SR23C-DI-TMBF-01:Y:TUNE:TUNE",
+        "COUPLING": "SR-DI-EMIT-01:COUPLING",
+        "LIFETIME": "SR-DI-DCCT-01:LIFETIME"
+    },
+    "ORBIT_RESPONSE_MATRIX_PATH": "/dls_sw/work/common/matlab/mml/machine/diamondopsdata/I04/GoldenBPMResp.mat",
+    "CORRECTORS_TXT_PATH": "/dls_sw/prod/R3.14.12.3/support/fastfeedback/12-3/fofbApp/opi/correctors.txt",
+    "CORRECTOR_IOCS": [
+        "SR01A-CS-FOFB-01",
+        "SR02A-CS-FOFB-01",
+        "SR03A-CS-FOFB-01",
+        "SR04A-CS-FOFB-01",
+        "SR05A-CS-FOFB-01",
+        "SR06A-CS-FOFB-01",
+        "SR07A-CS-FOFB-01",
+        "SR08A-CS-FOFB-01",
+        "SR09A-CS-FOFB-01",
+        "SR10A-CS-FOFB-01",
+        "SR11A-CS-FOFB-01",
+        "SR12A-CS-FOFB-01",
+        "SR13A-CS-FOFB-01",
+        "SR14A-CS-FOFB-01",
+        "SR15A-CS-FOFB-01",
+        "SR16A-CS-FOFB-01",
+        "SR17A-CS-FOFB-01",
+        "SR18A-CS-FOFB-01",
+        "SR19A-CS-FOFB-01",
+        "SR20A-CS-FOFB-01",
+        "SR21A-CS-FOFB-01",
+        "SR22A-CS-FOFB-01",
+        "SR23A-CS-FOFB-01",
+        "SR24A-CS-FOFB-01"
+    ],
+    "BPM2QUAD_SPECIAL_CASES": {
+        "SR02C-DI-EBPM-01": [
+            "SR02A-PC-Q1BE-01"
+        ],
+        "SR02C-DI-EBPM-07": [
+            "SR02A-PC-Q3E-08"
+        ],
+        "SR02C-DI-EBPM-08": [
+            "SR02A-PC-Q1BE-10"
+        ],
+        "SR08C-DI-EBPM-07": [
+            "SR08A-PC-QUADF-01"
+        ],
+        "SR09S-DI-EBPM-01": [
+            "SR09S-PC-QUADD-02"
+        ],
+        "SR09C-DI-EBPM-01": [
+            "SR09A-PC-QUADF-04"
+        ],
+        "SR10C-DI-EBPM-01": [
+            "SR10A-PC-Q1B-01"
+        ],
+        "SR10C-DI-EBPM-02": [
+            "SR10A-PC-Q2B-02",
+            "SR10A-PC-Q3B-03"
+        ],
+        "SR12C-DI-EBPM-07": [
+            "SR12A-PC-QUADF-01"
+        ],
+        "SR13S-DI-EBPM-01": [
+            "SR13S-PC-QUADD-02"
+        ],
+        "SR13C-DI-EBPM-01": [
+            "SR13A-PC-QUADF-04"
+        ]
+    },
+    "BPM2QUAD_EXCEPTIONS": {},
+    "QUAD2BPM_SPECIAL_CASES": {
+        "SR02A-PC-Q3E-08": "SR02C-DI-EBPM-07",
+        "SR09S-PC-QUADD-02": "SR09S-DI-EBPM-01",
+        "SR10A-PC-Q2B-02": "SR10C-DI-EBPM-02",
+        "SR13S-PC-QUADD-02": "SR13S-DI-EBPM-01"
+    },
+    "QUAD2BPM_EXCEPTIONS": {
+        "SR02A-PC-Q2BE-02": "SR02A-PC-Q1BE-01",
+        "SR02A-PC-Q2BE-09": "SR02A-PC-Q1BE-10",
+        "SR08A-PC-Q1D-10": "SR08A-PC-QUADF-01",
+        "SR09A-PC-Q1D-01": "SR09A-PC-QUADF-04",
+        "SR12A-PC-Q1D-10": "SR12A-PC-QUADF-01",
+        "SR13A-PC-Q1D-01": "SR13A-PC-QUADF-04"
+    },
+    "PSPS": {
+        "01": [
+            0,
+            1,
+            2,
+            4,
+            5,
+            6
+        ],
+        "02": [
+            0,
+            3,
+            4,
+            6
+        ],
+        "03": [
+            0,
+            4,
+            5,
+            6
+        ],
+        "04": [
+            0,
+            6
+        ],
+        "05": [
+            0,
+            6
+        ],
+        "06": [
+            0,
+            6
+        ],
+        "07": [
+            0,
+            4,
+            5,
+            6
+        ],
+        "08": [
+            0
+        ],
+        "09": [
+            0,
+            1,
+            2,
+            8
+        ],
+        "10": [
+            0,
+            6
+        ],
+        "11": [
+            0,
+            6
+        ],
+        "12": [
+            0
+        ],
+        "13": [
+            0,
+            1,
+            2,
+            8
+        ],
+        "14": [
+            0,
+            6
+        ],
+        "15": [
+            0,
+            6
+        ],
+        "16": [
+            0,
+            4,
+            5,
+            6
+        ],
+        "17": [
+            0,
+            6
+        ],
+        "18": [
+            0,
+            4,
+            5,
+            6
+        ],
+        "19": [
+            0,
+            6
+        ],
+        "20": [
+            0,
+            6
+        ],
+        "21": [
+            0,
+            4,
+            5,
+            6
+        ],
+        "22": [
+            0,
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "23": [
+            0,
+            4,
+            5,
+            6
+        ],
+        "24": [
+            0,
+            4,
+            5,
+            6
+        ]
+    }
+}
