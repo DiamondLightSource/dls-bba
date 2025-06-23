@@ -49,7 +49,13 @@ class Worker:
         log.debug(f"Running {method} against {elements} results saved to {folder_path}")
         self.components_pairs = get_component_pairs(self.machine, elements)
         self.starting_length = len(self.components_pairs)
-        self.algorithm: Algorithm = ALGORITHMS[method](self.machine)
+        if method not in ALGORITHMS:
+            raise KeyError(
+                f"Invalid BBA algorithm '{method}', please select one of: "
+                f"{list(ALGORITHMS.keys())}"
+            )
+        else:
+            self.algorithm: Algorithm = ALGORITHMS[method](self.machine)
         self.question = question
         self.save_rawdata = self.machine.config["SAVE_RAWDATA"]
         self.save_results = self.machine.config["SAVE_RESULTS"]

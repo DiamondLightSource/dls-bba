@@ -169,7 +169,7 @@ class SimFastBBA(Algorithm):
             for index, axis in enumerate(["x", "y"]):
                 exc_data = data_list[index]
                 selected_data = self.select_data(fa_data, index, exc_data, decimated)
-                rawdata[f"{quad_name}_{axis}"] = {
+                rawdata[f"{quad_name.replace('-', '_')}__{axis}"] = {
                     "High": selected_data[0],
                     "Low": selected_data[1],
                 }
@@ -300,13 +300,13 @@ class SimFastBBA(Algorithm):
 
         quad_names = []
         for key in data.keys():
-            quad_name = key.split("_")[0]
+            quad_name = key.split("__")[0]
             if quad_name not in quad_names:
                 quad_names.append(quad_name)
 
         for quad_name in quad_names:
             for axis in ["x", "y"]:
-                key = f"{quad_name}_{axis}"
+                key = f"{quad_name}__{axis}"
 
                 frequency_key = f"{axis.upper()}_FREQUENCY"
                 frequency = metadata[frequency_key]

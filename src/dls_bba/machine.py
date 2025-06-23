@@ -244,9 +244,7 @@ class Machine:
         """
         q2b_names: Dict[str, str] = {}
 
-        for quad, quad_name, quad_mid in zip(
-            self.quads, self.quads_names, self._quads_mid
-        ):
+        for quad_name, quad_mid in zip(self.quads_names, self._quads_mid):
             if quad_name not in Q2B_special_cases:
                 closest_bpm_index, _ = min(
                     enumerate(self._bpms_s), key=lambda x: abs(x[1] - quad_mid)
@@ -609,11 +607,13 @@ class Machine:
             value: Value to set the quadrupole to.
             sleep: Whether to sleep after setting the quadrupole.
         """
-        start_current = Machine.get_quad_setpoint(quadrupole)
         quadrupole.set_value("b1", value)
         if sleep:
-            # The 2 is a magic number from the old BBA setup.
-            Sleep(abs(start_current - value) / QUAD_SLEW_RATE / 2)
+            # TODO: revisit using a dynamic formula with Rick
+            # Old formula: duration = (starting current - value) / QUAD_SLEW_RATE / 2
+            duration = 0.88
+            log.debug(f"Sleeping for {duration:.2f}s")
+            Sleep(duration)
         log.debug(f"Quadrupole set value: {value}")
 
     @staticmethod

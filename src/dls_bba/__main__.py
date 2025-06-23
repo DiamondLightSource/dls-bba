@@ -1,7 +1,7 @@
 import json
 import sys
 from argparse import ArgumentParser, Namespace
-from typing import Dict, List
+from typing import List
 
 from dls_bba.common import ALGORITHMS, apply_folder, apply_golden, apply_single
 from dls_bba.gui import start_gui
@@ -57,6 +57,7 @@ def parse_arguments() -> Namespace:
         default=None,
         type=str,
         choices=ALGORITHMS.keys(),
+        required=True,
         help="the algorithm to use",
     )
 

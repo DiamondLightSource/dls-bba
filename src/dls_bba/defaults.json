@@ -1,6 +1,6 @@
 {
     "SAVE_LOCATION": "/scratch/BBA_logs",
-    "USE_FEEDBACKS": false,
+    "USE_FEEDBACKS": true,
     "FOFB_FEEDBACKS": false,
     "CORRECTOR_KICK_RADIANS": 1e-5,
     "QUADRUPOLE_STEP_PERCENT": 1,
@@ -11,6 +11,7 @@
     "MAX_ORBIT_CORRECTION_MICRONS": 7.5,
     "MIN_SLOPE_FRACTION": 0.25,
     "MIN_CURRENT": 295,
+    "OUTLIER_FACTOR": 20,
     "CENTER_OUTLIER_FACTOR": 1,
     "DECIMATED": false,
     "X_CYCLES": 22,

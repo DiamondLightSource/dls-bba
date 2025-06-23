@@ -263,8 +263,7 @@ class MainWindow(QMainWindow):
         """Setup the GUI."""
         super().__init__(*args, **kwargs)
         ui_file = [
-            Path(files("dls_bba").joinpath(resource))  # type: ignore
-            for resource in UI_FILENAME
+            Path(files("dls_bba").joinpath(resource)) for resource in UI_FILENAME
         ][0]
         uic.loadUi(ui_file, self)
 
@@ -409,9 +408,13 @@ class MainWindow(QMainWindow):
         load_folder_results = [Results.from_file(file) for file in good_files]
         reselect = []
         for result in load_folder_results:
-            bpm_name = result.metadata["bpm_name"]
-            x_key = str(bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="x"))
-            y_key = str(bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="y"))
+            bpm_name = result.metadata["bpm_name"].replace("-", "_")
+            x_key = str(
+                bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="X").replace(":", "__")
+            )
+            y_key = str(
+                bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="Y").replace(":", "__")
+            )
             if (
                 abs(result.offsets[x_key].diff_value) >= reselect_limit
                 or abs(result.offsets[y_key].diff_value) >= reselect_limit
@@ -447,7 +450,7 @@ class MainWindow(QMainWindow):
         """
         percent_completed = (1 - fraction_left) * 100
         log.info(f"Percent Completed: {percent_completed}%")
-        self.progressBar.setValue(round(percent_completed))  # type: ignore
+        self.progressBar.setValue(round(percent_completed))
 
     def reset_progressbar(self) -> None:
         """Reset the progressbar to 0."""
@@ -796,7 +799,7 @@ class MainWindow(QMainWindow):
         Returns:
             True if elements are selected, False if nothing selected.
         """
-        selected = self.pv_selection.selectedItems()  # type: ignore
+        selected = self.pv_selection.selectedItems()
         assert isinstance(self.selection_strings, list)
         if len(selected) == 0:
             self.display_on_screen("Please select a mode.", clear=True)
