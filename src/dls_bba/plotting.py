@@ -63,8 +63,8 @@ def bba_offsets_plot(
     change_in_x = []
     change_in_dx = []
     for bpm_name in machine.bba_x_pvs:
-        if bpm_name.replace("-", "_") in offsets_dict.keys():
-            calc_offsets = offsets_dict[bpm_name.replace("-", "_")]
+        if bpm_name.replace("-", "_").replace(":", "__") in offsets_dict.keys():
+            calc_offsets = offsets_dict[bpm_name.replace("-", "_").replace(":", "__")]
             change_in_x.append(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV)
             change_in_dx.append(abs(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV))
         else:
@@ -74,14 +74,13 @@ def bba_offsets_plot(
     change_in_y = []
     change_in_dy = []
     for bpm_name in machine.bba_y_pvs:
-        if bpm_name.replace("-", "_") in offsets_dict.keys():
-            calc_offsets = offsets_dict[bpm_name.replace("-", "_")]
+        if bpm_name.replace("-", "_").replace(":", "__") in offsets_dict.keys():
+            calc_offsets = offsets_dict[bpm_name.replace("-", "_").replace(":", "__")]
             change_in_y.append(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV)
             change_in_dy.append(abs(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV))
         else:
             change_in_y.append(0)
             change_in_dy.append(0)
-
     fig, (ax1, ax2) = plt.subplots(2, sharex=True, tight_layout=True)
     fig.suptitle("Change in BBA values")
     ax1.set_xlim(0, 174)
