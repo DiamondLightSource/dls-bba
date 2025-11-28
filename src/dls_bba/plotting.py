@@ -9,7 +9,7 @@ matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt  # noqa E402
 
 # isort: on
-from dls_bba.datatypes import CalculatedOffset, Results  # noqa E402
+from dls_bba.datatypes import CalculatedOffset, FullResults  # noqa E402
 from dls_bba.machine import Machine  # noqa E402
 
 MM_TO_UM_UNIT_CONV = 1000
@@ -33,7 +33,7 @@ def bba_offsets_folder(
         if file.endswith("-results.mat"):
             good_files.append(os.path.join(folder_path, file))
 
-    load_folder_results = [Results.from_file(file) for file in good_files]
+    load_folder_results = [FullResults.from_file(file) for file in good_files]
 
     offsets_dict: Dict[str, CalculatedOffset] = {}
     for results in load_folder_results:
@@ -120,7 +120,7 @@ def bowtie_plot(filepath: str, save: bool = False) -> plt.Figure:
     Returns:
         The figure object.
     """
-    results_object = Results.from_file(filepath)
+    results_object = FullResults.from_file(filepath)
     bpm_name = results_object.metadata["bpm_name"]
     keys = results_object.results.keys()
     quad_names = []

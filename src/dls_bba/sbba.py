@@ -7,7 +7,7 @@ from cothread import Sleep
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.components import Components
-from dls_bba.datatypes import RawData, Results
+from dls_bba.datatypes import RawData, FullResults, OscillationPlane, QuadStrength
 from dls_bba.isotime import get_isotime
 from dls_bba.machine import Machine
 
@@ -121,7 +121,7 @@ class SlowBBA(Algorithm):
         ]
         return corrector_steps
 
-    def analyse(self, rawdata: RawData) -> Results:
+    def analyse(self, rawdata: RawData) -> FullResults:
         """Analyse the rawdata and calculate the offsets to apply.
 
         Args:
@@ -265,4 +265,4 @@ class SlowBBA(Algorithm):
 
         offsets = self.create_offsets_dict(results, metadata)
 
-        return Results(results, metadata, plotting, offsets)
+        return FullResults(results, metadata, plotting, offsets)
