@@ -15,6 +15,9 @@ class QuadStrength:
     high: np.ndarray[float] = None
     low: np.ndarray[float] = None
 
+    def __getitem__(self, item):
+        return getattr(self, item)
+
 
 @dataclass
 class CalculatedOffset:
@@ -25,6 +28,9 @@ class CalculatedOffset:
     diff_value: float
     diff_error: float
 
+    def __getitem__(self, item):
+        return getattr(self, item)
+
 
 @dataclass
 class SimplifiedResults:
@@ -33,6 +39,9 @@ class SimplifiedResults:
     mean_offset: float
     std_offset: float
 
+    def __getitem__(self, item):
+        return getattr(self, item)
+
 
 @dataclass
 class OscillationPlane:
@@ -40,6 +49,9 @@ class OscillationPlane:
 
     x: QuadStrength | CalculatedOffset | SimplifiedResults = None
     y: QuadStrength | CalculatedOffset | SimplifiedResults = None
+
+    def __getitem__(self, item):
+        return getattr(self, item)
 
 
 @dataclass
@@ -102,15 +114,13 @@ class RawData:
             quad_name, position = key.split("__")
             quad_name = quad_name.replace("_", "-")
             plane, quad_strength, corr_strength = position.lower().split("_")
+            num_bpms = len(values)
             if quad_name not in rawdata:
-                rawdata[quad_name] = OscillationPlane()
-            if getattr(rawdata[quad_name], plane) is None:
-                setattr(rawdata[quad_name], plane, QuadStrength)
-            raw_array = getattr(getattr(rawdata[quad_name], plane), quad_strength)
-            if raw_array is None:
-                raw_array = np.zeros((5, len(values)))
-            raw_array[int(corr_strength) - 1, :] = values
-            setattr(getattr(rawdata[quad_name], plane), quad_strength, raw_array)
+                rawdata[quad_name] = OscillationPlane(
+                    QuadStrength(np.zeros((5, num_bpms)), np.zeros((5, num_bpms))),
+                    QuadStrength(np.zeros((5, num_bpms)), np.zeros((5, num_bpms))),
+                )
+            rawdata[quad_name][plane][quad_strength][int(corr_strength) - 1, :] = values
         # TODO: metadata
         return cls(rawdata, dct["metadata"])
 
@@ -181,6 +191,7 @@ class FullResults:
         self.metadata: Dict[str, Any] = metadata
         self.plotting: Dict[str, Dict[str, np.ndarray]] = plotting
         self.offsets: Dict[str, CalculatedOffset] = offsets
+        # TODO: string representation
 
     @classmethod
     def old_from_old_file(cls, filepath: str) -> FullResults:
