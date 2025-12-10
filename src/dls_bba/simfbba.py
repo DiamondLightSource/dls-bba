@@ -7,7 +7,7 @@ from cothread import Sleep
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.components import Components
-from dls_bba.datatypes import RawData, Results
+from dls_bba.datatypes import RawData, FullResults
 from dls_bba.exceptions import OscillationLengthError
 from dls_bba.excite import NETWORK_LAG, SAFETY_NET, Excitation, Oscillation, excite
 from dls_bba.faa import TICKS_PER_SECOND, Buffer, get_timestamp
@@ -278,7 +278,7 @@ class SimFastBBA(Algorithm):
         clean_wave = np.real(np.conj(detector_fixed) * mix) + np.real(dc_offset)
         return clean_wave
 
-    def analyse(self, rawdata: RawData) -> Results:
+    def analyse(self, rawdata: RawData) -> FullResults:
         """Analyse the rawdata and calculate the offsets to apply.
 
         Args:
@@ -341,4 +341,4 @@ class SimFastBBA(Algorithm):
 
         offsets = self.create_offsets_dict(results, metadata)
 
-        return Results(results, metadata, plotting, offsets)
+        return FullResults(results, metadata, plotting, offsets)

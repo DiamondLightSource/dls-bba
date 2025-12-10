@@ -3,7 +3,7 @@ import os
 from typing import Any, Dict, List, Optional
 
 from dls_bba.algorithm import Algorithm
-from dls_bba.datatypes import CalculatedOffset, Results
+from dls_bba.datatypes import CalculatedOffset, FullResults
 from dls_bba.fbba import FastBBA
 from dls_bba.isotime import get_isotime
 from dls_bba.logger import get_new_logger
@@ -77,7 +77,7 @@ def apply_single(
     """
     if machine is None:
         machine = Machine(config_files, additional_config)
-    results_file = Results.from_file(filepath)
+    results_file = FullResults.from_file(filepath)
     algorithm = FastBBA(machine)
     algorithm.apply_bba_offsets(results_file.offsets)
 
@@ -104,7 +104,7 @@ def apply_folder(
         if file.endswith("-results.mat"):
             good_files.append(os.path.join(folderpath, file))
 
-    load_folder_results = [Results.from_file(file) for file in good_files]
+    load_folder_results = [FullResults.from_file(file) for file in good_files]
 
     offsets_dict: Dict[str, CalculatedOffset] = {}
     for results in load_folder_results:

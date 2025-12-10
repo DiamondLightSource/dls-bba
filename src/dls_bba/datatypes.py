@@ -18,6 +18,9 @@ class QuadStrength:
     def __getitem__(self, item):
         return getattr(self, item)
 
+    def __setitem__(self, item, value):
+        return setattr(self, item, value)
+
 
 @dataclass
 class CalculatedOffset:
@@ -31,6 +34,9 @@ class CalculatedOffset:
     def __getitem__(self, item):
         return getattr(self, item)
 
+    def __setitem__(self, item, value):
+        return setattr(self, item, value)
+
 
 @dataclass
 class SimplifiedResults:
@@ -42,6 +48,9 @@ class SimplifiedResults:
     def __getitem__(self, item):
         return getattr(self, item)
 
+    def __setitem__(self, item, value):
+        return setattr(self, item, value)
+
 
 @dataclass
 class OscillationPlane:
@@ -52,6 +61,9 @@ class OscillationPlane:
 
     def __getitem__(self, item):
         return getattr(self, item)
+
+    def __setitem__(self, item, value):
+        return setattr(self, item, value)
 
 
 @dataclass
@@ -140,11 +152,9 @@ class RawData:
             quad_name = key.replace("_", "-")
             rawdata[quad_name] = OscillationPlane()
             for plane, quad_data in value.items():
-                setattr(rawdata[quad_name], plane, QuadStrength)
+                rawdata[quad_name][plane] = QuadStrength()
                 for quad_strength, raw_array in quad_data.items():
-                    setattr(
-                        getattr(rawdata[quad_name], plane), quad_strength, raw_array
-                    )
+                    rawdata[quad_name][plane][quad_strength] = raw_array
         # TODO: metadata
         return cls(rawdata, dct["metadata"])
 
@@ -233,7 +243,7 @@ class FullResults:
             quad_name = quad_name.replace("_", "-")
             if quad_name not in results.keys():
                 results[quad_name] = OscillationPlane()
-            setattr(results[quad_name], plane, SimplifiedResults(*values))
+            results[quad_name][plane] = SimplifiedResults(*values)
 
         offsets: Dict[str, CalculatedOffset] = {}
         for key, values in dct["offsets"].items():
@@ -242,7 +252,7 @@ class FullResults:
             _, plane, _ = plane.lower().split("_")
             if bpm_name not in offsets.keys():
                 offsets[bpm_name] = OscillationPlane()
-            setattr(offsets[bpm_name], plane, CalculatedOffset(**values))
+            offsets[bpm_name][plane] = CalculatedOffset(**values)
         # TODO: metadata & plotting
         return cls(results, dct["metadata"], dct["plotting"], offsets)
 
@@ -264,7 +274,7 @@ class FullResults:
             for plane, values in planes.items():
                 if quad_name not in results.keys():
                     results[quad_name] = OscillationPlane()
-                setattr(results[quad_name], plane, SimplifiedResults(**values))
+                results[quad_name][plane] = SimplifiedResults(**values)
 
         offsets: Dict[str, CalculatedOffset] = {}
         for key, planes in dct["offsets"].items():
@@ -272,7 +282,7 @@ class FullResults:
             for plane, values in planes.items():
                 if bpm_name not in offsets.keys():
                     offsets[bpm_name] = OscillationPlane()
-                setattr(offsets[bpm_name], plane, CalculatedOffset(**values))
+                offsets[bpm_name][plane] = CalculatedOffset(**values)
         # TODO: metadata & plotting
         return cls(results, dct["metadata"], dct["plotting"], offsets)
 
@@ -329,12 +339,12 @@ class FullResults:
         bpm_name: str = metadata["bpm_name"]
         filename = f"{method}-{isotime}-{bpm_name}-results.mat"
 
-        offsets_dict: Dict[str, Dict[str, float]] = {}
-        for key, values in offsets.items():
-            offsets_dict[key.replace("-", "_")] = asdict(values)
         results_dict = {}
         for key, value in results.items():
             results_dict[key.replace("-", "_")] = value
+        offsets_dict: Dict[str, Dict[str, float]] = {}
+        for key, values in offsets.items():
+            offsets_dict[key.replace("-", "_")] = asdict(values)
 
         dct = {
             "results": results_dict,
@@ -348,3 +358,9 @@ class FullResults:
             oned_as="row",
             long_field_names=True,
         )
+
+
+RawData.save = RawData.save_new
+RawData.from_file = RawData.new_from_new_file
+FullResults.save = FullResults.save_new
+FullResults.from_file = FullResults.new_from_new_file

@@ -10,7 +10,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import matplotlib
 from cothread.cothread import Callback, _QuitEvent
 
-from dls_bba.datatypes import Results
+from dls_bba.datatypes import FullResults
 
 matplotlib.use("Qt5Agg")  # noqa: E402
 # isort: on
@@ -405,7 +405,7 @@ class MainWindow(QMainWindow):
             if file.endswith("-results.mat"):
                 good_files.append(os.path.join(self.recent_folder, file))
 
-        load_folder_results = [Results.from_file(file) for file in good_files]
+        load_folder_results = [FullResults.from_file(file) for file in good_files]
         reselect = []
         for result in load_folder_results:
             bpm_name = result.metadata["bpm_name"].replace("-", "_")

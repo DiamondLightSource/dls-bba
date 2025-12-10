@@ -76,7 +76,7 @@ class SlowBBA(Algorithm):
                 plane_data = {"High": np.zeros((5, number_of_bpms)),
                               "Low": np.zeros((5, number_of_bpms))}
 
-                for index, corrector_step in enumerate(corrector_step_list, start=1):
+                for index, corrector_step in enumerate(corrector_step_list):
                     self._machine.set_corrector_setpoint(components, corrector_step)
                     # Always overshoot the high quad step and work down and keep
                     # direction consistent to mitigate unwanted hysteresis effects.

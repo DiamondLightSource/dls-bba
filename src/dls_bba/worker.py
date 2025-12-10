@@ -6,7 +6,7 @@ from dls_bba.algorithm import Algorithm
 from dls_bba.beam_current import BeamCurrentCheck
 from dls_bba.common import ALGORITHMS, setup_folders_and_logger
 from dls_bba.components import get_component_pairs
-from dls_bba.datatypes import Results
+from dls_bba.datatypes import FullResults
 from dls_bba.excite import cancel_all_oscillations
 from dls_bba.machine import Machine
 
@@ -59,7 +59,7 @@ class Worker:
         self.question = question
         self.save_rawdata = self.machine.config["SAVE_RAWDATA"]
         self.save_results = self.machine.config["SAVE_RESULTS"]
-        self.results_list: List[Results] = []
+        self.results_list: List[FullResults] = []
         self.beam_current_decay: Optional[BeamCurrentCheck] = None
         log.debug("Worker initialised")
 

@@ -9,7 +9,7 @@ from cothread.catools import caput
 from pytac.element import EpicsElement
 
 from dls_bba.components import Components
-from dls_bba.datatypes import CalculatedOffset, RawData, FullResults
+from dls_bba.datatypes import CalculatedOffset, RawData, FullResults, OscillationPlane
 from dls_bba.machine import ORIGIN_SUFFIXES, Machine
 from dls_bba.plotting import bba_offsets_plot
 
@@ -82,13 +82,10 @@ class Algorithm(ABC):
             A dictionary containing the old, new and difference in offsets for each BPM.
         """
         offsets: Dict[str, CalculatedOffset] = {}
-        bpm_name = metadata["bpm_name"].replace("-", "_")
+        bpm_name = metadata["bpm_name"]
         bpm_index = metadata["bpm_index"]
 
-        for index, axis in enumerate(["X", "Y"]):
-            bpm_key = str(
-                bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis=axis).replace(":", "__")
-            )
+        for index, axis in enumerate(["x", "y"]):
             # Get current BBA offset.
             old_bba = float(self._machine.get_bba_offsets()[index][bpm_index])
             # Calculate the change needed.
@@ -98,7 +95,9 @@ class Algorithm(ABC):
             # Set all values to 4d.p.
             diff_value, diff_error = [float("%0.4f" % v) for v in difference]
 
-            offsets[bpm_key] = CalculatedOffset(
+            if bpm_name not in offsets.keys():
+                offsets[bpm_name] = OscillationPlane()
+            offsets[bpm_name][axis] = CalculatedOffset(
                 old_bba, new_bba, diff_value, diff_error
             )
 
@@ -175,12 +174,14 @@ class Algorithm(ABC):
         filename = os.path.join(save_location, "results.txt")
         with open(filename, "w") as writer:
             for key, value in offsets_dict.items():
-                line = f"{key} Absolute change: {value.diff_value} +/- {value.diff_error} [mm]"
-                log.info(line)
-                writer.write(line)
-                line = f"{key} Old: {value.old_value} [mm], New: {value.new_value} [mm]\n"
-                log.info(line)
-                writer.write(line)
+                for plane in ["x", "y"]:
+                    pv_name = key + ORIGIN_SUFFIXES["BBA"].format(axis=plane)
+                    line = f"{pv_name} Absolute change: {value[plane].diff_value} +/- {value[plane].diff_error} [mm]\n"
+                    log.info(line)
+                    writer.write(line)
+                    line = f"{pv_name} Old: {value[plane].old_value} [mm], New: {value[plane].new_value} [mm]\n\n"
+                    log.info(line)
+                    writer.write(line)
             writer.close()
 
     def apply_bba_offsets(
