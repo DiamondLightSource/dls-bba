@@ -39,6 +39,7 @@ class SlowBBA(Algorithm):
         metadata["method"] = "SlowBBA"
         metadata["isotime"] = get_isotime()
         metadata["enabled_bpms"] = self._machine.get_enabled_bpms()
+        number_of_bpms = len(metadata["enabled_bpms"])
         # NOTE: This should probably be calculated properly, but even in getsigma.m it
         # just sets them all to 1e-4 when it fails to find the file that it's supposed
         # to read them from.
@@ -61,11 +62,24 @@ class SlowBBA(Algorithm):
                     quad_step,
                 ) = self.calculate_quad_setpoints(quadrupole)
                 corrector_step_list = self.get_slow_bba_corrector_steps(components)
+                metadata[f"{quad_name.replace('-', '_')}__{components.axis}"] = {
+                    "components": components.as_dict(),
+                    "quad_start_high_low_sp": [
+                        quad_start,
+                        quad_high,
+                        quad_low,
+                        quad_sp,
+                        quad_step,
+                    ],
+                    "corrector_steps": corrector_step_list,
+                }
+                plane_data = {"High": np.zeros((5, number_of_bpms)),
+                              "Low": np.zeros((5, number_of_bpms))}
 
                 for index, corrector_step in enumerate(corrector_step_list, start=1):
                     self._machine.set_corrector_setpoint(components, corrector_step)
-                    # Always overshoot the high quad step and work down and keep direction
-                    # consistent to mitigate unwanted hysteresis effects.
+                    # Always overshoot the high quad step and work down and keep
+                    # direction consistent to mitigate unwanted hysteresis effects.
                     # FYI correctors are significantly less prone to hysteresis effects.
                     self._machine.set_quad_setpoint(quadrupole, quad_start, True)
 
@@ -77,23 +91,15 @@ class SlowBBA(Algorithm):
                         self._machine.set_quad_setpoint(quadrupole, quad_value, True)
                         if "SR02" in quad_name:
                             Sleep(1)  # Give Cell 2 DDBA magnets more time to ramp.
-                        key = f"{quad_name.replace('-', '_')}__{components.axis}_{quad_movement}_{index}"
-                        rawdata[key] = self._machine.measure_bpms(components.axis)
-                        metadata[key] = {
-                            "components": components.as_dict(),
-                            "quad_start_high_low_sp": [
-                                quad_start,
-                                quad_high,
-                                quad_low,
-                                quad_sp,
-                                quad_step,
-                            ],
-                            "corrector_steps": corrector_step_list,
-                        }
+                        plane_data[quad_movement][index] = self._machine.measure_bpms(components.axis)
                 # Reset quad and corrector once finished.
                 log.info("Reset Quadrupole Setpoint")
                 self._machine.set_quad_setpoint(quadrupole, quad_sp, True)
                 self._machine.set_corrector_setpoint(components, corrector_step_list[2])
+                # Save the raw data that we've measured
+                if quad_name not in rawdata.keys():
+                    rawdata[quad_name] = OscillationPlane()
+                rawdata[quad_name][components.axis] = QuadStrength(plane_data["High"], plane_data["Low"])
             # run feedbacks after each axis.
             self._machine.check_feedbacks()
 
@@ -143,26 +149,14 @@ class SlowBBA(Algorithm):
         results: Dict[str, List[float]] = {}
         plotting: Dict[str, Dict[str, np.ndarray]] = {}
 
-        quad_names = []
-        for key in data.keys():
-            quad_name = key.split("__")[0]
-            if quad_name not in quad_names:
-                quad_names.append(quad_name)
-
-        for quad_name in quad_names:
+        for quad_name in data.keys():
             for axis in ["x", "y"]:
                 # Define variables that get changed for each plane.
                 sigma_bpm = metadata["sigma_bpm"]
                 bpm_indices = np.array(range(len(enabled_bpms)))
-                high = np.zeros(shape=(5, len(enabled_bpms)))
-                low = np.zeros(shape=(5, len(enabled_bpms)))
-                oscillation_size = np.zeros(shape=(5, len(enabled_bpms)))
-                # Extract data into our variables.
-                for i in range(5):
-                    high[i, :] = data[f"{quad_name}__{axis}_High_{i + 1}"]
-                    low[i, :] = data[f"{quad_name}__{axis}_Low_{i + 1}"]
-                    oscillation_size[i, :] = np.subtract(low[i, :], high[i, :])
-
+                high = np.copy(data[quad_name][axis].high)
+                low = np.copy(data[quad_name][axis].low)
+                oscillation_size = low - high
                 # Get rid of disabled bpms.
                 disabled_bpms = np.logical_not(enabled_bpms)
                 log.debug(f"Indices of disabled BPMs: {np.flatnonzero(disabled_bpms)}")
