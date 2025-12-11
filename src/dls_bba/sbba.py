@@ -7,7 +7,7 @@ from cothread import Sleep
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.components import Components
-from dls_bba.datatypes import RawData, FullResults, OscillationPlane, QuadStrength
+from dls_bba.datatypes import FullResults, OscillationPlane, QuadStrength, RawData
 from dls_bba.isotime import get_isotime
 from dls_bba.machine import Machine
 
@@ -73,8 +73,10 @@ class SlowBBA(Algorithm):
                     ],
                     "corrector_steps": corrector_step_list,
                 }
-                plane_data = {"High": np.zeros((5, number_of_bpms)),
-                              "Low": np.zeros((5, number_of_bpms))}
+                plane_data = {
+                    "High": np.zeros((5, number_of_bpms)),
+                    "Low": np.zeros((5, number_of_bpms)),
+                }
 
                 for index, corrector_step in enumerate(corrector_step_list):
                     self._machine.set_corrector_setpoint(components, corrector_step)
@@ -91,7 +93,9 @@ class SlowBBA(Algorithm):
                         self._machine.set_quad_setpoint(quadrupole, quad_value, True)
                         if "SR02" in quad_name:
                             Sleep(1)  # Give Cell 2 DDBA magnets more time to ramp.
-                        plane_data[quad_movement][index] = self._machine.measure_bpms(components.axis)
+                        plane_data[quad_movement][index] = self._machine.measure_bpms(
+                            components.axis
+                        )
                 # Reset quad and corrector once finished.
                 log.info("Reset Quadrupole Setpoint")
                 self._machine.set_quad_setpoint(quadrupole, quad_sp, True)
@@ -99,7 +103,9 @@ class SlowBBA(Algorithm):
                 # Save the raw data that we've measured
                 if quad_name not in rawdata.keys():
                     rawdata[quad_name] = OscillationPlane()
-                rawdata[quad_name][components.axis] = QuadStrength(plane_data["High"], plane_data["Low"])
+                rawdata[quad_name][components.axis] = QuadStrength(
+                    plane_data["High"], plane_data["Low"]
+                )
             # run feedbacks after each axis.
             self._machine.check_feedbacks()
 

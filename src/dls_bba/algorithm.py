@@ -9,7 +9,7 @@ from cothread.catools import caput
 from pytac.element import EpicsElement
 
 from dls_bba.components import Components
-from dls_bba.datatypes import CalculatedOffset, RawData, FullResults, OscillationPlane
+from dls_bba.datatypes import CalculatedOffset, FullResults, OscillationPlane, RawData
 from dls_bba.machine import ORIGIN_SUFFIXES, Machine
 from dls_bba.plotting import bba_offsets_plot
 

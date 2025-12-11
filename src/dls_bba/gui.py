@@ -34,7 +34,7 @@ from PyQt6.QtWidgets import (  # noqa: E402
     QTabWidget,
     QTextEdit,
 )
-from pytac.load_csv import available_ringmodes
+from pytac.load_csv import available_ringmodes  # noqa: E402
 
 from dls_bba.common import (  # noqa: E402
     ALGORITHMS,
@@ -360,9 +360,9 @@ class MainWindow(QMainWindow):
             self.display_on_screen("No elements selected.")
             return
         self.button_start.setEnabled(False)
-        #self.button_pause.setEnabled(True)
+        # self.button_pause.setEnabled(True)
         self.button_pause.setText("Pause")
-        #self.button_stop.setEnabled(True)
+        # self.button_stop.setEnabled(True)
         self.lock_unlock_pv.setEnabled(False)
         self.ticker.start_ticker(self.create_worker())
 
@@ -598,8 +598,7 @@ class MainWindow(QMainWindow):
         return config_dict
 
     def update_config(self) -> None:
-        """Update the machine config with the current config in the GUI.
-        """
+        """Update the machine config with the current config in the GUI."""
         config_dict = self.get_config_from_gui()
         self.machine.update_config(config_dict=config_dict)
         self.show_config()

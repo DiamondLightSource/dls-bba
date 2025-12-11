@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from dls_bba.datatypes import CalculatedOffset, RawData, FullResults
+from dls_bba.datatypes import BPMOffset, FullResults, RawData
 
 
 @pytest.fixture(scope="module")
