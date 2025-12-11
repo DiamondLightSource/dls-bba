@@ -416,8 +416,8 @@ class MainWindow(QMainWindow):
                 bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="Y").replace(":", "__")
             )
             if (
-                abs(result.offsets[x_key].diff_value) >= reselect_limit
-                or abs(result.offsets[y_key].diff_value) >= reselect_limit
+                abs(result.bpm_offsets[x_key].diff_value) >= reselect_limit
+                or abs(result.bpm_offsets[y_key].diff_value) >= reselect_limit
             ):
                 reselect.append(bpm_name)
 

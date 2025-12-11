@@ -9,7 +9,7 @@ matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt  # noqa E402
 
 # isort: on
-from dls_bba.datatypes import CalculatedOffset, FullResults  # noqa E402
+from dls_bba.datatypes import BPMOffset, FullResults  # noqa E402
 from dls_bba.machine import Machine  # noqa E402
 
 MM_TO_UM_UNIT_CONV = 1000
@@ -35,16 +35,16 @@ def bba_offsets_folder(
 
     load_folder_results = [FullResults.from_file(file) for file in good_files]
 
-    offsets_dict: Dict[str, CalculatedOffset] = {}
+    offsets_dict: Dict[str, BPMOffset] = {}
     for results in load_folder_results:
-        offsets_dict.update(results.offsets.items())
+        offsets_dict.update(results.bpm_offsets.items())
 
     bba_offsets_plot(machine, offsets_dict, folder_path, save)
 
 
 def bba_offsets_plot(
     machine: Machine,
-    offsets_dict: Dict[str, CalculatedOffset],
+    offsets_dict: Dict[str, BPMOffset],
     save_location: str,
     save: bool = False,
 ) -> plt.Figure:
@@ -122,7 +122,7 @@ def bowtie_plot(filepath: str, save: bool = False) -> plt.Figure:
     """
     results_object = FullResults.from_file(filepath)
     bpm_name = results_object.metadata["bpm_name"]
-    keys = results_object.results.keys()
+    keys = results_object.quad_results.keys()
     quad_names = []
     for key in keys:
         quad_name = key.split("__")[0]
@@ -147,7 +147,7 @@ def bowtie_plot(filepath: str, save: bool = False) -> plt.Figure:
 
             axes[a_index, q_index].plot(x, y, color=color, lw=0.5)
 
-            value, error = results_object.results[key]
+            value, error = results_object.quad_results[key]
             value = value * MM_TO_UM_UNIT_CONV
             error = error * MM_TO_UM_UNIT_CONV
 

@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from dls_bba.datatypes import BPMOffset, FullResults, RawData
+from dls_bba.datatypes import BPMOffset, RawData, Results
 
 
 @pytest.fixture(scope="module")
@@ -26,10 +26,10 @@ def results_without_offsets_setup():
     }
     plotting = {"plotting": "results_plotting"}
     offsets = {
-        "BPM1": CalculatedOffset(1.0, 1.1, 1.2, 1.3),
-        "BPM2": CalculatedOffset(2.0, 2.1, 2.2, 2.3),
+        "BPM1": BPMOffset(1.0, 1.1, 1.2, 1.3),
+        "BPM2": BPMOffset(2.0, 2.1, 2.2, 2.3),
     }
-    return FullResults(results, metadata, plotting, offsets)
+    return Results(results, metadata, plotting, offsets)
 
 
 def test_rawdata_saving_is_valid(tmp_path, rawdata_setup):
@@ -70,7 +70,7 @@ def test_results_construction_from_file_is_valid(
     bpm_name = results.metadata["bpm_name"]
     filename = f"{method}-{isotime}-{bpm_name}-results.mat"
 
-    loaded_results = FullResults.from_file(os.path.join(tmp_path, filename))
+    loaded_results = Results.from_file(os.path.join(tmp_path, filename))
 
     assert loaded_results.results["data_x"] == results.results["data_x"]
     assert loaded_results.results["data_y"] == results.results["data_y"]

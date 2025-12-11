@@ -23,7 +23,7 @@ class QuadStrength:
 
 
 @dataclass
-class CalculatedOffset:
+class BPMOffset:
     """The offset data for a single BPM PV."""
 
     old_value: float
@@ -39,7 +39,7 @@ class CalculatedOffset:
 
 
 @dataclass
-class SimplifiedResults:
+class QuadResults:
     """The mean offset and standard deviation of offsets for a Quadrupole."""
 
     mean_offset: float
@@ -56,8 +56,8 @@ class SimplifiedResults:
 class OscillationPlane:
     """The offset data for a single BPM PV."""
 
-    x: QuadStrength | CalculatedOffset | SimplifiedResults = None
-    y: QuadStrength | CalculatedOffset | SimplifiedResults = None
+    x: QuadStrength | BPMOffset | QuadResults = None
+    y: QuadStrength | BPMOffset | QuadResults = None
 
     def __getitem__(self, item):
         return getattr(self, item)
@@ -192,15 +192,15 @@ class FullResults:
 
     def __init__(
         self,
-        results: Dict[str, List[float]],
+        quad_results: Dict[str, List[float]],
         metadata: Dict[str, Any],
         plotting: Dict[str, Dict[str, np.ndarray]],
-        offsets: Dict[str, CalculatedOffset],
+        bpm_offsets: Dict[str, BPMOffset],
     ) -> None:
-        self.results: Dict[str, List[float]] = results
+        self.quad_results: Dict[str, List[float]] = quad_results
         self.metadata: Dict[str, Any] = metadata
         self.plotting: Dict[str, Dict[str, np.ndarray]] = plotting
-        self.offsets: Dict[str, CalculatedOffset] = offsets
+        self.bpm_offsets: Dict[str, BPMOffset] = bpm_offsets
         # TODO: string representation
 
     @classmethod
@@ -219,9 +219,9 @@ class FullResults:
         for keys, values in dct["results"].items():
             results[keys] = values.tolist()
 
-        offsets: Dict[str, CalculatedOffset] = {}
+        offsets: Dict[str, BPMOffset] = {}
         for key, values in dct["offsets"].items():
-            offsets[key] = CalculatedOffset(**values)
+            offsets[key] = BPMOffset(**values)
 
         return cls(results, dct["metadata"], dct["plotting"], offsets)
 
@@ -243,16 +243,16 @@ class FullResults:
             quad_name = quad_name.replace("_", "-")
             if quad_name not in results.keys():
                 results[quad_name] = OscillationPlane()
-            results[quad_name][plane] = SimplifiedResults(*values)
+            results[quad_name][plane] = QuadResults(*values)
 
-        offsets: Dict[str, CalculatedOffset] = {}
+        offsets: Dict[str, BPMOffset] = {}
         for key, values in dct["offsets"].items():
             bpm_name, _, plane = key.split("__")
             bpm_name = bpm_name.replace("_", "-")
             _, plane, _ = plane.lower().split("_")
             if bpm_name not in offsets.keys():
                 offsets[bpm_name] = OscillationPlane()
-            offsets[bpm_name][plane] = CalculatedOffset(**values)
+            offsets[bpm_name][plane] = BPMOffset(**values)
         # TODO: metadata & plotting
         return cls(results, dct["metadata"], dct["plotting"], offsets)
 
@@ -274,15 +274,15 @@ class FullResults:
             for plane, values in planes.items():
                 if quad_name not in results.keys():
                     results[quad_name] = OscillationPlane()
-                results[quad_name][plane] = SimplifiedResults(**values)
+                results[quad_name][plane] = QuadResults(**values)
 
-        offsets: Dict[str, CalculatedOffset] = {}
+        offsets: Dict[str, BPMOffset] = {}
         for key, planes in dct["offsets"].items():
             bpm_name = key.replace("_", "-")
             for plane, values in planes.items():
                 if bpm_name not in offsets.keys():
                     offsets[bpm_name] = OscillationPlane()
-                offsets[bpm_name][plane] = CalculatedOffset(**values)
+                offsets[bpm_name][plane] = BPMOffset(**values)
         # TODO: metadata & plotting
         return cls(results, dct["metadata"], dct["plotting"], offsets)
 
@@ -294,10 +294,10 @@ class FullResults:
         Args:
             folder_path: The path to the folder to save the .mat file to.
         """
-        results: Dict[str, List[float]] = self.results
+        results: Dict[str, List[float]] = self.quad_results
         metadata: Dict[str, Any] = self.metadata
         plotting: Dict[str, Dict[str, np.ndarray]] = self.plotting
-        offsets: Dict[str, CalculatedOffset] = self.offsets
+        offsets: Dict[str, BPMOffset] = self.bpm_offsets
 
         method: str = metadata["method"]
         isotime: str = metadata["isotime"]
@@ -329,10 +329,10 @@ class FullResults:
         Args:
             folder_path: The path to the folder to save the .mat file to.
         """
-        results: Dict[str, List[float]] = self.results
+        results: Dict[str, List[float]] = self.quad_results
         metadata: Dict[str, Any] = self.metadata
         plotting: Dict[str, Dict[str, np.ndarray]] = self.plotting
-        offsets: Dict[str, CalculatedOffset] = self.offsets
+        offsets: Dict[str, BPMOffset] = self.bpm_offsets
 
         method: str = metadata["method"]
         isotime: str = metadata["isotime"]
