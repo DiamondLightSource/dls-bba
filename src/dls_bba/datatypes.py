@@ -43,7 +43,7 @@ class QuadResults:
     """The mean offset and standard deviation of offsets for a Quadrupole."""
 
     mean_offset: float
-    std_offset: float
+    std_dev_offset: float
 
     def __getitem__(self, item):
         return getattr(self, item)

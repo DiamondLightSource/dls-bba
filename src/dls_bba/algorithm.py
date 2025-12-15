@@ -118,14 +118,12 @@ class Algorithm(ABC):
         keys = [key for key in results.keys() if axis.lower() in key]
         values = []
         errors = []
-        for key in keys:
-            values.append(results[key][0])
-            errors.append(results[key][1])
-
         sum_error = 0.0
+        for key in results.keys():
+            values.append(results[key][axis.lower()].mean_offset)
+            errors.append(results[key][axis.lower()].std_dev_offset)
+            sum_error += (errors[-1] / values[-1]) ** 2
         mean_value = float(np.mean(values))
-        for value, error in zip(values, errors):
-            sum_error += (error / value) ** 2
         total_error = np.sqrt(sum_error) * mean_value
         return [mean_value, total_error]
 

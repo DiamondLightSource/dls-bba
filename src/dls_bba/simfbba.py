@@ -7,7 +7,13 @@ from cothread import Sleep
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.components import Components
-from dls_bba.datatypes import FullResults, RawData
+from dls_bba.datatypes import (
+    FullResults,
+    OscillationPlane,
+    QuadResults,
+    QuadStrength,
+    RawData,
+)
 from dls_bba.exceptions import OscillationLengthError
 from dls_bba.excite import NETWORK_LAG, SAFETY_NET, Excitation, Oscillation, excite
 from dls_bba.faa import TICKS_PER_SECOND, Buffer, get_timestamp
@@ -169,10 +175,9 @@ class SimFastBBA(Algorithm):
             for index, axis in enumerate(["x", "y"]):
                 exc_data = data_list[index]
                 selected_data = self.select_data(fa_data, index, exc_data, decimated)
-                rawdata[f"{quad_name.replace('-', '_')}__{axis}"] = {
-                    "High": selected_data[0],
-                    "Low": selected_data[1],
-                }
+                if quad_name not in rawdata.keys():
+                    rawdata[quad_name] = OscillationPlane()
+                rawdata[quad_name][axis] = QuadStrength(*selected_data)
 
             log.info("Reset Quadrupole Setpoint")
             self._machine.set_quad_setpoint(quadrupole, quad_sp)
@@ -298,22 +303,13 @@ class SimFastBBA(Algorithm):
         results: Dict[str, List[float]] = {}
         plotting: Dict[str, Dict[str, np.ndarray]] = {}
 
-        quad_names = []
-        for key in data.keys():
-            quad_name = key.split("__")[0]
-            if quad_name not in quad_names:
-                quad_names.append(quad_name)
-
-        for quad_name in quad_names:
+        for quad_name in data.keys():
             for axis in ["x", "y"]:
-                key = f"{quad_name}__{axis}"
-
-                frequency_key = f"{axis.upper()}_FREQUENCY"
-                frequency = metadata[frequency_key]
+                frequency = metadata[f"{axis.upper()}_FREQUENCY"]
 
                 # Remove bad BPMs
-                q_low = data[key]["Low"][:, enabled_bpms]
-                q_high = data[key]["High"][:, enabled_bpms]
+                q_low = data[quad_name][axis]["low"][:, enabled_bpms]
+                q_high = data[quad_name][axis]["high"][:, enabled_bpms]
 
                 q_high_clean = self.extract_freq_excite(q_high, frequency, bpm_index)
                 q_low_clean = self.extract_freq_excite(q_low, frequency, bpm_index)
@@ -331,9 +327,12 @@ class SimFastBBA(Algorithm):
 
                 offset = np.mean(p[:, 1]) / NM_TO_MM_UNIT_CONV
                 error = np.std(p[:, 1]) / NM_TO_MM_UNIT_CONV
-                results[key] = [offset, error]
+                if quad_name not in results.keys():
+                    results[quad_name] = OscillationPlane()
+                results[quad_name][axis] = QuadResults(offset, error)
 
                 # plotting data
+                key = f"{quad_name}__{axis}"
                 plotting[key] = {
                     "x": q_high_clean[:, bpm_index] / NM_TO_MM_UNIT_CONV,
                     "y": q_diff_good / NM_TO_MM_UNIT_CONV,

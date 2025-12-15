@@ -7,7 +7,13 @@ from cothread import Sleep
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.components import Components
-from dls_bba.datatypes import FullResults, OscillationPlane, QuadStrength, RawData
+from dls_bba.datatypes import (
+    FullResults,
+    OscillationPlane,
+    QuadResults,
+    QuadStrength,
+    RawData,
+)
 from dls_bba.isotime import get_isotime
 from dls_bba.machine import Machine
 
@@ -253,14 +259,19 @@ class SlowBBA(Algorithm):
                 bpm_indices = np.delete(bpm_indices, stdev_outside_range)
                 log.debug(f"Data points remaining after cleaning: {len(offsets)}")
 
-                key = f"{quad_name}__{axis}"
-                results[key] = [np.mean(offsets), np.std(offsets, ddof=1)]
+                if quad_name not in results.keys():
+                    results[quad_name] = OscillationPlane()
+                results[quad_name][axis] = QuadResults(
+                    np.mean(offsets), np.std(offsets, ddof=1)
+                )
                 log.debug(
-                    f"Results for {key}: "
-                    f"mean: {results[key][0]}, standard deviation: {results[key][1]}"
+                    f"Results for {quad_name} {axis.upper()} plane:\n"
+                    f"    mean: {results[quad_name][axis].mean_offset}"
+                    f"    standard deviation: {results[quad_name][axis].std_dev_offset}"
                 )
 
                 # Plot data after cleaning.
+                key = f"{quad_name}__{axis}"
                 plotting[key] = {"x": oscillation_midpoint, "y": oscillation_size}
 
         offsets = self.create_offsets_dict(results, metadata)
