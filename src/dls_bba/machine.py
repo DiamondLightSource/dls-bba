@@ -4,10 +4,11 @@ import os
 from collections import defaultdict
 from functools import wraps
 from subprocess import run
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import cothread
 import numpy as np
+import numpy.typing as npt
 import pytac
 from cothread import Sleep
 from cothread.catools import ca_nothing, caget, caput
@@ -51,12 +52,11 @@ def _retry_command(num_tries, excp_type):
                 try:
                     return fn(*args, **kwargs)
                 except (ca_nothing, ControlSystemException) as e:
-                    msg = f"Failure no: {attempt} to run CA command:\n{e}"
-                    log.error(msg)
+                    log.error(f"Failure no: {attempt} to run CA command:\n{e}")
                     if attempt == num_tries:
                         msg = f"Failed to run CA command {num_tries} times:\n{e}"
                         log.critical(msg)
-                        raise excp_type(msg)
+                        raise excp_type(msg) from e
                     cothread.Sleep(1)
 
         return retry_inner
@@ -69,8 +69,8 @@ class Machine:
 
     def __init__(
         self,
-        extra_config_files: Optional[List[Any]] = None,
-        overrides: Optional[Dict[str, Any]] = None,
+        extra_config_files: list[Any] | None = None,
+        overrides: dict[str, Any] | None = None,
     ) -> None:
         """Initialise the Machine class.
 
@@ -83,8 +83,8 @@ class Machine:
 
     def _load_config(
         self,
-        extra_config_files: Optional[List[Any]] = None,
-        overrides: Optional[Dict[str, Any]] = None,
+        extra_config_files: list[Any] | None = None,
+        overrides: dict[str, Any] | None = None,
     ) -> None:
         """Load the provided configuration files and overrides.
 
@@ -98,8 +98,8 @@ class Machine:
 
     def update_config(
         self,
-        extra_config_files: Optional[List[Any]] = None,
-        config_override_dict: Optional[Dict[str, Any]] = None,
+        extra_config_files: list[Any] | None = None,
+        config_override_dict: dict[str, Any] | None = None,
     ) -> None:
         """Update the configuration files and check if a reload is required.
 
@@ -149,47 +149,41 @@ class Machine:
         except FileNotFoundError as e:
             msg = f"Ringmode: {ringmode} does not exist in pytac."
             log.critical(msg)
-            raise InvalidRingmodeError(msg, e)
+            raise InvalidRingmodeError(msg) from e
 
     def _load_element_and_name_lists(self) -> None:
         """Load the elements and names lists."""
 
-        self.bpms: List[EpicsElement] = self._lattice.get_elements("BPM")
-        self.bpms_names: List[str] = [bpm.get_device("x").name for bpm in self.bpms]
+        self.bpms: list[EpicsElement] = self._lattice.get_elements("BPM")
+        self.bpms_names: list[str] = [bpm.get_device("x").name for bpm in self.bpms]
 
-        self.hstrs: List[EpicsElement] = self._lattice.get_elements("HSTR")
-        self.hstrs_names: List[str] = [
+        self.hstrs: list[EpicsElement] = self._lattice.get_elements("HSTR")
+        self.hstrs_names: list[str] = [
             hstr.get_device("x_kick").name for hstr in self.hstrs
         ]
 
-        self.vstrs: List[EpicsElement] = self._lattice.get_elements("VSTR")
-        self.vstrs_names: List[str] = [
+        self.vstrs: list[EpicsElement] = self._lattice.get_elements("VSTR")
+        self.vstrs_names: list[str] = [
             vstr.get_device("y_kick").name for vstr in self.vstrs
         ]
 
-        self.quads: List[EpicsElement] = self._lattice.get_elements("quadrupole")
-        self.quads_names: List[str] = [
+        self.quads: list[EpicsElement] = self._lattice.get_elements("quadrupole")
+        self.quads_names: list[str] = [
             quad.get_device("b1").name for quad in self.quads
         ]
 
-        self.fofb_disabled: Dict[str, List[int]] = {}
-        self.fofb_disabled["x"] = [
-            int(v)
-            for v in self._lattice.get_element_values(
-                "BPM", "x_fofb_disabled", pytac.RB
-            )
-        ]
-        self.fofb_disabled["y"] = [
-            int(v)
-            for v in self._lattice.get_element_values(
-                "BPM", "y_fofb_disabled", pytac.RB
-            )
-        ]
-        self.fofb_disabled_indices: Dict[str, List[int]] = {
+        self.fofb_disabled: dict[str, npt.NDArray[np.int_]] = {}
+        self.fofb_disabled["x"] = self._lattice.get_element_values(
+            "BPM", "x_fofb_disabled", pytac.RB, dtype=int
+        )
+        self.fofb_disabled["y"] = self._lattice.get_element_values(
+            "BPM", "y_fofb_disabled", pytac.RB, dtype=int
+        )
+        self.fofb_disabled_indices: dict[str, list[int]] = {
             "x": np.nonzero(self.fofb_disabled["x"])[0].tolist(),
             "y": np.nonzero(self.fofb_disabled["y"])[0].tolist(),
         }
-        self.disabled_bpm_indices: List[int] = np.flatnonzero(
+        self.disabled_bpm_indices: list[int] = np.flatnonzero(
             np.logical_not(self.get_enabled_bpms())
         ).tolist()
 
@@ -206,52 +200,49 @@ class Machine:
 
     def _load_cell_dictionary_and_psps(self) -> None:
         """Populate the cell dictionary and psps."""
-        PSPdict = self.config._config["PSPS"]
+        psp_dict = self.config["PSPS"]
 
         # Cell Dictionary defined by PV names.
         cell_dictionary = defaultdict(list)
-        for _, bpm_name in zip(self.bpms, self.bpms_names):
-            key = str(bpm_name[2:4])
-            cell_dictionary[key].append(bpm_name)
-        self.cell_dictionary: Dict[str, List[str]] = cell_dictionary
+        for _, bpm_name in zip(self.bpms, self.bpms_names, strict=True):
+            cell_dictionary[str(bpm_name[2:4])].append(bpm_name)
+        self.cell_dictionary: dict[str, list[str]] = cell_dictionary
         # Primaries and Source Points.
         psps = []
-        for cell, indices in PSPdict.items():
+        for cell, indices in psp_dict.items():
             for index in indices:
                 psps.append(self.cell_dictionary[cell][int(index)])
         self.psps = psps
 
     def _load_b2q_q2b(self) -> None:
         """Load the BPM to Quadrupole and Quadrupole to BPM dictionaries."""
-        _Q2B_special_cases: Dict[str, str] = self.config["QUAD2BPM_SPECIAL_CASES"]
-        _B2Q_special_cases: Dict[str, List[str]] = self.config["BPM2QUAD_SPECIAL_CASES"]
-
         self._bpms_s = self._lattice.get_family_s("BPM")
         self._quads_s = self._lattice.get_family_s("quadrupole")
         self._quads_l = [quad.length for quad in self.quads]
         self._quads_mid = [
-            quad_s + quad_l / 2 for quad_s, quad_l in zip(self._quads_s, self._quads_l)
+            quad_s + quad_l / 2
+            for quad_s, quad_l in zip(self._quads_s, self._quads_l, strict=True)
         ]
 
-        self._get_quad2bpm(_Q2B_special_cases)
-        self._get_bpm2quad(_B2Q_special_cases)
+        self._get_quad2bpm(self.config["QUAD2BPM_SPECIAL_CASES"])
+        self._get_bpm2quad(self.config["BPM2QUAD_SPECIAL_CASES"])
 
-    def _get_quad2bpm(self, Q2B_special_cases: Dict[str, str]) -> None:
+    def _get_quad2bpm(self, q2b_special_cases: dict[str, str]) -> None:
         """Generate the quad2bpm dictionary. 1 to 1. Asymmetrical.
 
         Args:
-            Q2B_special_cases: Dictionary of special cases for the quad2bpm dictionary.
+            q2b_special_cases: Dictionary of special cases for the quad2bpm dictionary.
         """
-        q2b_names: Dict[str, str] = {}
+        q2b_names: dict[str, str] = {}
 
-        for quad_name, quad_mid in zip(self.quads_names, self._quads_mid):
-            if quad_name not in Q2B_special_cases:
+        for quad_name, quad_mid in zip(self.quads_names, self._quads_mid, strict=True):
+            if quad_name not in q2b_special_cases:
                 closest_bpm_index, _ = min(
                     enumerate(self._bpms_s), key=lambda x: abs(x[1] - quad_mid)
                 )
                 q2b_names[quad_name] = self.bpms_names[closest_bpm_index]
             else:
-                chosen_bpm_name = Q2B_special_cases[quad_name]
+                chosen_bpm_name = q2b_special_cases[quad_name]
                 q2b_names[quad_name] = chosen_bpm_name
 
         self._quad2bpm_names = q2b_names
@@ -267,32 +258,32 @@ class Machine:
         """
         try:
             return self._quad2bpm_names[quad]
-        except KeyError:
+        except KeyError as e:
             msg = f"Invalid quadrupole name provided: {quad}"
             log.critical(msg)
-            raise InvalidElementError(msg)
+            raise InvalidElementError(msg) from e
 
-    def _get_bpm2quad(self, _B2Q_special_cases: Dict[str, List[str]]) -> None:
+    def _get_bpm2quad(self, b2q_special_cases: dict[str, list[str]]) -> None:
         """Generate the bpm2quad dictionary. 1 to many. Asymmetrical.
 
         Args:
-            _B2Q_special_cases: Dictionary of special cases for the bpm2quad dictionary.
+            b2q_special_cases: Dictionary of special cases for the bpm2quad dictionary.
         """
-        b2q_names: Dict[str, List[str]] = defaultdict(list)
+        b2q_names: dict[str, list[str]] = defaultdict(list)
 
         for bpm_name in self.bpms_names:
-            if bpm_name not in _B2Q_special_cases:
+            if bpm_name not in b2q_special_cases:
                 chosen_quads_names = [
                     k for k, v in self._quad2bpm_names.items() if bpm_name is v
                 ]
                 b2q_names[bpm_name] = chosen_quads_names
             else:
-                chosen_quads_names = _B2Q_special_cases[bpm_name]
+                chosen_quads_names = b2q_special_cases[bpm_name]
                 b2q_names[bpm_name] = chosen_quads_names
 
         self._bpm2quad_names = b2q_names
 
-    def bpm2quad(self, bpm: str) -> List[str]:
+    def bpm2quad(self, bpm: str) -> list[str]:
         """Return the quadrupole names for a given BPM name.
 
         Args:
@@ -309,7 +300,7 @@ class Machine:
             raise InvalidElementError(msg)
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
-    def get_enabled_bpms(self) -> List[int]:
+    def get_enabled_bpms(self) -> list[int]:
         """Get the enabled status of the BPMs.
 
         Returns:
@@ -318,7 +309,7 @@ class Machine:
         return [int(x) for x in self._lattice.get_element_values("BPM", "enabled")]
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
-    def measure_bpms(self, axis: str) -> List[float]:
+    def measure_bpms(self, axis: str) -> list[float]:
         """Measure the BPMs.
 
         Args:
@@ -358,7 +349,7 @@ class Machine:
             raise NotImplementedError(msg)
         return element
 
-    def _get_slow_correctors(self) -> List[str]:
+    def _get_slow_correctors(self) -> list[str]:
         """Return a list of slow corrector names.
 
         A corrector is slow if its name is in the format SR__S or _SCOR.
@@ -404,7 +395,7 @@ class Machine:
             log.critical(msg)
             raise FileNotFoundError(msg)
 
-        self._effective_corrector: Dict[str, List[str]] = defaultdict(list)
+        self._effective_corrector: dict[str, list[str]] = defaultdict(list)
         data = loadmat(orm_filepath, appendmat=False, struct_as_record=False)
         self._horizontal_orm, self._vertical_orm = (
             data["Rmat"][0][0].Data,
@@ -414,7 +405,7 @@ class Machine:
         for index, bpm_name in enumerate(self.bpms_names):
             self._get_best_corrector_for_bpm(index, bpm_name)
 
-    def effective_correctors(self, bpm: str) -> List[str]:
+    def effective_correctors(self, bpm: str) -> list[str]:
         """Return the best corrector names for a given BPM name.
 
         Args:
@@ -510,8 +501,7 @@ class Machine:
         fofb_max_orbit = self.config["FOFB_MAX_ORBIT_MICRONS"]
         max_value = self.get_largest_orbit()
         while max_value >= fofb_max_orbit:
-            msg = "Orbit is too large for FOFB. Running SOFB."
-            log.error(msg)
+            log.error("Orbit is too large for FOFB. Running SOFB.")
             self.run_sofb()
             max_value = self.get_largest_orbit()
 
@@ -576,8 +566,9 @@ class Machine:
         enabled_bpms = self.get_enabled_bpms() + self.get_enabled_bpms()
         fofb_disabled_bpms = self.fofb_disabled["x"] + self.fofb_disabled["y"]
         fofb_enabled_bpms = np.logical_not(fofb_disabled_bpms).astype(int)
-        acceptable_values: List[float] = [
-            v * e * f for v, e, f in zip(bpm_values, enabled_bpms, fofb_enabled_bpms)
+        acceptable_values: list[float] = [
+            v * e * f
+            for v, e, f in zip(bpm_values, enabled_bpms, fofb_enabled_bpms, strict=True)
         ]
         max_value = abs(max(acceptable_values, key=abs))
         return max_value * MM_MICRON_CONVERSION
@@ -598,7 +589,7 @@ class Machine:
 
     @staticmethod
     def set_quad_setpoint(
-        quadrupole: EpicsElement, value: Union[float, int], sleep: bool = False
+        quadrupole: EpicsElement, value: float | int, sleep: bool = False
     ) -> None:
         """Set the quadrupole setpoint.
 
@@ -631,9 +622,7 @@ class Machine:
         return value
 
     @staticmethod
-    def set_corrector_setpoint(
-        components: Components, value: Union[float, int]
-    ) -> None:
+    def set_corrector_setpoint(components: Components, value: float | int) -> None:
         """Set the corrector setpoint.
 
         Args:
@@ -644,7 +633,8 @@ class Machine:
         log.debug(f"Corrector {components.corrector_name} set value: {value}")
 
     def zero_origins(self, folder_path: str) -> None:
-        """Zero the BCD and Golden offsets. Additionally, save the golden offsets to a file.
+        """Zero the BCD and Golden offsets. Additionally, save the golden offsets to a
+        file.
 
         Args:
             folder_path: Path to save the golden offsets to.
@@ -691,7 +681,7 @@ class Machine:
         log.debug("Origins Restored")
 
     @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
-    def get_bba_offsets(self) -> Tuple[List[float], List[float]]:
+    def get_bba_offsets(self) -> tuple[list[float], list[float]]:
         """Get the current BBA offsets.
 
         Returns:

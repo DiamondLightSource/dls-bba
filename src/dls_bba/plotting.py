@@ -1,5 +1,4 @@
 import os
-from typing import Dict
 
 # isort: off
 import matplotlib
@@ -9,7 +8,7 @@ matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt  # noqa E402
 
 # isort: on
-from dls_bba.datatypes import BPMOffset, FullResults  # noqa E402
+from dls_bba.datatypes import BPMOffset, FullResults, OscillationPlane  # noqa E402
 from dls_bba.machine import Machine  # noqa E402
 
 MM_TO_UM_UNIT_CONV = 1000
@@ -35,7 +34,7 @@ def bba_offsets_folder(
 
     load_folder_results = [FullResults.from_file(file) for file in good_files]
 
-    offsets_dict: Dict[str, BPMOffset] = {}
+    offsets_dict: dict[str, OscillationPlane[BPMOffset]] = {}
     for results in load_folder_results:
         offsets_dict.update(results.bpm_offsets.items())
 
@@ -44,7 +43,7 @@ def bba_offsets_folder(
 
 def bba_offsets_plot(
     machine: Machine,
-    offsets_dict: Dict[str, BPMOffset],
+    offsets_dict: dict[str, OscillationPlane[BPMOffset]],
     save_location: str,
     save: bool = False,
 ) -> plt.Figure:
@@ -64,9 +63,9 @@ def bba_offsets_plot(
     change_in_dx = []
     for bpm_name in machine.bba_x_pvs:
         if bpm_name.replace("-", "_").replace(":", "__") in offsets_dict.keys():
-            calc_offsets = offsets_dict[bpm_name.replace("-", "_").replace(":", "__")]
-            change_in_x.append(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV)
-            change_in_dx.append(abs(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV))
+            calc_offsets = offsets_dict[bpm_name.replace("-", "_").replace(":", "__")].x
+            change_in_x.append(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV)  # type: ignore
+            change_in_dx.append(abs(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV))  # type: ignore
         else:
             change_in_x.append(0)
             change_in_dx.append(0)
@@ -75,9 +74,9 @@ def bba_offsets_plot(
     change_in_dy = []
     for bpm_name in machine.bba_y_pvs:
         if bpm_name.replace("-", "_").replace(":", "__") in offsets_dict.keys():
-            calc_offsets = offsets_dict[bpm_name.replace("-", "_").replace(":", "__")]
-            change_in_y.append(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV)
-            change_in_dy.append(abs(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV))
+            calc_offsets = offsets_dict[bpm_name.replace("-", "_").replace(":", "__")].y
+            change_in_y.append(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV)  # type: ignore
+            change_in_dy.append(abs(calc_offsets.diff_value * MM_TO_UM_UNIT_CONV))  # type: ignore
         else:
             change_in_y.append(0)
             change_in_dy.append(0)
@@ -120,11 +119,10 @@ def bowtie_plot(filepath: str, save: bool = False) -> plt.Figure:
     Returns:
         The figure object.
     """
-    results_object = FullResults.from_file(filepath)
+    results_object: FullResults = FullResults.from_file(filepath)
     bpm_name = results_object.metadata["bpm_name"]
-    keys = results_object.quad_results.keys()
     quad_names = []
-    for key in keys:
+    for key in results_object.quad_results.keys():
         quad_name = key.split("__")[0]
         if quad_name not in quad_names:
             quad_names.append(quad_name)
@@ -147,7 +145,7 @@ def bowtie_plot(filepath: str, save: bool = False) -> plt.Figure:
 
             axes[a_index, q_index].plot(x, y, color=color, lw=0.5)
 
-            value, error = results_object.quad_results[key]
+            value, error = results_object.quad_results[quad_name][axis]
             value = value * MM_TO_UM_UNIT_CONV
             error = error * MM_TO_UM_UNIT_CONV
 

@@ -1,9 +1,9 @@
 import logging as log
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from dls_bba.algorithm import Algorithm
-from dls_bba.datatypes import BPMOffset, FullResults
+from dls_bba.datatypes import BPMOffset, FullResults, OscillationPlane
 from dls_bba.fbba import FastBBA
 from dls_bba.isotime import get_isotime
 from dls_bba.logger import get_new_logger
@@ -11,7 +11,7 @@ from dls_bba.machine import Machine
 from dls_bba.sbba import SlowBBA
 from dls_bba.simfbba import SimFastBBA
 
-ALGORITHMS: Dict[str, type[Algorithm]] = {
+ALGORITHMS: dict[str, type[Algorithm]] = {
     "SlowBBA": SlowBBA,
     "FastBBA": FastBBA,
     "SimFastBBA": SimFastBBA,
@@ -19,7 +19,7 @@ ALGORITHMS: Dict[str, type[Algorithm]] = {
 
 
 def setup_folders_and_logger(
-    method: str, folder_path: Optional[str] = None, gui: Optional[log.Handler] = None
+    method: str, folder_path: str | None = None, gui: log.Handler | None = None
 ) -> str:
     """Setup the folders and logger for the BBA run.
 
@@ -43,9 +43,9 @@ def setup_folders_and_logger(
 
 def apply_golden(
     filepath: str,
-    machine: Optional[Machine] = None,
-    config_files: Optional[List[Any]] = None,
-    additional_config: Optional[Dict[str, Any]] = None,
+    machine: Machine | None = None,
+    config_files: list[Any] | None = None,
+    additional_config: dict[str, Any] | None = None,
 ) -> None:
     """Apply the golden offsets provided to the machine.
 
@@ -63,9 +63,9 @@ def apply_golden(
 
 def apply_single(
     filepath: str,
-    machine: Optional[Machine] = None,
-    config_files: Optional[List[Any]] = None,
-    additional_config: Optional[Dict[str, Any]] = None,
+    machine: Machine | None = None,
+    config_files: list[Any] | None = None,
+    additional_config: dict[str, Any] | None = None,
 ) -> None:
     """Apply a single BBA results file to the machine.
 
@@ -84,9 +84,9 @@ def apply_single(
 
 def apply_folder(
     folderpath: str,
-    machine: Optional[Machine] = None,
-    config_files: Optional[List[Any]] = None,
-    additional_config: Optional[Dict[str, Any]] = None,
+    machine: Machine | None = None,
+    config_files: list[Any] | None = None,
+    additional_config: dict[str, Any] | None = None,
 ) -> None:
     """Apply multiple BBA results files to the machine.
 
@@ -106,7 +106,7 @@ def apply_folder(
 
     load_folder_results = [FullResults.from_file(file) for file in good_files]
 
-    offsets_dict: Dict[str, BPMOffset] = {}
+    offsets_dict: dict[str, OscillationPlane[BPMOffset]] = {}
     for results in load_folder_results:
         offsets_dict.update(results.bpm_offsets.items())
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import numpy as np
 from cothread.catools import caput
@@ -70,7 +70,7 @@ class FofbCorrector:
             The corrector IOC table.
         """
         correctors_txt = machine.config["CORRECTORS_TXT_PATH"]
-        with open(correctors_txt, "r", encoding="utf8", newline="") as file:
+        with open(correctors_txt, encoding="utf8", newline="") as file:
             data = np.genfromtxt(file, names=True, dtype=None, encoding="UTF-8")
         return data
 
@@ -91,7 +91,7 @@ class Oscillation:
         return length
 
 
-class Excitation(object):
+class Excitation:
     """An excitation performed on a corrector."""
 
     def __init__(
@@ -128,7 +128,7 @@ class Excitation(object):
         self.iocs = machine.config["CORRECTOR_IOCS"]
 
 
-def excite(excitations: Tuple[Excitation, ...]) -> None:
+def excite(excitations: tuple[Excitation, ...]) -> None:
     """Completes caputs which will start the excitation.
 
     Args:
@@ -144,7 +144,7 @@ def excite(excitations: Tuple[Excitation, ...]) -> None:
     )
 
     # Create dict of PVs to put
-    pvs: Dict[str, Any] = {}
+    pvs: dict[str, Any] = {}
     for e in excitations:
         pvs.update(
             {
@@ -162,7 +162,7 @@ def excite(excitations: Tuple[Excitation, ...]) -> None:
         if pvs[f"{e.ioc}:EXCITE:START_TIMES"][index] != 0:
             raise ValueError(
                 f"Corrector {e.ioc}:{e.fofb_index:02d} cannot be "
-                "specified twice in the same plane"
+                f"specified twice in the same plane"
             )
         pvs[f"{e.ioc}:EXCITE:START_TIMES"][index] = e.start_time
         pvs[f"{e.ioc}:EXCITE:AMPS"][index] = e.oscillation.amplitude
@@ -170,7 +170,7 @@ def excite(excitations: Tuple[Excitation, ...]) -> None:
         pvs[f"{e.ioc}:EXCITE:TICKS"][index] = e.count
 
     # caput the values
-    caput(*zip(*pvs.items()), wait=True)
+    caput(*zip(*pvs.items(), strict=True), wait=True)
 
     # Ensure all values are put, then reset the reset the IOCs
     # cothread.Yield()
@@ -203,7 +203,7 @@ def cancel_all_oscillations(config: Configuration) -> None:
             }
         )
 
-    caput(*zip(*pvs.items()), wait=True)
+    caput(*zip(*pvs.items(), strict=True), wait=True)
 
     # Ensure all values are put, then reset the reset the IOCs
     # cothread.Yield()

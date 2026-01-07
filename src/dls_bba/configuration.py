@@ -1,23 +1,20 @@
 from __future__ import annotations
 
-import sys
 from copy import deepcopy
+from importlib.resources import files
 from json import load
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
-if sys.version_info > (3, 9):
-    from importlib.resources import files
-else:
-    from importlib_resources import files
+PathList = list[Path] | list[str]
 
-DEFAULT_CONFIGS: Tuple[str, str] = (
+DEFAULT_CONFIGS: tuple[str, str] = (
     "I04-settings.json",
     "defaults.json",
 )
 """The default configuration files."""
 
-LATTICE_SETTINGS: Tuple[str, ...] = (
+LATTICE_SETTINGS: tuple[str, ...] = (
     "RINGMODE",
     "COTHREAD_CONTROL_SYSTEM_TIMEOUT",
     "COTHREAD_CONTROL_SYSTEM_WAIT_FLAG",
@@ -42,7 +39,7 @@ class Configuration:
 
     def __init__(self) -> None:
         """Initialise the Configuration class."""
-        self._config: Dict[str, Any] = {}
+        self._config: dict[str, Any] = {}
 
     def __getitem__(self, key: str) -> Any:
         """Get an item from the configuration object.
@@ -56,9 +53,7 @@ class Configuration:
         return self._config[key]
 
     @classmethod
-    def from_configuration_files(
-        cls, paths: Optional[Union[List[Path], List[str]]] = None
-    ) -> Configuration:
+    def from_configuration_files(cls, paths: PathList | None = None) -> Configuration:
         """Construct a Configuration object using given config .json filepaths."""
         config = cls()
         config.apply_default_config()
@@ -76,26 +71,28 @@ class Configuration:
         ]
         self.apply_config_files(default_config_resources)
 
-    def update_config(self, new_dictionary: Dict[str, Any]) -> bool:
+    def update_config(self, new_dictionary: dict[str, Any]) -> bool:
         """Update the configuration object with fields from the given dictionary.
 
         Args:
             new_dictionary: The dictionary to update the configuration object with.
 
         Returns:
-            True if any of the keys in the given dictionary are in LATTICE_SETTINGS, False otherwise.
+            True if any of the keys in the given dictionary are in LATTICE_SETTINGS,
+            False otherwise.
         """
         self._config.update(new_dictionary)
         return any(key in new_dictionary for key in LATTICE_SETTINGS)
 
-    def apply_config_files(self, paths: Union[List[Path], List[str]]) -> bool:
+    def apply_config_files(self, paths: PathList) -> bool:
         """Apply the configuration files at the given paths.
 
         Args:
             paths: The paths to the configuration files.
 
         Returns:
-            True if any of the keys in the given dictionary are in LATTICE_SETTINGS, False otherwise.
+            True if any of the keys in the given dictionary are in LATTICE_SETTINGS,
+            False otherwise.
         """
         reload_lattice = False
         for pth in paths:
@@ -105,7 +102,7 @@ class Configuration:
                     reload_lattice = True
         return reload_lattice
 
-    def get_settings(self) -> Dict[str, Any]:
+    def get_settings(self) -> dict[str, Any]:
         """Copy the configuration object.
 
         Returns:

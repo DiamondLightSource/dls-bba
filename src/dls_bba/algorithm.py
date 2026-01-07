@@ -1,7 +1,8 @@
 import logging as log
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, List, Tuple
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 from cothread import Sleep
@@ -9,7 +10,13 @@ from cothread.catools import caput
 from pytac.element import EpicsElement
 
 from dls_bba.components import Components
-from dls_bba.datatypes import BPMOffset, FullResults, OscillationPlane, RawData
+from dls_bba.datatypes import (
+    BPMOffset,
+    FullResults,
+    OscillationPlane,
+    QuadResults,
+    RawData,
+)
 from dls_bba.machine import ORIGIN_SUFFIXES, Machine
 from dls_bba.plotting import bba_offsets_plot
 
@@ -26,7 +33,7 @@ class Algorithm(ABC):
         self._machine = machine
 
     @abstractmethod
-    def run(self, component_pair: List[Components]) -> RawData:
+    def run(self, component_pair: list[Components]) -> RawData:
         """Runs the algorithm.
 
         Args:
@@ -51,7 +58,7 @@ class Algorithm(ABC):
 
     def calculate_quad_setpoints(
         self, quadrupole: EpicsElement
-    ) -> Tuple[float, float, float, float, float]:
+    ) -> tuple[float, float, float, float, float]:
         """Calculates the quadrupole setpoints.
 
         Args:
@@ -70,8 +77,10 @@ class Algorithm(ABC):
         return quad_start_high, quad_high, quad_low, quad_setpoint, quad_step
 
     def create_offsets_dict(
-        self, results: Dict[str, List[float]], metadata: Dict[str, Any]
-    ) -> Dict[str, BPMOffset]:
+        self,
+        results: dict[str, OscillationPlane[QuadResults]],
+        metadata: dict[str, Any],
+    ) -> dict[str, OscillationPlane[BPMOffset]]:
         """Creates a dictionary containing the old and new offsets.
 
         Args:
@@ -81,7 +90,7 @@ class Algorithm(ABC):
         Returns:
             A dictionary containing the old, new and difference in offsets for each BPM.
         """
-        offsets: Dict[str, BPMOffset] = {}
+        offsets: dict[str, OscillationPlane[BPMOffset]] = {}
         bpm_name = metadata["bpm_name"]
         bpm_index = metadata["bpm_index"]
 
@@ -91,9 +100,9 @@ class Algorithm(ABC):
             # Calculate the change needed.
             difference = self.calculate_new_offsets(results, axis)
             # Calculate the new BBA offset.
-            new_bba = float("%0.4f" % (old_bba + difference[0]))
+            new_bba = round(old_bba + difference[0], 4)
             # Set all values to 4d.p.
-            diff_value, diff_error = [float("%0.4f" % v) for v in difference]
+            diff_value, diff_error = [round(v, 4) for v in difference]
 
             if bpm_name not in offsets.keys():
                 offsets[bpm_name] = OscillationPlane()
@@ -104,8 +113,8 @@ class Algorithm(ABC):
         return offsets
 
     def calculate_new_offsets(
-        self, results: Dict[str, List[float]], axis: str
-    ) -> List[float]:
+        self, results: dict[str, OscillationPlane[QuadResults]], axis: str
+    ) -> list[float]:
         """Calculates the new offsets for a given axis.
 
         Args:
@@ -115,7 +124,6 @@ class Algorithm(ABC):
         Returns:
             A list containing the new offset and the error.
         """
-        keys = [key for key in results.keys() if axis.lower() in key]
         values = []
         errors = []
         sum_error = 0.0
@@ -129,10 +137,10 @@ class Algorithm(ABC):
 
     def reformat_and_save_offsets(
         self,
-        results_list: List[FullResults],
+        results_list: list[FullResults],
         save_location: str,
     ):
-        offsets_dict: Dict[str, BPMOffset] = {}
+        offsets_dict: dict[str, OscillationPlane[BPMOffset]] = {}
         for results in results_list:
             offsets_dict.update(results.bpm_offsets.items())
 
@@ -141,7 +149,7 @@ class Algorithm(ABC):
 
     def use_bba_offsets(
         self,
-        results_list: List[FullResults],
+        results_list: list[FullResults],
         save_location: str,
         question: Callable[[str], bool],
     ) -> None:
@@ -160,7 +168,7 @@ class Algorithm(ABC):
 
     def _save_bba_offsets(
         self,
-        offsets_dict: Dict[str, BPMOffset],
+        offsets_dict: dict[str, OscillationPlane[BPMOffset]],
         save_location: str,
     ) -> None:
         """Saves the BBA offsets to a file in a human readable format.
@@ -174,17 +182,23 @@ class Algorithm(ABC):
             for key, value in offsets_dict.items():
                 for plane in ["x", "y"]:
                     pv_name = key + ORIGIN_SUFFIXES["BBA"].format(axis=plane.upper())
-                    line = f"{pv_name} Absolute change: {value[plane].diff_value} +/- {value[plane].diff_error} [mm]"
+                    line = (
+                        f"{pv_name} Absolute change: {value[plane].diff_value} "
+                        f"+/- {value[plane].diff_error} [mm]"
+                    )
                     log.info(line)
                     writer.write(line + "\n")
-                    line = f"{pv_name} Old: {value[plane].old_value} [mm], New: {value[plane].new_value} [mm]"
+                    line = (
+                        f"{pv_name} Old: {value[plane].old_value} [mm], "
+                        f"New: {value[plane].new_value} [mm]"
+                    )
                     log.info(line)
                     writer.write(line + "\n")
             writer.close()
 
     def apply_bba_offsets(
         self,
-        offsets_dict: Dict[str, BPMOffset],
+        offsets_dict: dict[str, OscillationPlane[BPMOffset]],
     ) -> None:
         """Applies the BBA offsets to the machine.
 

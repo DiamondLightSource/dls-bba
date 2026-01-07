@@ -2,19 +2,14 @@ from __future__ import annotations
 
 import os
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List
+from typing import Any, Generic, TypeVar
 
 import numpy as np
+import numpy.typing as npt
 import scipy.io as io
 
 
-@dataclass
-class QuadStrength:
-    """The offset data for a single BPM PV."""
-
-    high: np.ndarray[float] = None
-    low: np.ndarray[float] = None
-
+class DictDataclass:
     def __getitem__(self, item):
         return getattr(self, item)
 
@@ -23,7 +18,15 @@ class QuadStrength:
 
 
 @dataclass
-class BPMOffset:
+class QuadStrength(DictDataclass):
+    """The offset data for a single BPM PV."""
+
+    high: npt.NDArray[np.float64] | None = None
+    low: npt.NDArray[np.float64] | None = None
+
+
+@dataclass
+class BPMOffset(DictDataclass):
     """The offset data for a single BPM PV."""
 
     old_value: float
@@ -31,47 +34,32 @@ class BPMOffset:
     diff_value: float
     diff_error: float
 
-    def __getitem__(self, item):
-        return getattr(self, item)
-
-    def __setitem__(self, item, value):
-        return setattr(self, item, value)
-
 
 @dataclass
-class QuadResults:
+class QuadResults(DictDataclass):
     """The mean offset and standard deviation of offsets for a Quadrupole."""
 
     mean_offset: float
     std_dev_offset: float
 
-    def __getitem__(self, item):
-        return getattr(self, item)
 
-    def __setitem__(self, item, value):
-        return setattr(self, item, value)
+T = TypeVar('T', QuadStrength, QuadResults, BPMOffset)
 
 
 @dataclass
-class OscillationPlane:
+class OscillationPlane(Generic[T], DictDataclass):
     """The offset data for a single BPM PV."""
 
-    x: QuadStrength | BPMOffset | QuadResults = None
-    y: QuadStrength | BPMOffset | QuadResults = None
-
-    def __getitem__(self, item):
-        return getattr(self, item)
-
-    def __setitem__(self, item, value):
-        return setattr(self, item, value)
+    x: T | None = None
+    y: T | None = None
 
 
 @dataclass
 class RawData:
     """Raw data from a BBA measurement."""
 
-    rawdata: Dict[str, Any]
-    metadata: Dict[str, Any]
+    rawdata: dict[str, OscillationPlane[QuadStrength]]
+    metadata: dict[str, Any]
 
     def save_old(self, folder_path: str) -> None:
         """Save the RawData object to a .mat file.
@@ -121,7 +109,7 @@ class RawData:
             A RawData object.
         """
         dct = io.loadmat(filepath, simplify_cells=True)
-        rawdata: Dict[str, List[float]] = {}
+        rawdata: dict[str, OscillationPlane[QuadStrength]] = {}
         for key, values in dct["rawdata"].items():
             quad_name, position = key.split("__")
             quad_name = quad_name.replace("_", "-")
@@ -147,7 +135,7 @@ class RawData:
             A RawData object.
         """
         dct = io.loadmat(filepath, simplify_cells=True)
-        rawdata: Dict[str, List[float]] = {}
+        rawdata: dict[str, OscillationPlane[QuadStrength]] = {}
         for key, value in dct["rawdata"].items():
             quad_name = key.replace("_", "-")
             rawdata[quad_name] = OscillationPlane()
@@ -157,6 +145,10 @@ class RawData:
                     rawdata[quad_name][plane][quad_strength] = raw_array
         # TODO: metadata
         return cls(rawdata, dct["metadata"])
+
+    @classmethod
+    def from_file(cls, filepath: str) -> RawData:
+        return cls.new_from_new_file(filepath)
 
     def save_new(self, folder_path: str) -> None:
         """Save the RawData object to a .mat file.
@@ -185,23 +177,18 @@ class RawData:
             long_field_names=True,
         )
 
+    def save(self, folder_path: str) -> None:
+        self.save_new(folder_path)
+
 
 @dataclass
 class FullResults:
     """The results of a BBA measurement and analysis."""
 
-    def __init__(
-        self,
-        quad_results: Dict[str, List[float]],
-        metadata: Dict[str, Any],
-        plotting: Dict[str, Dict[str, np.ndarray]],
-        bpm_offsets: Dict[str, BPMOffset],
-    ) -> None:
-        self.quad_results: Dict[str, List[float]] = quad_results
-        self.metadata: Dict[str, Any] = metadata
-        self.plotting: Dict[str, Dict[str, np.ndarray]] = plotting
-        self.bpm_offsets: Dict[str, BPMOffset] = bpm_offsets
-        # TODO: string representation
+    quad_results: dict[str, OscillationPlane[QuadResults]]
+    metadata: dict[str, Any]
+    plotting: dict[str, dict[str, np.ndarray]]
+    bpm_offsets: dict[str, OscillationPlane[BPMOffset]]
 
     @classmethod
     def old_from_old_file(cls, filepath: str) -> FullResults:
@@ -215,15 +202,15 @@ class FullResults:
         """
         dct = io.loadmat(filepath, simplify_cells=True)
 
-        results: Dict[str, List[float]] = {}
-        for keys, values in dct["results"].items():
-            results[keys] = values.tolist()
+        results: dict[str, list[float]] = {}
+        for key, values in dct["results"].items():
+            results[key] = values.tolist()
 
-        offsets: Dict[str, BPMOffset] = {}
+        offsets: dict[str, BPMOffset] = {}
         for key, values in dct["offsets"].items():
             offsets[key] = BPMOffset(**values)
 
-        return cls(results, dct["metadata"], dct["plotting"], offsets)
+        return cls(results, dct["metadata"], dct["plotting"], offsets)  # type: ignore
 
     @classmethod
     def new_from_old_file(cls, filepath: str) -> FullResults:
@@ -237,7 +224,7 @@ class FullResults:
         """
         dct = io.loadmat(filepath, simplify_cells=True)
 
-        results: Dict[str, List[float]] = {}
+        results: dict[str, OscillationPlane[QuadResults]] = {}
         for key, values in dct["results"].items():
             quad_name, plane = key.split("__")
             quad_name = quad_name.replace("_", "-")
@@ -245,7 +232,7 @@ class FullResults:
                 results[quad_name] = OscillationPlane()
             results[quad_name][plane] = QuadResults(*values)
 
-        offsets: Dict[str, BPMOffset] = {}
+        offsets: dict[str, OscillationPlane[BPMOffset]] = {}
         for key, values in dct["offsets"].items():
             bpm_name, _, plane = key.split("__")
             bpm_name = bpm_name.replace("_", "-")
@@ -268,7 +255,7 @@ class FullResults:
         """
         dct = io.loadmat(filepath, simplify_cells=True)
 
-        results: Dict[str, List[float]] = {}
+        results: dict[str, OscillationPlane[QuadResults]] = {}
         for key, planes in dct["results"].items():
             quad_name = key.replace("_", "-")
             for plane, values in planes.items():
@@ -276,7 +263,7 @@ class FullResults:
                     results[quad_name] = OscillationPlane()
                 results[quad_name][plane] = QuadResults(**values)
 
-        offsets: Dict[str, BPMOffset] = {}
+        offsets: dict[str, OscillationPlane[BPMOffset]] = {}
         for key, planes in dct["offsets"].items():
             bpm_name = key.replace("_", "-")
             for plane, values in planes.items():
@@ -286,6 +273,10 @@ class FullResults:
         # TODO: metadata & plotting
         return cls(results, dct["metadata"], dct["plotting"], offsets)
 
+    @classmethod
+    def from_file(cls, filepath: str) -> FullResults:
+        return cls.new_from_new_file(filepath)
+
     def save_old(self, folder_path: str) -> None:
         """Save the Results object to a .mat file.
 
@@ -294,17 +285,17 @@ class FullResults:
         Args:
             folder_path: The path to the folder to save the .mat file to.
         """
-        results: Dict[str, List[float]] = self.quad_results
-        metadata: Dict[str, Any] = self.metadata
-        plotting: Dict[str, Dict[str, np.ndarray]] = self.plotting
-        offsets: Dict[str, BPMOffset] = self.bpm_offsets
+        results: dict[str, OscillationPlane[QuadResults]] = self.quad_results
+        metadata: dict[str, Any] = self.metadata
+        plotting: dict[str, dict[str, np.ndarray]] = self.plotting
+        offsets: dict[str, OscillationPlane[BPMOffset]] = self.bpm_offsets
 
         method: str = metadata["method"]
         isotime: str = metadata["isotime"]
         bpm_name: str = metadata["bpm_name"]
         filename = f"{method}-{isotime}-{bpm_name}-results.mat"
 
-        offsets_dict: Dict[str, Dict[str, float]] = {}
+        offsets_dict: dict[str, dict[str, float]] = {}
         for key, values in offsets.items():
             offsets_dict[key] = asdict(values)
 
@@ -329,10 +320,10 @@ class FullResults:
         Args:
             folder_path: The path to the folder to save the .mat file to.
         """
-        results: Dict[str, List[float]] = self.quad_results
-        metadata: Dict[str, Any] = self.metadata
-        plotting: Dict[str, Dict[str, np.ndarray]] = self.plotting
-        offsets: Dict[str, BPMOffset] = self.bpm_offsets
+        results: dict[str, OscillationPlane[QuadResults]] = self.quad_results
+        metadata: dict[str, Any] = self.metadata
+        plotting: dict[str, dict[str, np.ndarray]] = self.plotting
+        offsets: dict[str, OscillationPlane[BPMOffset]] = self.bpm_offsets
 
         method: str = metadata["method"]
         isotime: str = metadata["isotime"]
@@ -342,7 +333,7 @@ class FullResults:
         results_dict = {}
         for key, value in results.items():
             results_dict[key.replace("-", "_")] = value
-        offsets_dict: Dict[str, Dict[str, float]] = {}
+        offsets_dict: dict[str, dict[str, float]] = {}
         for key, values in offsets.items():
             offsets_dict[key.replace("-", "_")] = asdict(values)
 
@@ -359,8 +350,5 @@ class FullResults:
             long_field_names=True,
         )
 
-
-RawData.save = RawData.save_new
-RawData.from_file = RawData.new_from_new_file
-FullResults.save = FullResults.save_new
-FullResults.from_file = FullResults.new_from_new_file
+    def save(self, folder_path: str) -> None:
+        self.save_new(folder_path)

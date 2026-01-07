@@ -1,10 +1,11 @@
 import logging as log
 import os
 import signal
-import sys
 import traceback
+from collections.abc import Callable
+from importlib.resources import files
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any
 
 # isort: off
 import matplotlib
@@ -35,6 +36,7 @@ from PyQt6.QtWidgets import (  # noqa: E402
     QTextEdit,
 )
 from pytac.load_csv import available_ringmodes  # noqa: E402
+from typing_extensions import override
 
 from dls_bba.common import (  # noqa: E402
     ALGORITHMS,
@@ -44,16 +46,11 @@ from dls_bba.common import (  # noqa: E402
 )
 from dls_bba.excite import cancel_all_oscillations  # noqa E402
 from dls_bba.isotime import get_isotime  # noqa: E402
-from dls_bba.machine import ORIGIN_SUFFIXES, Machine  # noqa: E402
+from dls_bba.machine import Machine  # noqa: E402
 from dls_bba.plotting import bba_offsets_folder, bowtie_plot  # noqa: E402
 from dls_bba.worker import Worker  # noqa: E402
 
-if sys.version_info > (3, 9):
-    from importlib.resources import files
-else:
-    from importlib_resources import files
-
-UI_FILENAME: List[str] = ["fbba_gui.ui"]
+UI_FILENAME: str = "fbba_gui.ui"
 """The name of the .ui file."""
 # DEFAULT_SAVE_LOCATION: str = "/dls/ops-physics/diamonddata/fastBBA"
 RAD_TO_URAD_CONV: float = 1e6
@@ -61,7 +58,9 @@ RAD_TO_URAD_CONV: float = 1e6
 
 
 class Ticker:
-    """The Ticker controls how the state changes of the process get returned to the GUI."""
+    """
+    The Ticker controls how the state changes of the process get returned to the GUI.
+    """
 
     def __init__(
         self, on_update: Callable[[str, str], None], progress: Callable[[float], None]
@@ -86,7 +85,7 @@ class Ticker:
         """
         self.__set_state("Running")
         worker.start()
-        fraction: Union[float, int] = 1
+        fraction: float = 1.0
         self.__progress(fraction)
 
         action = "run"
@@ -183,7 +182,7 @@ class GuiLogger(log.Handler):
 class MainWindow(QMainWindow):
     """The GUI MainWindow."""
 
-    tabWidget: QTabWidget
+    tab_widget: QTabWidget
 
     # Main page widgets:
     # Method Selection
@@ -202,7 +201,7 @@ class MainWindow(QMainWindow):
     button_pause: QPushButton
     button_stop: QPushButton
     button_reset: QPushButton
-    progressBar: QProgressBar
+    progress_bar: QProgressBar
     # Config
     config_use_feedbacks: QCheckBox
     config_use_fofb: QCheckBox
@@ -262,13 +261,11 @@ class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs) -> None:
         """Setup the GUI."""
         super().__init__(*args, **kwargs)
-        ui_file = [
-            Path(files("dls_bba").joinpath(resource)) for resource in UI_FILENAME
-        ][0]
+        ui_file = Path(files("dls_bba").joinpath(UI_FILENAME))  # type: ignore
         uic.loadUi(ui_file, self)
 
         self.machine = Machine()
-        self.modes: Dict[str, List[Union[List[str], Dict[str, List[str]]]]] = {
+        self.modes: dict[str, list[list[str] | dict[str, list[str]]]] = {
             "Whole Machine": [["Whole Machine"], self.machine.bpms_names],
             "Cells": [
                 list(self.machine.cell_dictionary.keys()),
@@ -278,24 +275,24 @@ class MainWindow(QMainWindow):
             "Quadrupoles": [self.machine.quads_names, self.machine.quads_names],
             "PSPs": [["All PSPs"], self.machine.psps],
         }
-        self.recent_folder: Optional[str] = None
-        self.last_list: Optional[List[str]] = None
-        self.selection_strings: Optional[List[str]] = None
-        self.selected: Optional[Union[List[str], str]] = None
-        self.loadfolder: Optional[str] = None
-        self.savepath: Optional[str] = None
-        self.loadfile: Optional[str] = None
+        self.recent_folder: str | None = None
+        self.last_list: list[str] | None = None
+        self.selection_strings: list[str] | None = None
+        self.selected: list[str] | str | None = None
+        self.loadfolder: str | None = None
+        self.savepath: str | None = None
+        self.loadfile: str | None = None
         self.selected_toggle: int = 0
-        self.tmp_single_filepath: Optional[str] = None
+        self.tmp_single_filepath: str | None = None
         self.setup_main_window()
         self.show_config()
         self.logger = GuiLogger(self.main_screen)
         self.ticker = Ticker(self.ticker_update, self.progress)
         self.reset_progressbar()
-        self.tabWidget.setCurrentIndex(0)
+        self.tab_widget.setCurrentIndex(0)
 
         # Mode Selection
-        self.options: Optional[Union[Dict[str, List[str]], List[str]]] = None
+        self.options: dict[str, list[str]] | list[str] | None = None
 
     def question(self, msg: str) -> bool:
         """Prompt the GUI with a question.
@@ -409,15 +406,9 @@ class MainWindow(QMainWindow):
         reselect = []
         for result in load_folder_results:
             bpm_name = result.metadata["bpm_name"].replace("-", "_")
-            x_key = str(
-                bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="X").replace(":", "__")
-            )
-            y_key = str(
-                bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis="Y").replace(":", "__")
-            )
             if (
-                abs(result.bpm_offsets[x_key].diff_value) >= reselect_limit
-                or abs(result.bpm_offsets[y_key].diff_value) >= reselect_limit
+                abs(result.bpm_offsets[bpm_name].x.diff_value) >= reselect_limit  # type: ignore
+                or abs(result.bpm_offsets[bpm_name].y.diff_value) >= reselect_limit  # type: ignore
             ):
                 reselect.append(bpm_name)
 
@@ -450,11 +441,11 @@ class MainWindow(QMainWindow):
         """
         percent_completed = (1 - fraction_left) * 100
         log.info(f"Percent Completed: {percent_completed}%")
-        self.progressBar.setValue(round(percent_completed))
+        self.progress_bar.setValue(round(percent_completed))
 
     def reset_progressbar(self) -> None:
-        """Reset the progressbar to 0."""
-        self.progressBar.setValue(0)
+        """Reset the progress bar to 0."""
+        self.progress_bar.setValue(0)
 
     def create_worker(self) -> Worker:
         """Create the worker to perform BBA.
@@ -482,7 +473,7 @@ class MainWindow(QMainWindow):
 
     def use_slow_feedbacks(self) -> None:
         """Maintain valid configuration between both feedback buttons."""
-        if self.config_use_feedbacks.isChecked:
+        if self.config_use_feedbacks.isChecked():
             self.config_use_fofb.setChecked(False)
 
     def use_fofb(self) -> None:
@@ -545,7 +536,7 @@ class MainWindow(QMainWindow):
         cothread.Yield()  # TODO: Why does this need to yield?
         self.display_config_load.setText(f"Config File Applied at {get_isotime()}")
 
-    def get_ringmode_options(self) -> List[str]:
+    def get_ringmode_options(self) -> list[str]:
         """Get the current ringmode options from the machine.
         Note: Because we interface with the machine both directly and through
         pytac, we can only use ringmodes that are supported by both.
@@ -557,7 +548,7 @@ class MainWindow(QMainWindow):
         pv_ringmodes = set(caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums)
         return pytac_ringmodes & pv_ringmodes
 
-    def get_config_from_gui(self) -> Dict[str, Any]:
+    def get_config_from_gui(self) -> dict[str, Any]:
         """Get the current config selected in the GUI.
 
         Returns:
@@ -600,7 +591,7 @@ class MainWindow(QMainWindow):
     def update_config(self) -> None:
         """Update the machine config with the current config in the GUI."""
         config_dict = self.get_config_from_gui()
-        self.machine.update_config(config_dict=config_dict)
+        self.machine.update_config(config_override_dict=config_dict)
         self.show_config()
         cothread.Yield()
 
@@ -860,6 +851,7 @@ class MainWindow(QMainWindow):
         self.main_screen.appendPlainText(text)
         QApplication.processEvents()
 
+    @override
     def closeEvent(self, event=None) -> None:
         """Signal the close event."""
         if self.ticker.state != "Idle":

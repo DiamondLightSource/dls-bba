@@ -1,6 +1,6 @@
 import logging as log
 from math import floor
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 from cothread import Sleep
@@ -29,7 +29,7 @@ class SlowBBA(Algorithm):
         """
         super().__init__(machine)
 
-    def run(self, components_pair: List[Components]) -> RawData:
+    def run(self, components_pair: list[Components]) -> RawData:
         """The Slow BBA Process.
 
         Args:
@@ -38,8 +38,8 @@ class SlowBBA(Algorithm):
         Returns:
             The RawData object.
         """
-        rawdata: Dict[str, Any] = {}
-        metadata: Dict[str, Any] = {}
+        rawdata: dict[str, OscillationPlane[QuadStrength]] = {}
+        metadata: dict[str, Any] = {}
         config = self._machine.config.get_settings()
         metadata.update(config)
         metadata["method"] = "SlowBBA"
@@ -57,7 +57,7 @@ class SlowBBA(Algorithm):
         for components in components_pair:
             log.debug(f"Component: {components}")
             for quadrupole, quad_name in zip(
-                components.quadrupoles, components.quadrupoles_names
+                components.quadrupoles, components.quadrupoles_names, strict=True
             ):
                 log.debug(f"Quad: {quad_name} of {components.quadrupoles_names}")
                 (
@@ -118,7 +118,7 @@ class SlowBBA(Algorithm):
         # Saving x and y in one file, as you cannot do just one axis.
         return RawData(rawdata, metadata)
 
-    def get_slow_bba_corrector_steps(self, components: Components) -> List[float]:
+    def get_slow_bba_corrector_steps(self, components: Components) -> list[float]:
         """Get the corrector steps for the slow BBA.
 
         Args:
@@ -158,8 +158,8 @@ class SlowBBA(Algorithm):
         center_outlier_factor = metadata["CENTER_OUTLIER_FACTOR"]
         optimal_bpm = metadata["bpm_index"]
 
-        results: Dict[str, List[float]] = {}
-        plotting: Dict[str, Dict[str, np.ndarray]] = {}
+        results: dict[str, OscillationPlane[QuadResults]] = {}
+        plotting: dict[str, dict[str, np.ndarray]] = {}
 
         for quad_name in data.keys():
             for axis in ["x", "y"]:
@@ -176,8 +176,8 @@ class SlowBBA(Algorithm):
                 # quadplot.m, though removing them is probably the right thing to do.
                 # NOTE: If we do choose to re-enable this then it should probably be
                 # done during data collection like enabled_bpms rather than here.
-                # fofb_disabled_bpms = np.array(self._machine.fofb_disabled[axis], dtype=bool)
-                # log.debug(f"Indices of fofb disabled BPMs: {np.flatnonzero(fofb_disabled_bpms)}")
+                # fofb_disabled_bpms = np.array(self._machine.fofb_disabled[axis], dtype=bool)  # noqa: E501
+                # log.debug(f"Indices of fofb disabled BPMs: {np.flatnonzero(fofb_disabled_bpms)}")  # noqa: E501
                 disabled = disabled_bpms  # | fofb_disabled_bpms
                 high = np.delete(high, disabled, axis=1)
                 low = np.delete(low, disabled, axis=1)
@@ -194,9 +194,9 @@ class SlowBBA(Algorithm):
                 # 5 point linear least squares fit.
                 bpm_number = list(bpm_indices).index(metadata["bpm_index"])
                 oscillation_midpoint = (high[:, bpm_number] + low[:, bpm_number]) / 2
-                X = np.stack((np.ones(5), oscillation_midpoint), axis=1)
+                X = np.stack((np.ones(5), oscillation_midpoint), axis=1)  # noqa: N806
                 # Matrix least squares b = (Xᵀ.X)⁻¹.Xᵀ.OS
-                inverse_Xtranspose_X = np.linalg.inv(X.T.dot(X))
+                inverse_Xtranspose_X = np.linalg.inv(X.T.dot(X))  # noqa: N806
                 b = inverse_Xtranspose_X.dot(X.T).dot(oscillation_size)
 
                 # Get absolute gradients and x intercepts of the lines.
@@ -215,7 +215,7 @@ class SlowBBA(Algorithm):
                     ):
                         large_fit_diff[i] = True
                 log.debug(
-                    "Indices with large error between fit and data: "
+                    f"Indices with large error between fit and data: "
                     f"{np.flatnonzero(large_fit_diff)}"
                 )
                 gradients = np.delete(gradients, large_fit_diff)
@@ -232,7 +232,7 @@ class SlowBBA(Algorithm):
                     min_gradient = second_half[-1]
                 bad_gradients = np.abs(gradients) < min_gradient * min_slope_fraction
                 log.debug(
-                    "Indices with too shallow gradients: "
+                    f"Indices with too shallow gradients: "
                     f"{np.flatnonzero(bad_gradients)}"
                 )
                 gradients = np.delete(gradients, bad_gradients)
@@ -271,8 +271,10 @@ class SlowBBA(Algorithm):
                 )
 
                 # Plot data after cleaning.
-                key = f"{quad_name}__{axis}"
-                plotting[key] = {"x": oscillation_midpoint, "y": oscillation_size}
+                plotting[f"{quad_name}__{axis}"] = {
+                    "x": oscillation_midpoint,
+                    "y": oscillation_size,
+                }
 
         offsets = self.create_offsets_dict(results, metadata)
 
