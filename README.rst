@@ -1,9 +1,10 @@
-dls-bba
-===========================
+dls_bba
+=============================================================================
 
 |code_ci| |docs_ci| |coverage| |pypi_version| |license|
 
-dls-bba is a Python 3 implementation of beam-based alignment processes.
+This is where you should write a short paragraph that describes what your module does,
+how it does it, and why people should use it.
 
 ============== ==============================================================
 PyPI           ``pip install dls-bba``
@@ -11,6 +12,20 @@ Source code    https://github.com/DiamondLightSource/dls-bba
 Documentation  https://DiamondLightSource.github.io/dls-bba
 Releases       https://github.com/DiamondLightSource/dls-bba/releases
 ============== ==============================================================
+
+This is where you should put some images or code snippets that illustrate
+some relevant examples. If it is a library then you might put some
+introductory code here:
+
+.. code-block:: python
+
+    from dls_bba import __version__
+
+    print(f"Hello dls_bba {__version__}")
+
+Or if it is a commandline tool then you might put some example commands here::
+
+    $ python -m dls_bba --version
 
 .. |code_ci| image:: https://github.com/DiamondLightSource/dls-bba/actions/workflows/code.yml/badge.svg?branch=main
     :target: https://github.com/DiamondLightSource/dls-bba/actions/workflows/code.yml
@@ -32,36 +47,6 @@ Releases       https://github.com/DiamondLightSource/dls-bba/releases
     :target: https://opensource.org/licenses/Apache-2.0
     :alt: Apache License
 
-
-Introduction
-============
-
-Description
------------
-
-This repository is a Python 3 implementation of slow, fast and simultaneous beam-based alignment for Diamond Light Source.
-The slow BBA process is intended to replicate the behaviour of MATLAB BBA.
-Both command line and graphical user based interfaces have been included alongside the standard python module level interface for ease of use.
-
-Instructions
-------------
-
-Installation:
-    ``pip install dls-bba``
-
-To use the command line interface:
-    To show the version: ``dls-bba -v``
-    To show the help menu: ``dls-bba -h``
-
-To use the graphical interface:
-    To show the version: ``dls-bba-gui -v``
-    To load the GUI: ``dls-bba-gui``
-
-Additional information about BBA
---------------------------------
-
-- DLS Paper {preproc}: `"Development of Fast BBA for Diamond Light Source" <https://www.ipac23.org/preproc/doi/jacow-ipac2023-mopa139/index.html>`_
-- ALBA Paper: `"Fast beam-based alignment using ac excitations" <https://journals.aps.org/prab/abstract/10.1103/PhysRevAccelBeams.23.012802>`_
 
 ..
     Anything below this line is used when viewing README.rst and will be replaced

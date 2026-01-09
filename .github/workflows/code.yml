@@ -5,9 +5,8 @@ on:
   pull_request:
 env:
   # The target python version, which must match the Dockerfile version
-  CONTAINER_PYTHON: "3.10"
-  # enable tests with no X Display for Qt
-  QT_QPA_PLATFORM: "offscreen"
+  CONTAINER_PYTHON: "3.11"
+  DIST_WHEEL_PATH: dist-${{ github.sha }}
 
 jobs:
   lint:
@@ -17,14 +16,14 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install python packages
         uses: ./.github/actions/install_requirements
         with:
           requirements_file: requirements-dev-3.x.txt
           install_options: -e .[dev]
-          python_version: ${{env.CONTAINER_PYTHON}}
+          artifact_name: lint
 
       - name: Lint
         run: tox -e pre-commit,mypy
@@ -35,7 +34,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"] # can add windows-latest, macos-latest
-        python: ["3.7", "3.8", "3.9", "3.10"]
+        python: ["3.8", "3.9", "3.10", "3.11"]
         install: ["-e .[dev]"]
         # Make one version be non-editable to test both paths of version code
         include:
@@ -50,7 +49,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           # Need this to get version number from last tag
           fetch-depth: 0
@@ -61,6 +60,7 @@ jobs:
           python_version: ${{ matrix.python }}
           requirements_file: requirements-test-${{ matrix.os }}-${{ matrix.python }}.txt
           install_options: ${{ matrix.install }}
+          artifact_name: tests
 
       - name: List dependency tree
         run: pipdeptree
@@ -80,7 +80,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           # Need this to get version number from last tag
           fetch-depth: 0
@@ -91,9 +91,9 @@ jobs:
           pipx run build
 
       - name: Upload sdist and wheel as artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.0.0
         with:
-          name: dist
+          name: ${{ env.DIST_WHEEL_PATH }}
           path: dist
 
       - name: Check for packaging errors
@@ -105,10 +105,11 @@ jobs:
           python_version: ${{env.CONTAINER_PYTHON}}
           requirements_file: requirements.txt
           install_options: dist/*.whl
+          artifact_name: dist
 
       - name: Test module --version works using the installed wheel
         # If more than one module in src/ replace with module name to test
-        run: python -m $(ls src | head -1) --version
+        run: python -m $(ls --hide='*.egg-info' src | head -1) --version
 
   container:
     needs: [lint, dist, test]
@@ -123,20 +124,25 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # image names must be all lower case
       - name: Generate image repo name
         run: echo IMAGE_REPOSITORY=ghcr.io/$(tr '[:upper:]' '[:lower:]' <<< "${{ github.repository }}") >> $GITHUB_ENV
 
+      - name: Set lockfile location in environment
+        run: |
+          echo "DIST_LOCKFILE_PATH=lockfiles-${{ env.CONTAINER_PYTHON }}-dist-${{ github.sha }}" >> $GITHUB_ENV
+
       - name: Download wheel and lockfiles
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.0
         with:
           path: artifacts/
+          pattern: "*dist*"
 
       - name: Log in to GitHub Docker Registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -144,23 +150,23 @@ jobs:
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Build and export to Docker local cache
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
-        # Note build-args, context, file, and target must all match between this
-        # step and the later build-push-action, otherwise the second build-push-action
-        # will attempt to build the image again
+          # Note build-args, context, file, and target must all match between this
+          # step and the later build-push-action, otherwise the second build-push-action
+          # will attempt to build the image again
           build-args: |
-            PIP_OPTIONS=-r lockfiles/requirements.txt dist/*.whl
+            PIP_OPTIONS=-r ${{ env.DIST_LOCKFILE_PATH }}/requirements.txt ${{ env.DIST_WHEEL_PATH }}/*.whl
           context: artifacts/
           file: ./Dockerfile
           target: runtime
           load: true
           tags: ${{ env.TEST_TAG }}
-          # If you have a long docker build (2+ minutes), uncomment the 
-          # following to turn on caching. For short build times this 
+          # If you have a long docker build (2+ minutes), uncomment the
+          # following to turn on caching. For short build times this
           # makes it a little slower
           #cache-from: type=gha
           #cache-to: type=gha,mode=max
@@ -170,7 +176,7 @@ jobs:
 
       - name: Create tags for publishing image
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE_REPOSITORY }}
           tags: |
@@ -182,15 +188,15 @@ jobs:
 
       - name: Push cached image to container registry
         if: github.ref_type == 'tag' # || github.ref_name == 'main'
-        uses: docker/build-push-action@v4
-        # This does not build the image again, it will find the image in the 
+        uses: docker/build-push-action@v5
+        # This does not build the image again, it will find the image in the
         # Docker cache and publish it
         with:
-        # Note build-args, context, file, and target must all match between this
-        # step and the previous build-push-action, otherwise this step will 
-        # attempt to build the image again
+          # Note build-args, context, file, and target must all match between this
+          # step and the previous build-push-action, otherwise this step will
+          # attempt to build the image again
           build-args: |
-            PIP_OPTIONS=-r lockfiles/requirements.txt dist/*.whl
+            PIP_OPTIONS=-r ${{ env.DIST_LOCKFILE_PATH }}/requirements.txt ${{ env.DIST_WHEEL_PATH }}/*.whl
           context: artifacts/
           file: ./Dockerfile
           target: runtime
@@ -198,36 +204,40 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  # release:
-  #   # upload to PyPI and make a release on every tag
-  #   needs: [lint, dist, test]
-  #   if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
-  #   runs-on: ubuntu-latest
-  #   env:
-  #     HAS_PYPI_TOKEN: ${{ secrets.PYPI_TOKEN != '' }}
+  release:
+    # upload to PyPI and make a release on every tag
+    needs: [lint, dist, test]
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+    runs-on: ubuntu-latest
+    env:
+      HAS_PYPI_TOKEN: ${{ secrets.PYPI_TOKEN != '' }}
 
-  #   steps:
-  #     - uses: actions/download-artifact@v3
+    steps:
+      - name: Download wheel and lockfiles
+        uses: actions/download-artifact@v4.1.0
+        with:
+          path: artifacts/
+          pattern: "*dist*"
 
-  #     - name: Fixup blank lockfiles
-  #       # Github release artifacts can't be blank
-  #       run: for f in lockfiles/*; do [ -s $f ] || echo '# No requirements' >> $f; done
+      - name: Fixup blank lockfiles
+        # Github release artifacts can't be blank
+        run: for f in ${{ env.DIST_LOCKFILE_PATH }}/*; do [ -s $f ] || echo '# No requirements' >> $f; done
 
-  #     - name: Github Release
-  #       # We pin to the SHA, not the tag, for security reasons.
-  #       # https://docs.github.com/en/actions/learn-github-actions/security-hardening-for-github-actions#using-third-party-actions
-  #       uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
-  #       with:
-  #         prerelease: ${{ contains(github.ref_name, 'a') || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
-  #         files: |
-  #           dist/*
-  #           lockfiles/*
-  #         generate_release_notes: true
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Github Release
+        # We pin to the SHA, not the tag, for security reasons.
+        # https://docs.github.com/en/actions/learn-github-actions/security-hardening-for-github-actions#using-third-party-actions
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
+        with:
+          prerelease: ${{ contains(github.ref_name, 'a') || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
+          files: |
+            ${{ env.DIST_WHEEL_PATH }}/*
+            ${{ env.DIST_LOCKFILE_PATH }}/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  #     - name: Publish to PyPI
-  #       if: ${{ env.HAS_PYPI_TOKEN }}
-  #       uses: pypa/gh-action-pypi-publish@release/v1
-  #       with:
-  #         password: ${{ secrets.PYPI_TOKEN }}
+      - name: Publish to PyPI
+        if: ${{ env.HAS_PYPI_TOKEN }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}

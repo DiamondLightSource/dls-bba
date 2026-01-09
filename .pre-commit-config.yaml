@@ -12,12 +12,12 @@ repos:
         name: Run black
         stages: [commit]
         language: system
-        entry: black --check --diff --color
+        entry: black --check --diff
         types: [python]
 
-      - id: flake8
-        name: Run flake8
+      - id: ruff
+        name: Run ruff
         stages: [commit]
         language: system
-        entry: flake8
+        entry: ruff
         types: [python]
