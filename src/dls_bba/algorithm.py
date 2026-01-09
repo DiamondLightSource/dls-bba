@@ -208,10 +208,9 @@ class Algorithm(ABC):
         pv_names = []
         pv_values = []
         for key, value in offsets_dict.items():
-            pv_parts = key.split("__")
-            pv_parts[0] = pv_parts[0].replace("_", "-")
-            pv_names.append(":".join(pv_parts))
-            pv_values.append(value.new_value)
+            for plane in ["x", "y"]:
+                pv_names.append(key + ORIGIN_SUFFIXES["BBA"].format(axis=plane.upper()))
+                pv_values.append(value[plane].new_value)
         caput(pv_names, pv_values, wait=True)
         log.info(f"{len(pv_names)} BBA Offsets Applied.")
         Sleep(0.2)

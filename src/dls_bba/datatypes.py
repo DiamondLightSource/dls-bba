@@ -43,7 +43,7 @@ class QuadResults(DictDataclass):
     std_dev_offset: float
 
 
-T = TypeVar('T', QuadStrength, QuadResults, BPMOffset)
+T = TypeVar("T", QuadStrength, QuadResults, BPMOffset)
 
 
 @dataclass
