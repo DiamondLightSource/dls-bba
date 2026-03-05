@@ -12,7 +12,19 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 description = "Fast & Slow BBA (Beam Based Alignment) Python tools."
-dependencies = [] # Add project dependencies here, e.g. ["click", "numpy"]
+dependencies = [
+    "cothread>=2.18.3",
+    "epicscorelibs",
+    "fa-archiver",
+    "matplotlib",
+    "numpy",
+    "pytac>=0.6.0",
+    "PyQt6==6.4.1",
+    "PyQt6-Qt6==6.4.2",
+    "PyQt6-sip==13.4.1",
+    "scipy",
+    "setuptools>=60.0.0",
+]
 dynamic = ["version"]
 license.file = "LICENSE"
 readme = "README.md"
@@ -38,14 +50,20 @@ dev = [
 
 [project.scripts]
 dls-bba = "dls_bba.__main__:main"
+dls-bba-gui = "dls_bba.__main__:gui_main"
 
 [project.urls]
 GitHub = "https://github.com/DiamondLightSource/dls-bba"
 
 [[project.authors]] # Further authors may be added by duplicating this section
-email = "tobyn.nicholls@diamond.ac.uk"
-name = "Tobyn Nicholls"
+email = "diamhighlvlapps@diamond.ac.uk"
+name = "Diamond High-Level Applications Team"
 
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.setuptools_scm]
 version_file = "src/dls_bba/_version.py"

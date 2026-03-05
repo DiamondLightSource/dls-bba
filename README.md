@@ -7,8 +7,10 @@
 
 Fast & Slow BBA (Beam Based Alignment) Python tools.
 
-This is where you should write a short paragraph that describes what your module does,
-how it does it, and why people should use it.
+This repository is a Python 3 implementation of slow, fast and simultaneous beam-based
+alignment for Diamond Light Source. The slow BBA process is intended to replicate the
+behaviour of MATLAB BBA. Both command line and graphical user based interfaces have been
+included alongside the standard python module level interface for ease of use.
 
 Source          | <https://github.com/DiamondLightSource/dls-bba>
 :---:           | :---:
@@ -17,21 +19,19 @@ Docker          | `docker run ghcr.io/diamondlightsource/dls-bba:latest`
 Documentation   | <https://diamondlightsource.github.io/dls-bba>
 Releases        | <https://github.com/DiamondLightSource/dls-bba/releases>
 
-This is where you should put some images or code snippets that illustrate
-some relevant examples. If it is a library then you might put some
-introductory code here:
+- To use the command line interface:
+    - To show the version: ``dls-bba -v``
+    - To show the help menu: ``dls-bba -h``
 
-```python
-from dls_bba import __version__
+- To use the graphical interface:
+    - To show the version: ``dls-bba-gui -v``
+    - To load the GUI: ``dls-bba-gui``
 
-print(f"Hello dls_bba {__version__}")
-```
+- Additional information about BBA:
+    - DLS Paper: "Development of Fast BBA for Diamond Light Source" <https://proceedings.jacow.org/ipac2023/pdf/MOPA139.pdf>
+    - ALBA Paper: "Fast beam-based alignment using ac excitations" <https://journals.aps.org/prab/abstract/10.1103/PhysRevAccelBeams.23.012802>
 
-Or if it is a commandline tool then you might put some example commands here:
 
-```
-python -m dls_bba --version
-```
 
 <!-- README only content. Anything below this line won't be included in index.md -->
 

@@ -1,8 +1,8 @@
 # Changes here will be overwritten by Copier
 _commit: 4.3.0
 _src_path: https://github.com/DiamondLightSource/python-copier-template.git
-author_email: tobyn.nicholls@diamond.ac.uk
-author_name: Tobyn Nicholls
+author_email: diamhighlvlapps@diamond.ac.uk
+author_name: Diamond High-Level Applications Team
 component_lifecycle: experimental
 component_owner: user:jzs47954
 component_type: library
