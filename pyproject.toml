@@ -23,7 +23,7 @@ dependencies = [
     "PyQt6-Qt6==6.4.2",
     "PyQt6-sip==13.4.1",
     "scipy",
-    "setuptools>=60.0.0",
+    "setuptools>=70.1",
 ]
 dynamic = ["version"]
 license.file = "LICENSE"

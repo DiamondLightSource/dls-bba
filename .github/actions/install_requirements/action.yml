@@ -11,6 +11,10 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Install requirement for PyQt6
+      run: sudo apt install libegl-dev
+      shell: bash
+
     - name: Get version of python
       run: |
         PYTHON_VERSION="${{ inputs.python-version }}"
