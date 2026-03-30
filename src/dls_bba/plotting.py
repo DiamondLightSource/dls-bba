@@ -131,7 +131,7 @@ def bowtie_plot(filepath: str, save: bool = False) -> plt.Figure:
 
     for q_index, quad_name in enumerate(quad_names):
         for a_index, axis in enumerate(["x", "y"]):
-            key = f"{quad_name}__{axis}"
+            key = f"plotting__{quad_name}__{axis}"
 
             if a_index == 0:
                 axes[a_index, q_index].set_title(f"{quad_name.replace('_', '-')}")
@@ -140,8 +140,8 @@ def bowtie_plot(filepath: str, save: bool = False) -> plt.Figure:
 
             color = "b" if axis == "x" else "r"
 
-            x = [v * MM_TO_UM_UNIT_CONV for v in results_object.plotting[key]["x"]]
-            y = [v * MM_TO_UM_UNIT_CONV for v in results_object.plotting[key]["y"]]
+            x = [v * MM_TO_UM_UNIT_CONV for v in results_object.metadata[key]["x"]]
+            y = [v * MM_TO_UM_UNIT_CONV for v in results_object.metadata[key]["y"]]
 
             axes[a_index, q_index].plot(x, y, color=color, lw=0.5)
 

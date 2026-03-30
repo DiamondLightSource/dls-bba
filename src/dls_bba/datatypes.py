@@ -187,7 +187,6 @@ class FullResults:
 
     quad_results: dict[str, OscillationPlane[QuadResults]]
     metadata: dict[str, Any]
-    plotting: dict[str, dict[str, np.ndarray]]
     bpm_offsets: dict[str, OscillationPlane[BPMOffset]]
 
     @classmethod
@@ -210,7 +209,7 @@ class FullResults:
         for key, values in dct["offsets"].items():
             offsets[key] = BPMOffset(**values)
 
-        return cls(results, dct["metadata"], dct["plotting"], offsets)  # type: ignore
+        return cls(results, dct["metadata"], offsets)  # type: ignore
 
     @classmethod
     def new_from_old_file(cls, filepath: str) -> FullResults:
@@ -240,8 +239,7 @@ class FullResults:
             if bpm_name not in offsets.keys():
                 offsets[bpm_name] = OscillationPlane()
             offsets[bpm_name][plane] = BPMOffset(**values)
-        # TODO: metadata & plotting
-        return cls(results, dct["metadata"], dct["plotting"], offsets)
+        return cls(results, dct["metadata"], offsets)
 
     @classmethod
     def new_from_new_file(cls, filepath: str) -> FullResults:
@@ -270,8 +268,7 @@ class FullResults:
                 if bpm_name not in offsets.keys():
                     offsets[bpm_name] = OscillationPlane()
                 offsets[bpm_name][plane] = BPMOffset(**values)
-        # TODO: metadata & plotting
-        return cls(results, dct["metadata"], dct["plotting"], offsets)
+        return cls(results, dct["metadata"], offsets)
 
     @classmethod
     def from_file(cls, filepath: str) -> FullResults:
@@ -287,7 +284,6 @@ class FullResults:
         """
         results: dict[str, OscillationPlane[QuadResults]] = self.quad_results
         metadata: dict[str, Any] = self.metadata
-        plotting: dict[str, dict[str, np.ndarray]] = self.plotting
         offsets: dict[str, OscillationPlane[BPMOffset]] = self.bpm_offsets
 
         method: str = metadata["method"]
@@ -299,12 +295,7 @@ class FullResults:
         for key, values in offsets.items():
             offsets_dict[key] = asdict(values)
 
-        dct = {
-            "results": results,
-            "metadata": metadata,
-            "plotting": plotting,
-            "offsets": offsets_dict,
-        }
+        dct = {"results": results, "metadata": metadata, "offsets": offsets_dict}
         io.savemat(
             os.path.join(folder_path, filename),
             dct,
@@ -322,7 +313,6 @@ class FullResults:
         """
         results: dict[str, OscillationPlane[QuadResults]] = self.quad_results
         metadata: dict[str, Any] = self.metadata
-        plotting: dict[str, dict[str, np.ndarray]] = self.plotting
         offsets: dict[str, OscillationPlane[BPMOffset]] = self.bpm_offsets
 
         method: str = metadata["method"]
@@ -337,12 +327,7 @@ class FullResults:
         for key, values in offsets.items():
             offsets_dict[key.replace("-", "_")] = asdict(values)
 
-        dct = {
-            "results": results_dict,
-            "metadata": metadata,
-            "plotting": plotting,
-            "offsets": offsets_dict,
-        }
+        dct = {"results": results_dict, "metadata": metadata, "offsets": offsets_dict}
         io.savemat(
             os.path.join(folder_path, filename),
             dct,

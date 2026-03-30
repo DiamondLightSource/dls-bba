@@ -159,7 +159,6 @@ class SlowBBA(Algorithm):
         optimal_bpm = metadata["bpm_index"]
 
         results: dict[str, OscillationPlane[QuadResults]] = {}
-        plotting: dict[str, dict[str, np.ndarray]] = {}
 
         for quad_name in data.keys():
             for axis in ["x", "y"]:
@@ -271,11 +270,11 @@ class SlowBBA(Algorithm):
                 )
 
                 # Plot data after cleaning.
-                plotting[f"{quad_name}__{axis}"] = {
+                metadata[f"plotting__{quad_name}__{axis}"] = {
                     "x": oscillation_midpoint,
                     "y": oscillation_size,
                 }
 
         offsets = self.create_offsets_dict(results, metadata)
 
-        return FullResults(results, metadata, plotting, offsets)
+        return FullResults(results, metadata, offsets)

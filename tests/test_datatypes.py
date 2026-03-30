@@ -24,12 +24,11 @@ def results_without_offsets_setup():
         "isotime": "results_isotime",
         "bpm_name": "results_bpm_name",
     }
-    plotting = {"plotting": "results_plotting"}
     offsets = {
         "BPM1": BPMOffset(1.0, 1.1, 1.2, 1.3),
         "BPM2": BPMOffset(2.0, 2.1, 2.2, 2.3),
     }
-    return Results(results, metadata, plotting, offsets)
+    return FullResults(results, metadata, offsets)
 
 
 def test_rawdata_saving_is_valid(tmp_path, rawdata_setup):

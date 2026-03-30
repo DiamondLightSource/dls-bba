@@ -259,7 +259,6 @@ class FastBBA(Algorithm):
             enabled_bpms[:bpm_number] == False  # noqa false positive
         )
         results: dict[str, OscillationPlane[QuadResults]] = {}
-        plotting: dict[str, dict[str, np.ndarray]] = {}
 
         for quad_name in data.keys():
             for axis in ["x", "y"]:
@@ -291,11 +290,11 @@ class FastBBA(Algorithm):
                 results[quad_name][axis] = QuadResults(offset, error)
 
                 # plotting data
-                plotting[f"{quad_name}__{axis}"] = {
+                metadata[f"plotting__{quad_name}__{axis}"] = {
                     "x": q_high_clean[:, bpm_index] / NM_TO_MM_UNIT_CONV,
                     "y": q_diff_good / NM_TO_MM_UNIT_CONV,
                 }
 
         offsets = self.create_offsets_dict(results, metadata)
 
-        return FullResults(results, metadata, plotting, offsets)
+        return FullResults(results, metadata, offsets)
