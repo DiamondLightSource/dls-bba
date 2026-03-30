@@ -564,7 +564,9 @@ class Machine:
         """
         bpm_values = self.measure_bpms("x") + self.measure_bpms("y")
         enabled_bpms = self.get_enabled_bpms() + self.get_enabled_bpms()
-        fofb_disabled_bpms = self.fofb_disabled["x"] + self.fofb_disabled["y"]
+        fofb_disabled_bpms = np.concatenate(
+            (self.fofb_disabled["x"], self.fofb_disabled["y"])
+        )
         fofb_enabled_bpms = np.logical_not(fofb_disabled_bpms).astype(int)
         acceptable_values: list[float] = [
             v * e * f
