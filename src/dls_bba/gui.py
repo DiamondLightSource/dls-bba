@@ -182,7 +182,7 @@ class GuiLogger(log.Handler):
 class MainWindow(QMainWindow):
     """The GUI MainWindow."""
 
-    tab_widget: QTabWidget
+    tabWidget: QTabWidget  # noqa: N815
 
     # Main page widgets:
     # Method Selection
@@ -201,7 +201,7 @@ class MainWindow(QMainWindow):
     button_pause: QPushButton
     button_stop: QPushButton
     button_reset: QPushButton
-    progress_bar: QProgressBar
+    progressBar: QProgressBar  # noqa: N815
     # Config
     config_use_feedbacks: QCheckBox
     config_use_fofb: QCheckBox
@@ -289,7 +289,7 @@ class MainWindow(QMainWindow):
         self.logger = GuiLogger(self.main_screen)
         self.ticker = Ticker(self.ticker_update, self.progress)
         self.reset_progressbar()
-        self.tab_widget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(0)
 
         # Mode Selection
         self.options: dict[str, list[str]] | list[str] | None = None
@@ -405,7 +405,7 @@ class MainWindow(QMainWindow):
         load_folder_results = [FullResults.from_file(file) for file in good_files]
         reselect = []
         for result in load_folder_results:
-            bpm_name = result.metadata["bpm_name"].replace("-", "_")
+            bpm_name = result.metadata["bpm_name"]
             if (
                 abs(result.bpm_offsets[bpm_name].x.diff_value) >= reselect_limit  # type: ignore
                 or abs(result.bpm_offsets[bpm_name].y.diff_value) >= reselect_limit  # type: ignore
@@ -441,11 +441,11 @@ class MainWindow(QMainWindow):
         """
         percent_completed = (1 - fraction_left) * 100
         log.info(f"Percent Completed: {percent_completed}%")
-        self.progress_bar.setValue(round(percent_completed))
+        self.progressBar.setValue(round(percent_completed))
 
     def reset_progressbar(self) -> None:
         """Reset the progress bar to 0."""
-        self.progress_bar.setValue(0)
+        self.progressBar.setValue(0)
 
     def create_worker(self) -> Worker:
         """Create the worker to perform BBA.

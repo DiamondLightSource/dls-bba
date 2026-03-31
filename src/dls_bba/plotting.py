@@ -131,30 +131,27 @@ def bowtie_plot(filepath: str, save: bool = False) -> plt.Figure:
 
     for q_index, quad_name in enumerate(quad_names):
         for a_index, axis in enumerate(["x", "y"]):
-            key = f"plotting__{quad_name}__{axis}"
-
+            # Show axis labels and title
             if a_index == 0:
                 axes[a_index, q_index].set_title(f"{quad_name.replace('_', '-')}")
             if q_index == 0:
                 axes[a_index, q_index].set_ylabel(f"Axis: {axis} [um]")
-
+            # Set colour and create gridlines
             color = "b" if axis == "x" else "r"
-
-            x = [v * MM_TO_UM_UNIT_CONV for v in results_object.metadata[key]["x"]]
-            y = [v * MM_TO_UM_UNIT_CONV for v in results_object.metadata[key]["y"]]
-
-            axes[a_index, q_index].plot(x, y, color=color, lw=0.5)
-
-            value, error = results_object.quad_results[quad_name][axis]
-            value = value * MM_TO_UM_UNIT_CONV
-            error = error * MM_TO_UM_UNIT_CONV
-
-            axes[a_index, q_index].axvline(x=value, color="k")
-            axes[a_index, q_index].axvspan(
-                xmin=value - abs(error), xmax=value + abs(error), color="gray"
-            )
             axes[a_index, q_index].grid(which="both", axis="both")
-
+            # Plot measurements
+            measurements = results_object.metadata[f"plotting__{quad_name}__{axis}"]
+            x = [value * MM_TO_UM_UNIT_CONV for value in measurements["x"]]
+            y = [value * MM_TO_UM_UNIT_CONV for value in measurements["y"]]
+            axes[a_index, q_index].plot(x, y, color=color, lw=0.5)
+            # Display indicator for calculated offset and its standard deviation
+            results = results_object.quad_results[quad_name][axis]
+            offset = results.mean_offset * MM_TO_UM_UNIT_CONV
+            error = results.std_dev_offset * MM_TO_UM_UNIT_CONV
+            axes[a_index, q_index].axvline(x=offset, color="k")
+            axes[a_index, q_index].axvspan(
+                xmin=offset - abs(error), xmax=offset + abs(error), color="gray"
+            )
             # Add markers to x axis to indicate location of our 5 sets of x values.
             ylim = axes[a_index, q_index].get_ylim()
             ap = {"edgecolor": color, "fill": False, "headwidth": 5, "headlength": 5}
