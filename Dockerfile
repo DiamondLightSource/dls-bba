@@ -5,7 +5,8 @@ FROM python:${PYTHON_VERSION} AS developer
 
 # Add any system dependencies for the developer/build environment here
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    graphviz \
+    libegl-dev libxkbcommon-x11-0 libfontconfig1 libdbus-1-3 \
+    libqt6gui6 libgl1 libxcb-cursor0 libgles2-mesa-dev graphviz \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up a virtual environment and put it in PATH
@@ -15,7 +16,8 @@ ENV PATH=/venv/bin:$PATH
 # The build stage installs the context into the venv
 FROM developer AS build
 # Requires buildkit 0.17.0
-COPY --chmod=o+wrX . /workspaces/dls-bba
+RUN ls -l
+COPY --chmod=777 . /workspaces/dls-bba
 WORKDIR /workspaces/dls-bba
 RUN touch dev-requirements.txt && pip install -c dev-requirements.txt .
 
@@ -24,7 +26,8 @@ RUN touch dev-requirements.txt && pip install -c dev-requirements.txt .
 FROM python:${PYTHON_VERSION}-slim AS runtime
 # Add apt-get system dependecies for runtime here if needed
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libglib2.0-0t64 libegl-dev libxkbcommon-x11-0 libfontconfig1 libdbus-1-3
+    libegl-dev libxkbcommon-x11-0 libfontconfig1 libdbus-1-3 \
+    libqt6gui6 libgl1 libxcb-cursor0 libgles2-mesa-dev graphviz
 COPY --from=build /venv/ /venv/
 ENV PATH=/venv/bin:$PATH
 
