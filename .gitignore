@@ -8,7 +8,6 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
-.venv
 build/
 develop-eggs/
 dist/
@@ -56,6 +55,7 @@ cov.xml
 
 # Sphinx documentation
 docs/_build/
+docs/_api
 
 # PyBuilder
 target/
@@ -67,7 +67,5 @@ venv*
 # further build artifacts
 lockfiles/
 
-# other stuff
-/claire_data/
-/md_data/
-/system_test/
+# ruff cache
+.ruff_cache/

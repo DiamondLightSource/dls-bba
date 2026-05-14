@@ -1,6 +1,10 @@
+"""Interface for ``python -m dls_bba``."""
+
+
 import json
 import sys
 from argparse import ArgumentParser, Namespace
+from collections.abc import Sequence
 from typing import List
 
 from dls_bba.common import ALGORITHMS, apply_folder, apply_golden, apply_single
@@ -183,7 +187,7 @@ def sort_elements(args) -> List[str]:
     return elements
 
 
-def main() -> None:
+def main(args: Sequence[str] | None = None) -> None:
     """The main CLI entrypoint for the BBA package."""
     args = parse_arguments()
     if args.command == "info":
@@ -238,6 +242,5 @@ def gui_main() -> None:
     start_gui()
 
 
-# test with: python -m dls_bba
 if __name__ == "__main__":
     main()

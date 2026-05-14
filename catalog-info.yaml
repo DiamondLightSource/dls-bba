@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: dls-bba
+  title: dls-bba
+  description: Fast & Slow BBA (Beam Based Alignment) Python tools.
+spec:
+  type: application
+  lifecycle: experimental
+  owner: user:jzs47954
