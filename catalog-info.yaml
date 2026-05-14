@@ -5,6 +5,6 @@ metadata:
   title: dls-bba
   description: Fast & Slow BBA (Beam Based Alignment) Python tools.
 spec:
-  type: library
+  type: application
   lifecycle: experimental
   owner: user:jzs47954
