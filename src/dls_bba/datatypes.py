@@ -61,71 +61,8 @@ class RawData:
     rawdata: dict[str, OscillationPlane[QuadStrength]]
     metadata: dict[str, Any]
 
-    def save_old(self, folder_path: str) -> None:
-        """Save the RawData object to a .mat file.
-
-        Can load files in MATLAB with object.("key").
-
-        Args:
-            folder_path: The path to the folder to save the .mat file to.
-        """
-        rawdata = self.rawdata
-        metadata = self.metadata
-
-        method: str = metadata["method"]
-        isotime: str = metadata["isotime"]
-        bpm_name: str = metadata["bpm_name"]
-        filename = f"{method}-{isotime}-{bpm_name}-rawdata.mat"
-
-        dct = {"rawdata": rawdata, "metadata": metadata}
-        io.savemat(
-            os.path.join(folder_path, filename),
-            dct,
-            oned_as="row",
-            long_field_names=True,
-        )
-
     @classmethod
-    def old_from_old_file(cls, filepath: str) -> RawData:
-        """Load a RawData object from a .mat file.
-
-        Args:
-            filepath: The path to the .mat file.
-
-        Returns:
-            A RawData object.
-        """
-        dct = io.loadmat(filepath, simplify_cells=True)
-        return cls(dct["rawdata"], dct["metadata"])
-
-    @classmethod
-    def new_from_old_file(cls, filepath: str) -> RawData:
-        """Load a RawData object from a .mat file.
-
-        Args:
-            filepath: The path to the .mat file.
-
-        Returns:
-            A RawData object.
-        """
-        dct = io.loadmat(filepath, simplify_cells=True)
-        rawdata: dict[str, OscillationPlane[QuadStrength]] = {}
-        for key, values in dct["rawdata"].items():
-            quad_name, position = key.split("__")
-            quad_name = quad_name.replace("_", "-")
-            plane, quad_strength, corr_strength = position.lower().split("_")
-            num_bpms = len(values)
-            if quad_name not in rawdata:
-                rawdata[quad_name] = OscillationPlane(
-                    QuadStrength(np.zeros((5, num_bpms)), np.zeros((5, num_bpms))),
-                    QuadStrength(np.zeros((5, num_bpms)), np.zeros((5, num_bpms))),
-                )
-            rawdata[quad_name][plane][quad_strength][int(corr_strength) - 1, :] = values
-        # TODO: metadata
-        return cls(rawdata, dct["metadata"])
-
-    @classmethod
-    def new_from_new_file(cls, filepath: str) -> RawData:
+    def from_file(cls, filepath: str) -> RawData:
         """Load a RawData object from a .mat file.
 
         Args:
@@ -146,11 +83,7 @@ class RawData:
         # TODO: metadata
         return cls(rawdata, dct["metadata"])
 
-    @classmethod
-    def from_file(cls, filepath: str) -> RawData:
-        return cls.new_from_new_file(filepath)
-
-    def save_new(self, folder_path: str) -> None:
+    def save(self, folder_path: str) -> None:
         """Save the RawData object to a .mat file.
 
         Can load files in MATLAB with object.("key").
@@ -177,9 +110,6 @@ class RawData:
             long_field_names=True,
         )
 
-    def save(self, folder_path: str) -> None:
-        self.save_new(folder_path)
-
 
 @dataclass
 class FullResults:
@@ -190,59 +120,7 @@ class FullResults:
     bpm_offsets: dict[str, OscillationPlane[BPMOffset]]
 
     @classmethod
-    def old_from_old_file(cls, filepath: str) -> FullResults:
-        """Load a Results object from a .mat file.
-
-        Args:
-            filepath: The path to the .mat file.
-
-        Returns:
-            The loaded Results object.
-        """
-        dct = io.loadmat(filepath, simplify_cells=True)
-
-        results: dict[str, list[float]] = {}
-        for key, values in dct["results"].items():
-            results[key] = values.tolist()
-
-        offsets: dict[str, BPMOffset] = {}
-        for key, values in dct["offsets"].items():
-            offsets[key] = BPMOffset(**values)
-
-        return cls(results, dct["metadata"], offsets)  # type: ignore
-
-    @classmethod
-    def new_from_old_file(cls, filepath: str) -> FullResults:
-        """Load a Results object from a .mat file.
-
-        Args:
-            filepath: The path to the .mat file.
-
-        Returns:
-            The loaded Results object.
-        """
-        dct = io.loadmat(filepath, simplify_cells=True)
-
-        results: dict[str, OscillationPlane[QuadResults]] = {}
-        for key, values in dct["results"].items():
-            quad_name, plane = key.split("__")
-            quad_name = quad_name.replace("_", "-")
-            if quad_name not in results.keys():
-                results[quad_name] = OscillationPlane()
-            results[quad_name][plane] = QuadResults(*values)
-
-        offsets: dict[str, OscillationPlane[BPMOffset]] = {}
-        for key, values in dct["offsets"].items():
-            bpm_name, _, plane = key.split("__")
-            bpm_name = bpm_name.replace("_", "-")
-            _, plane, _ = plane.lower().split("_")
-            if bpm_name not in offsets.keys():
-                offsets[bpm_name] = OscillationPlane()
-            offsets[bpm_name][plane] = BPMOffset(**values)
-        return cls(results, dct["metadata"], offsets)
-
-    @classmethod
-    def new_from_new_file(cls, filepath: str) -> FullResults:
+    def from_file(cls, filepath: str) -> FullResults:
         """Load a Results object from a .mat file.
 
         Args:
@@ -270,40 +148,7 @@ class FullResults:
                 offsets[bpm_name][plane] = BPMOffset(**values)
         return cls(results, dct["metadata"], offsets)
 
-    @classmethod
-    def from_file(cls, filepath: str) -> FullResults:
-        return cls.new_from_new_file(filepath)
-
-    def save_old(self, folder_path: str) -> None:
-        """Save the Results object to a .mat file.
-
-        Can load files in MATLAB with object.("key").
-
-        Args:
-            folder_path: The path to the folder to save the .mat file to.
-        """
-        results: dict[str, OscillationPlane[QuadResults]] = self.quad_results
-        metadata: dict[str, Any] = self.metadata
-        offsets: dict[str, OscillationPlane[BPMOffset]] = self.bpm_offsets
-
-        method: str = metadata["method"]
-        isotime: str = metadata["isotime"]
-        bpm_name: str = metadata["bpm_name"]
-        filename = f"{method}-{isotime}-{bpm_name}-results.mat"
-
-        offsets_dict: dict[str, dict[str, float]] = {}
-        for key, values in offsets.items():
-            offsets_dict[key] = asdict(values)
-
-        dct = {"results": results, "metadata": metadata, "offsets": offsets_dict}
-        io.savemat(
-            os.path.join(folder_path, filename),
-            dct,
-            oned_as="row",
-            long_field_names=True,
-        )
-
-    def save_new(self, folder_path: str) -> None:
+    def save(self, folder_path: str) -> None:
         """Save the Results object to a .mat file.
 
         Can load files in MATLAB with object.("key").
@@ -334,6 +179,3 @@ class FullResults:
             oned_as="row",
             long_field_names=True,
         )
-
-    def save(self, folder_path: str) -> None:
-        self.save_new(folder_path)
