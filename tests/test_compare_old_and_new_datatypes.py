@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import pytest
 from scipy import io
 
 from dls_bba.datatypes import (
@@ -10,7 +11,8 @@ from dls_bba.datatypes import (
 )
 
 
-def create_old_rawdata_setup():
+@pytest.fixture(scope="module")
+def old_rawdata_setup():
     """Creates the old style of rawdata"""
     num_bpms = 5
     rawdata = {
@@ -67,7 +69,8 @@ def create_old_rawdata_setup():
     return RawData(rawdata, metadata)
 
 
-def create_new_rawdata_setup():
+@pytest.fixture(scope="module")
+def new_rawdata_setup():
     """Creates the new style of rawdata"""
     num_bpms = 5
     corr_array = np.arange(num_bpms * num_bpms, dtype=np.float64).reshape(
@@ -154,9 +157,7 @@ def new_from_old_file(filepath: str) -> RawData:
     return RawData(rawdata, dct["metadata"])
 
 
-def save_old_and_new_data(tmpdir):
-    old_rawdata_setup = create_old_rawdata_setup()
-    new_rawdata_setup = create_new_rawdata_setup()
+def save_old_and_new_data(tmpdir, old_rawdata_setup, new_rawdata_setup):
 
     dirpath_rawdata_old_file_format = os.path.join(tmpdir, "old")
     dirpath_rawdata_new_file_format = os.path.join(tmpdir, "new")
@@ -181,11 +182,13 @@ def save_old_and_new_data(tmpdir):
     )
 
 
-def test_new_from_old_equals_new_from_new(tmpdir):
+def test_new_from_old_equals_new_from_new(tmpdir, old_rawdata_setup, new_rawdata_setup):
     """Load the new rawdata format from the both the old file format and the new
     file format and ensure that the loaded rawdata is identical."""
 
-    filepath_old, filepath_new = save_old_and_new_data(tmpdir)
+    filepath_old, filepath_new = save_old_and_new_data(
+        tmpdir, old_rawdata_setup, new_rawdata_setup
+    )
 
     new_rawdata_old_file_format = new_from_old_file(filepath_old)
     new_rawdata_new_file_format = RawData.from_file(filepath_new)
@@ -201,11 +204,13 @@ def test_new_from_old_equals_new_from_new(tmpdir):
                 np.testing.assert_array_equal(data_old, data_new)
 
 
-def test_old_from_old_equals_new_from_new(tmpdir):
+def test_old_from_old_equals_new_from_new(tmpdir, old_rawdata_setup, new_rawdata_setup):
     """Load the old matlab file format and the new matlab format and ensure that the
     loaded rawdata is in a different format but contains the same values."""
 
-    filepath_old, filepath_new = save_old_and_new_data(tmpdir)
+    filepath_old, filepath_new = save_old_and_new_data(
+        tmpdir, old_rawdata_setup, new_rawdata_setup
+    )
 
     old_rawdata_old_file_format = old_from_old_file(filepath_old)
     new_rawdata_new_file_format = RawData.from_file(filepath_new)
