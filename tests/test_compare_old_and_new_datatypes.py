@@ -145,12 +145,8 @@ def new_from_old_file(filepath: str) -> RawData:
         num_bpms = len(values)
         if quad_name not in rawdata:
             rawdata[quad_name] = OscillationPlane(
-                QuadStrength(
-                    np.zeros((num_bpms, num_bpms)), np.zeros((num_bpms, num_bpms))
-                ),
-                QuadStrength(
-                    np.zeros((num_bpms, num_bpms)), np.zeros((num_bpms, num_bpms))
-                ),
+                QuadStrength(np.zeros((5, num_bpms)), np.zeros((5, num_bpms))),
+                QuadStrength(np.zeros((5, num_bpms)), np.zeros((5, num_bpms))),
             )
         rawdata[quad_name][plane][quad_strength][int(corr_strength) - 1, :] = values
     # TODO: metadata
