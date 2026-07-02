@@ -153,6 +153,32 @@ def new_from_old_file(filepath: str) -> RawData:
     return RawData(rawdata, dct["metadata"])
 
 
+def fbba_new_from_old_file(filepath: str) -> RawData:
+    """Ingest the old matlab file format for fbba data and return
+    a RawData object using the new data format.
+    """
+    dct = io.loadmat(filepath, simplify_cells=True)
+    rawdata: dict[str, OscillationPlane[QuadStrength]] = {}
+    for key, values in dct["rawdata"].items():
+        quad_name, position = key.split("_", 1)
+        plane, quad_strength = position.lower().split("_")
+        num_samples = values.shape[0]
+        num_bpms = values.shape[1]
+        if quad_name not in rawdata:
+            rawdata[quad_name] = OscillationPlane(
+                QuadStrength(
+                    np.zeros((num_samples, num_bpms)),
+                    np.zeros((num_samples, num_bpms)),
+                ),
+                QuadStrength(
+                    np.zeros((num_samples, num_bpms)),
+                    np.zeros((num_samples, num_bpms)),
+                ),
+            )
+        rawdata[quad_name][plane][quad_strength] = values
+    return RawData(rawdata, dct["metadata"])
+
+
 def save_old_and_new_data(tmpdir, old_rawdata_setup, new_rawdata_setup):
 
     dirpath_rawdata_old_file_format = os.path.join(tmpdir, "old")
