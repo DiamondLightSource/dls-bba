@@ -7,11 +7,12 @@ from conftest import TEST_DATA_DIR
 from dls_bba.datatypes import RawData
 from dls_bba.fbba import FastBBA
 from dls_bba.sbba import SlowBBA
+from dls_bba.simfbba import SimFastBBA
 
 
 def test_fbba_rawdata_produces_correct_fulldata():
-    """Pass rawdata from matlab file into the analysis function and verify that the
-    correct results are calculated."""
+    """Pass rawdata from a matlab file into the fbba analysis function and verify
+    that the correct results are calculated."""
 
     # This raw data file was initially taken in 2024 using an old data format,
     # it was converted to the current data format for this test.
@@ -46,9 +47,46 @@ def test_fbba_rawdata_produces_correct_fulldata():
     )
 
 
+def test_simfbba_rawdata_produces_correct_fulldata():
+    """Pass rawdata from a matlab file into the simfbba analysis function and verify
+    that the correct results are calculated."""
+
+    # This raw data file was initially taken in 2024 using an old data format,
+    # it was converted to the current data format for this test.
+    rawdata_path = (
+        TEST_DATA_DIR / "SimFastBBA-20230726T005414-SR01C-DI-EBPM-05-rawdata.mat"
+    )
+
+    machine = MagicMock()
+    fbba = SimFastBBA(machine)
+    rawdata = RawData.from_file(str(rawdata_path))
+    full_results = fbba.analyse(rawdata)
+
+    assert_approx_equal(
+        full_results.quad_results["SR01A-PC-Q2AB-07"]["x"].mean_offset,
+        -0.1677,
+        significant=4,
+    )
+    assert_approx_equal(
+        full_results.quad_results["SR01A-PC-Q2AB-07"]["x"].std_dev_offset,
+        0.0098,
+        significant=2,
+    )
+    assert_approx_equal(
+        full_results.quad_results["SR01A-PC-Q2AB-07"]["y"].mean_offset,
+        -0.2415,
+        significant=4,
+    )
+    assert_approx_equal(
+        full_results.quad_results["SR01A-PC-Q2AB-07"]["y"].std_dev_offset,
+        0.0019,
+        significant=2,
+    )
+
+
 def test_sbba_rawdata_produces_correct_fulldata():
-    """Pass our rawdata into the analysis function and verify that the
-    correct results are calculated."""
+    """Pass rawdata from a matlab file into the sbba analysis function and verify
+    that the correct results are calculated."""
 
     # This raw data file was initially taken in 2024 using an old data format,
     # it was converted to the current data format for this test.

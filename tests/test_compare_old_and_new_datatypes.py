@@ -158,7 +158,7 @@ def sofb_load_new_raw_data_from_old_file(filepath: str) -> RawData:
 
 
 def fbba_load_new_raw_data_from_old_file(filepath: str) -> RawData:
-    """Ingest the old matlab file format for fbba data and return
+    """Load the old matlab file format for fbba data and return
     a RawData object using the new data format.
     """
     dct = io.loadmat(filepath, simplify_cells=True)
@@ -180,6 +180,33 @@ def fbba_load_new_raw_data_from_old_file(filepath: str) -> RawData:
                 ),
             )
         rawdata[quad_name][plane][quad_strength] = values
+    return RawData(rawdata, dct["metadata"])
+
+
+def simfbba_load_new_raw_data_from_old_file(filepath: str) -> RawData:
+    """Load the old matlab file format for simfbba data and return
+    a RawData object using the new data format.
+    """
+    dct = io.loadmat(filepath, simplify_cells=True)
+    rawdata: dict[str, OscillationPlane[QuadStrength]] = {}
+    for key, values in dct["rawdata"].items():
+        quad_name, plane = key.split("_", 1)
+        for quad_strength in values:
+            quad_strength_lower = quad_strength.lower()
+            num_samples = values[quad_strength].shape[0]
+            num_bpms = values[quad_strength].shape[1]
+            if quad_name not in rawdata:
+                rawdata[quad_name] = OscillationPlane(
+                    QuadStrength(
+                        np.zeros((num_samples, num_bpms)),
+                        np.zeros((num_samples, num_bpms)),
+                    ),
+                    QuadStrength(
+                        np.zeros((num_samples, num_bpms)),
+                        np.zeros((num_samples, num_bpms)),
+                    ),
+                )
+            rawdata[quad_name][plane][quad_strength_lower] = values[quad_strength]
     return RawData(rawdata, dct["metadata"])
 
 
