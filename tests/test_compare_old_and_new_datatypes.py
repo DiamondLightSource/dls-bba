@@ -89,7 +89,7 @@ def new_rawdata_setup():
     return RawData(rawdata, metadata)
 
 
-def save_old(self, folder_path: str) -> None:
+def sofb_save_old_raw_data_format(self, folder_path: str) -> None:
     """Save the RawData object to a .mat file.
 
     Can load files in MATLAB with object.("key").
@@ -114,8 +114,10 @@ def save_old(self, folder_path: str) -> None:
     )
 
 
-def old_from_old_file(filepath: str) -> RawData:
-    """Load a RawData object from a .mat file.
+def sofb_load_old_raw_data_from_old_file(filepath: str) -> RawData:
+    """Load the RawData object from a .mat file. The .mat file contains the old
+    data format for RawData and loads it into the old data format for the RawData
+    object.
 
     Args:
         filepath: The path to the .mat file.
@@ -127,8 +129,10 @@ def old_from_old_file(filepath: str) -> RawData:
     return RawData(dct["rawdata"], dct["metadata"])
 
 
-def new_from_old_file(filepath: str) -> RawData:
-    """Load a RawData object from a .mat file.
+def sofb_load_new_raw_data_from_old_file(filepath: str) -> RawData:
+    """Load a RawData object from a .mat file. The .mat file contains the old
+    data format for RawData and loads it into the new data format for the RawData
+    Object.
 
     Args:
         filepath: The path to the .mat file.
@@ -153,7 +157,7 @@ def new_from_old_file(filepath: str) -> RawData:
     return RawData(rawdata, dct["metadata"])
 
 
-def fbba_new_from_old_file(filepath: str) -> RawData:
+def fbba_load_new_raw_data_from_old_file(filepath: str) -> RawData:
     """Ingest the old matlab file format for fbba data and return
     a RawData object using the new data format.
     """
@@ -179,14 +183,16 @@ def fbba_new_from_old_file(filepath: str) -> RawData:
     return RawData(rawdata, dct["metadata"])
 
 
-def save_old_and_new_data(tmpdir, old_rawdata_setup, new_rawdata_setup):
+def sofb_save_old_and_new_data(tmpdir, old_rawdata_setup, new_rawdata_setup):
+    """Get the old sofb RawData and the new sofb RawData objects and save them to .m
+    files. Return the paths to these .m files."""
 
     dirpath_rawdata_old_file_format = os.path.join(tmpdir, "old")
     dirpath_rawdata_new_file_format = os.path.join(tmpdir, "new")
     os.mkdir(dirpath_rawdata_old_file_format)
     os.mkdir(dirpath_rawdata_new_file_format)
 
-    save_old(old_rawdata_setup, dirpath_rawdata_old_file_format)
+    sofb_save_old_raw_data_format(old_rawdata_setup, dirpath_rawdata_old_file_format)
     new_rawdata_setup.save(dirpath_rawdata_new_file_format)
 
     method = old_rawdata_setup.metadata["method"]
@@ -204,15 +210,17 @@ def save_old_and_new_data(tmpdir, old_rawdata_setup, new_rawdata_setup):
     )
 
 
-def test_new_from_old_equals_new_from_new(tmpdir, old_rawdata_setup, new_rawdata_setup):
+def test_new_raw_data_from_old_file_equals_new_raw_data_from_new_file(
+    tmpdir, old_rawdata_setup, new_rawdata_setup
+):
     """Load the new rawdata format from the both the old file format and the new
     file format and ensure that the loaded rawdata is identical."""
 
-    filepath_old, filepath_new = save_old_and_new_data(
+    filepath_old, filepath_new = sofb_save_old_and_new_data(
         tmpdir, old_rawdata_setup, new_rawdata_setup
     )
 
-    new_rawdata_old_file_format = new_from_old_file(filepath_old)
+    new_rawdata_old_file_format = sofb_load_new_raw_data_from_old_file(filepath_old)
     new_rawdata_new_file_format = RawData.from_file(filepath_new)
 
     planes = ["x", "y"]
@@ -226,15 +234,17 @@ def test_new_from_old_equals_new_from_new(tmpdir, old_rawdata_setup, new_rawdata
                 np.testing.assert_array_equal(data_old, data_new)
 
 
-def test_old_from_old_equals_new_from_new(tmpdir, old_rawdata_setup, new_rawdata_setup):
-    """Load the old matlab file format and the new matlab format and ensure that the
-    loaded rawdata is in a different format but contains the same values."""
+def test_old_raw_data_from_old_file_equals_new_raw_data_from_new_file(
+    tmpdir, old_rawdata_setup, new_rawdata_setup
+):
+    """Load the old matlab file format and the new matlab file format and ensure that
+    the loaded rawdata is in a different format but contains the same values."""
 
-    filepath_old, filepath_new = save_old_and_new_data(
+    filepath_old, filepath_new = sofb_save_old_and_new_data(
         tmpdir, old_rawdata_setup, new_rawdata_setup
     )
 
-    old_rawdata_old_file_format = old_from_old_file(filepath_old)
+    old_rawdata_old_file_format = sofb_load_old_raw_data_from_old_file(filepath_old)
     new_rawdata_new_file_format = RawData.from_file(filepath_new)
 
     planes = ["x", "y"]
