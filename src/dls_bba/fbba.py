@@ -278,8 +278,12 @@ class FastBBA(Algorithm):
                 q_diff_good = q_diff[:, good]
 
                 # Use a single fit operation, then transform with straight line equation
+                oscillation_midpoint = (
+                    q_high_clean[:, bpm_index] + q_low_clean[:, bpm_index]
+                ) / 2
+                oscillation_size = q_diff_good
                 fit = np.polynomial.polynomial.polyfit(
-                    q_high_clean[:, bpm_index], q_diff_good, 1
+                    oscillation_midpoint, oscillation_size, 1
                 )
                 p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
 
@@ -291,8 +295,8 @@ class FastBBA(Algorithm):
 
                 # plotting data
                 metadata[f"plotting__{quad_name}__{axis}"] = {
-                    "x": q_high_clean[:, bpm_index] / NM_TO_MM_UNIT_CONV,
-                    "y": q_diff_good / NM_TO_MM_UNIT_CONV,
+                    "x": oscillation_midpoint / NM_TO_MM_UNIT_CONV,
+                    "y": oscillation_size / NM_TO_MM_UNIT_CONV,
                 }
 
         offsets = self.create_offsets_dict(results, metadata)
