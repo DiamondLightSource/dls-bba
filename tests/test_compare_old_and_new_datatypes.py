@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import pytest
+from _pytest.compat import LEGACY_PATH
 from scipy import io
 
 from dls_bba.datatypes import (
@@ -89,7 +90,7 @@ def new_rawdata_setup():
     return RawData(rawdata, metadata)
 
 
-def sofb_save_old_raw_data_format(self, folder_path: str) -> None:
+def sbba_save_old_raw_data_format(raw_data: RawData, folder_path: str) -> None:
     """Save the RawData object to a .mat file.
 
     Can load files in MATLAB with object.("key").
@@ -97,8 +98,8 @@ def sofb_save_old_raw_data_format(self, folder_path: str) -> None:
     Args:
         folder_path: The path to the folder to save the .mat file to.
     """
-    rawdata = self.rawdata
-    metadata = self.metadata
+    rawdata = raw_data.rawdata
+    metadata = raw_data.metadata
 
     method: str = metadata["method"]
     isotime: str = metadata["isotime"]
@@ -114,7 +115,7 @@ def sofb_save_old_raw_data_format(self, folder_path: str) -> None:
     )
 
 
-def sofb_load_old_raw_data_from_old_file(filepath: str) -> RawData:
+def sbba_load_old_raw_data_from_old_file(filepath: str) -> RawData:
     """Load the RawData object from a .mat file. The .mat file contains the old
     data format for RawData and loads it into the old data format for the RawData
     object.
@@ -129,7 +130,7 @@ def sofb_load_old_raw_data_from_old_file(filepath: str) -> RawData:
     return RawData(dct["rawdata"], dct["metadata"])
 
 
-def sofb_load_new_raw_data_from_old_file(filepath: str) -> RawData:
+def sbba_load_new_raw_data_from_old_file(filepath: str) -> RawData:
     """Load a RawData object from a .mat file. The .mat file contains the old
     data format for RawData and loads it into the new data format for the RawData
     Object.
@@ -210,8 +211,12 @@ def simfbba_load_new_raw_data_from_old_file(filepath: str) -> RawData:
     return RawData(rawdata, dct["metadata"])
 
 
-def sofb_save_old_and_new_data(tmpdir, old_rawdata_setup, new_rawdata_setup):
-    """Get the old sofb RawData and the new sofb RawData objects and save them to .m
+def sbba_save_old_and_new_data(
+    tmpdir: LEGACY_PATH,
+    old_rawdata_setup: RawData,
+    new_rawdata_setup: RawData,
+) -> tuple[str, str]:
+    """Get the old sbba RawData and the new sbba RawData objects and save them to .m
     files. Return the paths to these .m files."""
 
     dirpath_rawdata_old_file_format = os.path.join(tmpdir, "old")
@@ -219,7 +224,7 @@ def sofb_save_old_and_new_data(tmpdir, old_rawdata_setup, new_rawdata_setup):
     os.mkdir(dirpath_rawdata_old_file_format)
     os.mkdir(dirpath_rawdata_new_file_format)
 
-    sofb_save_old_raw_data_format(old_rawdata_setup, dirpath_rawdata_old_file_format)
+    sbba_save_old_raw_data_format(old_rawdata_setup, dirpath_rawdata_old_file_format)
     new_rawdata_setup.save(dirpath_rawdata_new_file_format)
 
     method = old_rawdata_setup.metadata["method"]
@@ -238,17 +243,19 @@ def sofb_save_old_and_new_data(tmpdir, old_rawdata_setup, new_rawdata_setup):
 
 
 def test_new_raw_data_from_old_file_equals_new_raw_data_from_new_file(
-    tmpdir, old_rawdata_setup, new_rawdata_setup
+    tmpdir: LEGACY_PATH, old_rawdata_setup: RawData, new_rawdata_setup: RawData
 ):
     """Load the new rawdata format from the both the old file format and the new
     file format and ensure that the loaded rawdata is identical."""
 
-    filepath_old, filepath_new = sofb_save_old_and_new_data(
+    old_rawdata_filepath, new_rawdata_filepath = sbba_save_old_and_new_data(
         tmpdir, old_rawdata_setup, new_rawdata_setup
     )
 
-    new_rawdata_old_file_format = sofb_load_new_raw_data_from_old_file(filepath_old)
-    new_rawdata_new_file_format = RawData.from_file(filepath_new)
+    new_rawdata_old_file_format = sbba_load_new_raw_data_from_old_file(
+        old_rawdata_filepath
+    )
+    new_rawdata_new_file_format = RawData.from_file(new_rawdata_filepath)
 
     planes = ["x", "y"]
     quad_strengths = ["high", "low"]
@@ -262,17 +269,19 @@ def test_new_raw_data_from_old_file_equals_new_raw_data_from_new_file(
 
 
 def test_old_raw_data_from_old_file_equals_new_raw_data_from_new_file(
-    tmpdir, old_rawdata_setup, new_rawdata_setup
+    tmpdir: LEGACY_PATH, old_rawdata_setup: RawData, new_rawdata_setup: RawData
 ):
     """Load the old matlab file format and the new matlab file format and ensure that
     the loaded rawdata is in a different format but contains the same values."""
 
-    filepath_old, filepath_new = sofb_save_old_and_new_data(
+    old_rawdata_filepath, new_rawdata_filepath = sbba_save_old_and_new_data(
         tmpdir, old_rawdata_setup, new_rawdata_setup
     )
 
-    old_rawdata_old_file_format = sofb_load_old_raw_data_from_old_file(filepath_old)
-    new_rawdata_new_file_format = RawData.from_file(filepath_new)
+    old_rawdata_old_file_format = sbba_load_old_raw_data_from_old_file(
+        old_rawdata_filepath
+    )
+    new_rawdata_new_file_format = RawData.from_file(new_rawdata_filepath)
 
     planes = ["x", "y"]
     quad_strengths = ["high", "low"]
