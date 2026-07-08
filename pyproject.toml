@@ -15,7 +15,7 @@ dependencies = [
     "epicscorelibs",
     "fa-archiver",
     "matplotlib",
-    "numpy",
+    "numpy>=1.21",
     "pytac>=0.6.0",
     "PyQt6==6.4.1",
     "PyQt6-Qt6==6.4.2",

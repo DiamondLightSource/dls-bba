@@ -1,5 +1,5 @@
 import os
-import sys
+from importlib.resources import files
 from pathlib import Path
 from unittest import mock
 
@@ -14,12 +14,6 @@ from dls_bba.exceptions import (
     LowCurrentError,
 )
 from dls_bba.machine import Machine
-
-if sys.version_info > (3, 9):
-    from importlib.resources import files
-else:
-    from importlib_resources import files
-
 
 extra_dict_no_reload = {"MAX_ORBIT_CORRECTION_MICRONS": 16}
 extra_dict_new_key = {"TEST_FIELD": 100}
@@ -130,13 +124,8 @@ def test_bpm2quad_is_valid(machine_setup):
         else:
             bpm_name_2 = [machine.quad2bpm(quad_name[0])]
         if bpm_name_1 not in bpm_name_2:
-            if bpm_name_1 in exceptions:
-                if bpm_name_2 is exceptions[bpm_name_1]:
-                    continue
-                else:
-                    assert False
-            else:
-                assert False
+            assert bpm_name_1 in exceptions
+            assert bpm_name_2 is exceptions[bpm_name_1]
 
 
 def test_bpm2quad_fails_with_invalid_bpm(machine_setup):
@@ -153,13 +142,8 @@ def test_quad2bpm_is_valid(machine_setup):
         bpm_name = machine.quad2bpm(quad_name_1)
         quad_name_2 = machine.bpm2quad(bpm_name)
         if quad_name_1 not in quad_name_2:
-            if quad_name_1 in exceptions:
-                if quad_name_2[0] == exceptions[quad_name_1]:
-                    continue
-                else:
-                    assert False
-            else:
-                assert False
+            assert quad_name_1 in exceptions
+            assert quad_name_2[0] is exceptions[quad_name_1]
 
 
 def test_quad2bpm_fails_with_invalid_quad(machine_setup):

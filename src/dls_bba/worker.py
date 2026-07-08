@@ -1,12 +1,13 @@
 import logging as log
 import traceback
-from typing import Any, Callable, Dict, List, Optional, Union
+from collections.abc import Callable
+from typing import Any
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.beam_current import BeamCurrentCheck
 from dls_bba.common import ALGORITHMS, setup_folders_and_logger
 from dls_bba.components import get_component_pairs
-from dls_bba.datatypes import Results
+from dls_bba.datatypes import FullResults
 from dls_bba.excite import cancel_all_oscillations
 from dls_bba.machine import Machine
 
@@ -15,13 +16,13 @@ class Worker:
     def __init__(
         self,
         method: str,
-        elements: List[str],
+        elements: list[str],
         question: Callable[[str], bool],
-        machine: Optional[Machine] = None,
-        folder_path: Optional[str] = None,
-        logger: Optional[log.Handler] = None,
-        extra_config_files: Optional[List[str]] = None,
-        additional_options: Optional[Dict[str, Any]] = None,
+        machine: Machine | None = None,
+        folder_path: str | None = None,
+        logger: log.Handler | None = None,
+        extra_config_files: list[str] | None = None,
+        additional_options: dict[str, Any] | None = None,
     ) -> None:
         """Initialise the worker and setup for performing a BBA.
 
@@ -59,8 +60,8 @@ class Worker:
         self.question = question
         self.save_rawdata = self.machine.config["SAVE_RAWDATA"]
         self.save_results = self.machine.config["SAVE_RESULTS"]
-        self.results_list: List[Results] = []
-        self.beam_current_decay: Optional[BeamCurrentCheck] = None
+        self.results_list: list[FullResults] = []
+        self.beam_current_decay: BeamCurrentCheck | None = None
         log.debug("Worker initialised")
 
     def start(self) -> None:
@@ -79,7 +80,7 @@ class Worker:
         """
         # Select first pair and remove it from list.
         if not self.components_pairs:
-            return 0
+            return 0.0
         log.debug("Work start")
         pair = self.components_pairs.pop(0)
 
@@ -139,8 +140,7 @@ def show_progress(left: float) -> None:
     args:
         left: The fraction of work remaining.
     """
-    percent = "%.2f" % (100 * left)
-    log.info(f"{percent}% left")
+    log.info(f"{100 * left:.2f}% left")
 
 
 def run_worker(worker: Worker) -> None:
@@ -151,7 +151,7 @@ def run_worker(worker: Worker) -> None:
     """
     try:
         worker.start()
-        fraction: Union[int, float] = 1
+        fraction: float = 1.0
         while fraction > 0:
             fraction = worker.work()
             show_progress(fraction)

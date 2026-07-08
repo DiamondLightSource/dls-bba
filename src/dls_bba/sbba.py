@@ -1,13 +1,19 @@
 import logging as log
 from math import floor
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 from cothread import Sleep
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.components import Components
-from dls_bba.datatypes import RawData, Results
+from dls_bba.datatypes import (
+    FullResults,
+    OscillationPlane,
+    QuadResults,
+    QuadStrength,
+    RawData,
+)
 from dls_bba.isotime import get_isotime
 from dls_bba.machine import Machine
 
@@ -23,7 +29,7 @@ class SlowBBA(Algorithm):
         """
         super().__init__(machine)
 
-    def run(self, components_pair: List[Components]) -> RawData:
+    def run(self, components_pair: list[Components]) -> RawData:
         """The Slow BBA Process.
 
         Args:
@@ -32,13 +38,14 @@ class SlowBBA(Algorithm):
         Returns:
             The RawData object.
         """
-        rawdata: Dict[str, Any] = {}
-        metadata: Dict[str, Any] = {}
+        rawdata: dict[str, OscillationPlane[QuadStrength]] = {}
+        metadata: dict[str, Any] = {}
         config = self._machine.config.get_settings()
         metadata.update(config)
         metadata["method"] = "SlowBBA"
         metadata["isotime"] = get_isotime()
         metadata["enabled_bpms"] = self._machine.get_enabled_bpms()
+        number_of_bpms = len(metadata["enabled_bpms"])
         # NOTE: This should probably be calculated properly, but even in getsigma.m it
         # just sets them all to 1e-4 when it fails to find the file that it's supposed
         # to read them from.
@@ -50,7 +57,7 @@ class SlowBBA(Algorithm):
         for components in components_pair:
             log.debug(f"Component: {components}")
             for quadrupole, quad_name in zip(
-                components.quadrupoles, components.quadrupoles_names
+                components.quadrupoles, components.quadrupoles_names, strict=True
             ):
                 log.debug(f"Quad: {quad_name} of {components.quadrupoles_names}")
                 (
@@ -61,11 +68,26 @@ class SlowBBA(Algorithm):
                     quad_step,
                 ) = self.calculate_quad_setpoints(quadrupole)
                 corrector_step_list = self.get_slow_bba_corrector_steps(components)
+                metadata[f"{quad_name.replace('-', '_')}__{components.axis}"] = {
+                    "components": components.as_dict(),
+                    "quad_start_high_low_sp": [
+                        quad_start,
+                        quad_high,
+                        quad_low,
+                        quad_sp,
+                        quad_step,
+                    ],
+                    "corrector_steps": corrector_step_list,
+                }
+                plane_data = {
+                    "High": np.zeros((5, number_of_bpms)),
+                    "Low": np.zeros((5, number_of_bpms)),
+                }
 
-                for index, corrector_step in enumerate(corrector_step_list, start=1):
+                for index, corrector_step in enumerate(corrector_step_list):
                     self._machine.set_corrector_setpoint(components, corrector_step)
-                    # Always overshoot the high quad step and work down and keep direction
-                    # consistent to mitigate unwanted hysteresis effects.
+                    # Always overshoot the high quad step and work down and keep
+                    # direction consistent to mitigate unwanted hysteresis effects.
                     # FYI correctors are significantly less prone to hysteresis effects.
                     self._machine.set_quad_setpoint(quadrupole, quad_start, True)
 
@@ -77,30 +99,26 @@ class SlowBBA(Algorithm):
                         self._machine.set_quad_setpoint(quadrupole, quad_value, True)
                         if "SR02" in quad_name:
                             Sleep(1)  # Give Cell 2 DDBA magnets more time to ramp.
-                        key = f"{quad_name.replace('-', '_')}__{components.axis}_{quad_movement}_{index}"
-                        rawdata[key] = self._machine.measure_bpms(components.axis)
-                        metadata[key] = {
-                            "components": components.as_dict(),
-                            "quad_start_high_low_sp": [
-                                quad_start,
-                                quad_high,
-                                quad_low,
-                                quad_sp,
-                                quad_step,
-                            ],
-                            "corrector_steps": corrector_step_list,
-                        }
+                        plane_data[quad_movement][index] = self._machine.measure_bpms(
+                            components.axis
+                        )
                 # Reset quad and corrector once finished.
                 log.info("Reset Quadrupole Setpoint")
                 self._machine.set_quad_setpoint(quadrupole, quad_sp, True)
                 self._machine.set_corrector_setpoint(components, corrector_step_list[2])
+                # Save the raw data that we've measured
+                if quad_name not in rawdata.keys():
+                    rawdata[quad_name] = OscillationPlane()
+                rawdata[quad_name][components.axis] = QuadStrength(
+                    plane_data["High"], plane_data["Low"]
+                )
             # run feedbacks after each axis.
             self._machine.check_feedbacks()
 
         # Saving x and y in one file, as you cannot do just one axis.
         return RawData(rawdata, metadata)
 
-    def get_slow_bba_corrector_steps(self, components: Components) -> List[float]:
+    def get_slow_bba_corrector_steps(self, components: Components) -> list[float]:
         """Get the corrector steps for the slow BBA.
 
         Args:
@@ -121,7 +139,7 @@ class SlowBBA(Algorithm):
         ]
         return corrector_steps
 
-    def analyse(self, rawdata: RawData) -> Results:
+    def analyse(self, rawdata: RawData) -> FullResults:
         """Analyse the rawdata and calculate the offsets to apply.
 
         Args:
@@ -140,29 +158,16 @@ class SlowBBA(Algorithm):
         center_outlier_factor = metadata["CENTER_OUTLIER_FACTOR"]
         optimal_bpm = metadata["bpm_index"]
 
-        results: Dict[str, List[float]] = {}
-        plotting: Dict[str, Dict[str, np.ndarray]] = {}
+        results: dict[str, OscillationPlane[QuadResults]] = {}
 
-        quad_names = []
-        for key in data.keys():
-            quad_name = key.split("__")[0]
-            if quad_name not in quad_names:
-                quad_names.append(quad_name)
-
-        for quad_name in quad_names:
+        for quad_name in data.keys():
             for axis in ["x", "y"]:
                 # Define variables that get changed for each plane.
                 sigma_bpm = metadata["sigma_bpm"]
                 bpm_indices = np.array(range(len(enabled_bpms)))
-                high = np.zeros(shape=(5, len(enabled_bpms)))
-                low = np.zeros(shape=(5, len(enabled_bpms)))
-                oscillation_size = np.zeros(shape=(5, len(enabled_bpms)))
-                # Extract data into our variables.
-                for i in range(5):
-                    high[i, :] = data[f"{quad_name}__{axis}_High_{i + 1}"]
-                    low[i, :] = data[f"{quad_name}__{axis}_Low_{i + 1}"]
-                    oscillation_size[i, :] = np.subtract(low[i, :], high[i, :])
-
+                high = np.copy(data[quad_name][axis].high)
+                low = np.copy(data[quad_name][axis].low)
+                oscillation_size = low - high
                 # Get rid of disabled bpms.
                 disabled_bpms = np.logical_not(enabled_bpms)
                 log.debug(f"Indices of disabled BPMs: {np.flatnonzero(disabled_bpms)}")
@@ -170,8 +175,8 @@ class SlowBBA(Algorithm):
                 # quadplot.m, though removing them is probably the right thing to do.
                 # NOTE: If we do choose to re-enable this then it should probably be
                 # done during data collection like enabled_bpms rather than here.
-                # fofb_disabled_bpms = np.array(self._machine.fofb_disabled[axis], dtype=bool)
-                # log.debug(f"Indices of fofb disabled BPMs: {np.flatnonzero(fofb_disabled_bpms)}")
+                # fofb_disabled_bpms = np.array(self._machine.fofb_disabled[axis], dtype=bool)  # noqa: E501
+                # log.debug(f"Indices of fofb disabled BPMs: {np.flatnonzero(fofb_disabled_bpms)}")  # noqa: E501
                 disabled = disabled_bpms  # | fofb_disabled_bpms
                 high = np.delete(high, disabled, axis=1)
                 low = np.delete(low, disabled, axis=1)
@@ -188,9 +193,9 @@ class SlowBBA(Algorithm):
                 # 5 point linear least squares fit.
                 bpm_number = list(bpm_indices).index(metadata["bpm_index"])
                 oscillation_midpoint = (high[:, bpm_number] + low[:, bpm_number]) / 2
-                X = np.stack((np.ones(5), oscillation_midpoint), axis=1)
+                X = np.stack((np.ones(5), oscillation_midpoint), axis=1)  # noqa: N806
                 # Matrix least squares b = (Xᵀ.X)⁻¹.Xᵀ.OS
-                inverse_Xtranspose_X = np.linalg.inv(X.T.dot(X))
+                inverse_Xtranspose_X = np.linalg.inv(X.T.dot(X))  # noqa: N806
                 b = inverse_Xtranspose_X.dot(X.T).dot(oscillation_size)
 
                 # Get absolute gradients and x intercepts of the lines.
@@ -209,7 +214,7 @@ class SlowBBA(Algorithm):
                     ):
                         large_fit_diff[i] = True
                 log.debug(
-                    "Indices with large error between fit and data: "
+                    f"Indices with large error between fit and data: "
                     f"{np.flatnonzero(large_fit_diff)}"
                 )
                 gradients = np.delete(gradients, large_fit_diff)
@@ -226,7 +231,7 @@ class SlowBBA(Algorithm):
                     min_gradient = second_half[-1]
                 bad_gradients = np.abs(gradients) < min_gradient * min_slope_fraction
                 log.debug(
-                    "Indices with too shallow gradients: "
+                    f"Indices with too shallow gradients: "
                     f"{np.flatnonzero(bad_gradients)}"
                 )
                 gradients = np.delete(gradients, bad_gradients)
@@ -253,16 +258,23 @@ class SlowBBA(Algorithm):
                 bpm_indices = np.delete(bpm_indices, stdev_outside_range)
                 log.debug(f"Data points remaining after cleaning: {len(offsets)}")
 
-                key = f"{quad_name}__{axis}"
-                results[key] = [np.mean(offsets), np.std(offsets, ddof=1)]
+                if quad_name not in results.keys():
+                    results[quad_name] = OscillationPlane()
+                results[quad_name][axis] = QuadResults(
+                    np.mean(offsets), np.std(offsets, ddof=1)
+                )
                 log.debug(
-                    f"Results for {key}: "
-                    f"mean: {results[key][0]}, standard deviation: {results[key][1]}"
+                    f"Results for {quad_name} {axis.upper()} plane:\n"
+                    f"    mean: {results[quad_name][axis].mean_offset}"
+                    f"    standard deviation: {results[quad_name][axis].std_dev_offset}"
                 )
 
                 # Plot data after cleaning.
-                plotting[key] = {"x": oscillation_midpoint, "y": oscillation_size}
+                metadata[f"plotting__{quad_name}__{axis}"] = {
+                    "x": oscillation_midpoint,
+                    "y": oscillation_size,
+                }
 
         offsets = self.create_offsets_dict(results, metadata)
 
-        return Results(results, metadata, plotting, offsets)
+        return FullResults(results, metadata, offsets)

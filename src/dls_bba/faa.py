@@ -1,5 +1,4 @@
 import logging as log
-from typing import List
 
 import cothread
 import numpy as np
@@ -48,13 +47,12 @@ def get_timestamp(decimated: bool) -> int:
         raise FAAPowerSupplyIOCTimestampError(msg)
 
     elif timestamp + MAX_BBA_DURATION > IOC_WARNING_TIMESTAMP:
-        msg = "FAA timestamp approaching IOC limit. Please Resync BPMs."
-        log.warning(msg)
+        log.warning("FAA timestamp approaching IOC limit. Please Resync BPMs.")
 
     return timestamp
 
 
-class Buffer(object):
+class Buffer:
     """Buffer for FA data.
 
     Args:
@@ -66,7 +64,7 @@ class Buffer(object):
     EXTRA = 1000
 
     def __init__(
-        self, ids: List[int], start_time: int, length: int, decimated: bool
+        self, ids: list[int], start_time: int, length: int, decimated: bool
     ) -> None:
         """Create buffer.
 
@@ -84,12 +82,12 @@ class Buffer(object):
         self.start = start_time
         # We need the timestamps for selecting the correct data
         if not ids[0] == 0:
-            ids = [0] + List(ids)
+            ids = [0] + list(ids)
             self.timestamps = False
         else:
             self.timestamps = True
         self.ids = ids
-        self.cache: List[np.ndarray] = []
+        self.cache: list[np.ndarray] = []
         self.datapoints = int(length // 10) if decimated else length
         log.debug("FA buffer: length %s; datapoints %s", length, self.datapoints)
         self.dec = decimated
@@ -124,14 +122,14 @@ class Buffer(object):
         try:
             data = np.concatenate(self.cache)
             data_start = int(np.searchsorted(data[:, 0, 0], self.start))
-            log.debug("Raw data size: {}".format(data.shape))
+            log.debug(f"Raw data size: {data.shape}")
             data = data[data_start : data_start + self.datapoints, :, :]
-            log.debug("Data timestamps: {}".format(data[:, 0, 0]))
-            log.debug("Final data size: {}".format(data.shape))
+            log.debug(f"Data timestamps: {data[:, 0, 0]}")
+            log.debug(f"Final data size: {data.shape}")
             if not self.timestamps:
                 data = data[:, 1:, :]
-        except IndexError:
+        except IndexError as e:
             raise FastAcquisitionArchiverError(
                 "Insufficient data received from FA archiver."
-            )
+            ) from e
         return data

@@ -1,11 +1,8 @@
 """Interface for ``python -m dls_bba``."""
 
-
 import json
 import sys
 from argparse import ArgumentParser, Namespace
-from collections.abc import Sequence
-from typing import List
 
 from dls_bba.common import ALGORITHMS, apply_folder, apply_golden, apply_single
 from dls_bba.gui import start_gui
@@ -140,7 +137,7 @@ def parse_arguments() -> Namespace:
     return parent_parser.parse_args()
 
 
-def sort_elements(args) -> List[str]:
+def sort_elements(args) -> list[str]:
     """Return the elements selected from the argparser.
 
     Args:
@@ -154,7 +151,7 @@ def sort_elements(args) -> List[str]:
         assert all(isinstance(key, str) for key in args.additional_config.keys())
 
     machine = Machine(args.config_files, args.additional_config)
-    elements: List[str] = []
+    elements: list[str] = []
 
     if args.wholemachine:
         elements = machine.bpms_names
@@ -187,7 +184,7 @@ def sort_elements(args) -> List[str]:
     return elements
 
 
-def main(args: Sequence[str] | None = None) -> None:
+def main(args: Namespace | None = None) -> None:
     """The main CLI entrypoint for the BBA package."""
     args = parse_arguments()
     if args.command == "info":
@@ -199,7 +196,8 @@ def main(args: Sequence[str] | None = None) -> None:
             sys.exit("No algorithm selected please specify one using -a or --algorithm")
         elif args.algorithm not in ALGORITHMS.keys():
             sys.exit(
-                f"Invalid algorithm '{args.algorithm}' please try one of {ALGORITHMS.keys()}"
+                f"Invalid algorithm '{args.algorithm}' please try one of "
+                f"{ALGORITHMS.keys()}"
             )
         elements = sort_elements(args)
         worker = Worker(

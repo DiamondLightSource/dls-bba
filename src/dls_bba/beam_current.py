@@ -1,5 +1,5 @@
 import logging as log
-from typing import Callable
+from collections.abc import Callable
 
 from dls_bba.exceptions import LowCurrentError
 from dls_bba.machine import Machine
@@ -66,10 +66,8 @@ class BeamCurrentCheck:
         start_current = self._machine.get_beam_current()
 
         while True:
-            msg = f"Please topup current to > {minimum_topup}mA."
-            log.error(msg)
-            msg = "Input y to continue after top-up, or n to cancel: "
-            response = self.question(msg)
+            log.error(f"Please topup current to > {minimum_topup}mA.")
+            response = self.question("Input y to continue after topup, or n to cancel:")
 
             if response:
                 current = self._machine.get_beam_current()

@@ -1,7 +1,6 @@
 import logging as log
 import os
 import sys
-from typing import Optional
 
 CONSOLE_LOG_FORMAT = "%(levelname)-7s: [%(filename)s:%(lineno)d] — %(message)s"
 """The format of the log message when printed to the console."""
@@ -31,7 +30,7 @@ class StreamToLogger:
         pass
 
 
-def get_new_logger(folder_path: str, gui_handler: Optional[log.Handler] = None) -> None:
+def get_new_logger(folder_path: str, gui_handler: log.Handler | None = None) -> None:
     """Setup the logger.
 
     Args:
@@ -51,7 +50,7 @@ def get_new_logger(folder_path: str, gui_handler: Optional[log.Handler] = None) 
         logger.addHandler(console_handler)
 
         if gui_handler is not None:
-            sys.stderr = StreamToLogger(logger, log.CRITICAL)
+            sys.stderr = StreamToLogger(logger, log.CRITICAL)  # type: ignore
             gui_handler.setLevel(log.INFO)
             gui_handler.setFormatter(log.Formatter(GUI_LOG_FORMAT))
             logger.addHandler(gui_handler)

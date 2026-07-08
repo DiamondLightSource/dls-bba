@@ -1,13 +1,19 @@
 import logging as log
 from math import ceil
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 from cothread import Sleep
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.components import Components
-from dls_bba.datatypes import RawData, Results
+from dls_bba.datatypes import (
+    FullResults,
+    OscillationPlane,
+    QuadResults,
+    QuadStrength,
+    RawData,
+)
 from dls_bba.exceptions import OscillationLengthError
 from dls_bba.excite import NETWORK_LAG, SAFETY_NET, Excitation, Oscillation, excite
 from dls_bba.faa import TICKS_PER_SECOND, Buffer, get_timestamp
@@ -29,7 +35,7 @@ class SimFastBBA(Algorithm):
         """
         super().__init__(machine)
 
-    def run(self, components_pair: List[Components]) -> RawData:
+    def run(self, components_pair: list[Components]) -> RawData:
         """The Simultaneous Fast BBA Process.
 
         Args:
@@ -38,8 +44,8 @@ class SimFastBBA(Algorithm):
         Returns:
             The RawData object.
         """
-        rawdata: Dict[str, Any] = {}
-        metadata: Dict[str, Any] = {}
+        rawdata: dict[str, OscillationPlane[QuadStrength]] = {}
+        metadata: dict[str, Any] = {}
         config = self._machine.config.get_settings()
         metadata.update(config)
         metadata["method"] = "SimFastBBA"
@@ -51,12 +57,15 @@ class SimFastBBA(Algorithm):
 
         log.info(f"BPM: {components_pair[0].bpm_name}")
         for quadrupole, quad_name in zip(
-            components_pair[0].quadrupoles, components_pair[0].quadrupoles_names
+            components_pair[0].quadrupoles,
+            components_pair[0].quadrupoles_names,
+            strict=True,
         ):
             log.debug(f"BPM: {components_pair[0].bpm_name}")
             log.debug(f"Quad: {quad_name} of {components_pair[0].quadrupoles_names}")
             log.debug(
-                f"Corrector1: {components_pair[0].corrector_name}, Corrector2: {components_pair[1].corrector_name}"
+                f"Corrector1: {components_pair[0].corrector_name}, "
+                f"Corrector2: {components_pair[1].corrector_name}"
             )
             (
                 quad_start,
@@ -75,8 +84,7 @@ class SimFastBBA(Algorithm):
             kick = {"x": hcorr_kick, "y": vcorr_kick}
             setpoint = {"x": hcorr_sp, "y": vcorr_sp}
 
-            key = f"{quad_name}"
-            metadata[key] = {
+            metadata[f"{quad_name}"] = {
                 "components": [
                     components_pair[0].as_dict(),
                     components_pair[1].as_dict(),
@@ -103,17 +111,16 @@ class SimFastBBA(Algorithm):
             # Setup Oscillations
             oscillations = {}
             for index, axis in enumerate(["x", "y"]):
-                frequency_key = f"{components_pair[index].axis.upper()}_FREQUENCY"
-                frequency = config[frequency_key]
-                cycles_key = f"{components_pair[index].axis.upper()}_CYCLES"
-                cycles = config[cycles_key]
+                frequency = config[f"{components_pair[index].axis.upper()}_FREQUENCY"]
+                cycles = config[f"{components_pair[index].axis.upper()}_CYCLES"]
                 oscillations[axis] = Oscillation(
                     kick[axis], components_pair[index], frequency, cycles
                 )
 
             if oscillations["x"].length != oscillations["y"].length:
-                msg = f"X: {oscillations['x'].length} != Y: {oscillations['y'].length}"
-                raise OscillationLengthError(msg)
+                raise OscillationLengthError(
+                    f"X: {oscillations['x'].length} != Y: {oscillations['y'].length}"
+                )
 
             quad_lag_s = quad_step / QUAD_SLEW_RATE
             quad_lag = int(quad_lag_s * TICKS_PER_SECOND)
@@ -169,10 +176,9 @@ class SimFastBBA(Algorithm):
             for index, axis in enumerate(["x", "y"]):
                 exc_data = data_list[index]
                 selected_data = self.select_data(fa_data, index, exc_data, decimated)
-                rawdata[f"{quad_name.replace('-', '_')}__{axis}"] = {
-                    "High": selected_data[0],
-                    "Low": selected_data[1],
-                }
+                if quad_name not in rawdata.keys():
+                    rawdata[quad_name] = OscillationPlane()
+                rawdata[quad_name][axis] = QuadStrength(*selected_data)
 
             log.info("Reset Quadrupole Setpoint")
             self._machine.set_quad_setpoint(quadrupole, quad_sp)
@@ -184,9 +190,9 @@ class SimFastBBA(Algorithm):
         self,
         data: np.ndarray,
         plane_index: int,
-        exc_data: List[Excitation],
+        exc_data: list[Excitation],
         decimated: bool,
-    ) -> List[np.ndarray]:
+    ) -> list[np.ndarray]:
         """Extract FA data that covers the excitations exc_high and exc_low.
 
         The input data array should cover the full length of both excitations.
@@ -201,15 +207,12 @@ class SimFastBBA(Algorithm):
         """
         # Note: array data must include the timestamps.
         exc_high, exc_low = exc_data
-        log.debug("Raw data shape: {}".format(data.shape))
+        log.debug(f"Raw data shape: {data.shape}")
+        log.debug(f"Timestamp range in raw data: {data[0, 0, 0]} - {data[-1, 0, 0]}")
+        log.debug(f"Excitation length: {exc_high.count}")
         log.debug(
-            "Timestamp range in raw data: {} - {}".format(data[0, 0, 0], data[-1, 0, 0])
-        )
-        log.debug("Excitation length: {}".format(exc_high.count))
-        log.debug(
-            "Trailing data to crop: {}.".format(
-                data[-1, 0, 0] - (exc_low.start_time + exc_low.count)
-            )
+            f"Trailing data to crop: "
+            f"{data[-1, 0, 0] - (exc_low.start_time + exc_low.count)}."
         )
         assert exc_high.count == exc_low.count, "Excitations different lengths"
         # Extract timestamps from data
@@ -222,7 +225,7 @@ class SimFastBBA(Algorithm):
         length = ceil(exc_high.count / 10) if decimated else exc_high.count
         high_data = data[high_start : high_start + length, :, plane_index]
         low_data = data[low_start : low_start + length, :, plane_index]
-        log.debug("Selected data shape: {} {}".format(high_data.shape, low_data.shape))
+        log.debug(f"Selected data shape: {high_data.shape} {low_data.shape}")
         assert high_data.shape == low_data.shape
         return [high_data, low_data]
 
@@ -278,7 +281,7 @@ class SimFastBBA(Algorithm):
         clean_wave = np.real(np.conj(detector_fixed) * mix) + np.real(dc_offset)
         return clean_wave
 
-    def analyse(self, rawdata: RawData) -> Results:
+    def analyse(self, rawdata: RawData) -> FullResults:
         """Analyse the rawdata and calculate the offsets to apply.
 
         Args:
@@ -295,25 +298,15 @@ class SimFastBBA(Algorithm):
         bpm_index = bpm_number - np.sum(
             enabled_bpms[:bpm_number] == False  # noqa false positive
         )
-        results: Dict[str, List[float]] = {}
-        plotting: Dict[str, Dict[str, np.ndarray]] = {}
+        results: dict[str, OscillationPlane[QuadResults]] = {}
 
-        quad_names = []
-        for key in data.keys():
-            quad_name = key.split("__")[0]
-            if quad_name not in quad_names:
-                quad_names.append(quad_name)
-
-        for quad_name in quad_names:
+        for quad_name in data.keys():
             for axis in ["x", "y"]:
-                key = f"{quad_name}__{axis}"
-
-                frequency_key = f"{axis.upper()}_FREQUENCY"
-                frequency = metadata[frequency_key]
+                frequency = metadata[f"{axis.upper()}_FREQUENCY"]
 
                 # Remove bad BPMs
-                q_low = data[key]["Low"][:, enabled_bpms]
-                q_high = data[key]["High"][:, enabled_bpms]
+                q_low = data[quad_name][axis]["low"][:, enabled_bpms]
+                q_high = data[quad_name][axis]["high"][:, enabled_bpms]
 
                 q_high_clean = self.extract_freq_excite(q_high, frequency, bpm_index)
                 q_low_clean = self.extract_freq_excite(q_low, frequency, bpm_index)
@@ -323,7 +316,7 @@ class SimFastBBA(Algorithm):
                 good = q_diff.std(0) > q_diff.std(0).max() / 2
                 q_diff_good = q_diff[:, good]
 
-                # Use a single fit operation, then transform with the straight line equation
+                # Use a single fit operation, then transform with straight line equation
                 fit = np.polynomial.polynomial.polyfit(
                     q_high_clean[:, bpm_index], q_diff_good, 1
                 )
@@ -331,14 +324,16 @@ class SimFastBBA(Algorithm):
 
                 offset = np.mean(p[:, 1]) / NM_TO_MM_UNIT_CONV
                 error = np.std(p[:, 1]) / NM_TO_MM_UNIT_CONV
-                results[key] = [offset, error]
+                if quad_name not in results.keys():
+                    results[quad_name] = OscillationPlane()
+                results[quad_name][axis] = QuadResults(offset, error)
 
                 # plotting data
-                plotting[key] = {
+                metadata[f"plotting__{quad_name}__{axis}"] = {
                     "x": q_high_clean[:, bpm_index] / NM_TO_MM_UNIT_CONV,
                     "y": q_diff_good / NM_TO_MM_UNIT_CONV,
                 }
 
         offsets = self.create_offsets_dict(results, metadata)
 
-        return Results(results, metadata, plotting, offsets)
+        return FullResults(results, metadata, offsets)

@@ -1,13 +1,19 @@
 import logging as log
 from math import ceil
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import numpy as np
 from cothread import Sleep
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.components import Components
-from dls_bba.datatypes import RawData, Results
+from dls_bba.datatypes import (
+    FullResults,
+    OscillationPlane,
+    QuadResults,
+    QuadStrength,
+    RawData,
+)
 from dls_bba.excite import NETWORK_LAG, SAFETY_NET, Excitation, Oscillation, excite
 from dls_bba.faa import TICKS_PER_SECOND, Buffer, get_timestamp
 from dls_bba.isotime import get_isotime
@@ -28,7 +34,7 @@ class FastBBA(Algorithm):
         """
         super().__init__(machine)
 
-    def run(self, components_pair: List[Components]) -> RawData:
+    def run(self, components_pair: list[Components]) -> RawData:
         """The Fast BBA Process.
 
         Args:
@@ -37,8 +43,8 @@ class FastBBA(Algorithm):
         Returns:
             The RawData object
         """
-        rawdata: Dict[str, Any] = {}
-        metadata: Dict[str, Any] = {}
+        rawdata: dict[str, OscillationPlane[QuadStrength]] = {}
+        metadata: dict[str, Any] = {}
         config = self._machine.config.get_settings()
         metadata.update(config)
         metadata["method"] = "FastBBA"
@@ -52,7 +58,7 @@ class FastBBA(Algorithm):
         for components in components_pair:
             log.debug(f"Component: {components}")
             for quadrupole, quad_name in zip(
-                components.quadrupoles, components.quadrupoles_names
+                components.quadrupoles, components.quadrupoles_names, strict=True
             ):
                 log.debug(f"Quad: {quad_name} of {components.quadrupoles_names}")
                 (
@@ -64,10 +70,8 @@ class FastBBA(Algorithm):
                 ) = self.calculate_quad_setpoints(quadrupole)
 
                 corr_kick = self._machine.corrector_kick(components)
-                corr_sp = self._machine.get_corrector_setpoint(components)
 
-                key = f"{quad_name.replace('-', '_')}__{components.axis}"
-                metadata[key] = {
+                metadata[f"{quad_name.replace('-', '_')}__{components.axis}"] = {
                     "components": components.as_dict(),
                     "quad_start_high_low_sp": [
                         quad_start,
@@ -76,7 +80,7 @@ class FastBBA(Algorithm):
                         quad_sp,
                         quad_step,
                     ],
-                    "corrector_sp": corr_sp,
+                    "corrector_sp": self._machine.get_corrector_setpoint(components),
                     "corrector_kick": corr_kick,
                 }
 
@@ -89,10 +93,8 @@ class FastBBA(Algorithm):
                     Sleep(1)
 
                 # Setup Oscillations
-                frequency_key = f"{components.axis.upper()}_FREQUENCY"
-                frequency = config[frequency_key]
-                cycles_key = f"{components.axis.upper()}_CYCLES"
-                cycles = config[cycles_key]
+                frequency = config[f"{components.axis.upper()}_FREQUENCY"]
+                cycles = config[f"{components.axis.upper()}_CYCLES"]
                 osc = Oscillation(corr_kick, components, frequency, cycles)
 
                 quad_lag_s = quad_step / QUAD_SLEW_RATE
@@ -128,10 +130,9 @@ class FastBBA(Algorithm):
                     fa_data, components.axis, exc_data, decimated
                 )
 
-                key = f"{quad_name.replace('-', '_')}__{components.axis}_High"
-                rawdata[key] = selected_data[0]
-                key = f"{quad_name.replace('-', '_')}__{components.axis}_Low"
-                rawdata[key] = selected_data[1]
+                if quad_name not in rawdata.keys():
+                    rawdata[quad_name] = OscillationPlane()
+                rawdata[quad_name][components.axis] = QuadStrength(*selected_data)
 
                 log.info("Reset Quadrupole Setpoint")
                 self._machine.set_quad_setpoint(quadrupole, quad_sp)
@@ -143,9 +144,9 @@ class FastBBA(Algorithm):
         self,
         data: np.ndarray,
         axis: str,
-        exc_data: Tuple[Excitation, Excitation],
+        exc_data: tuple[Excitation, Excitation],
         decimated: bool,
-    ) -> List[np.ndarray]:
+    ) -> list[np.ndarray]:
         """Extract FA data that covers the excitations exc_high and exc_low.
 
         The input data array should cover the full length of both excitations.
@@ -165,15 +166,12 @@ class FastBBA(Algorithm):
 
         exc_high, exc_low = exc_data
         # Note: array data must include the timestamps.
-        log.debug("Raw data shape: {}".format(data.shape))
+        log.debug(f"Raw data shape: {data.shape}")
+        log.debug(f"Timestamp range in raw data: {data[0, 0, 0]} - {data[-1, 0, 0]}")
+        log.debug(f"Excitation length: {exc_high.count}")
         log.debug(
-            "Timestamp range in raw data: {} - {}".format(data[0, 0, 0], data[-1, 0, 0])
-        )
-        log.debug("Excitation length: {}".format(exc_high.count))
-        log.debug(
-            "Trailing data to crop: {}.".format(
-                data[-1, 0, 0] - (exc_low.start_time + exc_low.count)
-            )
+            f"Trailing data to crop: "
+            f"{data[-1, 0, 0] - (exc_low.start_time + exc_low.count)}."
         )
         assert exc_high.count == exc_low.count, "Excitations different lengths"
         # Extract timestamps from data
@@ -186,7 +184,7 @@ class FastBBA(Algorithm):
         length = ceil(exc_high.count / 10) if decimated else exc_high.count
         high_data = data[high_start : high_start + length, :, plane]
         low_data = data[low_start : low_start + length, :, plane]
-        log.debug("Selected data shape: {} {}".format(high_data.shape, low_data.shape))
+        log.debug(f"Selected data shape: {high_data.shape} {low_data.shape}")
         assert high_data.shape == low_data.shape
         return [high_data, low_data]
 
@@ -242,7 +240,7 @@ class FastBBA(Algorithm):
         clean_wave = np.real(np.conj(detector_fixed) * mix) + np.real(dc_offset)
         return clean_wave
 
-    def analyse(self, rawdata: RawData) -> Results:
+    def analyse(self, rawdata: RawData) -> FullResults:
         """Analyse the rawdata and calculate the offsets to apply.
 
         Args:
@@ -260,25 +258,15 @@ class FastBBA(Algorithm):
         bpm_index = bpm_number - np.sum(
             enabled_bpms[:bpm_number] == False  # noqa false positive
         )
-        results: Dict[str, List[float]] = {}
-        plotting: Dict[str, Dict[str, np.ndarray]] = {}
+        results: dict[str, OscillationPlane[QuadResults]] = {}
 
-        quad_names = []
-        for key in data.keys():
-            quad_name = key.split("__")[0]
-            if quad_name not in quad_names:
-                quad_names.append(quad_name)
-
-        for quad_name in quad_names:
+        for quad_name in data.keys():
             for axis in ["x", "y"]:
-                frequency_key = f"{axis.upper()}_FREQUENCY"
-                frequency = metadata[frequency_key]
-                high_key = f"{quad_name}__{axis}_High"
-                low_key = f"{quad_name}__{axis}_Low"
+                frequency = metadata[f"{axis.upper()}_FREQUENCY"]
 
                 # Remove bad BPMs
-                q_low = data[low_key][:, enabled_bpms]
-                q_high = data[high_key][:, enabled_bpms]
+                q_low = data[quad_name][axis]["low"][:, enabled_bpms]
+                q_high = data[quad_name][axis]["high"][:, enabled_bpms]
 
                 # Clean the data using the synchronous detector method
                 q_high_clean = self.extract_freq_excite(q_high, frequency, bpm_index)
@@ -289,23 +277,24 @@ class FastBBA(Algorithm):
                 good = q_diff.std(0) > q_diff.std(0).max() / 2
                 q_diff_good = q_diff[:, good]
 
-                # Use a single fit operation, then transform with the straight line equation
+                # Use a single fit operation, then transform with straight line equation
                 fit = np.polynomial.polynomial.polyfit(
                     q_high_clean[:, bpm_index], q_diff_good, 1
                 )
                 p = np.array([1 / fit[1], -fit[0] / fit[1]]).T
 
-                key = f"{quad_name}__{axis}"
                 offset = np.mean(p[:, 1]) / NM_TO_MM_UNIT_CONV
                 error = np.std(p[:, 1]) / NM_TO_MM_UNIT_CONV
-                results[key] = [offset, error]
+                if quad_name not in results.keys():
+                    results[quad_name] = OscillationPlane()
+                results[quad_name][axis] = QuadResults(offset, error)
 
                 # plotting data
-                plotting[key] = {
+                metadata[f"plotting__{quad_name}__{axis}"] = {
                     "x": q_high_clean[:, bpm_index] / NM_TO_MM_UNIT_CONV,
                     "y": q_diff_good / NM_TO_MM_UNIT_CONV,
                 }
 
         offsets = self.create_offsets_dict(results, metadata)
 
-        return Results(results, metadata, plotting, offsets)
+        return FullResults(results, metadata, offsets)
