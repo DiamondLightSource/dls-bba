@@ -13,7 +13,7 @@ def test_fbba_rawdata_produces_correct_fulldata():
     """Pass rawdata from a matlab file into the fbba analysis function and verify
     that the correct results are calculated."""
 
-    # This raw data file was initially taken in 2024 using an old data format,
+    # This raw data file was initially taken in 2023 using an old data format,
     # it was converted to the current data format for this test.
     rawdata_path = (
         TEST_DATA_DIR / "FastBBA-20230726T012011-SR01C-DI-EBPM-05-rawdata.mat"
@@ -25,24 +25,24 @@ def test_fbba_rawdata_produces_correct_fulldata():
     full_results = fbba.analyse(rawdata)
 
     assert_approx_equal(
-        full_results.quad_results["SR01A-PC-Q2AB-07"]["x"].mean_offset,
+        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["x"].diff_value,
         -0.034,
         significant=2,
     )
     assert_approx_equal(
-        full_results.quad_results["SR01A-PC-Q2AB-07"]["x"].std_dev_offset,
-        0.0022,
+        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["x"].diff_error,
+        -0.0022,
         significant=2,
     )
     assert_approx_equal(
-        full_results.quad_results["SR01A-PC-Q2AB-07"]["y"].mean_offset,
+        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["y"].diff_value,
         0.0273,
         significant=3,
     )
     assert_approx_equal(
-        full_results.quad_results["SR01A-PC-Q2AB-07"]["y"].std_dev_offset,
-        0.00049759,
-        significant=5,
+        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["y"].diff_error,
+        0.0005,
+        significant=1,
     )
 
 
@@ -50,7 +50,7 @@ def test_simfbba_rawdata_produces_correct_fulldata():
     """Pass rawdata from a matlab file into the simfbba analysis function and verify
     that the correct results are calculated."""
 
-    # This raw data file was initially taken in 2024 using an old data format,
+    # This raw data file was initially taken in 2023 using an old data format,
     # it was converted to the current data format for this test.
     rawdata_path = (
         TEST_DATA_DIR / "SimFastBBA-20230726T005414-SR01C-DI-EBPM-05-rawdata.mat"
@@ -62,23 +62,23 @@ def test_simfbba_rawdata_produces_correct_fulldata():
     full_results = fbba.analyse(rawdata)
 
     assert_approx_equal(
-        full_results.quad_results["SR01A-PC-Q2AB-07"]["x"].mean_offset,
+        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["x"].diff_value,
         -0.1677,
         significant=4,
     )
     assert_approx_equal(
-        full_results.quad_results["SR01A-PC-Q2AB-07"]["x"].std_dev_offset,
-        0.0098,
+        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["x"].diff_error,
+        -0.0098,
         significant=2,
     )
     assert_approx_equal(
-        full_results.quad_results["SR01A-PC-Q2AB-07"]["y"].mean_offset,
+        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["y"].diff_value,
         -0.2415,
         significant=4,
     )
     assert_approx_equal(
-        full_results.quad_results["SR01A-PC-Q2AB-07"]["y"].std_dev_offset,
-        0.0019,
+        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["y"].diff_error,
+        -0.0019,
         significant=2,
     )
 
@@ -99,22 +99,22 @@ def test_sbba_rawdata_produces_correct_fulldata():
     full_results = sbba.analyse(rawdata)
 
     assert_approx_equal(
-        full_results.quad_results["SR01A-PC-Q1D-01"]["x"].mean_offset,
-        -0.002037,
+        full_results.bpm_offsets["SR01C-DI-EBPM-01"]["x"].diff_value,
+        -0.002,
+        significant=1,
+    )
+    assert_approx_equal(
+        full_results.bpm_offsets["SR01C-DI-EBPM-01"]["x"].diff_error,
+        -0.0005,
+        significant=2,
+    )
+    assert_approx_equal(
+        full_results.bpm_offsets["SR01C-DI-EBPM-01"]["y"].diff_value,
+        -0.0,
         significant=4,
     )
     assert_approx_equal(
-        full_results.quad_results["SR01A-PC-Q1D-01"]["x"].std_dev_offset,
-        0.0005196,
-        significant=4,
-    )
-    assert_approx_equal(
-        full_results.quad_results["SR01A-PC-Q1D-01"]["y"].mean_offset,
-        -2.786e-13,
-        significant=4,
-    )
-    assert_approx_equal(
-        full_results.quad_results["SR01A-PC-Q1D-01"]["y"].std_dev_offset,
-        1.899e-13,
-        significant=4,
+        full_results.bpm_offsets["SR01C-DI-EBPM-01"]["y"].diff_error,
+        -0.0,
+        significant=2,
     )
