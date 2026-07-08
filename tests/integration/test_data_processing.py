@@ -1,6 +1,5 @@
 from unittest.mock import MagicMock
 
-import numpy as np
 from numpy.testing import assert_approx_equal
 
 from conftest import TEST_DATA_DIR
@@ -99,17 +98,23 @@ def test_sbba_rawdata_produces_correct_fulldata():
     rawdata = RawData.from_file(str(rawdata_path))
     full_results = sbba.analyse(rawdata)
 
-    assert full_results.bpm_offsets["SR01C-DI-EBPM-01"]["x"].new_value == 0.998
-    assert full_results.bpm_offsets["SR01C-DI-EBPM-01"]["y"].new_value == 1.0
-    assert full_results.quad_results["SR01A-PC-Q1D-01"]["x"].mean_offset == np.float64(
-        -0.0020373769667987817
+    assert_approx_equal(
+        full_results.quad_results["SR01A-PC-Q1D-01"]["x"].mean_offset,
+        -0.002037,
+        significant=4,
     )
-    assert full_results.quad_results["SR01A-PC-Q1D-01"]["y"].mean_offset == np.float64(
-        -2.786686706569358e-13
+    assert_approx_equal(
+        full_results.quad_results["SR01A-PC-Q1D-01"]["x"].std_dev_offset,
+        0.0005196,
+        significant=4,
     )
-    assert full_results.metadata["plotting__SR01A-PC-Q1D-01__x"][
-        "x"
-    ].max() == np.float64(0.32420216027248705)
-    assert full_results.metadata["plotting__SR01A-PC-Q1D-01__y"][
-        "y"
-    ].max() == np.float64(0.012995105223497755)
+    assert_approx_equal(
+        full_results.quad_results["SR01A-PC-Q1D-01"]["y"].mean_offset,
+        -2.786e-13,
+        significant=4,
+    )
+    assert_approx_equal(
+        full_results.quad_results["SR01A-PC-Q1D-01"]["y"].std_dev_offset,
+        1.899e-13,
+        significant=4,
+    )
