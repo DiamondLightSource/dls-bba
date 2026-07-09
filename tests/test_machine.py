@@ -95,7 +95,7 @@ def test_pytac_lattice_loaded_config_items_correctly(machine_setup):
     config = machine.config
     pytac_lattice = machine._lattice
     assert pytac_lattice.name == config["RINGMODE"]
-    assert pytac_lattice.get_default_data_source() == config["DATASOURCE"]
+    assert pytac_lattice.get_default_data_source() == config["DATASOURCE"].lower()
     assert pytac_lattice.get_default_units()[:3] in config["UNITS"].lower()
 
 
