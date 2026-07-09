@@ -151,18 +151,18 @@ class Algorithm(ABC):
         self,
         results_list: list[FullResults],
         save_location: str,
-        question: Callable[[str], bool],
+        question_function: Callable[[str], bool],
     ) -> None:
         """Saves, plots and asks the user if they want to apply the BBA offsets.
 
         Args:
             results_list: The list of results to use.
             save_location: The location to save the results to.
-            question: The question function for the console or gui.
+            question_function: The question function for the console or gui.
         """
         offsets_dict = self.reformat_and_save_offsets(results_list, save_location)
         bba_offsets_plot(self._machine, offsets_dict, save_location)
-        if question("Apply these BBA offsets? (y / n) :"):
+        if question_function("Apply these BBA offsets? (y / n) :"):
             self.apply_bba_offsets(offsets_dict)
             self._machine.apply_feedbacks()
 
