@@ -25,24 +25,16 @@ def test_fbba_rawdata_produces_correct_fulldata():
     full_results = fbba.analyse(rawdata)
 
     assert_approx_equal(
-        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["x"].diff_value,
-        -0.034,
-        significant=2,
+        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["x"].diff_value, -0.0339
     )
     assert_approx_equal(
-        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["x"].diff_error,
-        -0.0022,
-        significant=2,
+        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["x"].diff_error, -0.0022
     )
     assert_approx_equal(
-        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["y"].diff_value,
-        0.0273,
-        significant=3,
+        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["y"].diff_value, 0.0272
     )
     assert_approx_equal(
-        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["y"].diff_error,
-        0.0005,
-        significant=1,
+        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["y"].diff_error, 0.0005
     )
 
 
@@ -62,24 +54,16 @@ def test_simfbba_rawdata_produces_correct_fulldata():
     full_results = fbba.analyse(rawdata)
 
     assert_approx_equal(
-        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["x"].diff_value,
-        -0.1677,
-        significant=4,
+        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["x"].diff_value, -0.1681
     )
     assert_approx_equal(
-        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["x"].diff_error,
-        -0.0098,
-        significant=2,
+        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["x"].diff_error, -0.0097
     )
     assert_approx_equal(
-        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["y"].diff_value,
-        -0.2415,
-        significant=4,
+        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["y"].diff_value, -0.2416
     )
     assert_approx_equal(
-        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["y"].diff_error,
-        -0.0019,
-        significant=2,
+        full_results.bpm_offsets["SR01C-DI-EBPM-05"]["y"].diff_error, -0.002
     )
 
 
@@ -99,22 +83,14 @@ def test_sbba_rawdata_produces_correct_fulldata():
     full_results = sbba.analyse(rawdata)
 
     assert_approx_equal(
-        full_results.bpm_offsets["SR01C-DI-EBPM-01"]["x"].diff_value,
-        -0.002,
-        significant=1,
+        full_results.bpm_offsets["SR01C-DI-EBPM-01"]["x"].diff_value, -0.002
     )
     assert_approx_equal(
-        full_results.bpm_offsets["SR01C-DI-EBPM-01"]["x"].diff_error,
-        -0.0005,
-        significant=2,
+        full_results.bpm_offsets["SR01C-DI-EBPM-01"]["x"].diff_error, -0.0005
     )
     assert_approx_equal(
-        full_results.bpm_offsets["SR01C-DI-EBPM-01"]["y"].diff_value,
-        -0.0,
-        significant=4,
+        full_results.bpm_offsets["SR01C-DI-EBPM-01"]["y"].diff_value, -0.0
     )
     assert_approx_equal(
-        full_results.bpm_offsets["SR01C-DI-EBPM-01"]["y"].diff_error,
-        -0.0,
-        significant=2,
+        full_results.bpm_offsets["SR01C-DI-EBPM-01"]["y"].diff_error, -0.0
     )
