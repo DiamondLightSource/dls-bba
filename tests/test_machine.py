@@ -143,7 +143,7 @@ def test_quad2bpm_is_valid(machine_setup):
         quad_name_2 = machine.bpm2quad(bpm_name)
         if quad_name_1 not in quad_name_2:
             assert quad_name_1 in exceptions
-            assert quad_name_2[0] is exceptions[quad_name_1]
+            assert quad_name_2[0] == exceptions[quad_name_1]
 
 
 def test_quad2bpm_fails_with_invalid_quad(machine_setup):
