@@ -294,8 +294,8 @@ class MainWindow(QMainWindow):
         # Mode Selection
         self.options: dict[str, list[str]] | list[str] | None = None
 
-    def question(self, msg: str) -> bool:
-        """Prompt the GUI with a question.
+    def create_question_box(self, msg: str) -> QMessageBox:
+        """Create a question box for the GUI.
 
         Args:
             msg: The question to be asked.
@@ -467,7 +467,7 @@ class MainWindow(QMainWindow):
         return Worker(
             method,
             self.selected,
-            self.question,
+            self.create_question_box,
             machine=self.machine,
             folder_path=self.machine.config["SAVE_LOCATION"],
             logger=self.logger,
