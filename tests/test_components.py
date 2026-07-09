@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from dls_bba.components import Components, get_component_pairs
@@ -7,7 +9,8 @@ from dls_bba.machine import Machine
 
 @pytest.fixture(scope="module")
 def machine_setup():
-    machine = Machine()
+    with mock.patch("pytac.cothread_cs.caget"):
+        machine = Machine()
     return machine
 
 
