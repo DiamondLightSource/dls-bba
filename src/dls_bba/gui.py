@@ -294,7 +294,7 @@ class MainWindow(QMainWindow):
         # Mode Selection
         self.options: dict[str, list[str]] | list[str] | None = None
 
-    def create_question_box(self, msg: str) -> QMessageBox:
+    def create_question_box(self, msg: str) -> bool:
         """Create a question box for the GUI.
 
         Args:
