@@ -303,8 +303,15 @@ class MainWindow(QMainWindow):
         Returns:
             A bool as the answer.
         """
-        button = QMessageBox.question(self, "BBA User Prompt", msg)
-        return button == QMessageBox.StandardButton.Yes
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Icon.Question)
+        msg_box.setWindowTitle("BBA User Prompt")
+        msg_box.setText(msg)
+        msg_box.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        msg_box.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
+        return msg_box.exec() == QMessageBox.StandardButton.Yes
 
     def setup_main_window(self) -> None:
         """Setup the mainwindow and the button interactions."""
