@@ -294,8 +294,8 @@ class MainWindow(QMainWindow):
         # Mode Selection
         self.options: dict[str, list[str]] | list[str] | None = None
 
-    def question(self, msg: str) -> bool:
-        """Prompt the GUI with a question.
+    def create_question_box(self, msg: str) -> bool:
+        """Create a question box for the GUI.
 
         Args:
             msg: The question to be asked.
@@ -303,8 +303,15 @@ class MainWindow(QMainWindow):
         Returns:
             A bool as the answer.
         """
-        button = QMessageBox.question(self, "BBA User Prompt", msg)
-        return button == QMessageBox.StandardButton.Yes
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Icon.Question)
+        msg_box.setWindowTitle("BBA User Prompt")
+        msg_box.setText(msg)
+        msg_box.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        msg_box.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
+        return msg_box.exec() == QMessageBox.StandardButton.Yes
 
     def setup_main_window(self) -> None:
         """Setup the mainwindow and the button interactions."""
@@ -460,7 +467,7 @@ class MainWindow(QMainWindow):
         return Worker(
             method,
             self.selected,
-            self.question,
+            self.create_question_box,
             machine=self.machine,
             folder_path=self.machine.config["SAVE_LOCATION"],
             logger=self.logger,
