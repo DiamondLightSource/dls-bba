@@ -213,42 +213,49 @@ def test_get_beam_current_valid(mock_get_value):
 @mock.patch("dls_bba.machine.Machine.get_beam_current", return_value=1.0)
 def test_starting_beam_current_is_stored_correctly(mock_get_value):
     machine = Machine()
-    beam_check = BeamCurrentCheck(machine)
+    beam_check = BeamCurrentCheck(machine, mock.MagicMock())
     assert beam_check._initial_current == 1.0
 
 
 @mock.patch("dls_bba.machine.Machine.get_beam_current", side_effect=[9.1, 8.0])
 def test_check_beam_current_raises_error_when_beam_dumped(mock_get_value):
     machine = Machine(overrides=extra_dict_critical_drop)
-    beam_check = BeamCurrentCheck(machine)
-    with pytest.raises(LowCurrentError):
+    beam_check = BeamCurrentCheck(machine, mock.MagicMock())
+    with pytest.raises(LowCurrentError) as err:
         beam_check.check_beam_drop()
+    assert err.value.args[0] == "Beam current critically low."
 
 
-@mock.patch("dls_bba.machine.Machine.get_beam_current", side_effect=[9.1, 8.0])
-@mock.patch("dls_bba.machine.Machine._ask_user", return_value="n")
+@mock.patch(
+    "dls_bba.machine.Machine.get_beam_current", side_effect=[9.1, 8.0, 7.5, 7.2]
+)
+@mock.patch("dls_bba.machine.Machine._ask_user", return_value=False)
 def test_check_beam_current_raises_error_when_topup_prompt_response_is_no(
-    mock_get_value, mock_ask_user
+    mock_ask_user, mock_get_value
 ):
     machine = Machine(overrides=extra_dict_warning_drop)
-    beam_check = BeamCurrentCheck(machine)
-    with pytest.raises(LowCurrentError):
+    beam_check = BeamCurrentCheck(machine, mock_ask_user)
+    with pytest.raises(LowCurrentError) as err:
         beam_check.check_beam_drop()
+    assert err.value.args[0] == "User cancelled BBA: Due to beam current drop."
 
 
-@mock.patch("dls_bba.machine.Machine.get_beam_current", side_effect=[9.1, 8.0, 9.2])
-@mock.patch("dls_bba.machine.Machine._ask_user", return_value="y")
+@mock.patch(
+    "dls_bba.machine.Machine.get_beam_current",
+    side_effect=[9.1, 8.0, 9.2, 9.3],
+)
+@mock.patch("dls_bba.machine.Machine._ask_user", return_value=True)
 @mock.patch("dls_bba.machine.Machine.check_feedbacks", return_value=None)
 def test_check_beam_current_returns_false_when_topup_prompt_response_is_yes(
-    mock_get_beam_current, mock_ask_user, mock_check_feedbacks
+    mock_check_feedbacks, mock_ask_user, mock_get_beam_current
 ):
     machine = Machine(overrides=extra_dict_warning_drop)
-    beam_check = BeamCurrentCheck(machine)
+    beam_check = BeamCurrentCheck(machine, mock_ask_user)
     assert not beam_check.check_beam_drop()
 
 
 @mock.patch("dls_bba.machine.Machine.get_beam_current", return_value=1.0)
 def test_check_beam_current_returns_true_when_valid(mock_get_value):
     machine = Machine()
-    beam_check = BeamCurrentCheck(machine)
+    beam_check = BeamCurrentCheck(machine, mock.MagicMock())
     assert beam_check.check_beam_drop()
