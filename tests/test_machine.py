@@ -17,7 +17,7 @@ from dls_bba.machine import Machine
 
 extra_dict_no_reload = {"MAX_ORBIT_CORRECTION_MICRONS": 16}
 extra_dict_new_key = {"TEST_FIELD": 100}
-extra_dict_with_reload = {"UNITS": "pytac.PHYS"}
+extra_dict_with_reload = {"UNITS": "physics"}
 extra_dict_invalid_ringmode = {"RINGMODE": "TEST"}
 extra_dict_invalid_orm_path = {
     "ORBIT_RESPONSE_MATRIX_PATH": os.path.join(os.getcwd(), "file.mat")

@@ -142,10 +142,13 @@ class Machine:
         ringmode = self.config["RINGMODE"]
         ccs_timeout = self.config["COTHREAD_CONTROL_SYSTEM_TIMEOUT"]
         ccs_wait = self.config["COTHREAD_CONTROL_SYSTEM_WAIT_FLAG"]
+        default_units = self.config["UNITS"]
 
         _cs = CothreadControlSystem(timeout=ccs_timeout, wait=ccs_wait)
         try:
             self._lattice = load_csv.load(ringmode, _cs)
+            if default_units is not None:
+                self._lattice.set_default_units(default_units)
         except FileNotFoundError as e:
             msg = f"Ringmode: {ringmode} does not exist in pytac."
             log.critical(msg)
