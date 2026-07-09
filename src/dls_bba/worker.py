@@ -17,7 +17,7 @@ class Worker:
         self,
         method: str,
         elements: list[str],
-        question_function: Callable[[str], bool],
+        question_callback: Callable[[str], bool],
         machine: Machine | None = None,
         folder_path: str | None = None,
         logger: log.Handler | None = None,
@@ -29,7 +29,7 @@ class Worker:
         Args:
             method: The BBA method.
             elements: The elements to perform a BBA on.
-            question_function: The question function dependant on using the GUI or CLI.
+            question_callback: The question function dependant on using the GUI or CLI.
             machine: A machine instance.
             folder_path: The save location folder path.
             logger: The GUI logger handler.
@@ -57,7 +57,7 @@ class Worker:
             )
         else:
             self.algorithm: Algorithm = ALGORITHMS[method](self.machine)
-        self.question_function = question_function
+        self.question_callback = question_callback
         self.save_rawdata = self.machine.config["SAVE_RAWDATA"]
         self.save_results = self.machine.config["SAVE_RESULTS"]
         self.results_list: list[FullResults] = []
@@ -69,7 +69,7 @@ class Worker:
         log.debug("Worker Start Started.")
         self.machine.check_feedbacks()
         self.machine.zero_origins(self.save_location)
-        self.beam_current_decay = BeamCurrentCheck(self.machine, self.question_function)
+        self.beam_current_decay = BeamCurrentCheck(self.machine, self.question_callback)
         log.debug("Worker Start Finished.")
 
     def work(self) -> float:
@@ -84,7 +84,7 @@ class Worker:
         log.debug("Work start")
         pair = self.components_pairs.pop(0)
 
-        beam_current_drop = BeamCurrentCheck(self.machine, self.question_function)
+        beam_current_drop = BeamCurrentCheck(self.machine, self.question_callback)
 
         while True:
             self.machine.check_feedbacks()
@@ -119,7 +119,7 @@ class Worker:
         """The process is finished."""
         log.debug("Finishing")
         self.algorithm.use_bba_offsets(
-            self.results_list, self.save_location, self.question_function
+            self.results_list, self.save_location, self.question_callback
         )
         cancel_all_oscillations(self.machine.config)
         self.machine.restore_origins(self.save_location)

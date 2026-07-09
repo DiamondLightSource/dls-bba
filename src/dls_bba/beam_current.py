@@ -9,7 +9,7 @@ class BeamCurrentCheck:
     """A class to check the beam current and top-up if necessary."""
 
     def __init__(
-        self, machine: Machine, question_function: Callable[[str], bool]
+        self, machine: Machine, question_callback: Callable[[str], bool]
     ) -> None:
         """Initialise the class and store the initial beam current.
 
@@ -17,7 +17,7 @@ class BeamCurrentCheck:
             machine: The machine object.
         """
         self._machine = machine
-        self.question_function = question_function
+        self.question_callback = question_callback
         self._store_initial_current()
 
     def _store_initial_current(self) -> None:
@@ -69,7 +69,7 @@ class BeamCurrentCheck:
 
         while True:
             log.error(f"Please topup current to > {minimum_topup}mA.")
-            response = self.question_function(
+            response = self.question_callback(
                 "Input y to continue after topup, or n to cancel:"
             )
 
