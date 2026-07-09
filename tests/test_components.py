@@ -105,7 +105,7 @@ def test_component_construction_from_dictionary_is_valid(machine_setup):
 def test_component_pairing_generation_is_valid_from_single_bpm(machine_setup):
     machine = machine_setup
     bpm_name = machine.bpms_names[0]
-    components_pair = get_component_pairs(machine, bpm_name)[0]
+    components_pair = get_component_pairs(machine, [bpm_name])[0]
     component_x, component_y = components_pair
 
     assert component_x.bpm_name == component_y.bpm_name
@@ -119,7 +119,7 @@ def test_component_pairing_generation_is_valid_from_single_bpm(machine_setup):
 def test_component_pairing_generation_is_valid_from_double_bpm(machine_setup):
     machine = machine_setup
     bpm_name = machine.bpms_names[67]
-    components_pair = get_component_pairs(machine, bpm_name)[0]
+    components_pair = get_component_pairs(machine, [bpm_name])[0]
     component_x, component_y = components_pair
 
     assert component_x.bpm_name == component_y.bpm_name
@@ -133,7 +133,7 @@ def test_component_pairing_generation_is_valid_from_double_bpm(machine_setup):
 def test_component_pairing_generation_is_valid_from_quadrupole(machine_setup):
     machine = machine_setup
     quadrupole_name = machine.quads_names[0]
-    components_pair = get_component_pairs(machine, quadrupole_name)[0]
+    components_pair = get_component_pairs(machine, [quadrupole_name])[0]
     component_x, component_y = components_pair
 
     assert component_x.bpm_name == component_y.bpm_name
