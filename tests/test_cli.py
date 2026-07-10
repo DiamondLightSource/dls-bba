@@ -1,12 +1,14 @@
+import json
 import os
 import subprocess
 import sys
 
 import pytest
-from tests.ioc_helper import BBAIoc
 
 from dls_bba import __version__
 from dls_bba.machine import Machine
+from tests.conftest import TEST_CONFIG_OVERRIDES
+from tests.ioc_helper import BBAIoc
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -18,7 +20,7 @@ def test_ioc():
 
 @pytest.fixture(scope="module")
 def machine_setup():
-    machine = Machine()
+    machine = Machine(overrides=TEST_CONFIG_OVERRIDES)
     return machine
 
 
@@ -40,19 +42,45 @@ def test_gui_entrypoint_can_provide_version():
 def test_cli_argument_shows_all_bpm_names(machine_setup):
     machine = machine_setup
     full_bpm_list = machine.bpms_names
-    cmd = [sys.executable, "-m", "dls_bba", "info", "-w"]
+    cmd = [
+        sys.executable,
+        "-m",
+        "dls_bba",
+        "-o",
+        json.dumps(TEST_CONFIG_OVERRIDES),
+        "info",
+        "-w",
+    ]
     assert subprocess.check_output(cmd).decode().strip() == str(full_bpm_list)
 
 
 def test_cli_argument_shows_full_cell_dictionary(machine_setup):
     machine = machine_setup
     full_bpm_list = machine.cell_dictionary["06"]
-    cmd = [sys.executable, "-m", "dls_bba", "info", "-k", "06"]
+    cmd = [
+        sys.executable,
+        "-m",
+        "dls_bba",
+        "-o",
+        json.dumps(TEST_CONFIG_OVERRIDES),
+        "info",
+        "-k",
+        "06",
+    ]
     assert subprocess.check_output(cmd).decode().strip() == str(full_bpm_list)
 
 
 def test_cli_argument_fails_when_given_invalid_cell():
-    cmd = [sys.executable, "-m", "dls_bba", "info", "-k", "25"]
+    cmd = [
+        sys.executable,
+        "-m",
+        "dls_bba",
+        "-o",
+        json.dumps(TEST_CONFIG_OVERRIDES),
+        "info",
+        "-k",
+        "25",
+    ]
     expected_message = "Invalid cell selected. Try cells '01' to '24'"
 
     with pytest.raises(subprocess.CalledProcessError) as err:
@@ -66,6 +94,8 @@ def test_cli_algorithm_selection_creates_correctly_named_folder(tmp_path):
         sys.executable,
         "-m",
         "dls_bba",
+        "-o",
+        json.dumps(TEST_CONFIG_OVERRIDES),
         "run",
         "-a",
         "SlowBBA",

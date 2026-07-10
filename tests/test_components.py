@@ -5,12 +5,13 @@ import pytest
 from dls_bba.components import Components, get_component_pairs
 from dls_bba.exceptions import ComponentConstructionError
 from dls_bba.machine import Machine
+from tests.conftest import TEST_CONFIG_OVERRIDES
 
 
 @pytest.fixture(scope="module")
 def machine_setup():
     with mock.patch("pytac.cothread_cs.caget"):
-        machine = Machine()
+        machine = Machine(overrides=TEST_CONFIG_OVERRIDES)
     return machine
 
 

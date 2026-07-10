@@ -14,16 +14,23 @@ from dls_bba.exceptions import (
     LowCurrentError,
 )
 from dls_bba.machine import Machine
+from tests.conftest import TEST_CONFIG_OVERRIDES
 
-extra_dict_no_reload = {"MAX_ORBIT_CORRECTION_MICRONS": 16}
-extra_dict_new_key = {"TEST_FIELD": 100}
-extra_dict_with_reload = {"UNITS": "physics"}
-extra_dict_invalid_ringmode = {"RINGMODE": "TEST"}
+extra_dict_no_reload = {"MAX_ORBIT_CORRECTION_MICRONS": 16} | TEST_CONFIG_OVERRIDES
+extra_dict_new_key = {"TEST_FIELD": 100} | TEST_CONFIG_OVERRIDES
+extra_dict_with_reload = {"UNITS": "physics"} | TEST_CONFIG_OVERRIDES
+extra_dict_invalid_ringmode = {"RINGMODE": "TEST"} | TEST_CONFIG_OVERRIDES
 extra_dict_invalid_orm_path = {
     "ORBIT_RESPONSE_MATRIX_PATH": os.path.join(os.getcwd(), "file.mat")
 }
-extra_dict_critical_drop = {"CRITICAL_CURRENT_DROP": 1, "WARNING_CURRENT_DROP": 1000}
-extra_dict_warning_drop = {"CRITICAL_CURRENT_DROP": 1000, "WARNING_CURRENT_DROP": 1}
+extra_dict_critical_drop = {
+    "CRITICAL_CURRENT_DROP": 1,
+    "WARNING_CURRENT_DROP": 1000,
+} | TEST_CONFIG_OVERRIDES
+extra_dict_warning_drop = {
+    "CRITICAL_CURRENT_DROP": 1000,
+    "WARNING_CURRENT_DROP": 1,
+} | TEST_CONFIG_OVERRIDES
 default_config_resources = [
     Path(str(files("dls_bba").joinpath(resource))) for resource in DEFAULT_CONFIGS
 ]
@@ -32,7 +39,7 @@ default_config_resources = [
 @pytest.fixture(scope="module")
 def machine_setup():
     with mock.patch("pytac.cothread_cs.caget"):
-        machine = Machine()
+        machine = Machine(overrides=TEST_CONFIG_OVERRIDES)
     return machine
 
 
@@ -43,14 +50,22 @@ def test_machine_construction_is_valid(machine_setup):
 
 def test_machine_construction_is_valid_with_additional_files():
     with mock.patch("pytac.cothread_cs.caget"):
-        machine = Machine(extra_config_files=default_config_resources)
+        machine = Machine(
+            extra_config_files=default_config_resources,
+            overrides=TEST_CONFIG_OVERRIDES,
+        )
         assert isinstance(machine, Machine)
 
 
 def test_machine_can_be_updated_with_additional_files():
     with mock.patch("pytac.cothread_cs.caget"):
-        machine = Machine()
-        machine.update_config(extra_config_files=default_config_resources)
+        machine = Machine(
+            overrides=TEST_CONFIG_OVERRIDES,
+        )
+        machine.update_config(
+            extra_config_files=default_config_resources,
+            config_override_dict=TEST_CONFIG_OVERRIDES,
+        )
         assert isinstance(machine, Machine)
 
 
@@ -86,7 +101,7 @@ def test_machine_construction_is_valid_with_additional_args_that_require_reload(
 
 def test_machine_can_be_updated_with_additional_args():
     with mock.patch("pytac.cothread_cs.caget"):
-        machine = Machine()
+        machine = Machine(overrides=TEST_CONFIG_OVERRIDES)
         machine.update_config(config_override_dict=extra_dict_no_reload)
         key = list(extra_dict_no_reload.keys())[0]
         value = extra_dict_no_reload[key]
@@ -100,7 +115,7 @@ def test_machine_can_be_updated_with_additional_args_that_require_reload():
         mock.patch("pytac.cothread_cs.caget"),
         mock.patch("pytac.lattice.EpicsLattice.convert_family_values"),
     ):
-        machine = Machine()
+        machine = Machine(overrides=TEST_CONFIG_OVERRIDES)
         machine.update_config(config_override_dict=extra_dict_with_reload)
         key = list(extra_dict_with_reload.keys())[0]
         value = extra_dict_with_reload[key]
@@ -205,7 +220,7 @@ def test_get_element_from_name_fails_with_invalid_name(machine_setup):
 
 def test_update_config_fails_with_invalid_orm_file_path():
     with mock.patch("pytac.cothread_cs.caget"):
-        machine = Machine()
+        machine = Machine(overrides=TEST_CONFIG_OVERRIDES)
         with pytest.raises(FileNotFoundError):
             machine.update_config(config_override_dict=extra_dict_invalid_orm_path)
 
