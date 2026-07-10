@@ -1,8 +1,8 @@
 from unittest.mock import MagicMock
 
 from numpy.testing import assert_approx_equal
+from tests.conftest import TEST_DATA_DIR
 
-from conftest import TEST_DATA_DIR
 from dls_bba.datatypes import RawData
 from dls_bba.fbba import FastBBA
 from dls_bba.sbba import SlowBBA

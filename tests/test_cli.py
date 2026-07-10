@@ -3,9 +3,17 @@ import subprocess
 import sys
 
 import pytest
+from tests.ioc_helper import BBAIoc
 
 from dls_bba import __version__
 from dls_bba.machine import Machine
+
+
+@pytest.fixture(scope="module", autouse=True)
+def test_ioc():
+    ioc = BBAIoc()
+    yield ioc.start_ioc()
+    ioc.exit_ioc()
 
 
 @pytest.fixture(scope="module")

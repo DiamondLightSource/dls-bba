@@ -22,7 +22,8 @@ dependencies = [
     "PyQt6-sip==13.4.1",
     "scipy",
     "setuptools>=70.1",
-    "typing_extensions"
+    "typing_extensions",
+    "epicsdbbuilder",
 ]
 dynamic = ["version"]
 license.file = "LICENSE"
