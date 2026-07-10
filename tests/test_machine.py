@@ -202,14 +202,12 @@ def test_element_to_name_for_all_elements(machine_setup):
         assert "vstr" in element.families
 
 
-@mock.patch("dls_bba.machine.Machine.get_enabled_bpms", return_value=1)
-@mock.patch("dls_bba.machine.Machine.measure_bpms", return_value=1)
-def test_bpm_interactions_are_valid(
-    mock_get_enabled_bpms, mock_measure_bpms, machine_setup
-):
+def test_bpm_interactions_are_valid(machine_setup):
     machine = machine_setup
-    assert machine.get_enabled_bpms() == 1
-    assert machine.measure_bpms("axis") == 1
+    with mock.patch("pytac.cothread_cs.caget", return_value=[1] * 173):
+        assert machine.get_enabled_bpms() == [1] * 173
+    with mock.patch("pytac.cothread_cs.caget", return_value=[3.1] * 173):
+        assert machine.measure_bpms("y") == [3.1] * 173
 
 
 def test_get_element_from_name_fails_with_invalid_name(machine_setup):
