@@ -15,20 +15,17 @@ from . import __version__
 __all__ = ["main"]
 
 
-def parse_arguments() -> Namespace:
-    """Parse the command line arguments."""
-    parent_parser = ArgumentParser(description="The options for using dls-bba module")
-    subparsers = parent_parser.add_subparsers(title="actions")
-
-    parent_parser.add_argument("-v", "--version", action="version", version=__version__)
-    parent_parser.add_argument(
+def add_common_arguments(parser: ArgumentParser) -> None:
+    """Add common argument parsing."""
+    parser.add_argument("-v", "--version", action="version", version=__version__)
+    parser.add_argument(
         "-c",
         "--config_files",
         default=None,
         type=str,
         help="additional configuration .json filepaths",
     )
-    parent_parser.add_argument(
+    parser.add_argument(
         "-o",
         "--additional_config",
         default=None,
@@ -36,23 +33,10 @@ def parse_arguments() -> Namespace:
         help="additional individual configuration options (stringified dict)",
     )
 
-    parser_info = subparsers.add_parser(
-        "info",
-        parents=[parent_parser],
-        add_help=False,
-        description="Get information on BBA",
-    )
-    parser_info.set_defaults(command="info")
 
-    parser_run = subparsers.add_parser(
-        "run",
-        parents=[parent_parser],
-        add_help=False,
-        description="Run BBA",
-        help="Run BBA",
-    )
-    parser_run.set_defaults(command="run")
-    parser_run.add_argument(
+def add_action_arguments(info_parser, run_parser, plot_parser, apply_parser):
+    """Add argument parsing for the action sub-commands"""
+    run_parser.add_argument(
         "-a",
         "--algorithm",
         default=None,
@@ -61,16 +45,7 @@ def parse_arguments() -> Namespace:
         required=True,
         help="the algorithm to use",
     )
-
-    parser_plot = subparsers.add_parser(
-        "plot",
-        parents=[parent_parser],
-        add_help=False,
-        description="Plot BBA results",
-        help="Plot BBA results",
-    )
-    parser_plot.set_defaults(command="plot")
-    group = parser_plot.add_mutually_exclusive_group(required=True)
+    group = plot_parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
         "-Q",
         "--quadcenter",
@@ -84,23 +59,15 @@ def parse_arguments() -> Namespace:
         help="plot the relative differences across an entire BBA run",
     )
 
-    parser_apply = subparsers.add_parser(
-        "apply",
-        parents=[parent_parser],
-        add_help=False,
-        description="Apply BBA results",
-        help="Apply BBA results",
-    )
-    parser_apply.set_defaults(command="apply")
-    parser_apply.add_argument(
+    apply_parser.add_argument(
         "-l", "--load", type=str, default=None, help="The location to load from."
     )
-    group = parser_apply.add_mutually_exclusive_group(required=True)
+    group = apply_parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-g", "--golden", action="store_true", help="")
     group.add_argument("-s", "--single", action="store_true", help="")
     group.add_argument("-m", "--multiple", action="store_true", help="")
 
-    for subparser in [parser_info, parser_run]:
+    for subparser in [info_parser, run_parser]:
         group = subparser.add_mutually_exclusive_group(required=True)
         group.add_argument(
             "-w", "--wholemachine", action="store_true", help="run BBA on all BPMs"
@@ -125,7 +92,7 @@ def parse_arguments() -> Namespace:
             help="run BBA on a specified quadrupole",
         )
 
-    for subparser in [parser_run, parser_plot]:
+    for subparser in [run_parser, plot_parser]:
         subparser.add_argument(
             "-f",
             "--filepath",
@@ -134,7 +101,54 @@ def parse_arguments() -> Namespace:
             help="the location to save files to",
         )
 
-    return parent_parser.parse_args()
+
+def setup_parser():
+    parent_parser = ArgumentParser(description="The options for using dls-bba module")
+    subparsers = parent_parser.add_subparsers(title="actions")
+
+    info_parser = subparsers.add_parser(
+        "info",
+        add_help=False,
+        description="Get information on BBA",
+    )
+    run_parser = subparsers.add_parser(
+        "run",
+        add_help=False,
+        description="Run BBA",
+        help="Run BBA",
+    )
+    plot_parser = subparsers.add_parser(
+        "plot",
+        add_help=False,
+        description="Plot BBA results",
+        help="Plot BBA results",
+    )
+    apply_parser = subparsers.add_parser(
+        "apply",
+        add_help=False,
+        description="Apply BBA results",
+        help="Apply BBA results",
+    )
+
+    info_parser.set_defaults(command="info")
+    run_parser.set_defaults(command="run")
+    plot_parser.set_defaults(command="plot")
+    apply_parser.set_defaults(command="apply")
+
+    add_common_arguments(parent_parser)
+    add_action_arguments(info_parser, run_parser, plot_parser, apply_parser)
+
+    return parent_parser
+
+
+def parse_arguments(argv: list[str] | None = None) -> Namespace:
+    """Parse the command line arguments."""
+    parent_parser = setup_parser()
+    if argv is None:
+        argv = sys.argv[1:]
+
+    args = parent_parser.parse_args(argv)
+    return args
 
 
 def sort_elements(args) -> list[str]:

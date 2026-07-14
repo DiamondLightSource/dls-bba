@@ -49,11 +49,17 @@ class BeamCurrentCheck:
             True if beam has not dropped below warning current drop, False if it has.
         """
         warning_current_drop = self._machine.config["WARNING_CURRENT_DROP"]
+        critical_current_drop = self._machine.config["CRITICAL_CURRENT_DROP"]
         current_current = self._machine.get_beam_current()
         change_in_current = self._initial_current - current_current
         log.debug(f"Change in current: {change_in_current}")
 
-        if change_in_current > warning_current_drop:
+        if change_in_current > critical_current_drop:
+            msg = "Beam current critically low."
+            log.critical(msg)
+            raise LowCurrentError(msg)
+
+        elif change_in_current > warning_current_drop:
             self.topup_beam(self._initial_current)
             return False
 

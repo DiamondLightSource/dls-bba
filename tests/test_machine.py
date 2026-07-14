@@ -14,16 +14,23 @@ from dls_bba.exceptions import (
     LowCurrentError,
 )
 from dls_bba.machine import Machine
+from tests.conftest import TEST_CONFIG_OVERRIDES
 
-extra_dict_no_reload = {"MAX_ORBIT_CORRECTION_MICRONS": 16}
-extra_dict_new_key = {"TEST_FIELD": 100}
-extra_dict_with_reload = {"UNITS": "pytac.PHYS"}
-extra_dict_invalid_ringmode = {"RINGMODE": "TEST"}
+extra_dict_no_reload = {"MAX_ORBIT_CORRECTION_MICRONS": 16} | TEST_CONFIG_OVERRIDES
+extra_dict_new_key = {"TEST_FIELD": 100} | TEST_CONFIG_OVERRIDES
+extra_dict_with_reload = {"UNITS": "physics"} | TEST_CONFIG_OVERRIDES
+extra_dict_invalid_ringmode = {"RINGMODE": "TEST"} | TEST_CONFIG_OVERRIDES
 extra_dict_invalid_orm_path = {
     "ORBIT_RESPONSE_MATRIX_PATH": os.path.join(os.getcwd(), "file.mat")
 }
-extra_dict_critical_drop = {"CRITICAL_CURRENT_DROP": 1, "WARNING_CURRENT_DROP": 1000}
-extra_dict_warning_drop = {"CRITICAL_CURRENT_DROP": 1000, "WARNING_CURRENT_DROP": 1}
+extra_dict_critical_drop = {
+    "CRITICAL_CURRENT_DROP": 1,
+    "WARNING_CURRENT_DROP": 1000,
+} | TEST_CONFIG_OVERRIDES
+extra_dict_warning_drop = {
+    "CRITICAL_CURRENT_DROP": 1000,
+    "WARNING_CURRENT_DROP": 1,
+} | TEST_CONFIG_OVERRIDES
 default_config_resources = [
     Path(str(files("dls_bba").joinpath(resource))) for resource in DEFAULT_CONFIGS
 ]
@@ -31,63 +38,89 @@ default_config_resources = [
 
 @pytest.fixture(scope="module")
 def machine_setup():
-    machine = Machine()
+    with mock.patch("pytac.cothread_cs.caget"):
+        machine = Machine(overrides=TEST_CONFIG_OVERRIDES)
     return machine
 
 
-def test_machine_construction_is_valid():
-    machine = Machine()
+def test_machine_construction_is_valid(machine_setup):
+    machine = machine_setup
     assert isinstance(machine, Machine)
 
 
 def test_machine_construction_is_valid_with_additional_files():
-    machine = Machine(extra_config_files=default_config_resources)
-    assert isinstance(machine, Machine)
+    with mock.patch("pytac.cothread_cs.caget"):
+        machine = Machine(
+            extra_config_files=default_config_resources,
+            overrides=TEST_CONFIG_OVERRIDES,
+        )
+        assert isinstance(machine, Machine)
 
 
 def test_machine_can_be_updated_with_additional_files():
-    machine = Machine()
-    machine.update_config(extra_config_files=default_config_resources)
-    assert isinstance(machine, Machine)
+    with mock.patch("pytac.cothread_cs.caget"):
+        machine = Machine(
+            overrides=TEST_CONFIG_OVERRIDES,
+        )
+        machine.update_config(
+            extra_config_files=default_config_resources,
+            config_override_dict=TEST_CONFIG_OVERRIDES,
+        )
+        assert isinstance(machine, Machine)
 
 
 def test_machine_construction_is_valid_with_new_additional_args():
-    machine = Machine(overrides=extra_dict_new_key)
-    key = list(extra_dict_new_key.keys())[0]
-    value = extra_dict_new_key[key]
-    assert machine.config[key] == value
+    with mock.patch("pytac.cothread_cs.caget"):
+        machine = Machine(overrides=extra_dict_new_key)
+        key = list(extra_dict_new_key.keys())[0]
+        value = extra_dict_new_key[key]
+        assert machine.config[key] == value
 
 
 def test_machine_construction_is_valid_with_additional_args():
-    machine = Machine(overrides=extra_dict_no_reload)
-    key = list(extra_dict_no_reload.keys())[0]
-    value = extra_dict_no_reload[key]
-    assert machine.config[key] == value
+    with mock.patch("pytac.cothread_cs.caget"):
+        machine = Machine(overrides=extra_dict_no_reload)
+        key = list(extra_dict_no_reload.keys())[0]
+        value = extra_dict_no_reload[key]
+        assert machine.config[key] == value
 
 
 def test_machine_construction_is_valid_with_additional_args_that_require_reload():
-    machine = Machine(overrides=extra_dict_with_reload)
-    key = list(extra_dict_with_reload.keys())[0]
-    value = extra_dict_with_reload[key]
-    assert machine.config[key] == value
-    assert machine._lattice.get_default_units()[:4] in value.lower()
+    # We must mock convert_family_values as it does a check on values
+    # that it cagets, which fails due to the way we have mocked caget
+    with (
+        mock.patch("pytac.cothread_cs.caget"),
+        mock.patch("pytac.lattice.EpicsLattice.convert_family_values"),
+    ):
+        machine = Machine(overrides=extra_dict_with_reload)
+        key = list(extra_dict_with_reload.keys())[0]
+        value = extra_dict_with_reload[key]
+        assert machine.config[key] == value
+        assert machine._lattice.get_default_units()[:4] in value.lower()
 
 
 def test_machine_can_be_updated_with_additional_args():
-    machine = Machine()
-    machine.update_config(config_override_dict=extra_dict_no_reload)
-    key = list(extra_dict_no_reload.keys())[0]
-    value = extra_dict_no_reload[key]
-    assert machine.config[key] == value
+    with mock.patch("pytac.cothread_cs.caget"):
+        machine = Machine(overrides=TEST_CONFIG_OVERRIDES)
+        machine.update_config(config_override_dict=extra_dict_no_reload)
+        key = list(extra_dict_no_reload.keys())[0]
+        value = extra_dict_no_reload[key]
+        assert machine.config[key] == value
 
 
 def test_machine_can_be_updated_with_additional_args_that_require_reload():
-    machine = Machine()
-    machine.update_config(config_override_dict=extra_dict_with_reload)
-    key = list(extra_dict_with_reload.keys())[0]
-    value = extra_dict_with_reload[key]
-    assert machine.config[key] == value
-    assert machine._lattice.get_default_units()[:4] in value.lower()
+    # We must mock convert_family_values as it does a check on values
+    # that it cagets, which fails due to the way we have mocked caget
+    with (
+        mock.patch("pytac.cothread_cs.caget"),
+        mock.patch("pytac.lattice.EpicsLattice.convert_family_values"),
+    ):
+        machine = Machine(overrides=TEST_CONFIG_OVERRIDES)
+        machine.update_config(config_override_dict=extra_dict_with_reload)
+        key = list(extra_dict_with_reload.keys())[0]
+        value = extra_dict_with_reload[key]
+        assert machine.config[key] == value
+        assert machine._lattice.get_default_units()[:4] in value.lower()
 
 
 def test_pytac_lattice_loaded_config_items_correctly(machine_setup):
@@ -95,13 +128,14 @@ def test_pytac_lattice_loaded_config_items_correctly(machine_setup):
     config = machine.config
     pytac_lattice = machine._lattice
     assert pytac_lattice.name == config["RINGMODE"]
-    assert pytac_lattice.get_default_data_source() == config["DATASOURCE"]
+    assert pytac_lattice.get_default_data_source() == config["DATASOURCE"].lower()
     assert pytac_lattice.get_default_units()[:3] in config["UNITS"].lower()
 
 
 def test_pytac_lattice_loading_fails_with_invalid_ringmode():
-    with pytest.raises(InvalidRingmodeError):
-        Machine(overrides=extra_dict_invalid_ringmode)
+    with mock.patch("pytac.cothread_cs.caget"):
+        with pytest.raises(InvalidRingmodeError):
+            Machine(overrides=extra_dict_invalid_ringmode)
 
 
 def test_element_and_name_lists_equal_length(machine_setup):
@@ -143,7 +177,7 @@ def test_quad2bpm_is_valid(machine_setup):
         quad_name_2 = machine.bpm2quad(bpm_name)
         if quad_name_1 not in quad_name_2:
             assert quad_name_1 in exceptions
-            assert quad_name_2[0] is exceptions[quad_name_1]
+            assert quad_name_2[0] == exceptions[quad_name_1]
 
 
 def test_quad2bpm_fails_with_invalid_quad(machine_setup):
@@ -168,12 +202,12 @@ def test_element_to_name_for_all_elements(machine_setup):
         assert "vstr" in element.families
 
 
-@mock.patch("dls_bba.machine.Machine.get_enabled_bpms", return_value=1)
-@mock.patch("dls_bba.machine.Machine.measure_bpms", return_value=1)
-def test_bpm_interactions_are_valid(mock_get_enabled_bpms, mock_measure_bpms):
-    machine = Machine()
-    assert machine.get_enabled_bpms() == 1
-    assert machine.measure_bpms("axis") == 1
+def test_bpm_interactions_are_valid(machine_setup):
+    machine = machine_setup
+    with mock.patch("pytac.cothread_cs.caget", return_value=[1] * 173):
+        assert machine.get_enabled_bpms() == [1] * 173
+    with mock.patch("pytac.cothread_cs.caget", return_value=[3.1] * 173):
+        assert machine.measure_bpms("y") == [3.1] * 173
 
 
 def test_get_element_from_name_fails_with_invalid_name(machine_setup):
@@ -183,72 +217,89 @@ def test_get_element_from_name_fails_with_invalid_name(machine_setup):
 
 
 def test_update_config_fails_with_invalid_orm_file_path():
-    machine = Machine()
-    with pytest.raises(FileNotFoundError):
-        machine.update_config(config_override_dict=extra_dict_invalid_orm_path)
+    with mock.patch("pytac.cothread_cs.caget"):
+        machine = Machine(overrides=TEST_CONFIG_OVERRIDES)
+        with pytest.raises(FileNotFoundError):
+            machine.update_config(config_override_dict=extra_dict_invalid_orm_path)
 
 
 def test_corrector_kick_valid_with_eng_units(machine_setup):
     machine = machine_setup
     bpm_name = machine.bpms_names[0]
-    components_pair = get_component_pairs(machine, bpm_name)[0]
+    components_pair = get_component_pairs(machine, [bpm_name])[0]
     assert isinstance(machine.corrector_kick(components_pair[0]), float)
     assert machine._lattice.get_default_units()[:3] == "eng"
 
 
 def test_corrector_kick_valid_with_phys_units():
-    machine = Machine(overrides=extra_dict_with_reload)
-    bpm_name = machine.bpms_names[0]
-    components_pair = get_component_pairs(machine, bpm_name)[0]
-    assert isinstance(machine.corrector_kick(components_pair[0]), float)
-    assert machine._lattice.get_default_units()[:3] == "phy"
+    # We must mock convert_family_values as it does a check on values
+    # that it cagets, which fails due to the way we have mocked caget
+    with (
+        mock.patch("pytac.cothread_cs.caget"),
+        mock.patch("pytac.lattice.EpicsLattice.convert_family_values"),
+    ):
+        machine = Machine(overrides=extra_dict_with_reload)
+        bpm_name = machine.bpms_names[0]
+        components_pair = get_component_pairs(machine, [bpm_name])[0]
+        assert isinstance(machine.corrector_kick(components_pair[0]), float)
+        assert machine._lattice.get_default_units()[:3] == "phy"
 
 
 @mock.patch("pytac.lattice.Lattice.get_value", return_value=1.0)
-def test_get_beam_current_valid(mock_get_value):
-    machine = Machine()
+def test_get_beam_current_valid(mock_get_value, machine_setup):
+    machine = machine_setup
     assert machine.get_beam_current() == 1.0
 
 
 @mock.patch("dls_bba.machine.Machine.get_beam_current", return_value=1.0)
-def test_starting_beam_current_is_stored_correctly(mock_get_value):
-    machine = Machine()
-    beam_check = BeamCurrentCheck(machine)
+def test_starting_beam_current_is_stored_correctly(mock_get_value, machine_setup):
+    machine = machine_setup
+    beam_check = BeamCurrentCheck(machine, mock.MagicMock())
     assert beam_check._initial_current == 1.0
 
 
 @mock.patch("dls_bba.machine.Machine.get_beam_current", side_effect=[9.1, 8.0])
 def test_check_beam_current_raises_error_when_beam_dumped(mock_get_value):
-    machine = Machine(overrides=extra_dict_critical_drop)
-    beam_check = BeamCurrentCheck(machine)
-    with pytest.raises(LowCurrentError):
-        beam_check.check_beam_drop()
+    with mock.patch("pytac.cothread_cs.caget"):
+        machine = Machine(overrides=extra_dict_critical_drop)
+        beam_check = BeamCurrentCheck(machine, mock.MagicMock())
+        with pytest.raises(LowCurrentError) as err:
+            beam_check.check_beam_drop()
+        assert err.value.args[0] == "Beam current critically low."
 
 
-@mock.patch("dls_bba.machine.Machine.get_beam_current", side_effect=[9.1, 8.0])
-@mock.patch("dls_bba.machine.Machine._ask_user", return_value="n")
+@mock.patch(
+    "dls_bba.machine.Machine.get_beam_current", side_effect=[9.1, 8.0, 7.5, 7.2]
+)
+@mock.patch("dls_bba.machine.Machine._ask_user", return_value=False)
 def test_check_beam_current_raises_error_when_topup_prompt_response_is_no(
-    mock_get_value, mock_ask_user
+    mock_ask_user, mock_get_value
 ):
-    machine = Machine(overrides=extra_dict_warning_drop)
-    beam_check = BeamCurrentCheck(machine)
-    with pytest.raises(LowCurrentError):
-        beam_check.check_beam_drop()
+    with mock.patch("pytac.cothread_cs.caget"):
+        machine = Machine(overrides=extra_dict_warning_drop)
+        beam_check = BeamCurrentCheck(machine, mock_ask_user)
+        with pytest.raises(LowCurrentError) as err:
+            beam_check.check_beam_drop()
+        assert err.value.args[0] == "User cancelled BBA: Due to beam current drop."
 
 
-@mock.patch("dls_bba.machine.Machine.get_beam_current", side_effect=[9.1, 8.0, 9.2])
-@mock.patch("dls_bba.machine.Machine._ask_user", return_value="y")
+@mock.patch(
+    "dls_bba.machine.Machine.get_beam_current",
+    side_effect=[9.1, 8.0, 9.2, 9.3],
+)
+@mock.patch("dls_bba.machine.Machine._ask_user", return_value=True)
 @mock.patch("dls_bba.machine.Machine.check_feedbacks", return_value=None)
 def test_check_beam_current_returns_false_when_topup_prompt_response_is_yes(
-    mock_get_beam_current, mock_ask_user, mock_check_feedbacks
+    mock_check_feedbacks, mock_ask_user, mock_get_beam_current
 ):
-    machine = Machine(overrides=extra_dict_warning_drop)
-    beam_check = BeamCurrentCheck(machine)
-    assert not beam_check.check_beam_drop()
+    with mock.patch("pytac.cothread_cs.caget"):
+        machine = Machine(overrides=extra_dict_warning_drop)
+        beam_check = BeamCurrentCheck(machine, mock_ask_user)
+        assert not beam_check.check_beam_drop()
 
 
 @mock.patch("dls_bba.machine.Machine.get_beam_current", return_value=1.0)
-def test_check_beam_current_returns_true_when_valid(mock_get_value):
-    machine = Machine()
-    beam_check = BeamCurrentCheck(machine)
+def test_check_beam_current_returns_true_when_valid(mock_get_value, machine_setup):
+    machine = machine_setup
+    beam_check = BeamCurrentCheck(machine, mock.MagicMock())
     assert beam_check.check_beam_drop()
