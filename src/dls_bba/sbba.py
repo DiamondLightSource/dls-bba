@@ -105,7 +105,7 @@ class SlowBBA(Algorithm):
                         ("High", quad_high),
                         ("Low", quad_low),
                     ]:
-                        if bool(pause_event):
+                        if bool(pause_event) and pause_event is not None:
                             state = pause_event.Wait()
                             while state != "resume":
                                 state = pause_event.Wait()

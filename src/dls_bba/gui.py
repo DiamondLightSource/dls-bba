@@ -127,12 +127,12 @@ class Ticker:
         self.__state = state
         self.__on_update(old_state, state)
 
-    def start_ticker(self, worker: Worker) -> None:
-        """Start the ticker."""
+    def start_worker(self, worker: Worker) -> None:
+        """Start the worker."""
         self.__action.Signal(("run", worker))
 
-    def pause_resume_ticker(self) -> None:
-        """Pause/resume the ticker."""
+    def pause_resume_worker(self) -> None:
+        """Pause/resume the worker."""
         if self.state == "Running":
             self.__pause_event.Signal("pause")
             self.__set_state("Paused")
@@ -140,10 +140,16 @@ class Ticker:
             self.__pause_event.Signal("resume")
             self.__set_state("Running")
 
-    def stop_ticker(self, manual_stop: bool = False) -> None:
-        """Stop the ticker."""
+    def stop_worker(self, manual_stop: bool = False) -> None:
+        """Stop the worker."""
+
         if manual_stop:
             self.__stop_event.Signal()
+
+        # Must unpause if currently paused
+        if self.state == "Paused":
+            self.pause_resume_worker()
+
         self.__action.Signal(("stop", None))
 
     @property
@@ -331,9 +337,9 @@ class MainWindow(QMainWindow):
         self.apply_single_bba.clicked.connect(self.apply_bba_file)
 
         # Front page buttons
-        self.button_start.clicked.connect(self.start_ticker)
-        self.button_pause.clicked.connect(self.pause_resume_ticker)
-        self.button_stop.clicked.connect(lambda: self.stop_ticker(True))
+        self.button_start.clicked.connect(self.start_worker)
+        self.button_pause.clicked.connect(self.pause_resume_worker)
+        self.button_stop.clicked.connect(lambda: self.stop_worker(True))
         self.button_reset.clicked.connect(self.reset_iocs)
         self.button_plot_recent.clicked.connect(self.plot_recent)
         self.button_apply_recent.clicked.connect(self.apply_recent)
@@ -345,8 +351,8 @@ class MainWindow(QMainWindow):
         self.config_load_apply.clicked.connect(self.load_config_file)
         self.button_golden.clicked.connect(self.reapply_golden_orbits)
 
-    def start_ticker(self) -> None:
-        """Start Ticker"""
+    def start_worker(self) -> None:
+        """Start worker"""
         log.info("GUI Start Pressed")
         if not self.selected:
             self.display_on_screen("No elements selected.")
@@ -356,10 +362,10 @@ class MainWindow(QMainWindow):
         self.button_pause.setText("Pause")
         self.button_stop.setEnabled(True)
         self.lock_unlock_pv.setEnabled(False)
-        self.ticker.start_ticker(self.create_worker())
+        self.ticker.start_worker(self.create_worker())
 
-    def pause_resume_ticker(self) -> None:
-        """Pause / Resume Ticker."""
+    def pause_resume_worker(self) -> None:
+        """Pause / Resume worker."""
         log.debug(f"State: {self.ticker.state}")
         if self.ticker.state == "Running":
             log.info("GUI pause button pressed")
@@ -368,18 +374,14 @@ class MainWindow(QMainWindow):
             log.info("GUI resume button pressed")
             self.button_pause.setText("Pause")
 
-        self.ticker.pause_resume_ticker()
+        self.ticker.pause_resume_worker()
 
-    def stop_ticker(self, manual_stop: bool = False) -> None:
+    def stop_worker(self, manual_stop: bool = False) -> None:
         """Stop Ticker."""
         if manual_stop:
             log.info("GUI Stop Pressed, stopping...")
 
-        # Must unpause first if currently paused
-        if self.ticker.state == "Paused":
-            self.ticker.pause_resume_ticker()
-
-        self.ticker.stop_ticker(manual_stop)
+        self.ticker.stop_worker(manual_stop)
         self.button_pause.setEnabled(False)
         self.button_pause.setText("Pause")
         self.button_stop.setEnabled(False)
@@ -435,7 +437,7 @@ class MainWindow(QMainWindow):
         log.debug(f"Ticker state: {old_state} => {new_state}")
 
         if old_state == "Complete" and new_state == "Idle":
-            self.stop_ticker()
+            self.stop_worker()
 
     def progress(self, fraction_left: float) -> None:
         """Update the progress bar.

@@ -70,7 +70,7 @@ class SimFastBBA(Algorithm):
             components_pair[0].quadrupoles_names,
             strict=True,
         ):
-            if bool(pause_event):
+            if bool(pause_event) and pause_event is not None:
                 state = pause_event.Wait()
                 while state != "resume":
                     state = pause_event.Wait()
