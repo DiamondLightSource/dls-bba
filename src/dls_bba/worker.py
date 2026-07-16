@@ -120,14 +120,6 @@ class Worker:
         log.debug("Work end")
         return len(self.components_pairs) / self.starting_length
 
-    def pause(self) -> None:
-        """The process is paused."""
-        log.debug("Paused")
-
-    def resume(self) -> None:
-        """The process is resumed."""
-        log.debug("Resumed")
-
     def finish(self, stop_event: cothread.Event | None = None) -> None:
         """The process is finished.
 
