@@ -3,6 +3,8 @@ import traceback
 from collections.abc import Callable
 from typing import Any
 
+from cothread import cothread
+
 from dls_bba.algorithm import Algorithm
 from dls_bba.beam_current import BeamCurrentCheck
 from dls_bba.common import ALGORITHMS, setup_folders_and_logger
@@ -72,8 +74,12 @@ class Worker:
         self.beam_current_decay = BeamCurrentCheck(self.machine, self.question_callback)
         log.debug("Worker Start Finished.")
 
-    def work(self) -> float:
+    def work(self, stop_event: cothread.Event | None = None) -> float:
         """Complete an iteration of the BBA process.
+
+        Args:
+            stop_event: Cothread event which is triggered when the GUI stop button
+                        is pressed.
 
         Returns:
             A fraction of the remaining BBA pairs over the total number of pairs.
@@ -88,18 +94,19 @@ class Worker:
 
         while True:
             self.machine.check_feedbacks()
-            rawdata = self.algorithm.run(pair)
+            rawdata = self.algorithm.run(pair, stop_event)
 
             if beam_current_drop.check_beam_not_dropped():
                 break
 
-        if self.save_rawdata:
-            rawdata.save(self.save_location)
+        if not bool(stop_event):
+            if self.save_rawdata:
+                rawdata.save(self.save_location)
 
-        results = self.algorithm.analyse(rawdata)
-        if self.save_results:
-            results.save(self.save_location)
-        self.results_list.append(results)
+            results = self.algorithm.analyse(rawdata)
+            if self.save_results:
+                results.save(self.save_location)
+            self.results_list.append(results)
 
         assert self.beam_current_decay is not None
         self.beam_current_decay.check_beam_not_decayed()
@@ -115,12 +122,19 @@ class Worker:
         """The process is resumed."""
         log.debug("Resumed")
 
-    def finish(self) -> None:
-        """The process is finished."""
+    def finish(self, stop_event: cothread.Event | None = None) -> None:
+        """The process is finished.
+
+        Args:
+            stop_event: Cothread event which is triggered when the GUI stop button
+                        is pressed.
+        """
+
         log.debug("Finishing")
-        self.algorithm.use_bba_offsets(
-            self.results_list, self.save_location, self.question_callback
-        )
+        if not bool(stop_event):
+            self.algorithm.use_bba_offsets(
+                self.results_list, self.save_location, self.question_callback
+            )
         cancel_all_oscillations(self.machine.config)
         self.machine.restore_origins(self.save_location)
         log.debug("Finished")

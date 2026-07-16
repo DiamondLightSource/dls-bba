@@ -72,6 +72,7 @@ class Ticker:
             progress: A function that handles the progress fraction.
         """
         self.__action = cothread.Event()
+        self.__stop_event = cothread.Event()
         self.__on_update = on_update
         self.__progress = progress
         self.__state = "Idle"
@@ -94,12 +95,9 @@ class Ticker:
                 action, _ = self.__action.Wait()
 
             if action == "run":
-                fraction = worker.work()
+                fraction = worker.work(self.__stop_event)
                 self.__progress(fraction)
-            elif action == "stop":
-                self.__set_state("Complete")
-                worker.forced_finish()
-                self.__set_state("Idle")
+
             elif action == "pause":
                 worker.pause()
                 self.__set_state("Paused")
@@ -108,7 +106,10 @@ class Ticker:
                 self.__set_state("Running")
 
         self.__set_state("Complete")
-        worker.finish()
+        worker.finish(self.__stop_event)
+        if bool(self.__stop_event):
+            log.info("GUI Stop Complete")
+            self.__stop_event.Reset()
         self.__set_state("Idle")
 
     def __ticker(self) -> None:
@@ -140,8 +141,10 @@ class Ticker:
         """Pause the ticker."""
         self.__action.Signal(("pause", None))
 
-    def stop_ticker(self) -> None:
+    def stop_ticker(self, manual_stop: bool = False) -> None:
         """Stop the ticker."""
+        if manual_stop:
+            self.__stop_event.Signal()
         self.__action.Signal(("stop", None))
 
     def resume_ticker(self) -> None:
@@ -344,7 +347,7 @@ class MainWindow(QMainWindow):
         # Front page buttons
         self.button_start.clicked.connect(self.start_ticker)
         self.button_pause.clicked.connect(self.pause_resume_ticker)
-        self.button_stop.clicked.connect(self.stop_ticker)
+        self.button_stop.clicked.connect(lambda: self.stop_ticker(True))
         self.button_reset.clicked.connect(self.reset_iocs)
         self.button_plot_recent.clicked.connect(self.plot_recent)
         self.button_apply_recent.clicked.connect(self.apply_recent)
@@ -358,7 +361,7 @@ class MainWindow(QMainWindow):
 
     def start_ticker(self) -> None:
         """Start Ticker"""
-        # TODO: make pause & stop buttons work so we can uncomment them
+        # TODO: make pause button work so we can uncomment it
         log.info("GUI Start Pressed")
         if not self.selected:
             self.display_on_screen("No elements selected.")
@@ -366,7 +369,7 @@ class MainWindow(QMainWindow):
         self.button_start.setEnabled(False)
         # self.button_pause.setEnabled(True)
         self.button_pause.setText("Pause")
-        # self.button_stop.setEnabled(True)
+        self.button_stop.setEnabled(True)
         self.lock_unlock_pv.setEnabled(False)
         self.ticker.start_ticker(self.create_worker())
 
@@ -380,11 +383,11 @@ class MainWindow(QMainWindow):
         elif self.ticker.state == "Paused":
             self.button_pause.setText("Pause")
 
-    def stop_ticker(self, manual_stop=None) -> None:
+    def stop_ticker(self, manual_stop: bool = False) -> None:
         """Stop Ticker."""
         if manual_stop:
-            log.info("GUI Stop Pressed")
-        self.ticker.stop_ticker()
+            log.info("GUI Stop Pressed, stopping...")
+        self.ticker.stop_ticker(manual_stop)
         self.button_pause.setEnabled(False)
         self.button_pause.setText("Pause")
         self.button_stop.setEnabled(False)
@@ -440,7 +443,7 @@ class MainWindow(QMainWindow):
         log.debug(f"Ticker state: {old_state} => {new_state}")
 
         if old_state == "Complete" and new_state == "Idle":
-            self.stop_ticker(False)
+            self.stop_ticker()
 
     def progress(self, fraction_left: float) -> None:
         """Update the progress bar.

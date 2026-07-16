@@ -2,6 +2,7 @@ import logging as log
 from math import floor
 from typing import Any
 
+import cothread
 import numpy as np
 from cothread import Sleep
 
@@ -29,11 +30,17 @@ class SlowBBA(Algorithm):
         """
         super().__init__(machine)
 
-    def run(self, components_pair: list[Components]) -> RawData:
+    def run(
+        self,
+        components_pair: list[Components],
+        stop_event: cothread.Event | None = None,
+    ) -> RawData:
         """The Slow BBA Process.
 
         Args:
             components_pair: The components pair to use.
+            stop_event: Cothread event which is triggered when the GUI stop button
+                        is pressed.
 
         Returns:
             The RawData object.
@@ -95,6 +102,9 @@ class SlowBBA(Algorithm):
                         ("High", quad_high),
                         ("Low", quad_low),
                     ]:
+                        if bool(stop_event):
+                            return None
+
                         log.info(f"Quadrupole to {quad_movement} Setpoint")
                         self._machine.set_quad_setpoint(quadrupole, quad_value, True)
                         if "SR02" in quad_name:
