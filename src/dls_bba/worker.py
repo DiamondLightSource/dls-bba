@@ -74,12 +74,18 @@ class Worker:
         self.beam_current_decay = BeamCurrentCheck(self.machine, self.question_callback)
         log.debug("Worker Start Finished.")
 
-    def work(self, stop_event: cothread.Event | None = None) -> float:
+    def work(
+        self,
+        stop_event: cothread.Event | None = None,
+        pause_event: cothread.Event | None = None,
+    ) -> float:
         """Complete an iteration of the BBA process.
 
         Args:
             stop_event: Cothread event which is triggered when the GUI stop button
                         is pressed.
+            pause_event: Cothread event which is triggered when the GUI pause/resume
+                        button is pressed. Acts as both a pause and unpause event.
 
         Returns:
             A fraction of the remaining BBA pairs over the total number of pairs.
@@ -94,7 +100,7 @@ class Worker:
 
         while True:
             self.machine.check_feedbacks()
-            rawdata = self.algorithm.run(pair, stop_event)
+            rawdata = self.algorithm.run(pair, stop_event, pause_event)
 
             if beam_current_drop.check_beam_not_dropped():
                 break

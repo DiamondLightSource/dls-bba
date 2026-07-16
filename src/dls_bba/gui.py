@@ -73,6 +73,7 @@ class Ticker:
         """
         self.__action = cothread.Event()
         self.__stop_event = cothread.Event()
+        self.__pause_event = cothread.Event()
         self.__on_update = on_update
         self.__progress = progress
         self.__state = "Idle"
@@ -95,15 +96,8 @@ class Ticker:
                 action, _ = self.__action.Wait()
 
             if action == "run":
-                fraction = worker.work(self.__stop_event)
+                fraction = worker.work(self.__stop_event, self.__pause_event)
                 self.__progress(fraction)
-
-            elif action == "pause":
-                worker.pause()
-                self.__set_state("Paused")
-                action, _ = self.__action.Wait()
-                worker.resume()
-                self.__set_state("Running")
 
         self.__set_state("Complete")
         worker.finish(self.__stop_event)
@@ -137,28 +131,20 @@ class Ticker:
         """Start the ticker."""
         self.__action.Signal(("run", worker))
 
-    def pause_ticker(self) -> None:
-        """Pause the ticker."""
-        self.__action.Signal(("pause", None))
+    def pause_resume_ticker(self) -> None:
+        """Pause/resume the ticker."""
+        if self.state == "Running":
+            self.__pause_event.Signal("pause")
+            self.__set_state("Paused")
+        elif self.state == "Paused":
+            self.__pause_event.Signal("resume")
+            self.__set_state("Running")
 
     def stop_ticker(self, manual_stop: bool = False) -> None:
         """Stop the ticker."""
         if manual_stop:
             self.__stop_event.Signal()
         self.__action.Signal(("stop", None))
-
-    def resume_ticker(self) -> None:
-        """Resume the ticker."""
-        self.__action.Signal(("run", None))
-
-    def pause_resume_ticker(self) -> None:
-        """Pause or Resume the ticker."""
-        if self.__state == "Running":
-            self.pause_ticker()
-        elif self.__state == "Paused":
-            self.resume_ticker()
-        else:
-            log.error(f"Unable to toggle ticker in state: {self.__state}")
 
     @property
     def state(self) -> str:
@@ -361,13 +347,12 @@ class MainWindow(QMainWindow):
 
     def start_ticker(self) -> None:
         """Start Ticker"""
-        # TODO: make pause button work so we can uncomment it
         log.info("GUI Start Pressed")
         if not self.selected:
             self.display_on_screen("No elements selected.")
             return
         self.button_start.setEnabled(False)
-        # self.button_pause.setEnabled(True)
+        self.button_pause.setEnabled(True)
         self.button_pause.setText("Pause")
         self.button_stop.setEnabled(True)
         self.lock_unlock_pv.setEnabled(False)
@@ -375,18 +360,25 @@ class MainWindow(QMainWindow):
 
     def pause_resume_ticker(self) -> None:
         """Pause / Resume Ticker."""
-        log.info("GUI Pause/Resume Pressed")
-        self.ticker.pause_resume_ticker()
         log.debug(f"State: {self.ticker.state}")
         if self.ticker.state == "Running":
+            log.info("GUI pause button pressed")
             self.button_pause.setText("Resume")
         elif self.ticker.state == "Paused":
+            log.info("GUI resume button pressed")
             self.button_pause.setText("Pause")
+
+        self.ticker.pause_resume_ticker()
 
     def stop_ticker(self, manual_stop: bool = False) -> None:
         """Stop Ticker."""
         if manual_stop:
             log.info("GUI Stop Pressed, stopping...")
+
+        # Must unpause first if currently paused
+        if self.ticker.state == "Paused":
+            self.ticker.pause_resume_ticker()
+
         self.ticker.stop_ticker(manual_stop)
         self.button_pause.setEnabled(False)
         self.button_pause.setText("Pause")

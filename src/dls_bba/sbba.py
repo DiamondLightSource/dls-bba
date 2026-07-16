@@ -34,6 +34,7 @@ class SlowBBA(Algorithm):
         self,
         components_pair: list[Components],
         stop_event: cothread.Event | None = None,
+        pause_event: cothread.Event | None = None,
     ) -> RawData | None:
         """The Slow BBA Process.
 
@@ -41,6 +42,8 @@ class SlowBBA(Algorithm):
             components_pair: The components pair to use.
             stop_event: Cothread event which is triggered when the GUI stop button
                         is pressed.
+            pause_event: Cothread event which is triggered when the GUI pause/resume
+                        button is pressed. Acts as both a pause and unpause event.
 
         Returns:
             The RawData object.
@@ -102,6 +105,11 @@ class SlowBBA(Algorithm):
                         ("High", quad_high),
                         ("Low", quad_low),
                     ]:
+                        if bool(pause_event):
+                            state = pause_event.Wait()
+                            while state != "resume":
+                                state = pause_event.Wait()
+
                         if bool(stop_event):
                             return None
 
