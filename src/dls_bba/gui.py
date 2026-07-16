@@ -368,10 +368,10 @@ class MainWindow(QMainWindow):
         """Pause / Resume worker."""
         log.debug(f"State: {self.ticker.state}")
         if self.ticker.state == "Running":
-            log.info("GUI pause button pressed")
+            log.info("GUI Pause Pressed")
             self.button_pause.setText("Resume")
         elif self.ticker.state == "Paused":
-            log.info("GUI resume button pressed")
+            log.info("GUI Resume Pressed")
             self.button_pause.setText("Pause")
 
         self.ticker.pause_resume_worker()
@@ -379,7 +379,7 @@ class MainWindow(QMainWindow):
     def stop_worker(self, manual_stop: bool = False) -> None:
         """Stop Ticker."""
         if manual_stop:
-            log.info("GUI Stop Pressed, stopping...")
+            log.info("GUI Stop Pressed, Stopping...")
 
         self.ticker.stop_worker(manual_stop)
         self.button_pause.setEnabled(False)
