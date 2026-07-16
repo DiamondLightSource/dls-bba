@@ -26,8 +26,8 @@ class BeamCurrentCheck:
         msg = f"Stored Starting Beam Current: {self._initial_current}"
         log.debug(msg)
 
-    def check_beam_decay(self) -> bool:
-        """Check if the beam current has decayed below the minimum current.
+    def check_beam_not_decayed(self) -> bool:
+        """Check that the beam current has not decayed below the minimum current.
 
         Returns:
             True if beam has not dropped below the minimum current, False if it has.
@@ -42,8 +42,8 @@ class BeamCurrentCheck:
 
         return True
 
-    def check_beam_drop(self) -> bool:
-        """Check if the beam current has dropped below the warning current drop.
+    def check_beam_not_dropped(self) -> bool:
+        """Check that the beam current has not dropped below the warning current drop.
 
         Returns:
             True if beam has not dropped below warning current drop, False if it has.

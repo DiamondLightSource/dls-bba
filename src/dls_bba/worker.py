@@ -90,7 +90,7 @@ class Worker:
             self.machine.check_feedbacks()
             rawdata = self.algorithm.run(pair)
 
-            if beam_current_drop.check_beam_drop():
+            if beam_current_drop.check_beam_not_dropped():
                 break
 
         if self.save_rawdata:
@@ -102,7 +102,7 @@ class Worker:
         self.results_list.append(results)
 
         assert self.beam_current_decay is not None
-        self.beam_current_decay.check_beam_decay()
+        self.beam_current_decay.check_beam_not_decayed()
 
         log.debug("Work end")
         return len(self.components_pairs) / self.starting_length
