@@ -37,7 +37,7 @@ class Algorithm(ABC):
         self,
         component_pair: list[Components],
         stop_event: cothread.Event | None = None,
-    ) -> RawData:
+    ) -> RawData | None:
         """Runs the algorithm.
 
         Args:

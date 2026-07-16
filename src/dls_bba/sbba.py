@@ -34,7 +34,7 @@ class SlowBBA(Algorithm):
         self,
         components_pair: list[Components],
         stop_event: cothread.Event | None = None,
-    ) -> RawData:
+    ) -> RawData | None:
         """The Slow BBA Process.
 
         Args:

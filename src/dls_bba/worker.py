@@ -99,8 +99,8 @@ class Worker:
             if beam_current_drop.check_beam_not_dropped():
                 break
 
-        if not bool(stop_event):
-            if self.save_rawdata:
+        if not bool(stop_event) and rawdata is not None:
+            if self.save_rawdata is not None:
                 rawdata.save(self.save_location)
 
             results = self.algorithm.analyse(rawdata)

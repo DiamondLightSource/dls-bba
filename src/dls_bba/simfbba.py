@@ -39,7 +39,7 @@ class SimFastBBA(Algorithm):
         self,
         components_pair: list[Components],
         stop_event: cothread.Event | None = None,
-    ) -> RawData:
+    ) -> RawData | None:
         """The Simultaneous Fast BBA Process.
 
         Args:

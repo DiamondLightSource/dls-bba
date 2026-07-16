@@ -264,7 +264,7 @@ def test_check_beam_current_raises_error_when_beam_dumped(mock_get_value):
         machine = Machine(overrides=extra_dict_critical_drop)
         beam_check = BeamCurrentCheck(machine, mock.MagicMock())
         with pytest.raises(LowCurrentError) as err:
-            beam_check.check_beam_drop()
+            beam_check.check_beam_not_dropped()
         assert err.value.args[0] == "Beam current critically low."
 
 
@@ -279,7 +279,7 @@ def test_check_beam_current_raises_error_when_topup_prompt_response_is_no(
         machine = Machine(overrides=extra_dict_warning_drop)
         beam_check = BeamCurrentCheck(machine, mock_ask_user)
         with pytest.raises(LowCurrentError) as err:
-            beam_check.check_beam_drop()
+            beam_check.check_beam_not_dropped()
         assert err.value.args[0] == "User cancelled BBA: Due to beam current drop."
 
 
@@ -295,11 +295,11 @@ def test_check_beam_current_returns_false_when_topup_prompt_response_is_yes(
     with mock.patch("pytac.cothread_cs.caget"):
         machine = Machine(overrides=extra_dict_warning_drop)
         beam_check = BeamCurrentCheck(machine, mock_ask_user)
-        assert not beam_check.check_beam_drop()
+        assert not beam_check.check_beam_not_dropped()
 
 
 @mock.patch("dls_bba.machine.Machine.get_beam_current", return_value=1.0)
 def test_check_beam_current_returns_true_when_valid(mock_get_value, machine_setup):
     machine = machine_setup
     beam_check = BeamCurrentCheck(machine, mock.MagicMock())
-    assert beam_check.check_beam_drop()
+    assert beam_check.check_beam_not_dropped()
