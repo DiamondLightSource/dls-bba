@@ -419,11 +419,13 @@ class MainWindow(QMainWindow):
             ):
                 reselect.append(bpm_name)
 
-        self.display_on_screen(
-            f"Reselected {len(reselect)} elements with > {reselect_limit}um change."
-        )
         self.pv_selection.clear()
-        self.pv_selection.addItems(reselect)
+
+        if len(reselect) > 0:
+            self.display_on_screen(
+                f"Reselected {len(reselect)} elements with > {reselect_limit}um change."
+            )
+            self.pv_selection.addItems(reselect)
         self.last_list = reselect
         self.selection_strings = reselect
         self.selected = reselect
