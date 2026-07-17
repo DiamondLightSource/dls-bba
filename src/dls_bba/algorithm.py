@@ -78,6 +78,7 @@ class Algorithm(ABC):
             state = self._pause_event.Wait()
             while state != "resume":
                 state = self._pause_event.Wait()
+                log.info("Algorithm resumed")
 
     def _check_stop_status(self):
         """Check if the stop event has been triggered.

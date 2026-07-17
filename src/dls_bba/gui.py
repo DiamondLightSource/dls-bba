@@ -108,13 +108,14 @@ class Ticker:
 
     def __ticker(self) -> None:
         """The individual ticks for the BBA process."""
-        if self.__worker is None:
-            return
 
         while True:
             action = ""
             while action != "run":
                 action = self.__action.Wait()
+
+            if self.__worker is None:
+                return
 
             try:
                 self.__do_tick()
@@ -150,11 +151,10 @@ class Ticker:
         """Stop the ticker."""
         if self.__worker is None:
             return
-
         # We must send the action signal first otherwise the worker may return and
         # unblock the __do_tick(). This will trigger the next worker.work to start
         # when we should be exiting the while loop in __do_tick().
-        self.__action.Signal(("stop", None))
+        self.__action.Signal("stop")
 
         if manual_stop:
             self.__manual_stop = True
