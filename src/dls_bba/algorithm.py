@@ -73,7 +73,7 @@ class Algorithm(ABC):
         If it has not been triggered, then immediately return. If it has been triggered,
         then wait until it is triggered again but with the 'resume' state string.
         """
-        if bool(self._pause_event):
+        if self._pause_event:
             log.info("Algorithm paused")
             state = self._pause_event.Wait()
             while state != "resume":
@@ -85,10 +85,7 @@ class Algorithm(ABC):
         Returns:
             True if the event is set, false if not.
         """
-        if bool(self._stop_event):
-            return True
-        else:
-            return False
+        return bool(self._stop_event)
 
     def calculate_quad_setpoints(
         self, quadrupole: EpicsElement
