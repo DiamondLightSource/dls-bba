@@ -95,6 +95,14 @@ class SlowBBA(Algorithm):
                 }
 
                 for index, corrector_step in enumerate(corrector_step_list):
+                    if bool(pause_event) and pause_event is not None:
+                        state = pause_event.Wait()
+                        while state != "resume":
+                            state = pause_event.Wait()
+
+                    if bool(stop_event):
+                        return None
+
                     self._machine.set_corrector_setpoint(components, corrector_step)
                     # Always overshoot the high quad step and work down and keep
                     # direction consistent to mitigate unwanted hysteresis effects.
@@ -105,14 +113,6 @@ class SlowBBA(Algorithm):
                         ("High", quad_high),
                         ("Low", quad_low),
                     ]:
-                        if bool(pause_event) and pause_event is not None:
-                            state = pause_event.Wait()
-                            while state != "resume":
-                                state = pause_event.Wait()
-
-                        if bool(stop_event):
-                            return None
-
                         log.info(f"Quadrupole to {quad_movement} Setpoint")
                         self._machine.set_quad_setpoint(quadrupole, quad_value, True)
                         if "SR02" in quad_name:
