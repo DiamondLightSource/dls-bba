@@ -130,13 +130,13 @@ class Ticker:
         self.__state = state
         self.__on_update(old_state, state)
 
-    def start_worker(self, worker: Worker) -> None:
-        """Start the worker."""
+    def start_ticker(self, worker: Worker) -> None:
+        """Start the ticker."""
         self.__worker = worker
         self.__action.Signal("run")
 
-    def pause_resume_worker(self) -> None:
-        """Pause/resume the worker."""
+    def pause_resume_ticker(self) -> None:
+        """Pause/resume the ticker."""
         if self.__worker is None:
             return
         if self.state == "Running":
@@ -146,8 +146,8 @@ class Ticker:
             self.__worker.resume_worker()
             self.__set_state("Running")
 
-    def stop_worker(self, manual_stop: bool = False) -> None:
-        """Stop the worker."""
+    def stop_ticker(self, manual_stop: bool = False) -> None:
+        """Stop the ticker."""
         if self.__worker is None:
             return
 
@@ -162,7 +162,7 @@ class Ticker:
 
         # Must unpause if currently paused
         if self.state == "Paused":
-            self.pause_resume_worker()
+            self.pause_resume_ticker()
 
     @property
     def state(self) -> str:
@@ -349,8 +349,8 @@ class MainWindow(QMainWindow):
         self.apply_single_bba.clicked.connect(self.apply_bba_file)
 
         # Front page buttons
-        self.button_start.clicked.connect(self.start_worker)
-        self.button_pause.clicked.connect(self.pause_resume_worker)
+        self.button_start.clicked.connect(self.start_ticker)
+        self.button_pause.clicked.connect(self.pause_resume_ticker)
         self.button_stop.clicked.connect(lambda: self.stop_worker(True))
         self.button_reset.clicked.connect(self.reset_iocs)
         self.button_plot_recent.clicked.connect(self.plot_recent)
@@ -363,8 +363,8 @@ class MainWindow(QMainWindow):
         self.config_load_apply.clicked.connect(self.load_config_file)
         self.button_golden.clicked.connect(self.reapply_golden_orbits)
 
-    def start_worker(self) -> None:
-        """Start worker"""
+    def start_ticker(self) -> None:
+        """Start ticker."""
         log.info("GUI Start Pressed")
         if not self.selected:
             self.display_on_screen("No elements selected.")
@@ -374,10 +374,10 @@ class MainWindow(QMainWindow):
         self.button_pause.setText("Pause")
         self.button_stop.setEnabled(True)
         self.lock_unlock_pv.setEnabled(False)
-        self.ticker.start_worker(self.create_worker())
+        self.ticker.start_ticker(self.create_worker())
 
-    def pause_resume_worker(self) -> None:
-        """Pause / Resume worker."""
+    def pause_resume_ticker(self) -> None:
+        """Pause / Resume ticker."""
         log.debug(f"State: {self.ticker.state}")
         if self.ticker.state == "Running":
             log.info("GUI Pause Pressed, Pausing...")
@@ -386,14 +386,14 @@ class MainWindow(QMainWindow):
             log.info("GUI Resume Pressed")
             self.button_pause.setText("Pause")
 
-        self.ticker.pause_resume_worker()
+        self.ticker.pause_resume_ticker()
 
     def stop_worker(self, manual_stop: bool = False) -> None:
-        """Stop Ticker."""
+        """Stop ticker."""
         if manual_stop:
             log.info("GUI Stop Pressed, Stopping...")
 
-        self.ticker.stop_worker(manual_stop)
+        self.ticker.stop_ticker(manual_stop)
         self.button_pause.setEnabled(False)
         self.button_pause.setText("Pause")
         self.button_stop.setEnabled(False)
