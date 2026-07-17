@@ -3,8 +3,6 @@ import traceback
 from collections.abc import Callable
 from typing import Any
 
-from cothread import cothread
-
 from dls_bba.algorithm import Algorithm
 from dls_bba.beam_current import BeamCurrentCheck
 from dls_bba.common import ALGORITHMS, setup_folders_and_logger
@@ -74,11 +72,7 @@ class Worker:
         self.beam_current_decay = BeamCurrentCheck(self.machine, self.question_callback)
         log.debug("Worker Start Finished.")
 
-    def work(
-        self,
-        stop_event: cothread.Event | None = None,
-        pause_event: cothread.Event | None = None,
-    ) -> float:
+    def work(self) -> float:
         """Complete an iteration of the BBA process.
 
         Args:
@@ -100,12 +94,12 @@ class Worker:
 
         while True:
             self.machine.check_feedbacks()
-            rawdata = self.algorithm.run(pair, stop_event, pause_event)
+            rawdata = self.algorithm.run(pair)
 
             if beam_current_drop.check_beam_not_dropped():
                 break
 
-        if not bool(stop_event) and rawdata is not None:
+        if rawdata is not None:
             if self.save_rawdata is not None:
                 rawdata.save(self.save_location)
 
@@ -120,7 +114,7 @@ class Worker:
         log.debug("Work end")
         return len(self.components_pairs) / self.starting_length
 
-    def finish(self, stop_event: cothread.Event | None = None) -> None:
+    def finish(self, manual_stop: bool = False) -> None:
         """The process is finished.
 
         Args:
@@ -129,7 +123,7 @@ class Worker:
         """
 
         log.debug("Finishing")
-        if not bool(stop_event):
+        if not manual_stop:
             self.algorithm.use_bba_offsets(
                 self.results_list, self.save_location, self.question_callback
             )
@@ -144,6 +138,15 @@ class Worker:
         cancel_all_oscillations(self.machine.config)
         self.machine.restore_origins(self.save_location)
         log.debug("Forced finish finished")
+
+    def pause_worker(self):
+        self.algorithm.pause_run()
+
+    def resume_worker(self):
+        self.algorithm.resume_run()
+
+    def stop_worker(self):
+        self.algorithm.stop_run()
 
 
 def show_progress(left: float) -> None:

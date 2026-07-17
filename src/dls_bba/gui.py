@@ -71,54 +71,57 @@ class Ticker:
             on_update: A function that handles state changes.
             progress: A function that handles the progress fraction.
         """
+        self.__worker: Worker | None = None
         self.__action = cothread.Event()
-        self.__stop_event = cothread.Event()
-        self.__pause_event = cothread.Event()
         self.__on_update = on_update
         self.__progress = progress
         self.__state = "Idle"
+        self.__manual_stop = False
         cothread.Spawn(self.__ticker)
 
-    def __do_tick(self, worker: Worker) -> None:
-        """Complete ticks for the duration of the process.
+    def __do_tick(self) -> None:
+        """Complete ticks for the duration of the process."""
+        if self.__worker is None:
+            return
 
-        Args:
-            worker: The worker that controls the process.
-        """
         self.__set_state("Running")
-        worker.start()
+        self.__worker.start()
         fraction: float = 1.0
         self.__progress(fraction)
 
         action = "run"
-        while action == "run" and fraction > 0:
+        while action != "stop" and fraction > 0:
             if self.__action:
-                action, _ = self.__action.Wait()
+                action = self.__action.Wait()
 
             if action == "run":
-                fraction = worker.work(self.__stop_event, self.__pause_event)
+                fraction = self.__worker.work()
                 self.__progress(fraction)
 
         self.__set_state("Complete")
-        worker.finish(self.__stop_event)
-        if bool(self.__stop_event):
+        self.__worker.finish(self.__manual_stop)
+        if self.__manual_stop:
             log.info("GUI Stop Complete")
-            self.__stop_event.Reset()
+            self.__manual_stop = False
+
         self.__set_state("Idle")
 
     def __ticker(self) -> None:
         """The individual ticks for the BBA process."""
+        if self.__worker is None:
+            return
+
         while True:
             action = ""
             while action != "run":
-                action, worker = self.__action.Wait()
+                action = self.__action.Wait()
 
             try:
-                self.__do_tick(worker)
+                self.__do_tick()
             except Exception:
                 traceback.print_exc()
                 self.__set_state("Complete")
-                worker.forced_finish()
+                self.__worker.forced_finish()
                 self.__set_state("Idle")
 
     def __set_state(self, state: str) -> None:
@@ -129,28 +132,37 @@ class Ticker:
 
     def start_worker(self, worker: Worker) -> None:
         """Start the worker."""
-        self.__action.Signal(("run", worker))
+        self.__worker = worker
+        self.__action.Signal("run")
 
     def pause_resume_worker(self) -> None:
         """Pause/resume the worker."""
+        if self.__worker is None:
+            return
         if self.state == "Running":
-            self.__pause_event.Signal("pause")
+            self.__worker.pause_worker()
             self.__set_state("Paused")
         elif self.state == "Paused":
-            self.__pause_event.Signal("resume")
+            self.__worker.resume_worker()
             self.__set_state("Running")
 
     def stop_worker(self, manual_stop: bool = False) -> None:
         """Stop the worker."""
+        if self.__worker is None:
+            return
+
+        # We must send the action signal first otherwise the worker may return and
+        # unblock the __do_tick(). This will trigger the next worker.work to start
+        # when we should be exiting the while loop in __do_tick().
+        self.__action.Signal(("stop", None))
 
         if manual_stop:
-            self.__stop_event.Signal()
+            self.__manual_stop = True
+            self.__worker.stop_worker()
 
         # Must unpause if currently paused
         if self.state == "Paused":
             self.pause_resume_worker()
-
-        self.__action.Signal(("stop", None))
 
     @property
     def state(self) -> str:
@@ -368,7 +380,7 @@ class MainWindow(QMainWindow):
         """Pause / Resume worker."""
         log.debug(f"State: {self.ticker.state}")
         if self.ticker.state == "Running":
-            log.info("GUI Pause Pressed")
+            log.info("GUI Pause Pressed, Pausing...")
             self.button_pause.setText("Resume")
         elif self.ticker.state == "Paused":
             log.info("GUI Resume Pressed")

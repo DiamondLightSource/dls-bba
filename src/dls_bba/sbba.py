@@ -2,7 +2,6 @@ import logging as log
 from math import floor
 from typing import Any
 
-import cothread
 import numpy as np
 from cothread import Sleep
 
@@ -30,20 +29,11 @@ class SlowBBA(Algorithm):
         """
         super().__init__(machine)
 
-    def run(
-        self,
-        components_pair: list[Components],
-        stop_event: cothread.Event | None = None,
-        pause_event: cothread.Event | None = None,
-    ) -> RawData | None:
+    def run(self, components_pair: list[Components]) -> RawData | None:
         """The Slow BBA Process.
 
         Args:
             components_pair: The components pair to use.
-            stop_event: Cothread event which is triggered when the GUI stop button
-                        is pressed.
-            pause_event: Cothread event which is triggered when the GUI pause/resume
-                        button is pressed. Acts as both a pause and unpause event.
 
         Returns:
             The RawData object.
@@ -95,12 +85,8 @@ class SlowBBA(Algorithm):
                 }
 
                 for index, corrector_step in enumerate(corrector_step_list):
-                    if bool(pause_event) and pause_event is not None:
-                        state = pause_event.Wait()
-                        while state != "resume":
-                            state = pause_event.Wait()
-
-                    if bool(stop_event):
+                    self._check_and_wait_pause_status()
+                    if self._check_stop_status():
                         return None
 
                     self._machine.set_corrector_setpoint(components, corrector_step)

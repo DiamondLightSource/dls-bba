@@ -2,7 +2,6 @@ import logging as log
 from math import ceil
 from typing import Any
 
-import cothread
 import numpy as np
 from cothread import Sleep
 
@@ -35,20 +34,11 @@ class FastBBA(Algorithm):
         """
         super().__init__(machine)
 
-    def run(
-        self,
-        components_pair: list[Components],
-        stop_event: cothread.Event | None = None,
-        pause_event: cothread.Event | None = None,
-    ) -> RawData | None:
+    def run(self, components_pair: list[Components]) -> RawData | None:
         """The Fast BBA Process.
 
         Args:
             components_pair: The components pair to run the algorithm on.
-            stop_event: Cothread event which is triggered when the GUI stop button
-                        is pressed.
-            pause_event: Cothread event which is triggered when the GUI pause/resume
-                        button is pressed. Acts as both a pause and unpause event.
 
         Returns:
             The RawData object
@@ -70,12 +60,8 @@ class FastBBA(Algorithm):
             for quadrupole, quad_name in zip(
                 components.quadrupoles, components.quadrupoles_names, strict=True
             ):
-                if bool(pause_event) and pause_event is not None:
-                    state = pause_event.Wait()
-                    while state != "resume":
-                        state = pause_event.Wait()
-
-                if bool(stop_event):
+                self._check_and_wait_pause_status()
+                if self._check_stop_status():
                     return None
 
                 log.debug(f"Quad: {quad_name} of {components.quadrupoles_names}")

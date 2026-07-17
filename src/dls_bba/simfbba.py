@@ -3,7 +3,7 @@ from math import ceil
 from typing import Any
 
 import numpy as np
-from cothread import Sleep, cothread
+from cothread import Sleep
 
 from dls_bba.algorithm import Algorithm
 from dls_bba.components import Components
@@ -35,20 +35,11 @@ class SimFastBBA(Algorithm):
         """
         super().__init__(machine)
 
-    def run(
-        self,
-        components_pair: list[Components],
-        stop_event: cothread.Event | None = None,
-        pause_event: cothread.Event | None = None,
-    ) -> RawData | None:
+    def run(self, components_pair: list[Components]) -> RawData | None:
         """The Simultaneous Fast BBA Process.
 
         Args:
             components_pair: The components pair to use.
-            stop_event: Cothread event which is triggered when the GUI stop button
-                        is pressed.
-            pause_event: Cothread event which is triggered when the GUI pause/resume
-                        button is pressed. Acts as both a pause and unpause event.
 
         Returns:
             The RawData object.
@@ -70,12 +61,8 @@ class SimFastBBA(Algorithm):
             components_pair[0].quadrupoles_names,
             strict=True,
         ):
-            if bool(pause_event) and pause_event is not None:
-                state = pause_event.Wait()
-                while state != "resume":
-                    state = pause_event.Wait()
-
-            if bool(stop_event):
+            self._check_and_wait_pause_status()
+            if self._check_stop_status():
                 return None
 
             log.debug(f"BPM: {components_pair[0].bpm_name}")
