@@ -70,6 +70,7 @@ class Worker:
         self.machine.check_feedbacks()
         self.machine.zero_origins(self.save_location)
         self.beam_current_decay = BeamCurrentCheck(self.machine, self.question_callback)
+        self.beam_current_decay.check_beam_not_decayed()
         log.debug("Worker Start Finished.")
 
     def work(self) -> float:
