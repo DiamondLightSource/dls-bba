@@ -108,7 +108,6 @@ class Ticker:
 
     def __ticker(self) -> None:
         """The individual ticks for the BBA process."""
-
         while True:
             action = ""
             while action != "run":
@@ -140,6 +139,7 @@ class Ticker:
         """Pause/resume the ticker."""
         if self.__worker is None:
             return
+
         if self.state == "Running":
             self.__worker.pause_worker()
             self.__set_state("Paused")
@@ -151,6 +151,7 @@ class Ticker:
         """Stop the ticker."""
         if self.__worker is None:
             return
+
         # We must send the action signal first otherwise the worker may return and
         # unblock the __do_tick(). This will trigger the next worker.work to start
         # when we should be exiting the while loop in __do_tick().
@@ -351,7 +352,7 @@ class MainWindow(QMainWindow):
         # Front page buttons
         self.button_start.clicked.connect(self.start_ticker)
         self.button_pause.clicked.connect(self.pause_resume_ticker)
-        self.button_stop.clicked.connect(lambda: self.stop_worker(True))
+        self.button_stop.clicked.connect(lambda: self.stop_ticker(True))
         self.button_reset.clicked.connect(self.reset_iocs)
         self.button_plot_recent.clicked.connect(self.plot_recent)
         self.button_apply_recent.clicked.connect(self.apply_recent)
@@ -388,7 +389,7 @@ class MainWindow(QMainWindow):
 
         self.ticker.pause_resume_ticker()
 
-    def stop_worker(self, manual_stop: bool = False) -> None:
+    def stop_ticker(self, manual_stop: bool = False) -> None:
         """Stop ticker."""
         if manual_stop:
             log.info("GUI Stop Pressed, Stopping...")
@@ -449,7 +450,7 @@ class MainWindow(QMainWindow):
         log.debug(f"Ticker state: {old_state} => {new_state}")
 
         if old_state == "Complete" and new_state == "Idle":
-            self.stop_worker()
+            self.stop_ticker()
 
     def progress(self, fraction_left: float) -> None:
         """Update the progress bar.

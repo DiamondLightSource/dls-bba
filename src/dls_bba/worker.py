@@ -75,12 +75,6 @@ class Worker:
     def work(self) -> float:
         """Complete an iteration of the BBA process.
 
-        Args:
-            stop_event: Cothread event which is triggered when the GUI stop button
-                        is pressed.
-            pause_event: Cothread event which is triggered when the GUI pause/resume
-                        button is pressed. Acts as both a pause and unpause event.
-
         Returns:
             A fraction of the remaining BBA pairs over the total number of pairs.
         """
@@ -118,8 +112,8 @@ class Worker:
         """The process is finished.
 
         Args:
-            stop_event: Cothread event which is triggered when the GUI stop button
-                        is pressed.
+            manual_stop: Boolean to identify if this is a user requested stop, in which
+                        case it is an early stop and we should not apply the results.
         """
 
         log.debug("Finishing")
