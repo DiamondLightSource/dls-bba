@@ -1,3 +1,4 @@
+import time
 from unittest.mock import MagicMock
 
 import cothread
@@ -27,14 +28,16 @@ def test_algorithm_stop():
 @pytest.mark.timeout(2)
 def test_algorithm_pause():
     algorithm = DummyAlgorithm(MagicMock())
-    assert not bool(algorithm._pause_event)
+    start = time.monotonic()
 
     def unpause():
-        cothread.Sleep(0.1)
+        cothread.Sleep(0.2)
         algorithm.resume_run()
 
     # Pause, spawn a second thread to unpause and then check that we unpaused
     algorithm.pause_run()
-    assert bool(algorithm._pause_event)
     cothread.Spawn(unpause)
     algorithm._check_and_wait_pause_status()
+
+    end = time.monotonic()
+    assert end - start >= 0.2, "No pause detected"
