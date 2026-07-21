@@ -59,6 +59,10 @@ class SlowBBA(Algorithm):
             for quadrupole, quad_name in zip(
                 components.quadrupoles, components.quadrupoles_names, strict=True
             ):
+                self._check_and_wait_pause_status()
+                if self._check_stop_status():
+                    return None
+
                 log.debug(f"Quad: {quad_name} of {components.quadrupoles_names}")
                 (
                     quad_start,
@@ -85,10 +89,6 @@ class SlowBBA(Algorithm):
                 }
 
                 for index, corrector_step in enumerate(corrector_step_list):
-                    self._check_and_wait_pause_status()
-                    if self._check_stop_status():
-                        return None
-
                     self._machine.set_corrector_setpoint(components, corrector_step)
                     # Always overshoot the high quad step and work down and keep
                     # direction consistent to mitigate unwanted hysteresis effects.
