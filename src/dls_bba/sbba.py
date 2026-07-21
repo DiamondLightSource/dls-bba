@@ -29,7 +29,7 @@ class SlowBBA(Algorithm):
         """
         super().__init__(machine)
 
-    def run(self, components_pair: list[Components]) -> RawData:
+    def run(self, components_pair: list[Components]) -> RawData | None:
         """The Slow BBA Process.
 
         Args:
@@ -85,6 +85,10 @@ class SlowBBA(Algorithm):
                 }
 
                 for index, corrector_step in enumerate(corrector_step_list):
+                    self._check_and_wait_pause_status()
+                    if self._check_stop_status():
+                        return None
+
                     self._machine.set_corrector_setpoint(components, corrector_step)
                     # Always overshoot the high quad step and work down and keep
                     # direction consistent to mitigate unwanted hysteresis effects.

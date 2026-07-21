@@ -51,7 +51,7 @@ class BBAIoc:
         self.process: subprocess.Popen | None = None
         self.create_bba_records()
 
-    def create_bba_records(self):
+    def create_bba_records(self) -> None:
         lattice = load_csv.load("I04")
         bpms: list[EpicsElement] = lattice.get_elements("BPM")
 
@@ -60,7 +60,7 @@ class BBAIoc:
             self.add_bo_record(bpm.get_pv_name("y_fofb_disabled", pytac.RB))
             self.add_bo_record(bpm.get_pv_name("enabled", pytac.RB), initial_value=1)
 
-    def _add_record(self, typ, pv_name, **fields):
+    def _add_record(self, typ: str, pv_name: str, **fields: int) -> None:
         assert not self.is_started(), (
             f"Cannot add {typ} record to running IOC ({pv_name})"
         )
@@ -121,7 +121,7 @@ class BBAIoc:
         # This is not cothread API.
         catools._channel_cache.purge()
 
-    def is_started(self):
+    def is_started(self) -> bool:
         return self.process is not None
 
     def wait_for_ioc(self, timeout: float = 5) -> None:
@@ -137,7 +137,12 @@ class BBAIoc:
             if "complete" in line:
                 return
 
-    def add_bo_record(self, pv_name, initial_value=0, **fields):
+    def add_bo_record(
+        self,
+        pv_name: str,
+        initial_value: int = 0,
+        **fields: int,
+    ) -> None:
         """Add a new binary-valued bo PV record."""
         final_fields = {"VAL": initial_value}
         final_fields.update(fields)

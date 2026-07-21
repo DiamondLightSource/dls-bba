@@ -34,7 +34,7 @@ class FastBBA(Algorithm):
         """
         super().__init__(machine)
 
-    def run(self, components_pair: list[Components]) -> RawData:
+    def run(self, components_pair: list[Components]) -> RawData | None:
         """The Fast BBA Process.
 
         Args:
@@ -60,6 +60,10 @@ class FastBBA(Algorithm):
             for quadrupole, quad_name in zip(
                 components.quadrupoles, components.quadrupoles_names, strict=True
             ):
+                self._check_and_wait_pause_status()
+                if self._check_stop_status():
+                    return None
+
                 log.debug(f"Quad: {quad_name} of {components.quadrupoles_names}")
                 (
                     quad_start,

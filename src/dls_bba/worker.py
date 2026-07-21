@@ -90,37 +90,37 @@ class Worker:
             self.machine.check_feedbacks()
             rawdata = self.algorithm.run(pair)
 
-            if beam_current_drop.check_beam_drop():
+            if beam_current_drop.check_beam_not_dropped():
                 break
 
-        if self.save_rawdata:
-            rawdata.save(self.save_location)
+        if rawdata is not None:
+            if self.save_rawdata is not None:
+                rawdata.save(self.save_location)
 
-        results = self.algorithm.analyse(rawdata)
-        if self.save_results:
-            results.save(self.save_location)
-        self.results_list.append(results)
+            results = self.algorithm.analyse(rawdata)
+            if self.save_results:
+                results.save(self.save_location)
+            self.results_list.append(results)
 
         assert self.beam_current_decay is not None
-        self.beam_current_decay.check_beam_decay()
+        self.beam_current_decay.check_beam_not_decayed()
 
         log.debug("Work end")
         return len(self.components_pairs) / self.starting_length
 
-    def pause(self) -> None:
-        """The process is paused."""
-        log.debug("Paused")
+    def finish(self, manual_stop: bool = False) -> None:
+        """The process is finished.
 
-    def resume(self) -> None:
-        """The process is resumed."""
-        log.debug("Resumed")
+        Args:
+            manual_stop: Boolean to identify if this is a user requested stop, in which
+                        case it is an early stop and we should not apply the results.
+        """
 
-    def finish(self) -> None:
-        """The process is finished."""
         log.debug("Finishing")
-        self.algorithm.use_bba_offsets(
-            self.results_list, self.save_location, self.question_callback
-        )
+        if not manual_stop:
+            self.algorithm.use_bba_offsets(
+                self.results_list, self.save_location, self.question_callback
+            )
         cancel_all_oscillations(self.machine.config)
         self.machine.restore_origins(self.save_location)
         log.debug("Finished")
@@ -132,6 +132,15 @@ class Worker:
         cancel_all_oscillations(self.machine.config)
         self.machine.restore_origins(self.save_location)
         log.debug("Forced finish finished")
+
+    def pause_worker(self) -> None:
+        self.algorithm.pause_run()
+
+    def resume_worker(self) -> None:
+        self.algorithm.resume_run()
+
+    def stop_worker(self) -> None:
+        self.algorithm.stop_run()
 
 
 def show_progress(left: float) -> None:

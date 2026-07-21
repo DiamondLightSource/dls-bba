@@ -35,7 +35,7 @@ class SimFastBBA(Algorithm):
         """
         super().__init__(machine)
 
-    def run(self, components_pair: list[Components]) -> RawData:
+    def run(self, components_pair: list[Components]) -> RawData | None:
         """The Simultaneous Fast BBA Process.
 
         Args:
@@ -61,6 +61,10 @@ class SimFastBBA(Algorithm):
             components_pair[0].quadrupoles_names,
             strict=True,
         ):
+            self._check_and_wait_pause_status()
+            if self._check_stop_status():
+                return None
+
             log.debug(f"BPM: {components_pair[0].bpm_name}")
             log.debug(f"Quad: {quad_name} of {components_pair[0].quadrupoles_names}")
             log.debug(
