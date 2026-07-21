@@ -58,16 +58,16 @@ class Algorithm(ABC):
         """
         pass
 
-    def pause_run(self):
+    def pause_run(self) -> None:
         self._pause_event.Signal("pause")
 
-    def resume_run(self):
+    def resume_run(self) -> None:
         self._pause_event.Signal("resume")
 
-    def stop_run(self):
+    def stop_run(self) -> None:
         self._stop_event.Signal()
 
-    def _check_and_wait_pause_status(self):
+    def _check_and_wait_pause_status(self) -> None:
         """Check if the pause event has been triggered.
 
         If it has not been triggered, then immediately return. If it has been triggered,
@@ -80,7 +80,7 @@ class Algorithm(ABC):
                 state = self._pause_event.Wait()
                 log.info("Algorithm resumed")
 
-    def _check_stop_status(self):
+    def _check_stop_status(self) -> bool:
         """Check if the stop event has been triggered.
 
         Returns:

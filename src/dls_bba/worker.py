@@ -133,13 +133,13 @@ class Worker:
         self.machine.restore_origins(self.save_location)
         log.debug("Forced finish finished")
 
-    def pause_worker(self):
+    def pause_worker(self) -> None:
         self.algorithm.pause_run()
 
-    def resume_worker(self):
+    def resume_worker(self) -> None:
         self.algorithm.resume_run()
 
-    def stop_worker(self):
+    def stop_worker(self) -> None:
         self.algorithm.stop_run()
 
 
