@@ -76,7 +76,8 @@ class BeamCurrentCheck:
         while True:
             log.error(f"Please topup current to > {minimum_topup}mA.")
             response = self.question_callback(
-                "Input y to continue after topup, or n to cancel:"
+                "Beam current dropped, please topup. Input y to continue after topup, "
+                "or n to cancel:"
             )
 
             if response:
