@@ -553,8 +553,6 @@ class MainWindow(QMainWindow):
         list_file = [file[0]]
         self.machine.update_config(extra_config_files=list_file)
         self.show_config()
-        # Allow for lattice reload.
-        cothread.Yield()  # TODO: Why does this need to yield?
         self.display_config_load.setText(f"Config File Applied at {get_isotime()}")
 
     def get_ringmode_options(self) -> list[str]:
