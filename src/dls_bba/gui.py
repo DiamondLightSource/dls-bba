@@ -476,14 +476,17 @@ class MainWindow(QMainWindow):
         if isinstance(self.selected, str):
             self.selected = [self.selected]
         assert isinstance(self.selected, list) and isinstance(self.selected[0], str)
+
+        latest_config = self.get_config_from_gui()
+
         return Worker(
             method,
             self.selected,
             self.create_question_box,
             machine=self.machine,
-            folder_path=self.machine.config["SAVE_LOCATION"],
+            folder_path=latest_config["SAVE_LOCATION"],
             logger=self.logger,
-            additional_options=self.get_config_from_gui(),
+            additional_options=latest_config,
         )
 
     def reset_iocs(self) -> None:
