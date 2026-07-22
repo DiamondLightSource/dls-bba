@@ -503,8 +503,8 @@ class Machine:
         """Check if the maximum orbit is too large for FOFB and run SOFB if so."""
         fofb_max_orbit = self.config["FOFB_MAX_ORBIT_MICRONS"]
         max_value = self.get_largest_orbit()
-        while max_value >= fofb_max_orbit:
-            log.error("Orbit is too large for FOFB. Running SOFB.")
+        while max_value > fofb_max_orbit:
+            log.warning("Orbit is too large for FOFB. Running SOFB.")
             self.run_sofb()
             max_value = self.get_largest_orbit()
 
