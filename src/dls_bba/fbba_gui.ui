@@ -891,7 +891,7 @@
            <string>Feedbacks Wait time [s]</string>
           </property>
          </widget>
-         <widget class="QDoubleSpinBox" name="config_run_time">
+         <widget class="QDoubleSpinBox" name="config_fofb_run_time">
           <property name="geometry">
            <rect>
             <x>10</x>

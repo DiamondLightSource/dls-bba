@@ -226,7 +226,7 @@ class MainWindow(QMainWindow):
     config_quad_step: QDoubleSpinBox
     config_warning_current: QDoubleSpinBox
     config_sofb_run_time: QDoubleSpinBox
-    config_run_time: QDoubleSpinBox
+    config_fofb_run_time: QDoubleSpinBox
     config_wait_time: QDoubleSpinBox
     config_sbba_min_frac: QDoubleSpinBox
     config_sbba_stdev: QDoubleSpinBox
@@ -574,36 +574,41 @@ class MainWindow(QMainWindow):
             A dictionary of the new config.
         """
         config_dict = {
-            "SAVE_LOCATION": self.display_save_loc.toPlainText(),
+            # Main Page
             "USE_FEEDBACKS": self.config_use_feedbacks.isChecked(),
             "FOFB_FEEDBACKS": self.config_use_fofb.isChecked(),
             "MAX_ORBIT_CORRECTION_MICRONS": self.config_max_orbit.value(),
             "MIN_CURRENT": self.config_current_limit.value(),
+            ## Additional Options and Plotting#
+            # General Options
             "CORRECTOR_KICK_RADIANS": self.config_corr_kick.value() / RAD_TO_URAD_CONV,
             "QUADRUPOLE_STEP_PERCENT": self.config_quad_step.value(),
             "WARNING_CURRENT_DROP": self.config_warning_current.value(),
-            "FEEDBACK_WAIT_TIME": self.config_wait_time.value(),
-            "FEEDBACK_RUN_TIME": self.config_run_time.value(),
             "SOFB_RUN_TIME": self.config_sofb_run_time.value(),
-            "MIN_SLOPE_FRACTION": self.config_sbba_min_frac.value(),
-            "CENTER_OUTLIER_FACTOR": self.config_sbba_stdev.value(),
-            "OUTLIER_FACTOR": self.config_sbba_fit_diff.value(),
+            "FOFB_RUN_TIME": self.config_fofb_run_time.value(),
+            "FEEDBACK_WAIT_TIME": self.config_wait_time.value(),
             "DECIMATED": self.config_use_decimation.isChecked(),
             "X_CYCLES": self.config_x_cycles.value(),
             "X_FREQUENCY": self.config_x_freq.value(),
             "Y_CYCLES": self.config_y_cycles.value(),
             "Y_FREQUENCY": self.config_y_freq.value(),
+            "RESELECTION_LIMIT": self.config_reselection.value(),
             "SAVE_RAWDATA": self.save_rawdata.isChecked(),
             "SAVE_RESULTS": self.save_results.isChecked(),
             "SAVE_PLOTS": self.save_plots.isChecked(),
-            "RESELECTION_LIMIT": self.config_reselection.value(),
+            # Advanced Options
             "RINGMODE": self.config_ringmode.currentText(),
             "COTHREAD_CONTROL_SYSTEM_TIMEOUT": self.config_ccs_timeout.value(),
             "COTHREAD_CONTROL_SYSTEM_WAIT_FLAG": self.config_ccs_wait.isChecked(),
-            "FOFB_EXECUTABLE_PATH": self.config_fofb_executable_path.toPlainText(),
+            "MIN_SLOPE_FRACTION": self.config_sbba_min_frac.value(),
+            "CENTER_OUTLIER_FACTOR": self.config_sbba_stdev.value(),
+            "OUTLIER_FACTOR": self.config_sbba_fit_diff.value(),
             "FOFB_MAX_ORBIT_MICRONS": self.config_fofb_max_orbit.value(),
             "ORBIT_RESPONSE_MATRIX_PATH": self.config_orm_path.toPlainText(),
             "CORRECTORS_TXT_PATH": self.config_corrector_txt_path.toPlainText(),
+            "FOFB_EXECUTABLE_PATH": self.config_fofb_executable_path.toPlainText(),
+            # Save Location and Config
+            "SAVE_LOCATION": self.display_save_loc.toPlainText(),
         }
         return config_dict
 
@@ -629,7 +634,7 @@ class MainWindow(QMainWindow):
         self.config_quad_step.setValue(config["QUADRUPOLE_STEP_PERCENT"])
         self.config_warning_current.setValue(config["WARNING_CURRENT_DROP"])
         self.config_wait_time.setValue(config["FEEDBACK_WAIT_TIME"])
-        self.config_run_time.setValue(config["FEEDBACK_RUN_TIME"])
+        self.config_fofb_run_time.setValue(config["FOFB_RUN_TIME"])
         self.config_sofb_run_time.setValue(config["SOFB_RUN_TIME"])
         self.config_sbba_min_frac.setValue(config["MIN_SLOPE_FRACTION"])
         self.config_sbba_stdev.setValue(config["CENTER_OUTLIER_FACTOR"])

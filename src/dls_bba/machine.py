@@ -526,7 +526,7 @@ class Machine:
         tune_trigger = self.config["FEEDBACK_PVS"]["Tune_Feedback"]
         fofb_trigger = self.config["FOFB_EXECUTABLE_PATH"]
         wait_time = self.config["FEEDBACK_WAIT_TIME"]
-        run_time = self.config["FEEDBACK_RUN_TIME"]
+        run_time = self.config["FOFB_RUN_TIME"]
         run(f"{fofb_trigger} start", check=True, shell=True)
         caput(tune_trigger, 1, wait=True)
 
