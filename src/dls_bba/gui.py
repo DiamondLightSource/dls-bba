@@ -288,7 +288,6 @@ class MainWindow(QMainWindow):
         self.selection_strings: list[str] | None = None
         self.selected: list[str] | str | None = None
         self.loadfolder: str | None = None
-        self.savepath: str | None = None
         self.loadfile: str | None = None
         self.selected_toggle: int = 0
         self.tmp_single_filepath: str | None = None
@@ -711,11 +710,9 @@ class MainWindow(QMainWindow):
             self, "Select Folder to Save to", self.machine.config["SAVE_LOCATION"]
         )
         if folderpath == "":
-            self.display_save_loc.clear()
-            self.display_save_loc.setPlainText(self.machine.config["SAVE_LOCATION"])
-        else:
-            self.display_save_loc.setPlainText(folderpath)
-            self.savepath = folderpath
+            folderpath = self.machine.config["SAVE_LOCATION"]
+
+        self.display_save_loc.setPlainText(folderpath)
 
     def select_bba_folder(self) -> None:
         """Select a folder of old data to load."""
