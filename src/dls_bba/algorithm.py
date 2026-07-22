@@ -193,7 +193,12 @@ class Algorithm(ABC):
             question_callback: The question function for the console or gui.
         """
         offsets_dict = self.reformat_and_save_offsets(results_list, save_location)
-        bba_offsets_plot(self._machine, offsets_dict, save_location)
+        bba_offsets_plot(
+            self._machine,
+            offsets_dict,
+            save_location,
+            self._machine.config["SAVE_PLOTS"],
+        )
         if question_callback("Apply these BBA offsets? (y / n) :"):
             self.apply_bba_offsets(offsets_dict)
             self._machine.apply_feedbacks()
