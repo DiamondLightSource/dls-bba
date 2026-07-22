@@ -676,9 +676,14 @@ class Machine:
         Args:
             folder_path: Path to the golden offsets file.
         """
-        log.info("Restoring Golden Offsets")
 
-        with open(os.path.join(folder_path, "golden_offsets.json")) as f:
+        golden_offsets_path = os.path.join(folder_path, "golden_offsets.json")
+        if not os.path.exists(golden_offsets_path):
+            log.info("No Golden Offsets file to restore")
+            return
+
+        log.info("Restoring Golden Offsets")
+        with open(golden_offsets_path) as f:
             golden_offsets = json.load(f)
 
         pv_names = []

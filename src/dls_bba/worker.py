@@ -118,7 +118,7 @@ class Worker:
         """
 
         log.debug("Finishing")
-        if not manual_stop:
+        if not manual_stop and self.results_list:
             self.algorithm.use_bba_offsets(
                 self.results_list, self.save_location, self.question_callback
             )
