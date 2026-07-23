@@ -63,7 +63,7 @@ def add_action_arguments(info_parser, run_parser, plot_parser, apply_parser):
         "-l", "--load", type=str, default=None, help="The location to load from."
     )
     group = apply_parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("-g", "--golden", action="store_true", help="")
+    group.add_argument("-g", "--offsets", action="store_true", help="")
     group.add_argument("-s", "--single", action="store_true", help="")
     group.add_argument("-m", "--multiple", action="store_true", help="")
 
@@ -233,7 +233,7 @@ def main(args: Namespace | None = None) -> None:
             bba_offsets_folder(machine, args.filepath, True)
 
     elif args.command == "apply":
-        if args.golden:
+        if args.offsets:
             apply_offset_files(
                 args.load, None, args.config_files, args.additional_config
             )

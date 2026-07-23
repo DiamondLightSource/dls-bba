@@ -58,8 +58,9 @@ def apply_offset_files(
     """
     if machine is None:
         machine = Machine(config_files, additional_config)
-    selected_file = os.path.dirname(filepath)
-    machine.restore_offsets(selected_file)
+    dirname = os.path.dirname(filepath)
+    filename = filepath.split("/")[-1]
+    machine.restore_offsets(dirname, [filename])
 
 
 def apply_single(

@@ -694,13 +694,20 @@ class Machine:
         Sleep(0.2)
         log.debug("Origins Zeroed")
 
-    def restore_offsets(self, folder_path: str) -> None:
-        """Restore golden and bcd offsets from a file.
+    def restore_offsets(
+        self, folder_path: str, filenames: list[str] | None = None
+    ) -> None:
+        """Restore offsets from a file. If not passed a list of files to restore,
+        default to restoring BCD and golden offsets.
 
         Args:
-            folder_path: Path to the directory containing the offsets json files.
+            folder_path: Path to the directory containing the offsets json file(s).
+            filenames: List of filenames within the directory to restore.
         """
-        for filename in ["initial_bcd_offsets.json", "initial_golden_offsets.json"]:
+        if filenames is None:
+            filenames = ["initial_bcd_offsets.json", "initial_golden_offsets.json"]
+
+        for filename in filenames:
             offsets_file_path = os.path.join(folder_path, filename)
             if not os.path.exists(offsets_file_path):
                 log.info(f"No {filename} to restore")

@@ -1578,7 +1578,7 @@
              <string>Load &amp;&amp; Apply Config Files</string>
             </property>
            </widget>
-           <widget class="QPushButton" name="button_golden">
+           <widget class="QPushButton" name="button_restore_offsets">
             <property name="geometry">
              <rect>
               <x>10</x>
@@ -1588,7 +1588,7 @@
              </rect>
             </property>
             <property name="text">
-             <string>Load and Apply Golden Orbits</string>
+             <string>Load and Apply BPM Offsets</string>
             </property>
            </widget>
            <widget class="QTextEdit" name="display_config_load">
@@ -1607,7 +1607,7 @@
              <bool>true</bool>
             </property>
            </widget>
-           <widget class="QTextEdit" name="display_golden">
+           <widget class="QTextEdit" name="display_restore_offsets">
             <property name="geometry">
              <rect>
               <x>10</x>
