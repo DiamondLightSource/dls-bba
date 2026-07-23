@@ -503,8 +503,8 @@ class Machine:
         """Check if the maximum orbit is too large for FOFB and run SOFB if so."""
         fofb_max_orbit = self.config["FOFB_MAX_ORBIT_MICRONS"]
         max_value = self.get_largest_orbit()
-        while max_value >= fofb_max_orbit:
-            log.error("Orbit is too large for FOFB. Running SOFB.")
+        while max_value > fofb_max_orbit:
+            log.warning("Orbit is too large for FOFB. Running SOFB.")
             self.run_sofb()
             max_value = self.get_largest_orbit()
 
@@ -524,9 +524,9 @@ class Machine:
     def run_fofb(self) -> None:
         """Run FOFB and Tune feedbacks."""
         tune_trigger = self.config["FEEDBACK_PVS"]["Tune_Feedback"]
-        fofb_trigger = self.config["FOFB_NOGUI_PATH"]
+        fofb_trigger = self.config["FOFB_EXECUTABLE_PATH"]
         wait_time = self.config["FEEDBACK_WAIT_TIME"]
-        run_time = self.config["FEEDBACK_RUN_TIME"]
+        run_time = self.config["FOFB_RUN_TIME"]
         run(f"{fofb_trigger} start", check=True, shell=True)
         caput(tune_trigger, 1, wait=True)
 

@@ -95,7 +95,7 @@ class Worker:
                 break
 
         if rawdata is not None:
-            if self.save_rawdata is not None:
+            if self.save_rawdata:
                 rawdata.save(self.save_location)
 
             results = self.algorithm.analyse(rawdata)

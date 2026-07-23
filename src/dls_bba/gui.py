@@ -226,7 +226,7 @@ class MainWindow(QMainWindow):
     config_quad_step: QDoubleSpinBox
     config_warning_current: QDoubleSpinBox
     config_sofb_run_time: QDoubleSpinBox
-    config_run_time: QDoubleSpinBox
+    config_fofb_run_time: QDoubleSpinBox
     config_wait_time: QDoubleSpinBox
     config_sbba_min_frac: QDoubleSpinBox
     config_sbba_stdev: QDoubleSpinBox
@@ -288,7 +288,6 @@ class MainWindow(QMainWindow):
         self.selection_strings: list[str] | None = None
         self.selected: list[str] | str | None = None
         self.loadfolder: str | None = None
-        self.savepath: str | None = None
         self.loadfile: str | None = None
         self.selected_toggle: int = 0
         self.tmp_single_filepath: str | None = None
@@ -476,14 +475,17 @@ class MainWindow(QMainWindow):
         if isinstance(self.selected, str):
             self.selected = [self.selected]
         assert isinstance(self.selected, list) and isinstance(self.selected[0], str)
+
+        latest_config = self.get_config_from_gui()
+
         return Worker(
             method,
             self.selected,
             self.create_question_box,
             machine=self.machine,
-            folder_path=self.machine.config["SAVE_LOCATION"],
+            folder_path=latest_config["SAVE_LOCATION"],
             logger=self.logger,
-            additional_options=self.get_config_from_gui(),
+            additional_options=latest_config,
         )
 
     def reset_iocs(self) -> None:
@@ -551,8 +553,6 @@ class MainWindow(QMainWindow):
         list_file = [file[0]]
         self.machine.update_config(extra_config_files=list_file)
         self.show_config()
-        # Allow for lattice reload.
-        cothread.Yield()  # TODO: Why does this need to yield?
         self.display_config_load.setText(f"Config File Applied at {get_isotime()}")
 
     def get_ringmode_options(self) -> list[str]:
@@ -574,36 +574,41 @@ class MainWindow(QMainWindow):
             A dictionary of the new config.
         """
         config_dict = {
-            "SAVE_LOCATION": self.display_save_loc.toPlainText(),
+            # Main Page
             "USE_FEEDBACKS": self.config_use_feedbacks.isChecked(),
             "FOFB_FEEDBACKS": self.config_use_fofb.isChecked(),
             "MAX_ORBIT_CORRECTION_MICRONS": self.config_max_orbit.value(),
             "MIN_CURRENT": self.config_current_limit.value(),
+            ## Additional Options and Plotting#
+            # General Options
             "CORRECTOR_KICK_RADIANS": self.config_corr_kick.value() / RAD_TO_URAD_CONV,
             "QUADRUPOLE_STEP_PERCENT": self.config_quad_step.value(),
             "WARNING_CURRENT_DROP": self.config_warning_current.value(),
-            "FEEDBACK_WAIT_TIME": self.config_wait_time.value(),
-            "FEEDBACK_RUN_TIME": self.config_run_time.value(),
             "SOFB_RUN_TIME": self.config_sofb_run_time.value(),
-            "MIN_SLOPE_FRACTION": self.config_sbba_min_frac.value(),
-            "CENTER_OUTLIER_FACTOR": self.config_sbba_stdev.value(),
-            "OUTLIER_FACTOR": self.config_sbba_fit_diff.value(),
+            "FOFB_RUN_TIME": self.config_fofb_run_time.value(),
+            "FEEDBACK_WAIT_TIME": self.config_wait_time.value(),
             "DECIMATED": self.config_use_decimation.isChecked(),
             "X_CYCLES": self.config_x_cycles.value(),
             "X_FREQUENCY": self.config_x_freq.value(),
             "Y_CYCLES": self.config_y_cycles.value(),
             "Y_FREQUENCY": self.config_y_freq.value(),
+            "RESELECTION_LIMIT": self.config_reselection.value(),
             "SAVE_RAWDATA": self.save_rawdata.isChecked(),
             "SAVE_RESULTS": self.save_results.isChecked(),
             "SAVE_PLOTS": self.save_plots.isChecked(),
-            "RESELECTION_LIMIT": self.config_reselection.value(),
+            # Advanced Options
             "RINGMODE": self.config_ringmode.currentText(),
             "COTHREAD_CONTROL_SYSTEM_TIMEOUT": self.config_ccs_timeout.value(),
             "COTHREAD_CONTROL_SYSTEM_WAIT_FLAG": self.config_ccs_wait.isChecked(),
-            "FOFB_EXECUTABLE_PATH": self.config_fofb_executable_path.toPlainText(),
+            "MIN_SLOPE_FRACTION": self.config_sbba_min_frac.value(),
+            "OUTLIER_FACTOR": self.config_sbba_fit_diff.value(),
+            "CENTER_OUTLIER_FACTOR": self.config_sbba_stdev.value(),
             "FOFB_MAX_ORBIT_MICRONS": self.config_fofb_max_orbit.value(),
             "ORBIT_RESPONSE_MATRIX_PATH": self.config_orm_path.toPlainText(),
             "CORRECTORS_TXT_PATH": self.config_corrector_txt_path.toPlainText(),
+            "FOFB_EXECUTABLE_PATH": self.config_fofb_executable_path.toPlainText(),
+            # Save Location and Config
+            "SAVE_LOCATION": self.display_save_loc.toPlainText(),
         }
         return config_dict
 
@@ -629,7 +634,7 @@ class MainWindow(QMainWindow):
         self.config_quad_step.setValue(config["QUADRUPOLE_STEP_PERCENT"])
         self.config_warning_current.setValue(config["WARNING_CURRENT_DROP"])
         self.config_wait_time.setValue(config["FEEDBACK_WAIT_TIME"])
-        self.config_run_time.setValue(config["FEEDBACK_RUN_TIME"])
+        self.config_fofb_run_time.setValue(config["FOFB_RUN_TIME"])
         self.config_sofb_run_time.setValue(config["SOFB_RUN_TIME"])
         self.config_sbba_min_frac.setValue(config["MIN_SLOPE_FRACTION"])
         self.config_sbba_stdev.setValue(config["CENTER_OUTLIER_FACTOR"])
@@ -703,11 +708,9 @@ class MainWindow(QMainWindow):
             self, "Select Folder to Save to", self.machine.config["SAVE_LOCATION"]
         )
         if folderpath == "":
-            self.display_save_loc.clear()
-            self.display_save_loc.setPlainText(self.machine.config["SAVE_LOCATION"])
-        else:
-            self.display_save_loc.setPlainText(folderpath)
-            self.savepath = folderpath
+            folderpath = self.machine.config["SAVE_LOCATION"]
+
+        self.display_save_loc.setPlainText(folderpath)
 
     def select_bba_folder(self) -> None:
         """Select a folder of old data to load."""
