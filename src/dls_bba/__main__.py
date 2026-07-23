@@ -239,7 +239,7 @@ def main(args: Namespace | None = None) -> None:
             )
         if args.single:
             apply_single(args.load, None, args.config_files, args.additional_config)
-        if args.folder:
+        if args.multiple:
             apply_folder(args.load, None, args.config_files, args.additional_config)
 
 
