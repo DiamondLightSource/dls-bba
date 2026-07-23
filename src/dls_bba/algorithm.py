@@ -128,7 +128,7 @@ class Algorithm(ABC):
 
         for index, axis in enumerate(["x", "y"]):
             # Get current BBA offset.
-            old_bba = float(self._machine.get_bba_offsets()[index][bpm_index])
+            old_bba = float(self._machine.get_initial_bba_offsets()[index][bpm_index])
             # Calculate the change needed.
             difference = self.calculate_new_offsets(results, axis)
             # Calculate the new BBA offset.

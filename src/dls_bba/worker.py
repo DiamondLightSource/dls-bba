@@ -68,7 +68,7 @@ class Worker:
         """Start the BBA process."""
         log.debug("Worker Start Started.")
         self.machine.check_feedbacks()
-        self.machine.zero_origins(self.save_location)
+        self.machine.save_and_zero_offsets(self.save_location)
         self.beam_current_decay = BeamCurrentCheck(self.machine, self.question_callback)
         self.beam_current_decay.check_beam_not_decayed()
         log.debug("Worker Start Finished.")
@@ -123,7 +123,7 @@ class Worker:
                 self.results_list, self.save_location, self.question_callback
             )
         cancel_all_oscillations(self.machine.config)
-        self.machine.restore_origins(self.save_location)
+        self.machine.restore_offsets(self.save_location)
         log.debug("Finished")
 
     def forced_finish(self) -> None:
@@ -131,7 +131,7 @@ class Worker:
         log.debug("Forced finish")
         self.algorithm.reformat_and_save_offsets(self.results_list, self.save_location)
         cancel_all_oscillations(self.machine.config)
-        self.machine.restore_origins(self.save_location)
+        self.machine.restore_offsets(self.save_location)
         log.debug("Forced finish finished")
 
     def pause_worker(self) -> None:

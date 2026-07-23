@@ -41,7 +41,7 @@ from typing_extensions import override
 from dls_bba.common import (  # noqa: E402
     ALGORITHMS,
     apply_folder,
-    apply_golden,
+    apply_offset_files,
     apply_single,
 )
 from dls_bba.excite import cancel_all_oscillations  # noqa E402
@@ -535,7 +535,7 @@ class MainWindow(QMainWindow):
         if file == ("", ""):
             self.display_golden.setText("No file selected.")
             return
-        apply_golden(file[0], self.machine)
+        apply_offset_files(file[0], self.machine)
         self.display_golden.setText(f"Golden Orbits restored at {get_isotime()}")
 
     def load_config_file(self) -> None:

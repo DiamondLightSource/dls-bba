@@ -41,16 +41,17 @@ def setup_folders_and_logger(
     return bba_folderpath
 
 
-def apply_golden(
+def apply_offset_files(
     filepath: str,
     machine: Machine | None = None,
     config_files: list[Any] | None = None,
     additional_config: dict[str, Any] | None = None,
 ) -> None:
-    """Apply the golden offsets provided to the machine.
+    """Apply the golden orbit and BCD offsets files provided to the machine.
 
     Args:
-        filepath: The full filepath to the golden orbit .json file.
+        filepath: The path to the directory containing the golden orbit and BCD offset
+                  files.
         machine: The machine object.
         config_files: List of extra configuration files to load.
         additional_config: Dictionary of configuration overrides.
@@ -58,7 +59,7 @@ def apply_golden(
     if machine is None:
         machine = Machine(config_files, additional_config)
     selected_file = os.path.dirname(filepath)
-    machine.restore_origins(selected_file)
+    machine.restore_offsets(selected_file)
 
 
 def apply_single(

@@ -637,72 +637,110 @@ class Machine:
         components.corrector.set_value(components.kick, value)
         log.debug(f"Corrector {components.corrector_name} set value: {value}")
 
-    def zero_origins(self, folder_path: str) -> None:
-        """Zero the BCD and Golden offsets. Additionally, save the golden offsets to a
-        file.
+    def save_offsets(
+        self, pv_names: list[str], folder_path: str, filename: str
+    ) -> None:
+        """Save the offset values from a list of PVs to a json file.
 
         Args:
-            folder_path: Path to save the golden offsets to.
+            pv_names: List of accessible PVs to caget from.
+            folder_path: Path to save the offsets to.
+            filename: Name of file to save to with file extension.
         """
-        log.info("Zeroing BCD and Golden Offsets")
-        golden_offsets = {}
+        offsets_dict = {}
+
+        offset_vals = caget(pv_names)
+
+        for name, offset in zip(pv_names, offset_vals, strict=True):
+            offsets_dict[name] = offset
+
+        with open(os.path.join(folder_path, filename), "w") as outfile:
+            json.dump(offsets_dict, outfile)
+
+    def save_and_zero_offsets(self, folder_path: str) -> None:
+        """Save BCD, Golden and BBA offsets to a file and then zero the BCD and
+        Golden offsets.
+
+        Args:
+            folder_path: Path to save the offsets to.
+        """
         bcd_pv_names = []
         golden_pv_names = []
+        bba_pv_names = []
 
+        log.info("Saving BCD, Golden and BBA Offsets to file")
         for bpm_name in self.bpms_names:
             for axis in ["x", "y"]:
                 bcd_pv = bpm_name + ORIGIN_SUFFIXES["BCD"].format(axis=axis.upper())
                 golden_pv = bpm_name + ORIGIN_SUFFIXES["GOLDEN"].format(
                     axis=axis.upper()
                 )
+                bba_pv = bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis=axis.upper())
+
                 bcd_pv_names.append(bcd_pv)
                 golden_pv_names.append(golden_pv)
+                bba_pv_names.append(bba_pv)
 
-        golden_vals = caget(golden_pv_names)
-        for name, offset in zip(golden_pv_names, golden_vals, strict=True):
-            golden_offsets[name] = offset
+        # Save offsets to file
+        self.save_offsets(bcd_pv_names, folder_path, "initial_bcd_offsets.json")
+        self.save_offsets(golden_pv_names, folder_path, "initial_golden_offsets.json")
+        self.save_offsets(bba_pv_names, folder_path, "initial_bba_offsets.json")
 
-        with open(os.path.join(folder_path, "golden_offsets.json"), "w") as outfile:
-            json.dump(golden_offsets, outfile)
-
+        # Zero offsets
+        log.info("Zeroing BCD and Golden Offsets")
         caput(bcd_pv_names, 0, wait=True)
         caput(golden_pv_names, 0, wait=True)
+
         Sleep(0.2)
         log.debug("Origins Zeroed")
 
-    def restore_origins(self, folder_path: str) -> None:
-        """Restore the golden offsets from a file.
+    def restore_offsets(self, folder_path: str) -> None:
+        """Restore golden and bcd offsets from a file.
 
         Args:
-            folder_path: Path to the golden offsets file.
+            folder_path: Path to the directory containing the offsets json files.
         """
+        for filename in ["initial_bcd_offsets.json", "initial_golden_offsets.json"]:
+            offsets_file_path = os.path.join(folder_path, filename)
+            if not os.path.exists(offsets_file_path):
+                log.info(f"No {filename} to restore")
+                return
 
-        golden_offsets_path = os.path.join(folder_path, "golden_offsets.json")
-        if not os.path.exists(golden_offsets_path):
-            log.info("No Golden Offsets file to restore")
-            return
+            log.info(f"Restoring Offsets from {filename}")
+            with open(offsets_file_path) as f:
+                offsets_dict = json.load(f)
 
-        log.info("Restoring Golden Offsets")
-        with open(golden_offsets_path) as f:
-            golden_offsets = json.load(f)
+            pv_names = []
+            pv_values = []
+            for key, value in offsets_dict.items():
+                pv_names.append(key)
+                pv_values.append(value)
+            caput(pv_names, pv_values, wait=True)
 
-        pv_names = []
-        pv_values = []
-        for key, value in golden_offsets.items():
-            pv_names.append(key)
-            pv_values.append(value)
-        caput(pv_names, pv_values, wait=True)
         Sleep(0.2)
         log.debug("Origins Restored")
 
-    @_retry_command(BPM_RETRIES, ChannelAccessError)  # BPM issues (OFL-256)
-    def get_bba_offsets(self) -> tuple[list[float], list[float]]:
-        """Get the current BBA offsets.
+    def get_initial_bba_offsets(self) -> tuple[list[float], list[float]]:
+        """Get the initial BBA offsets.
 
         Returns:
             Tuple of lists of the current BBA offsets in mm.
         """
-        current_bba_x = [float(v) for v in caget(self.bba_x_pvs)]
-        current_bba_y = [float(v) for v in caget(self.bba_y_pvs)]
+        offsets_file_path = os.path.join(self.save_location, "initial_bba_offsets.json")
 
-        return (current_bba_x, current_bba_y)
+        if not os.path.exists(offsets_file_path):
+            log.error("Could not find initial_bba_offsets.json")
+            return
+
+        with open(offsets_file_path) as f:
+            offsets_dict = json.load(f)
+
+        bba_x_offsets = []
+        bba_y_offsets = []
+        for key, value in offsets_dict.items():
+            if "_X_" in key:
+                bba_x_offsets.append(value)
+            elif "_Y_" in key:
+                bba_y_offsets.append(value)
+
+        return (bba_x_offsets, bba_y_offsets)
