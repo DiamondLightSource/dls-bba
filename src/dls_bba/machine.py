@@ -42,6 +42,9 @@ ORIGIN_SUFFIXES = {
 QUAD_SLEW_RATE = 0.5
 # Conversion factor from mm to microns.
 MM_MICRON_CONVERSION = 1000
+DEFAULT_BCD_OFFSETS_FILENAME = "initial_bcd_offsets.json"
+DEFAULT_GOLDEN_OFFSETS_FILENAME = "initial_golden_offsets.json"
+DEFAULT_BBA_OFFSETS_FILENAME = "initial_bba_offsets.json"
 
 
 def _retry_command(num_tries, excp_type):
@@ -673,9 +676,9 @@ class Machine:
                 bba_pv_names.append(bba_pv)
 
         # Save offsets to file
-        self.save_offsets(bcd_pv_names, folder_path, "initial_bcd_offsets.json")
-        self.save_offsets(golden_pv_names, folder_path, "initial_golden_offsets.json")
-        self.save_offsets(bba_pv_names, folder_path, "initial_bba_offsets.json")
+        self.save_offsets(bcd_pv_names, folder_path, DEFAULT_BCD_OFFSETS_FILENAME)
+        self.save_offsets(golden_pv_names, folder_path, DEFAULT_GOLDEN_OFFSETS_FILENAME)
+        self.save_offsets(bba_pv_names, folder_path, DEFAULT_BBA_OFFSETS_FILENAME)
 
         # Zero offsets
         log.info("Zeroing BCD and Golden Offsets")
@@ -696,12 +699,12 @@ class Machine:
             filenames: List of filenames within the directory to restore.
         """
         if filenames is None:
-            filenames = ["initial_bcd_offsets.json", "initial_golden_offsets.json"]
+            filenames = [DEFAULT_BCD_OFFSETS_FILENAME, DEFAULT_GOLDEN_OFFSETS_FILENAME]
 
         for filename in filenames:
             offsets_file_path = os.path.join(folder_path, filename)
             if not os.path.exists(offsets_file_path):
-                log.info(f"No {filename} to restore")
+                log.error(f"Could not restore {offsets_file_path}")
                 return
 
             log.info(f"Restoring Offsets from {filename}")
@@ -725,11 +728,11 @@ class Machine:
             Tuple of lists of the current BBA offsets in mm.
         """
         offsets_file_path = os.path.join(
-            self.config["FULL_SAVE_LOCATION"], "initial_bba_offsets.json"
+            self.config["FULL_SAVE_LOCATION"], DEFAULT_BBA_OFFSETS_FILENAME
         )
 
         if not os.path.exists(offsets_file_path):
-            log.error("Could not find initial_bba_offsets.json")
+            log.error(f"Could not find {DEFAULT_BBA_OFFSETS_FILENAME}")
             return
 
         with open(offsets_file_path) as f:
