@@ -44,11 +44,7 @@ class Worker:
             self.machine = machine
         else:
             self.machine = Machine(extra_config_files, additional_options)
-        folder_path = (
-            folder_path
-            if folder_path is not None
-            else self.machine.config["SAVE_LOCATION"]
-        )
+
         log.debug(f"Running {method} against {elements} results saved to {folder_path}")
         self.components_pairs = get_component_pairs(self.machine, elements)
         self.starting_length = len(self.components_pairs)
