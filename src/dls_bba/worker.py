@@ -37,7 +37,10 @@ class Worker:
             additional_options: Dictionary of configuration overrides.
         """
         self.save_location = setup_folders_and_logger(method, folder_path, logger)
-        additional_options["FULL_SAVE_LOCATION"] = self.save_location
+        if additional_options is not None:
+            additional_options["FULL_SAVE_LOCATION"] = self.save_location
+        else:
+            additional_options = {"FULL_SAVE_LOCATION": self.save_location}
 
         if machine is not None:
             machine.update_config(extra_config_files, additional_options)

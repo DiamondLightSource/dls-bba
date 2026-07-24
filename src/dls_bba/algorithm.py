@@ -17,7 +17,7 @@ from dls_bba.datatypes import (
     QuadResults,
     RawData,
 )
-from dls_bba.machine import ORIGIN_SUFFIXES, Machine
+from dls_bba.machine import OFFSET_SUFFIXES, Machine
 from dls_bba.plotting import bba_offsets_plot
 
 
@@ -218,7 +218,7 @@ class Algorithm(ABC):
         with open(filename, "w") as writer:
             for key, value in offsets_dict.items():
                 for plane in ["x", "y"]:
-                    pv_name = key + ORIGIN_SUFFIXES["BBA"].format(axis=plane.upper())
+                    pv_name = key + OFFSET_SUFFIXES["BBA"].format(axis=plane.upper())
                     line = (
                         f"{pv_name} Absolute change: {value[plane].diff_value} "
                         f"+/- {value[plane].diff_error} [mm]"
@@ -246,7 +246,7 @@ class Algorithm(ABC):
         pv_values = []
         for key, value in offsets_dict.items():
             for plane in ["x", "y"]:
-                pv_names.append(key + ORIGIN_SUFFIXES["BBA"].format(axis=plane.upper()))
+                pv_names.append(key + OFFSET_SUFFIXES["BBA"].format(axis=plane.upper()))
                 pv_values.append(value[plane].new_value)
         caput(pv_names, pv_values, wait=True)
         log.info(f"{len(pv_names)} BBA Offsets Applied.")

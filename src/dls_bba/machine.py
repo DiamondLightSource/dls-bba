@@ -32,8 +32,8 @@ from dls_bba.exceptions import (
 BPM_RETRIES = os.getenv("BBA_BPM_RETRIES", 5)
 # Number of times to retry triggering FOFB.
 FOFB_RETRIES = 10
-# Suffixes for the origin PVs.
-ORIGIN_SUFFIXES = {
+# Suffixes for the offset PVs.
+OFFSET_SUFFIXES = {
     "BBA": ":CF:BBA_{axis}_S",
     "BCD": ":CF:BCD_{axis}_S",
     "GOLDEN": ":CF:GOLDEN_{axis}_S",
@@ -665,11 +665,11 @@ class Machine:
         log.info("Saving BCD, Golden and BBA Offsets to file")
         for bpm_name in self.bpms_names:
             for axis in ["x", "y"]:
-                bcd_pv = bpm_name + ORIGIN_SUFFIXES["BCD"].format(axis=axis.upper())
-                golden_pv = bpm_name + ORIGIN_SUFFIXES["GOLDEN"].format(
+                bcd_pv = bpm_name + OFFSET_SUFFIXES["BCD"].format(axis=axis.upper())
+                golden_pv = bpm_name + OFFSET_SUFFIXES["GOLDEN"].format(
                     axis=axis.upper()
                 )
-                bba_pv = bpm_name + ORIGIN_SUFFIXES["BBA"].format(axis=axis.upper())
+                bba_pv = bpm_name + OFFSET_SUFFIXES["BBA"].format(axis=axis.upper())
 
                 bcd_pv_names.append(bcd_pv)
                 golden_pv_names.append(golden_pv)
@@ -686,13 +686,15 @@ class Machine:
         caput(golden_pv_names, 0, wait=True)
 
         Sleep(0.2)
-        log.debug("Origins Zeroed")
+        log.debug("Offsets Zeroed")
 
     def restore_offsets(
         self, folder_path: str, filenames: list[str] | None = None
     ) -> None:
-        """Restore offsets from a file. If not passed a list of files to restore,
-        default to restoring BCD and golden offsets.
+        """Restore offsets from a file.
+
+        If not passed a list of files to restore, it defaults to restoring the BCD and
+        golden offsets.
 
         Args:
             folder_path: Path to the directory containing the offsets json file(s).
@@ -719,21 +721,23 @@ class Machine:
             caput(pv_names, pv_values, wait=True)
 
         Sleep(0.2)
-        log.debug("Origins Restored")
+        log.debug("Offsets Restored")
 
     def get_initial_bba_offsets(self) -> tuple[list[float], list[float]]:
         """Get the initial BBA offsets.
 
         Returns:
             Tuple of lists of the current BBA offsets in mm.
+
+        Raises:
+            FileNotFoundError if the bba offsets json file cannot be found.
         """
         offsets_file_path = os.path.join(
             self.config["FULL_SAVE_LOCATION"], DEFAULT_BBA_OFFSETS_FILENAME
         )
 
         if not os.path.exists(offsets_file_path):
-            log.error(f"Could not find {DEFAULT_BBA_OFFSETS_FILENAME}")
-            return
+            raise FileNotFoundError(f"Could not find {DEFAULT_BBA_OFFSETS_FILENAME}")
 
         with open(offsets_file_path) as f:
             offsets_dict = json.load(f)

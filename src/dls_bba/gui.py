@@ -872,7 +872,10 @@ class MainWindow(QMainWindow):
         if self.ticker.state != "Idle":
             log.critical("Force Closed.")
             cancel_all_oscillations(self.machine.config)
-            log.critical("Golden Orbit not reapplied to BPMs. Please reapply.")
+            log.critical(
+                "Golden Orbit and BCD offsets not reapplied to BPMs. Please reapply"
+                " manually."
+            )
         else:
             log.info("Closed Gracefully.")
         log.info("Exited.")
