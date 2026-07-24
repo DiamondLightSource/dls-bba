@@ -41,7 +41,7 @@ from typing_extensions import override
 from dls_bba.common import (  # noqa: E402
     ALGORITHMS,
     apply_folder,
-    apply_offset_files,
+    apply_offsets_files,
     apply_single,
 )
 from dls_bba.excite import cancel_all_oscillations  # noqa E402
@@ -535,7 +535,7 @@ class MainWindow(QMainWindow):
         if file == ("", ""):
             self.display_restore_offsets.setText("No file selected.")
             return
-        apply_offset_files(file[0], self.machine)
+        apply_offsets_files(file[0], self.machine)
         self.display_restore_offsets.setText(f"Offsets restored at {get_isotime()}")
 
     def load_config_file(self) -> None:

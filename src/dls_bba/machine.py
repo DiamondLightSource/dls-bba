@@ -109,7 +109,6 @@ class Machine:
         """
         flag_files = False
         flag_dict = False
-
         if extra_config_files is not None:
             flag_files = self.config.apply_config_files(extra_config_files)
 
@@ -725,7 +724,9 @@ class Machine:
         Returns:
             Tuple of lists of the current BBA offsets in mm.
         """
-        offsets_file_path = os.path.join(self.save_location, "initial_bba_offsets.json")
+        offsets_file_path = os.path.join(
+            self.config["FULL_SAVE_LOCATION"], "initial_bba_offsets.json"
+        )
 
         if not os.path.exists(offsets_file_path):
             log.error("Could not find initial_bba_offsets.json")
