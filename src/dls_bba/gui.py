@@ -612,13 +612,6 @@ class MainWindow(QMainWindow):
         }
         return config_dict
 
-    def update_config(self) -> None:
-        """Update the machine config with the current config in the GUI."""
-        config_dict = self.get_config_from_gui()
-        self.machine.update_config(config_override_dict=config_dict)
-        self.show_config()
-        cothread.Yield()
-
     def show_config(self) -> None:
         """Load the config from the config object to the GUI."""
         config = self.machine.config
