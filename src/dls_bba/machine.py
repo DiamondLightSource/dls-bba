@@ -193,14 +193,6 @@ class Machine:
         # Incompatability between pytaclattice and faa number of bpms.
         self.faa_bpm_list = [0] + [i for i, _ in enumerate(self.bpms, start=1)]
 
-        # The PVs do not exist natively in pytac or as part of the element.
-        self.bba_x_pvs = [
-            name + ORIGIN_SUFFIXES["BBA"].format(axis="X") for name in self.bpms_names
-        ]
-        self.bba_y_pvs = [
-            name + ORIGIN_SUFFIXES["BBA"].format(axis="Y") for name in self.bpms_names
-        ]
-
     def _load_cell_dictionary_and_psps(self) -> None:
         """Populate the cell dictionary and psps."""
         psp_dict = self.config["PSPS"]
