@@ -60,13 +60,12 @@ docs/_api
 # PyBuilder
 target/
 
-# Likely venv names
+# likely venv names
 .venv*
 venv*
 
-# Further build artifacts
+# further build artifacts
 lockfiles/
-Pipfile
 
-# Ruff cache
+# ruff cache
 .ruff_cache/

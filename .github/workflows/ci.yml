@@ -29,8 +29,6 @@ jobs:
     with:
       runs-on: ${{ matrix.runs-on }}
       python-version: ${{ matrix.python-version }}
-    secrets:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   container:
     needs: test
@@ -44,7 +42,8 @@ jobs:
 
   docs:
     uses: ./.github/workflows/_docs.yml
-
+    permissions:
+      contents: write
 
   dist:
     uses: ./.github/workflows/_dist.yml
