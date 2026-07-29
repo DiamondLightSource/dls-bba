@@ -38,6 +38,7 @@ def setup_folders_and_logger(
     get_new_logger(bba_folderpath, gui)
     # Avoid filling log files with matplotlib logging junk.
     log.getLogger("matplotlib.font_manager").disabled = True
+    log.debug(f"Saving BBA data to {bba_folderpath}")
     return bba_folderpath
 
 
