@@ -36,17 +36,19 @@ class Worker:
             extra_config_files: List of extra configuration files to load.
             additional_options: Dictionary of configuration overrides.
         """
-        self.save_location = setup_folders_and_logger(method, folder_path, logger)
-        if additional_options is not None:
-            additional_options["FULL_SAVE_LOCATION"] = self.save_location
-        else:
-            additional_options = {"FULL_SAVE_LOCATION": self.save_location}
-
         if machine is not None:
             machine.update_config(extra_config_files, additional_options)
             self.machine = machine
         else:
             self.machine = Machine(extra_config_files, additional_options)
+
+        if folder_path is None:
+            folder_path = self.machine.config["SAVE_LOCATION"]
+
+        self.save_location = setup_folders_and_logger(method, folder_path, logger)
+        self.machine.update_config(
+            config_override_dict={"FULL_SAVE_LOCATION": self.save_location}
+        )
 
         log.debug(f"Running {method} against {elements} results saved to {folder_path}")
         self.components_pairs = get_component_pairs(self.machine, elements)
