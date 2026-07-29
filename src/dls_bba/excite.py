@@ -203,10 +203,13 @@ def cancel_all_oscillations(config: Configuration) -> None:
             }
         )
 
+    # Ensure we wait for the caputs, this is essential as the configuration
+    # PVs must be updated before we write to EXCITE:PRIME.
     caput(*zip(*pvs.items(), strict=True), wait=True)
 
-    # Ensure all values are put, then reset the reset the IOCs
-    # cothread.Yield()
+    # Write to EXCITE:PRIME which causes the ioc to reset with our updated
+    # configuration. Because we set the configuration options to 0, this results
+    # in any ongoing or planned operations stopping.
     caput(
         [f"{ioc}:EXCITE:PRIME" for ioc in iocs],
         1,
