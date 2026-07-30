@@ -38,27 +38,29 @@ def setup_folders_and_logger(
     get_new_logger(bba_folderpath, gui)
     # Avoid filling log files with matplotlib logging junk.
     log.getLogger("matplotlib.font_manager").disabled = True
+    log.debug(f"Saving BBA data to {bba_folderpath}")
     return bba_folderpath
 
 
-def apply_golden(
+def apply_offsets_files(
     filepath: str,
     machine: Machine | None = None,
     config_files: list[Any] | None = None,
     additional_config: dict[str, Any] | None = None,
 ) -> None:
-    """Apply the golden offsets provided to the machine.
+    """Apply the supplied offsets file to the machine.
 
     Args:
-        filepath: The full filepath to the golden orbit .json file.
+        filepath: The full filepath to the offsets .json file.
         machine: The machine object.
         config_files: List of extra configuration files to load.
         additional_config: Dictionary of configuration overrides.
     """
     if machine is None:
         machine = Machine(config_files, additional_config)
-    selected_file = os.path.dirname(filepath)
-    machine.restore_origins(selected_file)
+    dirname = os.path.dirname(filepath)
+    filename = os.path.basename(filepath)
+    machine.restore_offsets(dirname, [filename])
 
 
 def apply_single(

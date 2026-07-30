@@ -41,7 +41,7 @@ from typing_extensions import override
 from dls_bba.common import (  # noqa: E402
     ALGORITHMS,
     apply_folder,
-    apply_golden,
+    apply_offsets_files,
     apply_single,
 )
 from dls_bba.excite import cancel_all_oscillations  # noqa E402
@@ -255,8 +255,8 @@ class MainWindow(QMainWindow):
     display_save_loc: QTextEdit
     config_load_apply: QPushButton
     display_config_load: QTextEdit
-    button_golden: QPushButton
-    display_golden: QTextEdit
+    button_restore_offsets: QPushButton
+    display_restore_offsets: QTextEdit
     button_bba_folder: QPushButton
     display_bba_folder: QTextEdit
     plot_bba: QPushButton
@@ -361,7 +361,7 @@ class MainWindow(QMainWindow):
         self.config_use_fofb.clicked.connect(self.use_fofb)
         self.config_ringmode.addItems(self.get_ringmode_options())
         self.config_load_apply.clicked.connect(self.load_config_file)
-        self.button_golden.clicked.connect(self.reapply_golden_orbits)
+        self.button_restore_offsets.clicked.connect(self.reapply_offsets_file)
 
     def start_ticker(self) -> None:
         """Start ticker."""
@@ -523,20 +523,20 @@ class MainWindow(QMainWindow):
 
         apply_folder(self.recent_folder, self.machine)
 
-    def reapply_golden_orbits(self) -> None:
-        """Reapply the golden orbits from the provided file."""
-        self.display_golden.clear()
+    def reapply_offsets_file(self) -> None:
+        """Reapply the BPM offsets from the provided file."""
+        self.display_restore_offsets.clear()
         file = QFileDialog.getOpenFileName(
             self,
-            "Select a golden .json File to load",
+            "Select an offsets .json File to load",
             self.machine.config["SAVE_LOCATION"],
             "JSON files (*.json)",
         )
         if file == ("", ""):
-            self.display_golden.setText("No file selected.")
+            self.display_restore_offsets.setText("No file selected.")
             return
-        apply_golden(file[0], self.machine)
-        self.display_golden.setText(f"Golden Orbits restored at {get_isotime()}")
+        apply_offsets_files(file[0], self.machine)
+        self.display_restore_offsets.setText(f"Offsets restored at {get_isotime()}")
 
     def load_config_file(self) -> None:
         """Load and apply the config file to the GUI."""
@@ -611,13 +611,6 @@ class MainWindow(QMainWindow):
             "SAVE_LOCATION": self.display_save_loc.toPlainText(),
         }
         return config_dict
-
-    def update_config(self) -> None:
-        """Update the machine config with the current config in the GUI."""
-        config_dict = self.get_config_from_gui()
-        self.machine.update_config(config_override_dict=config_dict)
-        self.show_config()
-        cothread.Yield()
 
     def show_config(self) -> None:
         """Load the config from the config object to the GUI."""
@@ -879,7 +872,10 @@ class MainWindow(QMainWindow):
         if self.ticker.state != "Idle":
             log.critical("Force Closed.")
             cancel_all_oscillations(self.machine.config)
-            log.critical("Golden Orbit not reapplied to BPMs. Please reapply.")
+            log.critical(
+                "Golden Orbit and BCD offsets not reapplied to BPMs. Please reapply"
+                " manually."
+            )
         else:
             log.info("Closed Gracefully.")
         log.info("Exited.")

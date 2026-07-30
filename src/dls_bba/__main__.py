@@ -4,7 +4,7 @@ import json
 import sys
 from argparse import ArgumentParser, Namespace
 
-from dls_bba.common import ALGORITHMS, apply_folder, apply_golden, apply_single
+from dls_bba.common import ALGORITHMS, apply_folder, apply_offsets_files, apply_single
 from dls_bba.gui import start_gui
 from dls_bba.machine import Machine
 from dls_bba.plotting import bba_offsets_folder, bowtie_plot
@@ -63,7 +63,7 @@ def add_action_arguments(info_parser, run_parser, plot_parser, apply_parser):
         "-l", "--load", type=str, default=None, help="The location to load from."
     )
     group = apply_parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("-g", "--golden", action="store_true", help="")
+    group.add_argument("-g", "--offsets", action="store_true", help="")
     group.add_argument("-s", "--single", action="store_true", help="")
     group.add_argument("-m", "--multiple", action="store_true", help="")
 
@@ -233,11 +233,13 @@ def main(args: Namespace | None = None) -> None:
             bba_offsets_folder(machine, args.filepath, True)
 
     elif args.command == "apply":
-        if args.golden:
-            apply_golden(args.load, None, args.config_files, args.additional_config)
+        if args.offsets:
+            apply_offsets_files(
+                args.load, None, args.config_files, args.additional_config
+            )
         if args.single:
             apply_single(args.load, None, args.config_files, args.additional_config)
-        if args.folder:
+        if args.multiple:
             apply_folder(args.load, None, args.config_files, args.additional_config)
 
 

@@ -41,12 +41,15 @@ class Worker:
             self.machine = machine
         else:
             self.machine = Machine(extra_config_files, additional_options)
-        folder_path = (
-            folder_path
-            if folder_path is not None
-            else self.machine.config["SAVE_LOCATION"]
+
+        if folder_path is None:
+            folder_path = self.machine.config["SAVE_LOCATION"]
+
+        self.full_save_location = setup_folders_and_logger(method, folder_path, logger)
+        self.machine.update_config(
+            config_override_dict={"FULL_SAVE_LOCATION": self.full_save_location}
         )
-        self.save_location = setup_folders_and_logger(method, folder_path, logger)
+
         log.debug(f"Running {method} against {elements} results saved to {folder_path}")
         self.components_pairs = get_component_pairs(self.machine, elements)
         self.starting_length = len(self.components_pairs)
@@ -68,7 +71,7 @@ class Worker:
         """Start the BBA process."""
         log.debug("Worker Start Started.")
         self.machine.check_feedbacks()
-        self.machine.zero_origins(self.save_location)
+        self.machine.save_and_zero_offsets(self.full_save_location)
         self.beam_current_decay = BeamCurrentCheck(self.machine, self.question_callback)
         self.beam_current_decay.check_beam_not_decayed()
         log.debug("Worker Start Finished.")
@@ -96,11 +99,11 @@ class Worker:
 
         if rawdata is not None:
             if self.save_rawdata:
-                rawdata.save(self.save_location)
+                rawdata.save(self.full_save_location)
 
             results = self.algorithm.analyse(rawdata)
             if self.save_results:
-                results.save(self.save_location)
+                results.save(self.full_save_location)
             self.results_list.append(results)
 
         assert self.beam_current_decay is not None
@@ -120,18 +123,20 @@ class Worker:
         log.debug("Finishing")
         if not manual_stop and self.results_list:
             self.algorithm.use_bba_offsets(
-                self.results_list, self.save_location, self.question_callback
+                self.results_list, self.full_save_location, self.question_callback
             )
         cancel_all_oscillations(self.machine.config)
-        self.machine.restore_origins(self.save_location)
+        self.machine.restore_offsets(self.full_save_location)
         log.debug("Finished")
 
     def forced_finish(self) -> None:
         """The process is finished (forced/unexpected)."""
         log.debug("Forced finish")
-        self.algorithm.reformat_and_save_offsets(self.results_list, self.save_location)
+        self.algorithm.reformat_and_save_offsets(
+            self.results_list, self.full_save_location
+        )
         cancel_all_oscillations(self.machine.config)
-        self.machine.restore_origins(self.save_location)
+        self.machine.restore_offsets(self.full_save_location)
         log.debug("Forced finish finished")
 
     def pause_worker(self) -> None:
