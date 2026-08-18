@@ -13,7 +13,7 @@ description = "Fast & Slow BBA (Beam Based Alignment) Python tools."
 dependencies = [
     "cothread>=2.18.3",
     "epicscorelibs",
-    # "fa-archiver",
+    "fa-archiver>=1.1.0",
     "matplotlib",
     "numpy>=1.21",
     "pytac>=0.6.0",
