@@ -1,11 +1,11 @@
 # Changes here will be overwritten by Copier
-_commit: 5.3.0
+_commit: 5.4.0
 _src_path: https://github.com/DiamondLightSource/python-copier-template.git
 author_email: diamhighlvlapps@diamond.ac.uk
 author_name: Diamond High-Level Applications Team
 component_lifecycle: experimental
 component_owner: user:jzs47954
-component_type: user-interface
+component_type: application
 description: Fast & Slow BBA (Beam Based Alignment) Python tools.
 distribution_name: dls-bba
 docker: true
