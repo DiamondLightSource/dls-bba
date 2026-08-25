@@ -17,9 +17,12 @@ dependencies = [
     "matplotlib",
     "numpy>=1.21",
     "pytac>=0.6.0",
-    "PyQt6>=6.4.1",
-    "PyQt6-Qt6>=6.4.2",
-    "PyQt6-sip>=13.4.1",
+    # pyqt6 versions are pinned because later versions do not
+    # have a source distribution for the linux platform on
+    # our Diamond workstations.
+    "PyQt6==6.4.1",
+    "PyQt6-Qt6==6.4.2",
+    "PyQt6-sip==13.4.1",
     "scipy",
     "setuptools>=70.1",
     "typing_extensions",
