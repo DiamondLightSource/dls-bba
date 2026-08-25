@@ -85,9 +85,9 @@ filterwarnings = "error"
 testpaths = "docs src tests"
 
 [tool.coverage.run]
-# Including subprocess in the coverage means that (for cli tests), coverage will initialize
-# before cothread, and the interaction between coverage’s instrumentation and
-# cothread’s native EPICS runtime is unstable. In practice, this results in segfaults.
+# Enabling coverage for subprocesses causes intermittent SIGSEGVs during Channel 
+# Access operations. These are called in the Machine class on construction.
+# Uncomment this to add coverage of tests using subprocess.
 # patch = ["subprocess"]
 data_file = "/tmp/dls_bba.coverage"
 
