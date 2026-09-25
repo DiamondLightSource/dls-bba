@@ -831,10 +831,10 @@
            </rect>
           </property>
           <property name="text">
-           <string>SOFB Run time [s]</string>
+           <string>SOFB Timeout [s]</string>
           </property>
          </widget>
-         <widget class="QDoubleSpinBox" name="config_sofb_run_time">
+         <widget class="QDoubleSpinBox" name="config_sofb_timeout">
           <property name="geometry">
            <rect>
             <x>10</x>
@@ -891,7 +891,7 @@
            <string>Feedbacks Wait time [s]</string>
           </property>
          </widget>
-         <widget class="QDoubleSpinBox" name="config_fofb_run_time">
+         <widget class="QDoubleSpinBox" name="config_fofb_timeout">
           <property name="geometry">
            <rect>
             <x>10</x>
@@ -923,7 +923,7 @@
            </rect>
           </property>
           <property name="text">
-           <string>FOFB Run time [s]</string>
+           <string>FOFB Timeout [s]</string>
           </property>
          </widget>
          <widget class="QCheckBox" name="config_use_decimation">

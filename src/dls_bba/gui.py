@@ -225,8 +225,8 @@ class MainWindow(QMainWindow):
     config_corr_kick: QDoubleSpinBox
     config_quad_step: QDoubleSpinBox
     config_warning_current: QDoubleSpinBox
-    config_sofb_run_time: QDoubleSpinBox
-    config_fofb_run_time: QDoubleSpinBox
+    config_sofb_timeout: QDoubleSpinBox
+    config_fofb_timeout: QDoubleSpinBox
     config_wait_time: QDoubleSpinBox
     config_sbba_min_frac: QDoubleSpinBox
     config_sbba_stdev: QDoubleSpinBox
@@ -584,8 +584,8 @@ class MainWindow(QMainWindow):
             "CORRECTOR_KICK_RADIANS": self.config_corr_kick.value() / RAD_TO_URAD_CONV,
             "QUADRUPOLE_STEP_PERCENT": self.config_quad_step.value(),
             "WARNING_CURRENT_DROP": self.config_warning_current.value(),
-            "SOFB_RUN_TIME": self.config_sofb_run_time.value(),
-            "FOFB_RUN_TIME": self.config_fofb_run_time.value(),
+            "SOFB_TIMEOUT": self.config_sofb_timeout.value(),
+            "FOFB_TIMEOUT": self.config_fofb_timeout.value(),
             "FEEDBACK_WAIT_TIME": self.config_wait_time.value(),
             "DECIMATED": self.config_use_decimation.isChecked(),
             "X_CYCLES": self.config_x_cycles.value(),
@@ -627,8 +627,8 @@ class MainWindow(QMainWindow):
         self.config_quad_step.setValue(config["QUADRUPOLE_STEP_PERCENT"])
         self.config_warning_current.setValue(config["WARNING_CURRENT_DROP"])
         self.config_wait_time.setValue(config["FEEDBACK_WAIT_TIME"])
-        self.config_fofb_run_time.setValue(config["FOFB_RUN_TIME"])
-        self.config_sofb_run_time.setValue(config["SOFB_RUN_TIME"])
+        self.config_fofb_timeout.setValue(config["FOFB_TIMEOUT"])
+        self.config_sofb_timeout.setValue(config["SOFB_TIMEOUT"])
         self.config_sbba_min_frac.setValue(config["MIN_SLOPE_FRACTION"])
         self.config_sbba_stdev.setValue(config["CENTER_OUTLIER_FACTOR"])
         self.config_sbba_fit_diff.setValue(config["OUTLIER_FACTOR"])
