@@ -533,16 +533,12 @@ class Machine:
         Sleep(wait_time)
 
     def wait_for_orbit_correction(self, timeout: float) -> None:
-        """Holds the program until the max orbit is met or the timeout is reached."""
-        corrected_max_orbit_threshold = 0.1  # um
+        """Holds the program until the orbit is <= the max or the timeout is reached."""
 
         start_time = time.time()
         largest_orbit = self.get_largest_orbit()
         while time.time() - start_time < timeout:
-            if (
-                abs(largest_orbit - self.config["MAX_ORBIT_CORRECTION_MICRONS"])
-                <= corrected_max_orbit_threshold
-            ):
+            if largest_orbit <= self.config["MAX_ORBIT_CORRECTION_MICRONS"]:
                 return
             Sleep(0.1)
         log.warning(
