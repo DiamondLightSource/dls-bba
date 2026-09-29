@@ -1,6 +1,7 @@
 import json
 import logging as log
 import os
+import time
 from collections import defaultdict
 from functools import wraps
 from subprocess import run
@@ -506,11 +507,11 @@ class Machine:
         """Run SOFB and Tune feedbacks."""
         sofb_trigger = self.config["FEEDBACK_PVS"]["Slow_Orbit_Feedback"]
         tune_trigger = self.config["FEEDBACK_PVS"]["Tune_Feedback"]
-        sofb_run_time = self.config["SOFB_RUN_TIME"]
+        sofb_timeout = self.config["SOFB_TIMEOUT"]
         wait_time = self.config["FEEDBACK_WAIT_TIME"]
         caput(sofb_trigger, 1, wait=True)
         caput(tune_trigger, 1, wait=True)
-        Sleep(sofb_run_time)
+        self.wait_for_orbit_correction(sofb_timeout)
         caput(tune_trigger, 0, wait=True)
         caput(sofb_trigger, 0, wait=True)
         Sleep(wait_time)
@@ -519,17 +520,30 @@ class Machine:
         """Run FOFB and Tune feedbacks."""
         tune_trigger = self.config["FEEDBACK_PVS"]["Tune_Feedback"]
         fofb_trigger = self.config["FOFB_EXECUTABLE_PATH"]
+        fofb_timeout = self.config["FOFB_TIMEOUT"]
         wait_time = self.config["FEEDBACK_WAIT_TIME"]
-        run_time = self.config["FOFB_RUN_TIME"]
         run(f"{fofb_trigger} start", check=True, shell=True)
         caput(tune_trigger, 1, wait=True)
 
         self.confirm_fofb_activation()
-        Sleep(run_time)
+        self.wait_for_orbit_correction(fofb_timeout)
 
         caput(tune_trigger, 0, wait=True)
         run(f"{fofb_trigger} stop", check=True, shell=True)
         Sleep(wait_time)
+
+    def wait_for_orbit_correction(self, timeout: float) -> None:
+        """Holds the program until the orbit is <= the max or the timeout is reached."""
+
+        start_time = time.time()
+        largest_orbit = self.get_largest_orbit()
+        while time.time() - start_time < timeout:
+            if largest_orbit <= self.config["MAX_ORBIT_CORRECTION_MICRONS"]:
+                return
+            Sleep(0.1)
+        log.warning(
+            f"Skipping feedbacks, timeout reached. Max orbit: {largest_orbit:.2f}um"
+        )
 
     def check_feedbacks(self) -> None:
         """Check if feedbacks are running and apply feedbacks if the orbit is too large.
