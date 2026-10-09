@@ -153,11 +153,18 @@ def bowtie_plot(filepath: str, save: bool = False) -> plt.Figure:
             axes[a_index, q_index].axvspan(
                 xmin=offset - abs(error), xmax=offset + abs(error), color="gray"
             )
-            # Add markers to x axis to indicate location of our 5 sets of x values.
-            ylim = axes[a_index, q_index].get_ylim()
-            ap = {"edgecolor": color, "fill": False, "headwidth": 5, "headlength": 5}
-            for i in range(len(x)):
-                axes[a_index, q_index].annotate(" ", (x[i], ylim[0]), arrowprops=ap)
+            if len(x) <= 25:
+                # Add markers to x axis to indicate location of our measurement, but
+                # only if there aren't too many - to avoid it getting cluttered.
+                ylim = axes[a_index, q_index].get_ylim()
+                ap = {
+                    "edgecolor": color,
+                    "fill": False,
+                    "headwidth": 5,
+                    "headlength": 5,
+                }
+                for i in range(len(x)):
+                    axes[a_index, q_index].annotate(" ", (x[i], ylim[0]), arrowprops=ap)
 
     fig.supylabel("Oscillation Difference [um]")
     fig.supxlabel(f"Oscillation at BPM: {bpm_name} [um]")
