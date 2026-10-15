@@ -633,6 +633,10 @@ class MainWindow(QMainWindow):
         self.config_sbba_stdev.setValue(config["CENTER_OUTLIER_FACTOR"])
         self.config_sbba_fit_diff.setValue(config["OUTLIER_FACTOR"])
         self.config_use_decimation.setChecked(config["DECIMATED"])
+        self.config_use_decimation.setToolTip(
+            "Unchecking this can cause issues if data cant be downloaded fast enough. "
+            "Only uncheck for >300Hz fbba frequencies. "
+        )
         self.config_x_cycles.setValue(config["X_CYCLES"])
         self.config_x_freq.setValue(config["X_FREQUENCY"])
         self.config_y_cycles.setValue(config["Y_CYCLES"])

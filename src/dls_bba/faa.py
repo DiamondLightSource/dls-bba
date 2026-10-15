@@ -2,7 +2,7 @@ import logging as log
 
 import cothread
 import numpy as np
-from fa.falib import falib
+from fa.falib import connection, falib
 
 from dls_bba.exceptions import (
     FAAPowerSupplyIOCTimestampError,
@@ -98,18 +98,37 @@ class Buffer:
     def _fetch_data(self) -> None:
         """Fetch the data from the FA archiver.
 
-        Keep fetching data until the desired data is fetched.
+        Keep fetching live data until the desired data is fetched.
         """
         try:
             sub = self.server.subscription(self.ids, decimated=self.dec)
             self.cache.append(sub.read(Buffer.SIZE))
             while self.cache[-1][-1, 0, 0] < (self.start + self.length + Buffer.EXTRA):
                 self.cache.append(sub.read(Buffer.SIZE))
+
+        except connection.EOF as e:
+            # Because we are reading live data from the fast archiver, sometimes we cant
+            # keep up with it which can result in an EOF error.
+            if not self._data_ok():
+                raise FastAcquisitionArchiverError(
+                    "Exception while fetching fast archiver data."
+                ) from e
+            else:
+                log.warning(
+                    "Fast archiver data stream ended early, but enough data was "
+                    "captured to continue."
+                )
+
+        finally:
             self.complete = True
             sub.close()
-        except Exception as e:  # The EOF exception is hidden from me.
-            log.warning(f"Fetching FA data failed: {e}")
-            self.complete = True
+
+    def _data_ok(self):
+        """Check if we have acquired the minimum required amount of data."""
+        if self.cache[-1][-1, 0, 0] >= self.start + self.length:
+            return True
+        else:
+            return False
 
     def get_data(self) -> np.ndarray:
         """Get the data from the buffer.

@@ -14,7 +14,7 @@
     "MIN_CURRENT": 295,
     "OUTLIER_FACTOR": 20,
     "CENTER_OUTLIER_FACTOR": 1,
-    "DECIMATED": false,
+    "DECIMATED": true,
     "X_CYCLES": 22,
     "X_FREQUENCY": 11,
     "Y_CYCLES": 26,
