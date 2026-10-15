@@ -105,14 +105,10 @@ class Buffer:
             self.cache.append(sub.read(Buffer.SIZE))
             while self.cache[-1][-1, 0, 0] < (self.start + self.length + Buffer.EXTRA):
                 self.cache.append(sub.read(Buffer.SIZE))
-            self.complete = True
-            sub.close()
+
         except connection.EOF as e:
             # Because we are reading live data from the fast archiver, sometimes we cant
             # keep up with it which can result in an EOF error.
-            self.complete = True
-            sub.close()
-
             if not self._data_ok():
                 raise FastAcquisitionArchiverError(
                     "Exception while fetching fast archiver data."
@@ -122,6 +118,10 @@ class Buffer:
                     "Fast archiver data stream ended early, but enough data was "
                     "captured to continue."
                 )
+
+        finally:
+            self.complete = True
+            sub.close()
 
     def _data_ok(self):
         """Check if we have acquired the minimum required amount of data."""
