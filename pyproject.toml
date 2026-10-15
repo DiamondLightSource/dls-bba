@@ -22,7 +22,7 @@ dependencies = [
     # our Diamond workstations.
     "PyQt6==6.4.1",
     "PyQt6-Qt6==6.4.2",
-    "PyQt6-sip==13.4.1",
+    "PyQt6-sip==13.13.0",
     "scipy",
     "setuptools>=70.1",
     "typing_extensions",
