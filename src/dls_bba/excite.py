@@ -172,8 +172,6 @@ def excite(excitations: tuple[Excitation, ...]) -> None:
     caput(*zip(*pvs.items(), strict=True), wait=True)
 
     # Ensure all values are put, then reset the reset the IOCs
-    # cothread.Yield()
-    # TODO: ^Delete once tested.
     caput(
         [f"{ioc}:EXCITE:PRIME" for ioc in iocs],
         1,
