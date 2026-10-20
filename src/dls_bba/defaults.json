@@ -1,5 +1,5 @@
 {
-    "SAVE_LOCATION": "/scratch/BBA_logs",
+    "SAVE_LOCATION": "/dls/ops-physics/diamonddata/dls-bba/",
     "USE_FEEDBACKS": true,
     "FOFB_FEEDBACKS": false,
     "CORRECTOR_KICK_RADIANS": 1e-5,
