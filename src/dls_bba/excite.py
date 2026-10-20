@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging as log
 from dataclasses import dataclass
 from typing import Any
 
@@ -167,6 +168,11 @@ def excite(excitations: tuple[Excitation, ...]) -> None:
         pvs[f"{e.ioc}:EXCITE:AMPS"][index] = e.oscillation.amplitude
         pvs[f"{e.ioc}:EXCITE:DELTAS"][index] = e.delta
         pvs[f"{e.ioc}:EXCITE:TICKS"][index] = e.count
+
+        log.debug(f"{e.ioc}:EXCITE:START_TIMES[{index}] set to {e.start_time}")
+        log.debug(f"{e.ioc}:EXCITE:AMPS[{index}] set to {e.oscillation.amplitude}")
+        log.debug(f"{e.ioc}:EXCITE:DELTAS[{index}] set to {e.delta}")
+        log.debug(f"{e.ioc}:EXCITE:TICKS[{index}] set to {e.count}")
 
     # caput the values
     caput(*zip(*pvs.items(), strict=True), wait=True)
