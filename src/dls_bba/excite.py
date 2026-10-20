@@ -52,8 +52,7 @@ class FofbCorrector:
         """
         table = cls.get_corrector_table(machine)
         name = components.corrector_name
-        # Corrector table indices start from 1
-        index = int(table["epics"].tolist().index(name)) + 1
+        index = int(table["epics"].tolist().index(name))
         ioc = table["ioc"][index]
         fofb_index = int(table["farow"][index])
         slow = 1 if name in machine.slow_correctors else 0
