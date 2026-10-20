@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging as log
 from dataclasses import dataclass
 from typing import Any
 
@@ -52,8 +53,7 @@ class FofbCorrector:
         """
         table = cls.get_corrector_table(machine)
         name = components.corrector_name
-        # Corrector table indices start from 1
-        index = int(table["epics"].tolist().index(name)) + 1
+        index = int(table["epics"].tolist().index(name))
         ioc = table["ioc"][index]
         fofb_index = int(table["farow"][index])
         slow = 1 if name in machine.slow_correctors else 0
@@ -169,12 +169,15 @@ def excite(excitations: tuple[Excitation, ...]) -> None:
         pvs[f"{e.ioc}:EXCITE:DELTAS"][index] = e.delta
         pvs[f"{e.ioc}:EXCITE:TICKS"][index] = e.count
 
+        log.debug(f"{e.ioc}:EXCITE:START_TIMES[{index}] set to {e.start_time}")
+        log.debug(f"{e.ioc}:EXCITE:AMPS[{index}] set to {e.oscillation.amplitude}")
+        log.debug(f"{e.ioc}:EXCITE:DELTAS[{index}] set to {e.delta}")
+        log.debug(f"{e.ioc}:EXCITE:TICKS[{index}] set to {e.count}")
+
     # caput the values
     caput(*zip(*pvs.items(), strict=True), wait=True)
 
     # Ensure all values are put, then reset the reset the IOCs
-    # cothread.Yield()
-    # TODO: ^Delete once tested.
     caput(
         [f"{ioc}:EXCITE:PRIME" for ioc in iocs],
         1,
