@@ -64,6 +64,11 @@
             "type": "bind"
         },
         {
+            "source": "/dls_sw/prod/R3.14.12.3/support/fastfeedback/",
+            "target": "/dls_sw/prod/R3.14.12.3/support/fastfeedback/",
+            "type": "bind"
+        },
+        {
             "source": "/scratch",
             "target": "/scratch",
             "type": "bind"
