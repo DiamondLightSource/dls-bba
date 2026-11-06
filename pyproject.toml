@@ -62,11 +62,17 @@ GitHub = "https://github.com/DiamondLightSource/dls-bba"
 email = "diamhighlvlapps@diamond.ac.uk"
 name = "Diamond High-Level Applications Team"
 
+<<<<<<< before updating
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
+=======
+[tool.uv]
+# Minimum uv to fix eMudhra CA cert incident (see discuss.python.org/t/109576)
+required-version = ">=0.13.5"
+>>>>>>> after updating
 
 [tool.setuptools_scm]
 version_file = "src/dls_bba/_version.py"
