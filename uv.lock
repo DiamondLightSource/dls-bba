@@ -341,6 +341,7 @@ dev = [
     { name = "sphinx-design" },
     { name = "tox-uv" },
     { name = "types-mock" },
+    { name = "uv" },
 ]
 
 [package.metadata]
@@ -376,6 +377,7 @@ dev = [
     { name = "sphinx-design" },
     { name = "tox-uv" },
     { name = "types-mock" },
+    { name = "uv", specifier = ">=0.13.5" },
 ]
 
 [[package]]
