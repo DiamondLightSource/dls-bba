@@ -69,6 +69,11 @@
             "type": "bind"
         },
         {
+            "source": "/dls/ops-physics/diamonddata/dls-bba/",
+            "target": "/dls/ops-physics/diamonddata/dls-bba/",
+            "type": "bind"
+        },
+        {
             "source": "/scratch",
             "target": "/scratch",
             "type": "bind"

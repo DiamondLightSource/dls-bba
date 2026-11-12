@@ -49,6 +49,7 @@ dev = [
     "sphinx-design",
     "tox-uv",
     "types-mock",
+    "uv>=0.13.5",
 ]
 
 [project.scripts]
