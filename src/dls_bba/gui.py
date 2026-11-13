@@ -40,6 +40,7 @@ from typing_extensions import override
 
 from dls_bba.common import (  # noqa: E402
     ALGORITHMS,
+    analyse_folder,
     apply_folder,
     apply_offsets_files,
     apply_single,
@@ -261,6 +262,7 @@ class MainWindow(QMainWindow):
     display_bba_folder: QTextEdit
     plot_bba: QPushButton
     apply_bba: QPushButton
+    reanalyse_bba: QPushButton
     button_single_bba: QPushButton
     display_single_bba: QTextEdit
     plot_single_bba: QPushButton
@@ -345,6 +347,11 @@ class MainWindow(QMainWindow):
         self.display_single_bba.setPlainText("Not Selected")
         self.plot_bba.clicked.connect(self.plot_bba_folder)
         self.apply_bba.clicked.connect(self.apply_bba_folder)
+        self.reanalyse_bba.clicked.connect(self.reanalyse_bba_folder)
+        self.reanalyse_bba.setToolTip(
+            "Re-generate results files for selected raw data files. Overwrites any "
+            "existing results files."
+        )
         self.plot_single_bba.clicked.connect(self.plot_bba_file)
         self.apply_single_bba.clicked.connect(self.apply_bba_file)
 
@@ -655,6 +662,15 @@ class MainWindow(QMainWindow):
         self.config_corrector_txt_path.setText(config["CORRECTORS_TXT_PATH"])
 
         self.display_save_loc.setPlainText(config["SAVE_LOCATION"])
+
+    def reanalyse_bba_folder(self) -> None:
+        """Re-generate results .mat and .txt files for all rawData in a given folder"""
+        if self.loadfolder is None:
+            self.display_bba_folder.clear()
+            self.display_bba_folder.setPlainText("Please select a folder to apply.")
+            return
+
+        analyse_folder(self.loadfolder)
 
     def apply_bba_folder(self) -> None:
         """Apply all results files in the given folder."""
