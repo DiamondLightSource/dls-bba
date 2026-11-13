@@ -141,7 +141,9 @@ def bowtie_plot(filepath: str, save: bool = False) -> plt.Figure:
             color = "b" if axis == "x" else "r"
             axes[a_index, q_index].grid(which="both", axis="both")
             # Plot measurements
-            measurements = results_object.metadata[f"plotting__{quad_name}__{axis}"]
+            measurements = results_object.metadata[
+                f"plotting__{quad_name.replace('-', '_')}__{axis}"
+            ]
             x = [value * MM_TO_UM_UNIT_CONV for value in measurements["x"]]
             y = [value * MM_TO_UM_UNIT_CONV for value in measurements["y"]]
             axes[a_index, q_index].plot(x, y, color=color, lw=0.5)
