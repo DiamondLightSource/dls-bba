@@ -2,6 +2,7 @@ import logging as log
 import os
 from typing import Any
 
+from dls_bba.algorithm import Algorithm
 from dls_bba.datatypes import BPMOffset, FullResults, OscillationPlane, RawData
 from dls_bba.fbba import FastBBA
 from dls_bba.isotime import get_isotime
@@ -10,7 +11,7 @@ from dls_bba.machine import Machine
 from dls_bba.sbba import SlowBBA
 from dls_bba.simfbba import SimFastBBA
 
-ALGORITHMS: dict[str, type[SlowBBA | FastBBA | SimFastBBA]] = {
+ALGORITHMS: dict[str, type[Algorithm]] = {
     "SlowBBA": SlowBBA,
     "FastBBA": FastBBA,
     "SimFastBBA": SimFastBBA,
