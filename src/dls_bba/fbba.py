@@ -193,7 +193,7 @@ class FastBBA(Algorithm):
         return [high_data, low_data]
 
     def extract_freq_excite(
-        self, data: np.ndarray, known_freq: int, bpm_index: int
+        self, data: np.ndarray, known_freq: int, bpm_index: int, decimated: bool
     ) -> np.ndarray:
         """Extract and clean the data for a given BPM and known frequency.
 
@@ -206,15 +206,21 @@ class FastBBA(Algorithm):
             data: The raw data array.
             known_freq: The known frequency of the excitation.
             bpm_index: The index of the BPM to extract data for.
+            decimated: Whether the data being analysed is decimated.
 
         Returns:
             The cleaned data array.
         """
+        ticks_per_second: float = TICKS_PER_SECOND
+        if decimated:
+            ticks_per_second = ticks_per_second / 10
+
         # Incoming data arranged as [Time, Axis]
         # mix aranged as [Time, 1]
         mix = np.exp(
-            2j * np.pi * known_freq / TICKS_PER_SECOND * np.arange(1, len(data) + 1).T
+            2j * np.pi * known_freq / ticks_per_second * np.arange(1, len(data) + 1).T
         )
+
         mix = mix[:, None]
 
         # Find the DC offset; aranged as [Axis, 1]
@@ -262,6 +268,7 @@ class FastBBA(Algorithm):
         bpm_index = bpm_number - np.sum(
             enabled_bpms[:bpm_number] == False  # noqa false positive
         )
+        decimated: bool = bool(metadata["DECIMATED"])
         results: dict[str, OscillationPlane[QuadResults]] = {}
 
         for quad_name in data.keys():
@@ -273,8 +280,12 @@ class FastBBA(Algorithm):
                 q_high = data[quad_name][axis]["high"][:, enabled_bpms]
 
                 # Clean the data using the synchronous detector method
-                q_high_clean = self.extract_freq_excite(q_high, frequency, bpm_index)
-                q_low_clean = self.extract_freq_excite(q_low, frequency, bpm_index)
+                q_high_clean = self.extract_freq_excite(
+                    q_high, frequency, bpm_index, decimated
+                )
+                q_low_clean = self.extract_freq_excite(
+                    q_low, frequency, bpm_index, decimated
+                )
 
                 # Take the difference between fits
                 q_diff = q_high_clean - q_low_clean

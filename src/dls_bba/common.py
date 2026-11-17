@@ -3,7 +3,7 @@ import os
 from typing import Any
 
 from dls_bba.algorithm import Algorithm
-from dls_bba.datatypes import BPMOffset, FullResults, OscillationPlane
+from dls_bba.datatypes import BPMOffset, FullResults, OscillationPlane, RawData
 from dls_bba.fbba import FastBBA
 from dls_bba.isotime import get_isotime
 from dls_bba.logger import get_new_logger
@@ -114,3 +114,38 @@ def apply_folder(
 
     algorithm = FastBBA(machine)
     algorithm.apply_bba_offsets(offsets_dict)
+
+
+def analyse_folder(folderpath: str):
+    """Re-analyse all rawData files in the supplied directory and generate
+    fresh .mat and .txt results files.
+
+    Args:
+        folderpath: The full filepath to the folder which contains results.mat files.
+    """
+    good_files = []
+    for file in os.listdir(folderpath):
+        if file.endswith("-rawdata.mat"):
+            good_files.append(os.path.join(folderpath, file))
+
+    if not good_files:
+        return
+
+    raw_data_list: list[RawData] = [RawData.from_file(file) for file in good_files]
+    try:
+        full_results_list = []
+        for raw_data in raw_data_list:
+            machine = Machine(overrides=raw_data.metadata)
+            method = ALGORITHMS[raw_data.metadata["method"]](machine)
+            full_results = method.analyse(raw_data)
+            full_results.save(folderpath)
+            full_results_list.append(full_results)
+
+        method.reformat_and_save_offsets(
+            full_results_list,
+            folderpath,
+        )
+    except (LookupError, TypeError):
+        log.exception(
+            "Failed to analyse data, possibly caused by BBA version mismatch?"
+        )

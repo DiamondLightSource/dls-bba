@@ -102,6 +102,8 @@ class RawData:
         raw_dict = {}
         for key, value in rawdata.items():
             raw_dict[key.replace("-", "_")] = value
+        metadata = {k.replace("-", "_"): v for k, v in metadata.items()}
+
         dct = {"rawdata": raw_dict, "metadata": metadata}
         io.savemat(
             os.path.join(folder_path, filename),
@@ -171,6 +173,7 @@ class FullResults:
         offsets_dict: dict[str, dict[str, float]] = {}
         for key, values in offsets.items():
             offsets_dict[key.replace("-", "_")] = asdict(values)
+        metadata = {k.replace("-", "_"): v for k, v in metadata.items()}
 
         dct = {"results": results_dict, "metadata": metadata, "offsets": offsets_dict}
         io.savemat(
