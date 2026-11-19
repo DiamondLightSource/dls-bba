@@ -1,13 +1,20 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools_scm[toml]>=8"]
+requires = ["setuptools>=77.0.3", "setuptools_scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "dls-bba"
 classifiers = [
     "Development Status :: 3 - Alpha",
+<<<<<<< before updating
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3.10",
+=======
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+>>>>>>> after updating
 ]
 description = "Fast & Slow BBA (Beam Based Alignment) Python tools."
 dependencies = [
@@ -29,7 +36,8 @@ dependencies = [
     "epicsdbbuilder",
 ]
 dynamic = ["version"]
-license.file = "LICENSE"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = "~=3.10.0" # cothread is broken on python3.11 and later
 
@@ -47,7 +55,7 @@ dev = [
     "sphinx-autobuild",
     "sphinx-copybutton",
     "sphinx-design",
-    "tox-uv",
+    "tox-uv-bare",
     "types-mock",
     "uv>=0.13.5",
 ]
@@ -63,11 +71,17 @@ GitHub = "https://github.com/DiamondLightSource/dls-bba"
 email = "diamhighlvlapps@diamond.ac.uk"
 name = "Diamond High-Level Applications Team"
 
+<<<<<<< before updating
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
+=======
+[tool.uv]
+# Minimum uv to fix eMudhra CA cert incident (see discuss.python.org/t/109576)
+required-version = ">=0.13.5"
+>>>>>>> after updating
 
 [tool.setuptools_scm]
 version_file = "src/dls_bba/_version.py"
@@ -104,6 +118,13 @@ env_list = ["pre-commit", "type-checking", "tests", "docs"]
 [tool.tox.env_run_base]
 # Pass all environment variables to the test environments
 passenv = ["*"]
+allowlist_externals = [
+    "mypy",
+    "pytest",
+    "pre-commit",
+    "sphinx-build",
+    "sphinx-autobuild",
+]
 
 [tool.tox.env.pre-commit]
 description = "Run pre-commit on all files"
